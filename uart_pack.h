@@ -49,7 +49,7 @@
 #endif  // _PRINTF_REDIRECT
 #endif  // _PRINTF_BLOCK
 // typedef
-typedef struct {                           // 超时UART控制结构体
+typedef struct {                           // 中断串口接收控制结构体
   uint8_t rxBuf[_UART_RECV_BUFFER_SIZE];   // 接收缓冲区
   uint8_t buffer[_UART_RECV_BUFFER_SIZE];  // 接收保存缓冲区
   __IO uint8_t finished;                   // 接收完成标志位
@@ -60,10 +60,10 @@ typedef struct {                           // 超时UART控制结构体
   UART_HandleTypeDef *huart;               // 串口句柄
   void (*rxCallback)(char *, uint16_t);    // 接收完成回调函数
   uint8_t cbkInIRQ;  // 回调函数是否在中断中执行
-} uart_ctrl_t;
+} uart_it_rx_t;
 
 #if _UART_ENABLE_DMA
-typedef struct {  // DMA UART控制结构体
+typedef struct {  // DMA串口接收控制结构体
   uint8_t rxBuf[_UART_RECV_BUFFER_SIZE] __ALIGNED(32);   // 接收缓冲区
   uint8_t buffer[_UART_RECV_BUFFER_SIZE] __ALIGNED(32);  // 接收保存缓冲区
   __IO uint8_t finished;                 // 接收完成标志位
@@ -71,7 +71,17 @@ typedef struct {  // DMA UART控制结构体
   UART_HandleTypeDef *huart;             // 串口句柄
   void (*rxCallback)(char *, uint16_t);  // 接收完成回调函数
   uint8_t cbkInIRQ;                      // 回调函数是否在中断中执行
-} uart_dma_ctrl_t;
+} uart_dma_rx_t;
+#endif
+
+#if _UART_ENABLE_TX_FIFO
+typedef struct {                         // FIFO串口发送控制结构体
+  uint8_t buffer[_UART_TX_FIFO_SIZE];  // 发送缓冲区
+  uint16_t wr;                      // 写索引
+  uint16_t rd;                      // 读索引
+  uint16_t rd_temp;                 // 读索引临时变量
+  UART_HandleTypeDef *huart;             // 串口句柄
+} uart_fifo_tx_t;
 #endif
 
 #if _UART_ENABLE_CDC
@@ -112,21 +122,26 @@ extern int Uart_Getchar(UART_HandleTypeDef *huart);
 extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
 extern int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data,
                          uint16_t len);
-extern void Uart_Init(uart_ctrl_t *ctrl, UART_HandleTypeDef *huart,
+extern void Uart_IT_Rx_Init(uart_it_rx_t *ctrl, UART_HandleTypeDef *huart,
                       m_time_t rxTimeout,
                       void (*rxCallback)(char *data, uint16_t len),
                       uint8_t cbkInIRQ);
-extern void Uart_Timeout_Check(void);
+extern void Uart_IT_Timeout_Check(void);
 extern void Uart_Callback_Check(void);
 
+extern void Uart_Tx_Process(UART_HandleTypeDef *huart);
 extern void Uart_Rx_Process(UART_HandleTypeDef *huart);
 extern void Uart_Error_Process(UART_HandleTypeDef *huart);
 
+#if _UART_ENABLE_TX_FIFO
+extern void Uart_FIFO_Tx_Init(uart_fifo_tx_t *ctrl, UART_HandleTypeDef *huart);
+#endif
+
 #if _UART_ENABLE_DMA
-extern void Uart_DMA_Init(uart_dma_ctrl_t *ctrl, UART_HandleTypeDef *huart,
+extern void Uart_DMA_Rx_Init(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
                           void (*rxCallback)(char *data, uint16_t len),
                           uint8_t cbkInIRQ);
-extern void Uart_DMA_Process(UART_HandleTypeDef *huart, uint16_t Size);
+extern void Uart_DMA_Rx_Process(UART_HandleTypeDef *huart, uint16_t Size);
 #endif  // _UART_ENABLE_DMA
 
 #if _UART_ENABLE_CDC

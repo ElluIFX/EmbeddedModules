@@ -17,6 +17,7 @@
 /*********************************************************************/
 /****************************** 全局设置 ******************************/
 #define _MOD_USE_PERF_COUNTER 1  // 是否使用perf_counter模块提供所有时基
+
 #define _MOD_USE_DALLOC 1        // 使用动态内存分配器
 #define _MOD_HEAP_SIZE (200UL * 1024UL)  // 动态内存分配器堆大小
 #define _MOD_HEAP_ALLOCATIONS 64UL  // 动态内存分配器最大分配数量
@@ -25,12 +26,11 @@
 /******************************调度器设置******************************/
 #define _SCH_ENABLE_HIGH_PRIORITY 1  // 支持高优先级任务
 #define _SCH_ENABLE_COROUTINE 1      // 支持宏协程
-#define _SCH_ENABLE_CALLLATER 1     // 支持延时调用
+#define _SCH_ENABLE_CALLLATER 1      // 支持延时调用
 
-#define _SCH_COMP_RANGE 1 * m_tick_per_ms  // 任务调度自动补偿范围(TICK)
-
-#define _SCH_DEBUG_MODE 0       // 调试模式(统计任务信息)
-#define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)
+#define _SCH_COMP_RANGE (1 * m_tick_per_ms)  // 任务调度自动补偿范围(TICK)
+#define _SCH_DEBUG_MODE 0                    // 调试模式(统计任务信息)
+#define _SCH_DEBUG_PERIOD 5                  // 调试报告打印周期(s)
 
 /****************************** 日志设置 ******************************/
 // 调试日志设置
@@ -47,29 +47,27 @@
 #define _LOG_ENABLE_FATAL 1  // 是否输出FATAL日志
 
 /****************************** 串口设置 ******************************/
-// 串口设置
-#define _UART_ENABLE_DMA 1      // 是否开启串口DMA支持
-#define _UART_ENABLE_CDC 0       // 是否开启USB CDC虚拟串口支持
+// 组件设置
+#define _UART_ENABLE_DMA 1         // 是否开启串口DMA支持(发送/接收)
+#define _UART_ENABLE_CDC 0         // 是否开启USB CDC虚拟串口支持
+#define _UART_ENABLE_TX_FIFO 1     // 是否开启串口FIFO发送功能
+#define _UART_DCACHE_COMPATIBLE 0  // (H7/F7) DCache兼容模式
 #define _UART_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数
-
-#define _ENABLE_DCACHE_COMPATIBLE 0  // 是否开启DCache兼容模式
-#define _UART_USE_ALLOC 1      // 是否使用发送缓冲区动态内存分配
-#define _UART_MAX_ALLOC_NUM 8  // 最大分配发送缓冲区数量
-#define _UART_ALLOC_BLOCK 0    // 是否阻塞直到分配成功
-
+// 收发设置
+#define _UART_SEND_USE_DMA 1    // 对于支持的串口是否使用DMA发送
+#define _UART_SEND_USE_IT 1     // 不支持DMA的串口是否使用中断发送
+#define _UART_TX_FIFO_SIZE 512  // 串口发送FIFO大小
+#define _UART_STATIC_BUFFER_SIZE 256  // 串口处理缓冲区大小(printf/buffered)
 #define _UART_RECV_BUFFER_SIZE 256  // 串口接收缓冲区大小
-#define _UART_SEND_BUFFER_SIZE 256  // 串口发送缓冲区大小
-#define _UART_TIMEOUT 5     // 串口发送等待超时时间(ms)/0阻塞
-#define _UART_CDC_TIMEOUT 5  // USB CDC发送等待超时时间(ms)
+#define _UART_TIMEOUT 5      // 串口发送等待超时时间(ms)/0阻塞
+#define _UART_CDC_TIMEOUT 5  // USB CDC发送等待超时时间(ms)/不允许阻塞
 // printf重定向设置
 #define _PRINTF_BLOCK 0           // 是否屏蔽所有printf
 #define _PRINTF_REDIRECT 1        // 是否重定向printf
-#define _PRINTF_USE_RTT 0         // 是否使用RTT发送
 #define _PRINTF_REDIRECT_FUNC 1   // 是否重定向fputc等函数
-#define _PRINTF_USE_IT 1          // 是否使用中断发送
-#define _PRINTF_USE_DMA 1         // 是否使用DMA发送
-#define _PRINTF_USE_CDC 0         // printf重定向到CDC
 #define _PRINTF_UART_PORT huart3  // printf重定向串口
+#define _PRINTF_USE_RTT 0         // 是否使用RTT发送
+#define _PRINTF_USE_CDC 0         // printf重定向到CDC
 // VOFA+
 #define _VOFA_ENABLE 1        // 是否开启VOFA相关函数
 #define _VOFA_BUFFER_SIZE 32  // VOFA缓冲区大小
