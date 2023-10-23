@@ -18,7 +18,7 @@
 /****************************** 全局设置 ******************************/
 #define _MOD_USE_PERF_COUNTER 1  // 是否使用perf_counter模块提供所有时基
 
-#define _MOD_USE_DALLOC 1        // 使用动态内存分配器
+#define _MOD_USE_DALLOC 1                // 使用动态内存分配器
 #define _MOD_HEAP_SIZE (200UL * 1024UL)  // 动态内存分配器堆大小
 #define _MOD_HEAP_ALLOCATIONS 64UL  // 动态内存分配器最大分配数量
 #define _MOD_HEAP_LOCATION 0x24000000  // 堆起始地址(0则自动分配)
@@ -54,11 +54,10 @@
 #define _UART_DCACHE_COMPATIBLE 0  // (H7/F7) DCache兼容模式
 #define _UART_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数
 // 收发设置
-#define _UART_SEND_USE_DMA 1    // 对于支持的串口是否使用DMA发送
-#define _UART_SEND_USE_IT 1     // 不支持DMA的串口是否使用中断发送
-#define _UART_TX_FIFO_SIZE 512  // 串口发送FIFO大小
-#define _UART_STATIC_BUFFER_SIZE 256  // 串口处理缓冲区大小(printf/buffered)
-#define _UART_RECV_BUFFER_SIZE 256  // 串口接收缓冲区大小
+#define _UART_SEND_USE_DMA 1  // 对于支持的串口是否使用DMA发送
+#define _UART_SEND_USE_IT 1   // 不支持DMA的串口是否使用中断发送
+#define _UART_SEND_BUFFER_SIZE 128  // 串口静态缓冲区大小(printf/buffered)
+#define _UART_RECV_BUFFER_SIZE 128  // 串口接收缓冲区大小
 #define _UART_TIMEOUT 5      // 串口发送等待超时时间(ms)/0阻塞
 #define _UART_CDC_TIMEOUT 5  // USB CDC发送等待超时时间(ms)/不允许阻塞
 // printf重定向设置
@@ -85,6 +84,13 @@
 #define _LED_G_PULSE 1000             // 绿灯最大比较值
 #define _LED_B_PULSE 1000             // 蓝灯最大比较值
 #endif
+
+/****************************** IIC设置 ******************************/
+#define _BOARD_I2C_USE_SW_IIC 0 // 是否使用软件IIC
+#define _BOARD_I2C_USE_LL_I2C 0 // 是否使用LL库IIC
+#define _BOARD_I2C_USE_HAL_I2C 0 // 是否使用HAL库IIC
+#define _BOARD_I2C_LL_INSTANCE I2C1 // LL库IIC实例
+#define _BOARD_I2C_HAL_INSTANCE hi2c1 // HAL库IIC实例
 
 /*********************************************************************/
 /**************************** 设置结束 *******************************/
@@ -125,8 +131,16 @@ typedef uint32_t m_time_t;
 
 #if _MOD_USE_DALLOC
 #include "dalloc.h"
+#define m_alloc(ptr, size) _dalloc((ptr), size)
+#define m_free(ptr) _dfree((ptr))
+#define m_realloc(ptr, size) _drealloc((ptr), size)
+#define m_replace(from_ptr, to_ptr) _dreplace((from_ptr), (to_ptr))
 #else
 #include "stdlib.h"
+#define m_alloc(ptr, size) (ptr) = (void*)malloc(size)
+#define m_free(ptr) free(ptr)
+#define m_realloc(ptr, size) (ptr) = (void*)realloc((ptr), size)
+#define m_replace(from_ptr, to_ptr) (to_ptr) = (from_ptr)
 #endif
 
 #define ENABLE 0x01

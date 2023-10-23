@@ -139,9 +139,10 @@ _INLINE void I2C_Read_Buffer_Word(uint8_t addr, uint8_t reg, uint16_t *data,
 _INLINE uint8_t I2C_Check_Device(uint8_t addr) {}
 
 #else
-#error "Please select a Board I2C interface"
+#define _NO_INTERFACE
 #endif
 
+#ifndef _NO_INTERFACE
 #include "log.h"
 
 void I2C_Bus_Scan(void) {
@@ -178,3 +179,4 @@ void I2C_Update_Register(uint8_t SlaveAddr, uint8_t RegAddr, uint8_t Mask,
   temp |= Data & Mask;
   I2C_Write_Byte(SlaveAddr, RegAddr, temp);
 }
+#endif  // !_NO_INTERFACE

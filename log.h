@@ -21,25 +21,27 @@
 
 #if _LOG_ENABLE
 #if _LOG_ENABLE_TIMESTAMP && _LOG_ENABLE_COLOR
-#define _DBG_LOG(level, color, fmt, args...)                        \
-  _LOG_PRINTF("\033[" #color "m[" level "/" _TIMESTAMP_FMT "] " fmt \
-              "\033[0m\r\n",                                        \
+#define _DBG_LOG(level, add, color, fmt, args...)                          \
+  _LOG_PRINTF("\033[" #color "m[" level "/" _TIMESTAMP_FMT "" add "] " fmt \
+              "\033[0m\r\n",                                               \
               _TIMESTAMP, ##args)
 #elif !_LOG_ENABLE_TIMESTAMP && _LOG_ENABLE_COLOR
-#define _DBG_LOG(level, color, fmt, args...) \
-  _LOG_PRINTF("\033[" #color "m[" level "] " fmt "\033[0m\r\n", ##args)
+#define _DBG_LOG(level, add, color, fmt, args...) \
+  _LOG_PRINTF("\033[" #color "m[" level "" add "] " fmt "\033[0m\r\n", ##args)
 #elif _LOG_ENABLE_TIMESTAMP && !_LOG_ENABLE_COLOR
-#define _DBG_LOG(level, color, fmt, args...) \
-  _LOG_PRINTF("[" level "/" _TIMESTAMP_FMT "] " fmt "\r\n", _TIMESTAMP, ##args)
+#define _DBG_LOG(level, add, color, fmt, args...)                              \
+  _LOG_PRINTF("[" level "/" _TIMESTAMP_FMT "" add "] " fmt "\r\n", _TIMESTAMP, \
+              ##args)
 #elif !_LOG_ENABLE_TIMESTAMP && !_LOG_ENABLE_COLOR
-#define _DBG_LOG(level, color, fmt, args...) \
-  _LOG_PRINTF("[" level "] " fmt "\r\n", ##args)
+#define _DBG_LOG(level, add, color, fmt, args...) \
+  _LOG_PRINTF("[" level "" add "] " fmt "\r\n", ##args)
 #endif
 #if _LOG_ENABLE_FUNC_LINE
 #define _DBG_LOG_FUNC(level, color, fmt, args...) \
-  _DBG_LOG(level, color, "%s:%d " fmt, __func__, __LINE__, ##args)
+  _DBG_LOG(level, "/%s:%d", color, fmt, __func__, __LINE__, ##args)
 #else
-#define _DBG_LOG_FUNC _DBG_LOG
+#define _DBG_LOG_FUNC(level, color, fmt, args...) \
+  _DBG_LOG(level, "", color, fmt, ##args)
 #endif  // _LOG_ENABLE_FUNC_LINE
 #if _LOG_ENABLE_DEBUG
 #define LOG_D(fmt, args...) _DBG_LOG_FUNC("D", 36, fmt, ##args)

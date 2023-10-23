@@ -115,8 +115,8 @@ void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
 
   do {
 #if _SCH_DEBUG_MODE
-    if (task_p == NULL && m_tick() - _sch_debug_last_print >
-                              _SCH_DEBUG_PERIOD * m_tick_clk) {
+    if (task_p == NULL &&
+        m_tick() - _sch_debug_last_print > _SCH_DEBUG_PERIOD * m_tick_clk) {
       Print_Debug_info(m_tick() - _sch_debug_last_print);
       _sch_debug_last_print = m_tick();
     }
@@ -299,11 +299,11 @@ void Sch_DelTask(uint16_t taskId) {
       if (q == NULL) {
         temp = (void **)&(p->next);
         m_free(schTaskEntry);
-        if (*temp != NULL) def_replace_pointers(temp, (void **)&(schTaskEntry));
+        if (*temp != NULL) m_replace(*temp, (schTaskEntry));
       } else {
         temp = (void **)&(p->next);
         m_free(q->next);
-        if (*temp != NULL) def_replace_pointers(temp, (void **)&(q->next));
+        if (*temp != NULL) m_replace(*temp, (q->next));
       }
       if (task_p == p) task_p = p->next;
 #if _SCH_ENABLE_HIGH_PRIORITY
@@ -458,11 +458,11 @@ void Sch_DelCoron(uint16_t taskId) {
       if (q == NULL) {
         temp = (void **)&(p->next);
         m_free(schCronEntry);
-        if (*temp != NULL) def_replace_pointers(temp, (void **)&(schCronEntry));
+        if (*temp != NULL) m_replace(*temp, (schCronEntry));
       } else {
         temp = (void **)&(p->next);
         m_free(q->next);
-        if (*temp != NULL) def_replace_pointers(temp, (void **)&(q->next));
+        if (*temp != NULL) m_replace(*temp, (q->next));
       }
       break;
     }
@@ -539,12 +539,11 @@ void Sch_CancelCallLater(void (*task)(void)) {
       if (q == NULL) {
         temp = (void **)&(p->next);
         m_free(schCallLaterEntry);
-        if (*temp != NULL)
-          def_replace_pointers(temp, (void **)&(schCallLaterEntry));
+        if (*temp != NULL) m_replace(*temp, (schCallLaterEntry));
       } else {
         temp = (void **)&(p->next);
         m_free(q->next);
-        if (*temp != NULL) def_replace_pointers(temp, (void **)&(q->next));
+        if (*temp != NULL) m_replace(*temp, (q->next));
       }
       break;
     }

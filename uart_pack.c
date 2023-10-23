@@ -4,9 +4,7 @@
 #include "stdlib.h"
 #include "string.h"
 
-#define MAX_HANDLE_NUM 8  // 最大串口数量
-
-#if 0
+#if 1
 void uart_memcpy(void *dst, const void *src, uint16_t len) {
   uint8_t *dst8 = (uint8_t *)dst;
   uint8_t *src8 = (uint8_t *)src;
@@ -27,16 +25,16 @@ void uart_memcpy(void *dst, const void *src, uint16_t len) {
 #endif
 
 #if _UART_TIMEOUT == 0
-#define _WAIT_UART_READY(x) \
-  while (_UART_NOT_READY) { \
-    __NOP();                \
+#define _WAIT_UART_READY(ret) \
+  while (_UART_NOT_READY) {   \
+    __NOP();                  \
   }
 #else
-#define _WAIT_UART_READY(x)                          \
+#define _WAIT_UART_READY(ret)                        \
   m_time_t _start_time = m_time_ms();                \
   while (_UART_NOT_READY) {                          \
     if (m_time_ms() - _start_time > _UART_TIMEOUT) { \
-      return x;                                      \
+      return ret;                                    \
     }                                                \
     __NOP();                                         \
   }
@@ -60,86 +58,123 @@ static inline void _send_func(UART_HandleTypeDef *huart, uint8_t *data,
 }
 
 #if _UART_ENABLE_TX_FIFO
-static uart_fifo_tx_t *fifo_tx_list[MAX_HANDLE_NUM] = {NULL};
-void Uart_FIFO_Tx_Init(uart_fifo_tx_t *ctrl, UART_HandleTypeDef *huart) {
-  ctrl->huart = huart;
-  ctrl->wr = 0;
-  ctrl->rd = 0;
-  ctrl->rd_temp = 0;
-  // add to list
-  for (int i = 0; i < MAX_HANDLE_NUM; i++) {
-    if (fifo_tx_list[i] == NULL) {
-      fifo_tx_list[i] = ctrl;
-      break;
-    }
+typedef struct {              // FIFO串口发送控制结构体
+  uint8_t *buffer;            // 发送缓冲区
+  uint16_t size;              // 缓冲区大小
+  uint16_t wr;                // 写索引
+  uint16_t rd;                // 占用读索引
+  uint16_t rd_send;           // 发送读索引
+  UART_HandleTypeDef *huart;  // 串口句柄
+  void *next;                 // 下一个控制结构体
+} uart_fifo_tx_t;
+
+static uart_fifo_tx_t *fifo_tx_entry = NULL;
+/**
+ * @brief 初始化FIFO串口发送
+ * @param  huart         目标串口
+ * @param  buffer        发送缓冲区, 若为NULL则尝试动态分配
+ * @param  bufSize       缓冲区大小
+ */
+void Uart_FIFO_Tx_Init(UART_HandleTypeDef *huart, uint8_t *buffer,
+                       uint16_t bufSize) {
+  if (!bufSize) return;
+  uart_fifo_tx_t *fifo = NULL;
+  if (!fifo_tx_entry) {
+    m_alloc(fifo_tx_entry, sizeof(uart_fifo_tx_t));
+    fifo = fifo_tx_entry;
+  } else {
+    fifo = fifo_tx_entry;
+    while (fifo->next) fifo = fifo->next;
+    m_alloc(fifo->next, sizeof(uart_fifo_tx_t));
+    fifo = fifo->next;
   }
+  if (!fifo) return;
+  if (buffer)
+    fifo->buffer = buffer;
+  else
+    m_alloc(fifo->buffer, bufSize);
+  if (!fifo->buffer) return;
+  fifo->huart = huart;
+  fifo->size = bufSize;
+  fifo->wr = 0;
+  fifo->rd = 0;
+  fifo->rd_send = 0;
 }
 
 static uart_fifo_tx_t *is_fifo_tx(UART_HandleTypeDef *huart) {
-  for (int i = 0; i < MAX_HANDLE_NUM; i++)
-    if (fifo_tx_list[i] && fifo_tx_list[i]->huart == huart)
-      return fifo_tx_list[i];
+  uart_fifo_tx_t *fifo = fifo_tx_entry;
+  while (fifo) {
+    if (fifo->huart == huart) return fifo;
+    fifo = fifo->next;
+  }
   return NULL;
 }
 
 #define FIFO_TX_DATA_LENGTH(FIFO)             \
   (FIFO->wr >= FIFO->rd ? FIFO->wr - FIFO->rd \
-                        : _UART_TX_FIFO_SIZE + FIFO->wr - FIFO->rd)
-#define FIFO_TX_FREE_SPACE(FIFO) \
-  (_UART_TX_FIFO_SIZE - FIFO_TX_DATA_LENGTH(FIFO) - 1)
+                        : FIFO->size + FIFO->wr - FIFO->rd)
+#define FIFO_TX_FREE_SPACE(FIFO) (FIFO->size - FIFO_TX_DATA_LENGTH(FIFO) - 1)
 
-static void _fifo_send(uart_fifo_tx_t *fifo, uint8_t force) {
+static void fifo_exchange(uart_fifo_tx_t *fifo, uint8_t force) {
   UART_HandleTypeDef *huart = fifo->huart;
   if (!force && _UART_NOT_READY) return;  // 串口正在发送
-  if (fifo->rd != fifo->rd_temp) fifo->rd = fifo->rd_temp;
+  if (fifo->rd != fifo->rd_send) fifo->rd = fifo->rd_send;
   if (fifo->wr == fifo->rd) return;  // FIFO为空
   if (fifo->wr > fifo->rd) {         // 无需循环
     _send_func(huart, fifo->buffer + fifo->rd, fifo->wr - fifo->rd);
-    fifo->rd_temp = fifo->wr;
+    fifo->rd_send = fifo->wr;
   } else {  // 先发尾部
-    _send_func(huart, fifo->buffer + fifo->rd, _UART_TX_FIFO_SIZE - fifo->rd);
-    fifo->rd_temp = 0;
+    _send_func(huart, fifo->buffer + fifo->rd, fifo->size - fifo->rd);
+    fifo->rd_send = 0;
   }
 }
 
-static int Uart_FIFO_Send(uart_fifo_tx_t *fifo, uint8_t *data, uint16_t len) {
-  if (len > _UART_TX_FIFO_SIZE) return -1;
+static int fifo_send(uart_fifo_tx_t *fifo, uint8_t *data, uint16_t len) {
+  if (len > fifo->size) return -1;
   if (FIFO_TX_FREE_SPACE(fifo) < len) {  // FIFO空间不足
     m_time_t _start_time = m_time_ms();
     while (FIFO_TX_FREE_SPACE(fifo) < len) {
       if (m_time_ms() - _start_time > _UART_TIMEOUT) return -1;
-      _fifo_send(fifo, 0);
+      fifo_exchange(fifo, 0);
     }
   }
-  if (fifo->wr + len > _UART_TX_FIFO_SIZE) {  // 需要循环
-    uint16_t len1 = _UART_TX_FIFO_SIZE - fifo->wr;
-    uart_memcpy(fifo->buffer + fifo->wr, data, len1);
+  if (fifo->wr + len > fifo->size) {  // 需要循环
+    uart_memcpy(fifo->buffer + fifo->wr, data, fifo->size - fifo->wr);
+    data += fifo->size - fifo->wr;
+    len -= fifo->size - fifo->wr;
     fifo->wr = 0;
-    data += len1;
-    len -= len1;
   }
   uart_memcpy(fifo->buffer + fifo->wr, data, len);
-  fifo->wr += len;
-  _fifo_send(fifo, 0);
+  fifo->wr = (fifo->wr + len) % fifo->size;
+  fifo_exchange(fifo, 0);
   return 0;
 }
 
-static int Uart_FIFO_Printf(uart_fifo_tx_t *fifo, char *fmt, va_list *ap) {
-  char buf[_UART_STATIC_BUFFER_SIZE];
-  int sendLen = vsnprintf(buf, _UART_STATIC_BUFFER_SIZE, fmt, *ap);
-  Uart_FIFO_Send(fifo, (uint8_t *)buf, sendLen);
+static int fifo_printf(uart_fifo_tx_t *fifo, char *fmt, va_list *ap) {
+#if 1  // stack缓冲区
+  char buf[_UART_SEND_BUFFER_SIZE];
+  int sendLen = vsnprintf(buf, _UART_SEND_BUFFER_SIZE, fmt, *ap);
+  fifo_send(fifo, (uint8_t *)buf, sendLen);
+#else  // heap缓冲区
+  char *buf;
+  int size = vsnprintf(NULL, 0, fmt, *ap);  // 计算长度
+  m_alloc(buf, size + 1);
+  int sendLen = vsnprintf(buf, size + 1, fmt, *ap);
+  fifo_send(fifo, (uint8_t *)buf, sendLen);
+  m_free(buf);
+#endif
   return sendLen;
 }
 #endif  // _UART_ENABLE_TX_FIFO
 
 static char *get_buffer(UART_HandleTypeDef *huart_get) {
-  static char send_buff[_UART_STATIC_BUFFER_SIZE];  // 发送缓冲区
+  static char buf[_UART_SEND_BUFFER_SIZE];  // 发送缓冲区
   static UART_HandleTypeDef *huart = NULL;
   if (huart) {
     _WAIT_UART_READY(NULL);
   }
   huart = huart_get;
-  return send_buff;
+  return buf;
 }
 
 /**
@@ -156,7 +191,7 @@ int printft(UART_HandleTypeDef *huart, char *fmt, ...) {
   uart_fifo_tx_t *fifo = is_fifo_tx(huart);
   if (fifo) {
     va_start(ap, fmt);
-    sendLen = Uart_FIFO_Printf(fifo, fmt, &ap);
+    sendLen = fifo_printf(fifo, fmt, &ap);
     va_end(ap);
     return sendLen;
   }
@@ -164,7 +199,7 @@ int printft(UART_HandleTypeDef *huart, char *fmt, ...) {
   sendBuffP = get_buffer(huart);
   if (sendBuffP == NULL) return -1;
   va_start(ap, fmt);
-  sendLen = vsnprintf(sendBuffP, _UART_STATIC_BUFFER_SIZE, fmt, ap);
+  sendLen = vsnprintf(sendBuffP, _UART_SEND_BUFFER_SIZE, fmt, ap);
   va_end(ap);
   if (Uart_Send(huart, (uint8_t *)sendBuffP, sendLen) < 0) return -1;
   return sendLen;
@@ -201,7 +236,7 @@ int Uart_Send(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
   if (!len) return 0;
 #if _UART_ENABLE_TX_FIFO
   uart_fifo_tx_t *fifo = is_fifo_tx(huart);
-  if (fifo) return Uart_FIFO_Send(fifo, data, len);
+  if (fifo) return fifo_send(fifo, data, len);
 #endif
   _WAIT_UART_READY(-1);
   _send_func(huart, data, len);
@@ -212,7 +247,7 @@ int Uart_Send_Buffered(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
   if (!len) return 0;
 #if _UART_ENABLE_TX_FIFO
   uart_fifo_tx_t *fifo = is_fifo_tx(huart);
-  if (fifo) return Uart_FIFO_Send(fifo, data, len);  // FIFO本身就是buffered
+  if (fifo) return fifo_send(fifo, data, len);  // FIFO本身就是buffered
 #endif
   uint8_t *sendBuffP = (uint8_t *)get_buffer(huart);
   if (sendBuffP == NULL) return -1;
@@ -287,7 +322,7 @@ void Uart_Callback_Check(void) {
 }
 #endif
 
-static uart_it_rx_t *it_rx_list[MAX_HANDLE_NUM] = {NULL};
+static uart_it_rx_t *it_rx_entry = NULL;
 
 /**
  * @brief 串口中断接收初始化
@@ -298,7 +333,7 @@ static uart_it_rx_t *it_rx_list[MAX_HANDLE_NUM] = {NULL};
  * @param  cbkInIRQ         回调函数是否在中断中执行
  */
 void Uart_IT_Rx_Init(uart_it_rx_t *ctrl, UART_HandleTypeDef *huart,
-                     m_time_t rxTimeout,
+                     uint16_t rxTimeout,
                      void (*rxCallback)(char *data, uint16_t len),
                      uint8_t cbkInIRQ) {
   ctrl->rxTimeout = rxTimeout;
@@ -310,11 +345,12 @@ void Uart_IT_Rx_Init(uart_it_rx_t *ctrl, UART_HandleTypeDef *huart,
   ctrl->cbkInIRQ = cbkInIRQ;
   HAL_UART_Receive_IT(huart, ctrl->rxBuf, 1);
   // add to list
-  for (int i = 0; i < MAX_HANDLE_NUM; i++) {
-    if (it_rx_list[i] == NULL) {
-      it_rx_list[i] = ctrl;
-      break;
-    }
+  if (!it_rx_entry) {
+    it_rx_entry = ctrl;
+  } else {
+    uart_it_rx_t *it_rx = it_rx_entry;
+    while (it_rx->next) it_rx = it_rx->next;
+    it_rx->next = ctrl;
   }
 }
 
@@ -322,31 +358,31 @@ void Uart_IT_Rx_Init(uart_it_rx_t *ctrl, UART_HandleTypeDef *huart,
  * @brief 串口接收中断处理，在函数HAL_UART_RxCpltCallback中调用
  */
 inline void Uart_Rx_Process(UART_HandleTypeDef *huart) {
-  for (uint8_t i = 0; i < MAX_HANDLE_NUM && it_rx_list[i]; i++) {
-    if (it_rx_list[i]->huart == huart) {
-      it_rx_list[i]->rxTime = m_time_ms();
-      if (++it_rx_list[i]->rxIdx >= _UART_RECV_BUFFER_SIZE - 1) {
-        uart_memcpy(it_rx_list[i]->buffer, it_rx_list[i]->rxBuf,
-                    it_rx_list[i]->rxIdx);
-        it_rx_list[i]->len = it_rx_list[i]->rxIdx;
-        it_rx_list[i]->buffer[it_rx_list[i]->rxIdx] = 0;
-        it_rx_list[i]->finished = 1;
-        it_rx_list[i]->rxIdx = 0;
-        if (it_rx_list[i]->rxCallback) {
-          if (it_rx_list[i]->cbkInIRQ) {
-            it_rx_list[i]->rxCallback((char *)it_rx_list[i]->buffer,
-                                      it_rx_list[i]->len);
-          } else {
-            swRxCallback = it_rx_list[i]->rxCallback;
-            swRxData = (char *)it_rx_list[i]->buffer;
-            swRxLen = it_rx_list[i]->len;
-          }
+  uart_it_rx_t *it_rx = it_rx_entry;
+  while (it_rx) {
+    if (it_rx->huart != huart) {
+      it_rx = it_rx->next;
+      continue;
+    }
+    it_rx->rxTime = m_time_ms();
+    if (++it_rx->rxIdx >= _UART_RECV_BUFFER_SIZE - 1) {
+      uart_memcpy(it_rx->buffer, it_rx->rxBuf, it_rx->rxIdx);
+      it_rx->len = it_rx->rxIdx;
+      it_rx->buffer[it_rx->rxIdx] = 0;
+      it_rx->finished = 1;
+      it_rx->rxIdx = 0;
+      if (it_rx->rxCallback) {
+        if (it_rx->cbkInIRQ) {
+          it_rx->rxCallback((char *)it_rx->buffer, it_rx->len);
+        } else {
+          swRxCallback = it_rx->rxCallback;
+          swRxData = (char *)it_rx->buffer;
+          swRxLen = it_rx->len;
         }
       }
-      HAL_UART_Receive_IT(it_rx_list[i]->huart,
-                          it_rx_list[i]->rxBuf + it_rx_list[i]->rxIdx, 1);
-      return;
     }
+    HAL_UART_Receive_IT(it_rx->huart, it_rx->rxBuf + it_rx->rxIdx, 1);
+    return;
   }
 }
 
@@ -356,7 +392,7 @@ inline void Uart_Rx_Process(UART_HandleTypeDef *huart) {
 __NOINLINE void Uart_Tx_Process(UART_HandleTypeDef *huart) {
 #if _UART_ENABLE_TX_FIFO
   uart_fifo_tx_t *fifo = is_fifo_tx(huart);
-  if (fifo) _fifo_send(fifo, 1);
+  if (fifo) fifo_exchange(fifo, 1);
 #endif
 }
 
@@ -364,28 +400,27 @@ __NOINLINE void Uart_Tx_Process(UART_HandleTypeDef *huart) {
  * @brief 串口中断接收超时判断，在调度器中调用
  */
 void Uart_IT_Timeout_Check(void) {
-  for (uint8_t i = 0; i < MAX_HANDLE_NUM && it_rx_list[i]; i++) {
-    if (it_rx_list[i]->rxIdx &&
-        m_time_ms() - it_rx_list[i]->rxTime > it_rx_list[i]->rxTimeout) {
-      HAL_UART_AbortReceive_IT(it_rx_list[i]->huart);
-      uart_memcpy(it_rx_list[i]->buffer, it_rx_list[i]->rxBuf,
-                  it_rx_list[i]->rxIdx);
-      it_rx_list[i]->len = it_rx_list[i]->rxIdx;
-      it_rx_list[i]->buffer[it_rx_list[i]->rxIdx] = 0;
-      it_rx_list[i]->finished = 1;
-      it_rx_list[i]->rxIdx = 0;
-      HAL_UART_Receive_IT(it_rx_list[i]->huart, it_rx_list[i]->rxBuf, 1);
-      if (it_rx_list[i]->rxCallback) {
-        it_rx_list[i]->rxCallback((char *)it_rx_list[i]->buffer,
-                                  it_rx_list[i]->len);
+  uart_it_rx_t *it_rx = it_rx_entry;
+  while (it_rx) {
+    if (it_rx->rxIdx && m_time_ms() - it_rx->rxTime > it_rx->rxTimeout) {
+      HAL_UART_AbortReceive_IT(it_rx->huart);
+      uart_memcpy(it_rx->buffer, it_rx->rxBuf, it_rx->rxIdx);
+      it_rx->len = it_rx->rxIdx;
+      it_rx->buffer[it_rx->rxIdx] = 0;
+      it_rx->finished = 1;
+      it_rx->rxIdx = 0;
+      HAL_UART_Receive_IT(it_rx->huart, it_rx->rxBuf, 1);
+      if (it_rx->rxCallback) {
+        it_rx->rxCallback((char *)it_rx->buffer, it_rx->len);
       }
     }
+    it_rx = it_rx->next;
   }
 }
 
 #if _UART_ENABLE_DMA
 
-uart_dma_rx_t *dma_rx_list[MAX_HANDLE_NUM] = {NULL};
+static uart_dma_rx_t *dma_rx_entry = NULL;
 
 /**
  * @brief 串口DMA接收初始化
@@ -404,11 +439,12 @@ void Uart_DMA_Rx_Init(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
   ctrl->rxCallback = rxCallback;
   ctrl->cbkInIRQ = cbkInIRQ;
   HAL_UARTEx_ReceiveToIdle_DMA(huart, ctrl->rxBuf, _UART_RECV_BUFFER_SIZE - 1);
-  for (int i = 0; i < MAX_HANDLE_NUM; i++) {
-    if (dma_rx_list[i] == NULL) {
-      dma_rx_list[i] = ctrl;
-      break;
-    }
+  if (!dma_rx_entry) {
+    dma_rx_entry = ctrl;
+  } else {
+    uart_dma_rx_t *dma_rx = dma_rx_entry;
+    while (dma_rx->next) dma_rx = dma_rx->next;
+    dma_rx->next = ctrl;
   }
 }
 
@@ -416,30 +452,32 @@ void Uart_DMA_Rx_Init(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
  * @brief 串口DMA接收处理，在函数HAL_UARTEx_RxEventCallback中调用
  */
 inline void Uart_DMA_Rx_Process(UART_HandleTypeDef *huart, uint16_t Size) {
-  for (uint8_t i = 0; i < MAX_HANDLE_NUM && dma_rx_list[i]; i++) {
-    if (dma_rx_list[i]->huart == huart) {
-#if _UART_DCACHE_COMPATIBLE
-      SCB_CleanInvalidateDCache_by_Addr((uint32_t *)dma_rx_list[i]->rxBuf,
-                                        ((Size + 31) / 32) * 32);
-#endif
-      uart_memcpy(dma_rx_list[i]->buffer, dma_rx_list[i]->rxBuf, Size);
-      dma_rx_list[i]->len = Size;
-      dma_rx_list[i]->buffer[Size] = 0;
-      dma_rx_list[i]->finished = 1;
-      HAL_UARTEx_ReceiveToIdle_DMA(dma_rx_list[i]->huart, dma_rx_list[i]->rxBuf,
-                                   _UART_RECV_BUFFER_SIZE - 1);
-      if (dma_rx_list[i]->rxCallback) {
-        if (dma_rx_list[i]->cbkInIRQ) {
-          dma_rx_list[i]->rxCallback((char *)dma_rx_list[i]->buffer,
-                                     dma_rx_list[i]->len);
-        } else {
-          swRxCallback = dma_rx_list[i]->rxCallback;
-          swRxData = (char *)dma_rx_list[i]->buffer;
-          swRxLen = dma_rx_list[i]->len;
-        }
-      }
-      return;
+  uart_dma_rx_t *dma_rx = dma_rx_entry;
+  while (dma_rx) {
+    if (dma_rx->huart != huart) {
+      dma_rx = dma_rx->next;
+      continue;
     }
+#if _UART_DCACHE_COMPATIBLE
+    SCB_CleanInvalidateDCache_by_Addr((uint32_t *)dma_rx->rxBuf,
+                                      ((Size + 31) / 32) * 32);
+#endif
+    uart_memcpy(dma_rx->buffer, dma_rx->rxBuf, Size);
+    dma_rx->len = Size;
+    dma_rx->buffer[Size] = 0;
+    dma_rx->finished = 1;
+    HAL_UARTEx_ReceiveToIdle_DMA(dma_rx->huart, dma_rx->rxBuf,
+                                 _UART_RECV_BUFFER_SIZE - 1);
+    if (dma_rx->rxCallback) {
+      if (dma_rx->cbkInIRQ) {
+        dma_rx->rxCallback((char *)dma_rx->buffer, dma_rx->len);
+      } else {
+        swRxCallback = dma_rx->rxCallback;
+        swRxData = (char *)dma_rx->buffer;
+        swRxLen = dma_rx->len;
+      }
+    }
+    return;
   }
 }
 #endif  // _UART_ENABLE_DMA
@@ -472,22 +510,26 @@ inline void Uart_Error_Process(UART_HandleTypeDef *huart) {
   }
   // 自动重启 DMA
 #if _UART_ENABLE_DMA
-  for (uint8_t i = 0; i < MAX_HANDLE_NUM && dma_rx_list[i]; i++) {
-    if (dma_rx_list[i]->huart->Instance == huart->Instance) {
-      HAL_UART_DMAStop(dma_rx_list[i]->huart);
-      HAL_UARTEx_ReceiveToIdle_DMA(dma_rx_list[i]->huart, dma_rx_list[i]->rxBuf,
+  uart_dma_rx_t *dma_rx = dma_rx_entry;
+  while (dma_rx) {
+    if (dma_rx->huart->Instance == huart->Instance) {
+      HAL_UART_DMAStop(dma_rx->huart);
+      HAL_UARTEx_ReceiveToIdle_DMA(dma_rx->huart, dma_rx->rxBuf,
                                    _UART_RECV_BUFFER_SIZE - 1);
       // break;
     }
+    dma_rx = dma_rx->next;
   }
 #endif
   // 自动重启中断
-  for (uint8_t i = 0; i < MAX_HANDLE_NUM && it_rx_list[i]; i++) {
-    if (it_rx_list[i]->huart->Instance == huart->Instance) {
-      HAL_UART_AbortReceive_IT(it_rx_list[i]->huart);
-      HAL_UART_Receive_IT(it_rx_list[i]->huart, it_rx_list[i]->rxBuf, 1);
+  uart_it_rx_t *it_rx = it_rx_entry;
+  while (it_rx) {
+    if (it_rx->huart->Instance == huart->Instance) {
+      HAL_UART_AbortReceive_IT(it_rx->huart);
+      HAL_UART_Receive_IT(it_rx->huart, it_rx->rxBuf, 1);
       // break;
     }
+    it_rx = it_rx->next;
   }
 }
 
