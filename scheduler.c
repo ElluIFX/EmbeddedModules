@@ -6,7 +6,6 @@ typedef struct {       // 用户任务结构
   m_time_t period;     // 任务调度周期(Tick)
   m_time_t lastRun;    // 上次执行时间(Tick)
   uint8_t enable;      // 是否使能
-  uint8_t dTParam;     // 是否传递dT参数
   uint16_t taskId;     // 任务ID
 #if _SCH_DEBUG_MODE
   m_time_t max_cost;    // 任务最大执行时间(Tick)
@@ -29,20 +28,20 @@ static uint8_t schTask_hpJmp = 0;
 
 #if _SCH_ENABLE_COROUTINE
 #pragma pack(1)
-typedef struct {       // 协程任务结构
-  void (*task)(void);  // 任务函数指针
-  uint8_t enable;      // 是否使能
-  uint8_t mode;        // 协程模式
-  uint16_t taskId;     // 任务ID
-  m_time_t idleUntil;  // 无阻塞延时结束时间(us)
-  long ptr;            // 协程跳入地址
+typedef struct {        // 协程任务结构
+  void (*task)(void);   // 任务函数指针
+  uint8_t enable;       // 是否使能
+  uint8_t mode;         // 模式
+  uint16_t taskId;      // 任务ID
+  m_time_t yieldUntil;  // 等待态结束时间(us)
+  long ptr;             // 协程跳入地址
   void *next;
 } scheduler_cron_t;
 #pragma pack()
 scheduler_cron_t *schCronEntry = NULL;
 scheduler_cron_t *cron_p = NULL;
 _cron_handle_t _cron_hp = {0};
-#endif
+#endif  // _SCH_ENABLE_COROUTINE
 
 #if _SCH_ENABLE_CALLLATER
 #pragma pack(1)
@@ -100,7 +99,6 @@ void Print_Debug_info(m_time_t period) {
 }
 
 #endif  // _SCH_DEBUG_MODE
-
 /**
  * @brief 时分调度器主函数
  * @param  block            是否阻塞
@@ -139,10 +137,7 @@ void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
         task_p->total_lat += latency;
         task_p->run_cnt++;
 #else
-        if (task_p->dTParam)
-          ((void (*)(m_time_t))task_p->task)(now - task_p->lastRun);
-        else
-          task_p->task();
+        task_p->task();
 #endif  // _SCH_DEBUG_MODE
         if (latency <= _SCH_COMP_RANGE)
           task_p->lastRun += task_p->period;
@@ -167,22 +162,24 @@ void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
 #if _SCH_ENABLE_COROUTINE
     if (schCronEntry != NULL) {
       if (cron_p == NULL) cron_p = schCronEntry;
-      if (cron_p->enable && m_time_us() >= cron_p->idleUntil) {
+      if (cron_p->enable && m_time_us() >= cron_p->yieldUntil) {
         _cron_hp.ptr = cron_p->ptr;
         _cron_hp.delay = 0;
         cron_p->task();  // 执行
         cron_p->ptr = _cron_hp.ptr;
-        cron_p->idleUntil = _cron_hp.delay;
+        cron_p->yieldUntil = _cron_hp.delay;
         if (!cron_p->ptr) {
-          if (cron_p->mode == CORON_MODE_AUTODEL) {
+          if (cron_p->mode == CR_MODE_AUTODEL) {
             Sch_DelCoron(cron_p->taskId);
-            continue;
-          } else if (cron_p->mode == CORON_MODE_ONESHOT)
+            goto CORON_END;  // 指针已被释放
+          } else if (cron_p->mode == CR_MODE_ONESHOT) {
             cron_p->enable = 0;
+          }
         }
       }
       cron_p = cron_p->next;
     }
+  CORON_END:
 #endif  // _SCH_ENABLE_COROUTINE
 
 #if _SCH_ENABLE_CALLLATER
@@ -209,6 +206,7 @@ void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
  */
 uint16_t Sch_AddTask(void (*task)(void), float freqHz, uint8_t enable) {
   scheduler_task_t *p = NULL;
+  uint16_t temp_id = 0xffff;
   if (schTaskEntry == NULL) {
     m_alloc(schTaskEntry, sizeof(scheduler_task_t));
     p = schTaskEntry;
@@ -217,54 +215,32 @@ uint16_t Sch_AddTask(void (*task)(void), float freqHz, uint8_t enable) {
   } else {
     scheduler_task_t *q = schTaskEntry;
     while (q->next != NULL) {
+      if (temp_id == 0xffff &&
+          ((scheduler_task_t *)q->next)->taskId > q->taskId + 1)
+        temp_id = q->taskId + 1;
       q = q->next;
     }
     m_alloc(q->next, sizeof(scheduler_task_t));
     p = q->next;
     if (p == NULL) return 0xffff;
-    p->taskId = q->taskId + 1;
+    if (temp_id == 0xffff) temp_id = q->taskId + 1;
+    p->taskId = temp_id;
   }
   p->task = task;
   p->period = (double)m_tick_clk / (double)freqHz;
   p->lastRun = m_tick() - p->period;
   p->enable = enable;
-  p->dTParam = 0;
   p->next = NULL;
   return p->taskId;
 }
 
-/**
- * @brief 添加一个任务到调度器, 调度时传递上一次调度到本次调度的时间差
- * @param  task             任务函数指针
- * @param  freqHz           任务调度频率
- * @param  enable           初始化时是否使能
- * @retval uint16_t          任务ID (0xFFFF表示堆内存分配失败)
- */
-uint16_t Sch_AddTask_dT(void (*task)(m_time_t dT), float freqHz,
-                        uint8_t enable) {
-  scheduler_task_t *p = NULL;
-  if (schTaskEntry == NULL) {
-    m_alloc(schTaskEntry, sizeof(scheduler_task_t));
-    p = schTaskEntry;
-    if (p == NULL) return 0xffff;
-    p->taskId = 0;
-  } else {
-    scheduler_task_t *q = schTaskEntry;
-    while (q->next != NULL) {
-      q = q->next;
-    }
-    m_alloc(q->next, sizeof(scheduler_task_t));
-    p = q->next;
-    if (p == NULL) return 0xffff;
-    p->taskId = q->taskId + 1;
+static scheduler_task_t *Sch_GetTaskById(uint16_t taskId) {
+  scheduler_task_t *p = schTaskEntry;
+  while (p != NULL) {
+    if (p->taskId == taskId) return p;
+    p = p->next;
   }
-  p->task = (void *)task;
-  p->period = (double)m_tick_clk / (double)freqHz;
-  p->lastRun = m_tick() - p->period;
-  p->enable = enable;
-  p->dTParam = 1;
-  p->next = NULL;
-  return p->taskId;
+  return NULL;
 }
 
 /**
@@ -273,17 +249,12 @@ uint16_t Sch_AddTask_dT(void (*task)(m_time_t dT), float freqHz,
  * @param  enable           使能状态(0xff:切换)
  */
 void Sch_SetTaskState(uint16_t taskId, uint8_t enable) {
-  scheduler_task_t *p = schTaskEntry;
-  while (p != NULL) {
-    if (p->taskId == taskId) {
-      if (enable == TOGGLE)
-        p->enable = !p->enable;
-      else
-        p->enable = enable;
-      break;
-    }
-    p = p->next;
-  }
+  scheduler_task_t *p = Sch_GetTaskById(taskId);
+  if (p == NULL) return;
+  if (enable == TOGGLE)
+    p->enable = !p->enable;
+  else
+    p->enable = enable;
 }
 
 /**
@@ -322,17 +293,11 @@ void Sch_DelTask(uint16_t taskId) {
  * @param  freq             调度频率
  */
 void Sch_SetTaskFreq(uint16_t taskId, float freqHz) {
-  scheduler_task_t *p = schTaskEntry;
-  while (p != NULL) {
-    if (p->taskId == taskId) {
-      p->period = (double)m_tick_clk / (double)freqHz;
-      if (p->period == 0) {
-        p->period = 1;
-      }
-      break;
-    }
-    p = p->next;
-  }
+  scheduler_task_t *p = Sch_GetTaskById(taskId);
+  if (p == NULL) return;
+  p->period = (double)m_tick_clk / (double)freqHz;
+  if (!p->period) p->period = 1;
+  p->lastRun = m_tick() - p->period;
 }
 
 /**
@@ -370,16 +335,11 @@ uint16_t Sch_GetTaskId(void (*task)(void)) {
  * @param  taskId           目标任务ID (0xFFFF:取消)
  */
 void Sch_SetHighPriorityTask(uint16_t taskId) {
-  scheduler_task_t *p = schTaskEntry;
   task_highPriority_p = NULL;
   if (taskId == 0xffff) return;
-  while (p != NULL) {
-    if (p->taskId == taskId) {
-      task_highPriority_p = p;
-      break;
-    }
-    p = p->next;
-  }
+  scheduler_task_t *p = Sch_GetTaskById(taskId);
+  if (p == NULL) return;
+  task_highPriority_p = p;
 }
 #endif
 
@@ -389,12 +349,10 @@ void Sch_SetHighPriorityTask(uint16_t taskId) {
  * @brief 添加一个协程
  * @param  task             任务函数指针
  * @param  enable           是否立即启动
- * @param  mode             协程模式(CRON_MODE_xxx)
- * @param  delay            延时启动时间(us)
+ * @param  mode             模式(CR_MODE_xxx)
  * @retval uint16_t         任务ID (0xFFFF表示堆内存分配失败)
  */
-uint16_t Sch_AddCoron(void (*task)(void), uint8_t enable, enum CORON_MODES mode,
-                      m_time_t delay) {
+uint16_t Sch_AddCoron(void (*task)(void), uint8_t enable, enum CR_MODES mode) {
   scheduler_cron_t *p = NULL;
   if (schCronEntry == NULL) {
     m_alloc(schCronEntry, sizeof(scheduler_cron_t));
@@ -414,7 +372,7 @@ uint16_t Sch_AddCoron(void (*task)(void), uint8_t enable, enum CORON_MODES mode,
   p->task = task;
   p->enable = enable;
   p->mode = mode;
-  p->idleUntil = delay + m_time_us();
+  p->yieldUntil = 0;
   p->next = NULL;
   p->ptr = NULL;
   return p->taskId;
@@ -437,7 +395,7 @@ void Sch_SetCoronState(uint16_t taskId, uint8_t enable, uint8_t clearState) {
       }
       if (clearState) {
         p->ptr = 0;
-        p->idleUntil = 0;
+        p->yieldUntil = 0;
       }
       break;
     }

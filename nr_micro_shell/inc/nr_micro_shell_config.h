@@ -100,13 +100,13 @@ The end of line.
 
 #ifndef PKG_USING_NR_MICRO_SHELL
 /* ANSI command line buffer size. */
-#define NR_ANSI_LINE_SIZE 100
+#define NR_ANSI_LINE_SIZE 64
 
 /* Maximum user name length. */
-#define NR_SHELL_USER_NAME_MAX_LENGTH 30
+#define NR_SHELL_USER_NAME_MAX_LENGTH 16
 
 /* Maximum command name length. */
-#define NR_SHELL_CMD_NAME_MAX_LENGTH 10
+#define NR_SHELL_CMD_NAME_MAX_LENGTH 15
 
 /* Command line buffer size. */
 #define NR_SHELL_CMD_LINE_MAX_LENGTH NR_ANSI_LINE_SIZE
@@ -121,7 +121,7 @@ The end of line.
 #define NR_SHELL_MAX_CMD_HISTORY_NUM 3
 
 /* History command cache length */
-#define NR_SHELL_CMD_HISTORY_BUF_LENGTH 253
+#define NR_SHELL_CMD_HISTORY_BUF_LENGTH 128
 
 /* The user's name. */
 #define NR_SHELL_USER_NAME "shell@ellu:"
