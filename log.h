@@ -130,7 +130,7 @@
 #define _TERM_WHITE _TERM_COLOR(37)
 
 #if _LOG_ENABLE_ASSERT
-#define __ASSERT_PRINT(text) _DBG_LOG("A", 31, text)
+#define __ASSERT_PRINT(text) _DBG_LOG("A", "", 31, text)
 #define __ASSERT_0(expr)                       \
   if (!(expr)) {                               \
     __ASSERT_PRINT("Failed expr: " #expr);     \
@@ -156,9 +156,7 @@ extern void Assert_Failed_Handler(char *file, uint32_t line);
 
 // 断言, param: 表达式, 错误日志(可选), 自定义语句(可选)
 // 断言失败时默认调用Assert_Failed_Handler
-#define ASSERT(expr, ...)      \
-  EVAL(__ASSERT_, __VA_ARGS__) \
-  (expr, ##__VA_ARGS__)
+#define ASSERT(expr, ...) EVAL(__ASSERT_, __VA_ARGS__)(expr, ##__VA_ARGS__)
 #else
 #define ASSERT(expr, ...) ((void)0)
 #endif

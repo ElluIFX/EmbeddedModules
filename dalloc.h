@@ -107,6 +107,7 @@ bool def_drealloc(uint32_t size, void **ptr);
 void print_def_dalloc_info();
 void dump_def_heap();
 void dump_def_dalloc_ptr_info();
+float get_def_heap_usage();
 
 #define _dalloc(ptr, size) def_dalloc(size, (void **)&(ptr))
 #define _dfree(ptr) def_dfree((void **)&(ptr))
@@ -125,6 +126,7 @@ void dfree(heap_t *heap_struct_ptr, void **ptr,
 void print_dalloc_info(heap_t *heap_struct_ptr);
 void dump_dalloc_ptr_info(heap_t *heap_struct_ptr);
 void dump_heap(heap_t *heap_struct_ptr);
+float get_heap_usage(heap_t *heap_struct_ptr);
 void replace_pointers(heap_t *heap_struct_ptr, void **ptr_to_replace,
                       void **ptr_new);
 

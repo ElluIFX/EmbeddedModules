@@ -15,51 +15,58 @@
 #if _BOARD_I2C_USE_SW_IIC
 #include "sw_i2c.h"
 
-void I2C_Init(void) { SW_IIC_Init(); }
+static sw_iic_t _i2c_dev = {
+    .sclPort = _BOARD_I2C_SW_SCL_PORT,
+    .sclPin = _BOARD_I2C_SW_SCL_PIN,
+    .sdaPort = _BOARD_I2C_SW_SDA_PORT,
+    .sdaPin = _BOARD_I2C_SW_SDA_PIN,
+};
+
+void I2C_Init(void) { SW_IIC_Init(&_i2c_dev); }
 
 _INLINE void I2C_Write_Byte(uint8_t addr, uint8_t reg, uint8_t data) {
-  SW_IIC_Write_8addr(addr, reg, &data, 1);
+  SW_IIC_Write_8addr(&_i2c_dev, addr, reg, &data, 1);
 }
 
 _INLINE uint8_t I2C_Read_Byte(uint8_t addr, uint8_t reg) {
   uint8_t temp;
-  SW_IIC_Read_8addr(addr, reg, &temp, 1);
+  SW_IIC_Read_8addr(&_i2c_dev, addr, reg, &temp, 1);
   return temp;
 }
 
 _INLINE void I2C_Write_Word(uint8_t addr, uint8_t reg, uint16_t data) {
   uint8_t buf[2] = {data >> 8, data};
-  SW_IIC_Write_8addr(addr, reg, buf, 2);
+  SW_IIC_Write_8addr(&_i2c_dev, addr, reg, buf, 2);
 }
 
 _INLINE uint16_t I2C_Read_Word(uint8_t addr, uint8_t reg) {
   uint8_t buf[2] = {0, 0};
-  SW_IIC_Read_8addr(addr, reg, buf, 2);
+  SW_IIC_Read_8addr(&_i2c_dev, addr, reg, buf, 2);
   return ((buf[1] << 8) | (buf[0] & 0xff));
 }
 
 _INLINE void I2C_Write_Buffer(uint8_t addr, uint8_t reg, uint8_t *data,
                               uint8_t len) {
-  SW_IIC_Write_8addr(addr, reg, data, len);
+  SW_IIC_Write_8addr(&_i2c_dev, addr, reg, data, len);
 }
 
 _INLINE void I2C_Read_Buffer(uint8_t addr, uint8_t reg, uint8_t *data,
                              uint8_t len) {
-  SW_IIC_Read_8addr(addr, reg, data, len);
+  SW_IIC_Read_8addr(&_i2c_dev, addr, reg, data, len);
 }
 
 _INLINE void I2C_Write_Buffer_Word(uint8_t addr, uint8_t reg, uint16_t *data,
                                    uint8_t len) {
-  SW_IIC_Write_8addr(addr, reg, (uint8_t *)data, len * 2);
+  SW_IIC_Write_8addr(&_i2c_dev, addr, reg, (uint8_t *)data, len * 2);
 }
 
 _INLINE void I2C_Read_Buffer_Word(uint8_t addr, uint8_t reg, uint16_t *data,
                                   uint8_t len) {
-  SW_IIC_Read_8addr(addr, reg, (uint8_t *)data, len * 2);
+  SW_IIC_Read_8addr(&_i2c_dev, addr, reg, (uint8_t *)data, len * 2);
 }
 
 _INLINE uint8_t I2C_Check_Device(uint8_t addr) {
-  return SW_IIC_Check_SlaveAddr(addr);
+  return SW_IIC_Check_SlaveAddr(&_i2c_dev, addr);
 }
 
 #elif _BOARD_I2C_USE_LL_I2C

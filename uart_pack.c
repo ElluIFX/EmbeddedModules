@@ -30,13 +30,10 @@ void uart_memcpy(void *dst, const void *src, uint16_t len) {
     __NOP();                  \
   }
 #else
-#define _WAIT_UART_READY(ret)                        \
-  m_time_t _start_time = m_time_ms();                \
-  while (_UART_NOT_READY) {                          \
-    if (m_time_ms() - _start_time > _UART_TIMEOUT) { \
-      return ret;                                    \
-    }                                                \
-    __NOP();                                         \
+#define _WAIT_UART_READY(ret)                                  \
+  m_time_t _start_time = m_time_ms();                          \
+  while (_UART_NOT_READY) {                                    \
+    if (m_time_ms() - _start_time > _UART_TIMEOUT) return ret; \
   }
 #endif
 
@@ -209,6 +206,14 @@ int printft(UART_HandleTypeDef *huart, char *fmt, ...) {
  * @brief 等待串口发送完成
  */
 void printft_flush(UART_HandleTypeDef *huart) {
+#if _UART_ENABLE_TX_FIFO
+  uart_fifo_tx_t *fifo = is_fifo_tx(huart);
+  if (fifo) {
+    while (FIFO_TX_DATA_LENGTH(fifo)) {
+      fifo_exchange(fifo, 0);
+    }
+  }
+#endif
   while (_UART_NOT_READY) {
     __NOP();
   }

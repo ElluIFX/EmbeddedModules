@@ -282,64 +282,11 @@ void dfree(heap_t *heap_struct_ptr, void **ptr,
 #endif
 
   //    /* Set given ptr to NULL */
-  //    if(condition == USING_PTR_ADDRESS){
-  //        *ptr = NULL;
-  //    }
+  if (condition == USING_PTR_ADDRESS) {
+    *ptr = NULL;
+  }
 
   defrag_memory(heap_struct_ptr);
-}
-
-void __dfree(heap_t *heap_struct_ptr, void **ptr,
-             validate_ptr_condition_t condition) {
-  uint32_t ptr_index = 0;
-
-  /* Try to find given ptr in ptr_info array */
-  if (validate_ptr(heap_struct_ptr, ptr, condition, &ptr_index) == true) {
-    /* Optimize memory, to escape fragmentation. */
-    uint32_t start_ind = (uint32_t)((uint8_t *)*ptr - heap_struct_ptr->mem);
-    uint32_t alloc_size =
-        ALLOCSIZE_GET(heap_struct_ptr->alloc_info.ptr_info_arr[ptr_index]);
-#if USE_ALIGNMENT
-    while (alloc_size % ALLOCATION_ALIGNMENT_BYTES != 0) {
-      alloc_size += 1;
-    }
-#endif
-
-    uint32_t stop_ind = heap_struct_ptr->offset - alloc_size;
-    for (uint32_t i = start_ind; i <= stop_ind; i++) {
-      heap_struct_ptr->mem[i] = heap_struct_ptr->mem[i + alloc_size];
-    }
-
-    /* Remove ptr from ptr_info array */
-    for (uint32_t i = ptr_index;
-         i < heap_struct_ptr->alloc_info.allocations_num - 1; i++) {
-      heap_struct_ptr->alloc_info.ptr_info_arr[i].ptr =
-          heap_struct_ptr->alloc_info.ptr_info_arr[i + 1].ptr;
-      ALLOCSIZE_SET(
-          heap_struct_ptr->alloc_info.ptr_info_arr[i],
-          ALLOCSIZE_GET(heap_struct_ptr->alloc_info.ptr_info_arr[i + 1]));
-      /* Reassign pointers */
-      *(heap_struct_ptr->alloc_info.ptr_info_arr[i].ptr) -= alloc_size;
-    }
-    heap_struct_ptr->alloc_info.allocations_num--;
-
-    /* Refresh offset */
-    heap_struct_ptr->offset = heap_struct_ptr->offset - alloc_size;
-
-    /* Fill by 0 all freed memory */
-#if FILL_FREED_MEMORY_BY_NULLS
-    for (uint32_t i = 0;
-         i < heap_struct_ptr->total_size - heap_struct_ptr->offset; i++) {
-      heap_struct_ptr->mem[heap_struct_ptr->offset + i] = 0;
-    }
-#endif
-    /* Set given ptr to NULL */
-    if (condition == USING_PTR_ADDRESS) {
-      *ptr = NULL;
-    }
-  } else {
-    LOG_E("Try to free unexisting pointer");
-  }
 }
 
 void replace_pointers(heap_t *heap_struct_ptr, void **ptr_to_replace,
@@ -368,6 +315,9 @@ bool drealloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
 
   uint8_t *new_ptr = NULL;
   dalloc(heap_struct_ptr, size, (void **)&new_ptr);
+  if (new_ptr == NULL) {
+    return false;
+  }
 
   uint8_t *old_ptr = (uint8_t *)(*ptr);
 
@@ -413,3 +363,13 @@ void dump_dalloc_ptr_info(heap_t *heap_struct_ptr) {
   }
   printf("**********************************\r\n");
 }
+
+float get_heap_usage(heap_t *heap_struct_ptr) {
+  uint32_t alloc_size = 0;
+  for (uint32_t i = 0; i < heap_struct_ptr->alloc_info.allocations_num; i++) {
+    alloc_size += ALLOCSIZE_GET(heap_struct_ptr->alloc_info.ptr_info_arr[i]);
+  }
+  return (float)alloc_size / (float)heap_struct_ptr->total_size;
+}
+
+float get_def_heap_usage() { return get_heap_usage(&default_heap); }

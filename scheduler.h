@@ -12,18 +12,24 @@
 
 #include "modules.h"
 
-extern uint16_t Sch_AddTask(void (*task)(void), float freqHz, uint8_t enable);
 extern void Scheduler_Run(const uint8_t block);
 
+#if !_SCH_DEBUG_MODE
+extern uint16_t Sch_CreateTask(void (*task)(void), float freqHz, uint8_t enable,
+                               uint8_t priority);
+#else
+extern uint16_t _Sch_CreateTask(const char *name, void (*task)(void),
+                               float freqHz, uint8_t enable, uint8_t priority);
+#define Sch_CreateTask(task, freqHz, enable, priority) \
+  _Sch_CreateTask(#task, task, freqHz, enable, priority)
+#endif  // !_SCH_DEBUG_MODE
 extern void Sch_SetTaskState(uint16_t taskId, uint8_t enable);
-extern void Sch_DelTask(uint16_t taskId);
+extern void Sch_DeleteTask(uint16_t taskId);
 extern void Sch_SetTaskFreq(uint16_t taskId, float freqHz);
-extern int Sch_GetTaskNum(void);
+extern void Sch_SetTaskPriority(uint16_t taskId, uint8_t priority);
+extern bool Sch_IsTaskExist(uint16_t taskId);
+extern uint16_t Sch_GetTaskNum(void);
 extern uint16_t Sch_GetTaskId(void (*task)(void));
-
-#if _SCH_ENABLE_HIGH_PRIORITY
-extern void Sch_SetHighPriorityTask(uint16_t taskId);
-#endif
 
 #if _SCH_ENABLE_COROUTINE
 enum CR_MODES {
@@ -86,23 +92,24 @@ extern _cron_handle_t _cron_hp;
  */
 #define CR_DELAY(ms) CR_DELAY_US(ms * 1000)
 
-extern uint16_t Sch_AddCoron(void (*task)(void), uint8_t enable,
-                             enum CR_MODES mode);
+extern uint16_t Sch_CreateCoron(void (*task)(void), uint8_t enable,
+                                enum CR_MODES mode);
 extern void Sch_SetCoronState(uint16_t taskId, uint8_t enable,
                               uint8_t clearState);
-extern void Sch_DelCoron(uint16_t taskId);
-extern int Sch_GetCoronNum(void);
+extern void Sch_DeleteCoron(uint16_t taskId);
+extern uint16_t Sch_GetCoronNum(void);
 extern uint16_t Sch_GetCoronId(void (*task)(void));
+extern bool Sch_IsCoronExist(uint16_t taskId);
 
 /**
  * @brief 运行一次协程, 执行完毕后自动删除
  */
-#define Sch_RunCorontine(task) Sch_AddCoron(task, 1, CR_MODE_AUTODEL)
+#define Sch_RunCorontine(task) Sch_CreateCoron(task, 1, CR_MODE_AUTODEL)
 
 #endif  // _SCH_ENABLE_COROUTINE
 
 #if _SCH_ENABLE_CALLLATER
-extern void Sch_CallLater(void (*task)(void), m_time_t delayUs);
+extern bool Sch_CallLater(void (*task)(void), m_time_t delayUs);
 extern void Sch_CancelCallLater(void (*task)(void));
 #endif  // _SCH_ENABLE_CALLLATER
 

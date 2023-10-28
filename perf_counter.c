@@ -169,6 +169,7 @@ extern uint32_t SystemCoreClock;
 
 /*============================ LOCAL VARIABLES ===============================*/
 volatile int64_t g_lLastTimeStamp = 0;
+volatile static int64_t s_lOldTimestamp;
 volatile int32_t g_nOffset = 0;
 volatile static int32_t s_nUSUnit = 1;
 volatile static int32_t s_nMSUnit = 1;
@@ -300,6 +301,26 @@ __STATIC_INLINE int32_t check_systick(void)
     return nTemp;
 }
 
+void before_cycle_counter_reconfiguration(void)
+{
+    __IRQ_SAFE {
+        SysTick->CTRL  = 0;                                                     /* disable SysTick first */
+
+        if (SCB->ICSR & SCB_ICSR_PENDSTSET_Msk) {                               /* pending SysTick exception */
+            SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;                                 /* clear pending bit */
+
+            user_code_insert_to_systick_handler();                              /* manually handle exception */
+
+        }
+        s_lSystemClockCounts = get_system_ticks();                              /* get the final cycle counter value */
+
+        SysTick->LOAD = 0UL;
+        SysTick->VAL = 0UL;                                                     /* clear the Current Value Register */
+    }
+}
+
+
+
 __attribute__((constructor))
 void __perf_counter_init(void)
 {
@@ -349,6 +370,21 @@ int64_t get_system_ticks(void)
 
     __IRQ_SAFE {
         lTemp = check_systick() + s_lSystemClockCounts;
+        
+        /* When calling get_system_ticks() in an exception handler that has a  
+         * higher priority than the SysTick_Handler, in some rare cases, the 
+         * lTemp might be temporarily smaller than the previous value (i.e. 
+         * s_lOldTimestamp), to mitigate the adverse effects of this problem,
+         * we use the following code to avoid time-rolling-back issue.
+         * 
+         * NOTE: the issue mentioned above doesn't accumulate or have long-lasting
+         *       effects.
+         */
+        if (lTemp < s_lOldTimestamp) {
+            lTemp = s_lOldTimestamp;
+        } else {
+            s_lOldTimestamp = lTemp;
+        }
     }
 
     return lTemp;
@@ -406,6 +442,55 @@ int32_t get_system_us(void)
     return nTemp;
 }
 
+int64_t perfc_convert_ticks_to_ms(int64_t lTick)
+{
+    return lTick / (int64_t)s_nMSUnit;
+}
+
+int64_t perfc_convert_ms_to_ticks(uint32_t wMS)
+{
+    int64_t lResult = (int64_t)s_nMSUnit * (int64_t)wMS;
+    return lResult ? lResult : 1;
+}
+
+int64_t perfc_convert_ticks_to_us(int64_t lTick)
+{
+    return lTick / (int64_t)s_nUSUnit;
+}
+
+int64_t perfc_convert_us_to_ticks(uint32_t wMS)
+{
+    int64_t lResult = (int64_t)s_nUSUnit * (int64_t)wMS;
+    return lResult ? lResult : 1;
+}
+
+
+bool __perfc_is_time_out(int64_t lPeriod, int64_t *plTimestamp, bool bAutoReload)
+{
+    if (NULL == plTimestamp) {
+        return false;
+    }
+    
+    int64_t lTimestamp = get_system_ticks();
+
+
+    if (0 == *plTimestamp) {
+        *plTimestamp = lPeriod;
+        *plTimestamp += lTimestamp;
+        
+        return false;
+    }
+
+    if (lTimestamp >= *plTimestamp) {
+        if (bAutoReload) {
+            *plTimestamp = lPeriod + lTimestamp;
+        }
+        return true;
+    }
+
+    return false;
+}
+
 
 /// Setup timer hardware.
 /// \return       status (1=Success, 0=Failure)
@@ -450,6 +535,24 @@ void init_task_cycle_counter(void)
     ptRootAgent->tList.ptInfo = &(ptRootAgent->tInfo);
     ptRootAgent->tInfo.lStart = get_system_ticks();
     ptRootAgent->wMagicWord = MAGIC_WORD_CANARY;
+}
+
+bool perfc_check_task_stack_canary_safe(void)
+{
+    struct __task_cycle_info_t * ptRootAgent =
+        (struct __task_cycle_info_t *)get_rtos_task_cycle_info();
+    do {
+        if (NULL == ptRootAgent) {
+            break;
+        }
+    
+        if  (   (MAGIC_WORD_CANARY == ptRootAgent->wMagicWord)
+            ||  (MAGIC_WORD_AGENT_LIST_VALID == ptRootAgent->wMagicWord)) {
+            return true;
+        }
+    } while(0);
+    
+    return false;
 }
 
 task_cycle_info_t *init_task_cycle_info(task_cycle_info_t *ptInfo)

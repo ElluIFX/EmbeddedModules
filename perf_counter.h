@@ -37,7 +37,7 @@ extern "C" {
  */
 #define __PERF_COUNTER_VER_MAJOR__ 2
 #define __PERF_COUNTER_VER_MINOR__ 2
-#define __PERF_COUNTER_VER_REVISE__ 0
+#define __PERF_COUNTER_VER_REVISE__ 4
 
 #define __PERF_COUNTER_VER_STR__ ""
 
@@ -108,6 +108,7 @@ extern "C" {
 #pragma clang diagnostic ignored "-Wshadow"
 #pragma clang diagnostic ignored "-Wshorten-64-to-32"
 #pragma clang diagnostic ignored "-Wcompound-token-split-by-macro"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(__IS_COMPILER_ARM_COMPILER_5__)
 #pragma diag_suppress 550
 #elif defined(__IS_COMPILER_GCC__)
@@ -144,6 +145,19 @@ __asm(".global __ensure_systick_wrapper\n\t");
  * @{
  */
 
+/*!
+ * \brief measure the cycle count of a given code segment
+ * \param[in] __STR a description string for the measurement
+ * \param[in] ... an optional code segement, in which we can read the measured
+ *                result from __cycle_count__.
+ * \details Here is an example:
+    E.g.
+    \code
+        __cycleof__("printf") {
+            printf("hello world\r\n");
+        }
+    \endcode
+ */
 #define __cycleof__(__STR, ...)                                             \
   using(int64_t _ = get_system_ticks(), __cycle_count__ = _, _ = _, {       \
     _ = get_system_ticks() - _ - g_nOffset;                                 \
@@ -161,97 +175,205 @@ __asm(".global __ensure_systick_wrapper\n\t");
   })
 
 /*!
+ * \brief measure the cpu usage for a given code segment and print out the
+ *        result in percentage.
+ * \param[in] __CNT generate result on every given iterations
+ * \param[in] ... an optional code segement, in which we can read the measured
+ *                result from __usage__ which is a float value.
+ * \details Here is an example, 50% cpu time:
+    E.g.
+    \code
+        while (1) {
+            __cpu_time__(100) {
+                delay_us(5000);
+            }
+            delay_us(5000);
+        }
+    \endcode
+ */
+#define __cpu_time__(__CNT, ...)                                       \
+  static int64_t SAFE_NAME(s_lTimestamp) = 0, SAFE_NAME(s_lTotal) = 0; \
+  static uint32_t s_wLoopCounter = (__CNT);                            \
+  using(float __usage__ = 0, ({                                        \
+          if (0 == s_wLoopCounter) {                                   \
+            __usage__ = (float)((double)SAFE_NAME(s_lTotal) /          \
+                                (double)(get_system_ticks() -          \
+                                         SAFE_NAME(s_lTimestamp)));    \
+            __usage__ *= 100.0f;                                       \
+            SAFE_NAME(s_lTimestamp) = 0;                               \
+            SAFE_NAME(s_lTotal) = 0;                                   \
+            if (__PLOOC_VA_NUM_ARGS(__VA_ARGS__) == 0) {               \
+              __perf_counter_printf__("CPU Usage %3.2f%%\r\n",         \
+                                      (double)__usage__);              \
+            } else {                                                   \
+              __VA_ARGS__                                              \
+            }                                                          \
+          }                                                            \
+          if (0 == SAFE_NAME(s_lTimestamp)) {                          \
+            SAFE_NAME(s_lTimestamp) = get_system_ticks();              \
+            s_wLoopCounter = (__CNT);                                  \
+          }                                                            \
+          start_task_cycle_counter();                                  \
+        }),                                                            \
+        ({                                                             \
+          SAFE_NAME(s_lTotal) += stop_task_cycle_counter();            \
+          s_wLoopCounter--;                                            \
+        }))
+
+/*!
  * \addtogroup gBasicTimerService 1.2 Timer Service
  * \ingroup gBasic
  * @{
  */
 
 /*!
+ * \brief should not use
+ */
+#define perfc_is_time_out_ms0() true
+
+/*!
+ * \brief set an alarm with given period in ms and check the status
+ *
+ * \param[in] __ms a time period in millisecond
+ * \param[in] __timestamp_ptr an optional timestamp holder
+ * \param[in] __auto_reload whether starting next period after a timeout event
+ *
+ * \return bool whether it is timeout
+ */
+#define perfc_is_time_out_ms3(__ms, __timestamp_ptr, __auto_reload)         \
+  ({                                                                        \
+    static int64_t SAFE_NAME(s_lTimestamp);                                 \
+    (void)SAFE_NAME(s_lTimestamp);                                          \
+    __perfc_is_time_out(perfc_convert_ms_to_ticks(__ms), (__timestamp_ptr), \
+                        (__auto_reload));                                   \
+  })
+
+/*!
+ * \brief set an alarm with given period in ms and check the status
+ *
+ * \param[in] __ms a time period in millisecond
+ * \param[in] __timestamp_ptr an optional timestamp holder
+ *
+ * \return bool whether it is timeout
+ */
+#define perfc_is_time_out_ms2(__ms, __timestamp_ptr) \
+  perfc_is_time_out_ms3((__ms), (__timestamp_ptr), true)
+
+/*!
+ * \brief set an alarm with given period in ms and check the status
+ *
+ * \param[in] __ms a time period in millisecond
+ * \param[in] __timestamp_ptr an optional timestamp holder
+ *
+ * \return bool whether it is timeout
+ */
+#define perfc_is_time_out_ms1(__ms) \
+  perfc_is_time_out_ms3((__ms), &SAFE_NAME(s_lTimestamp), true)
+
+/*!
  * \brief set an alarm with given period in ms and check the status
  *
  * \param[in] __ms a time period in millisecond
  * \param[in] ... an optional timestamp holder
+ * \param[in] ... an optional indicator for whether starting next period after a
+ * timeout event
  *
  * \return bool whether it is timeout
  */
-#define perfc_is_time_out_ms(__ms, ...)                             \
-  ({                                                                \
-    static int64_t SAFE_NAME(s_lTimestamp);                         \
-    __perfc_is_time_out(perfc_convert_ms_to_ticks(__ms),            \
-                        (&SAFE_NAME(s_lTimestamp), ##__VA_ARGS__)); \
+#define perfc_is_time_out_ms(...)                                  \
+  CONNECT2(perfc_is_time_out_ms, __PLOOC_VA_NUM_ARGS(__VA_ARGS__)) \
+  (__VA_ARGS__)
+
+/*!
+ * \brief set an alarm with given period in us and check the status
+ *
+ * \param[in] __us a time period in microsecond
+ * \param[in] __timestamp_ptr an optional timestamp holder
+ * \param[in] __auto_reload whether starting next period after a timeout event
+ *
+ * \return bool whether it is timeout
+ */
+#define perfc_is_time_out_us3(__us, __timestamp_ptr, __auto_reload)         \
+  ({                                                                        \
+    static int64_t SAFE_NAME(s_lTimestamp);                                 \
+    (void)SAFE_NAME(s_lTimestamp);                                          \
+    __perfc_is_time_out(perfc_convert_us_to_ticks(__us), (__timestamp_ptr), \
+                        (__auto_reload));                                   \
   })
 
 /*!
  * \brief set an alarm with given period in us and check the status
  *
- * \param[in] __us a time period in millisecond
- * \param[in] ... an optional timestamp holder
+ * \param[in] __us a time period in microsecond
+ * \param[in] __timestamp_ptr an optional timestamp holder
  *
  * \return bool whether it is timeout
  */
-#define perfc_is_time_out_us(__us, ...)                             \
-  ({                                                                \
-    static int64_t SAFE_NAME(s_lTimestamp);                         \
-    __perfc_is_time_out(perfc_convert_us_to_ticks(__us),            \
-                        (&SAFE_NAME(s_lTimestamp), ##__VA_ARGS__)); \
-  })
+#define perfc_is_time_out_us2(__us, __timestamp_ptr) \
+  perfc_is_time_out_us3((__us), (__timestamp_ptr), true)
+
+/*!
+ * \brief set an alarm with given period in us and check the status
+ *
+ * \param[in] __us a time period in microsecond
+ * \param[in] __timestamp_ptr an optional timestamp holder
+ *
+ * \return bool whether it is timeout
+ */
+#define perfc_is_time_out_us1(__us) \
+  perfc_is_time_out_us3((__us), &SAFE_NAME(s_lTimestamp), true)
+
+/*!
+ * \brief set an alarm with given period in us and check the status
+ *
+ * \param[in] __us a time period in microsecond
+ * \param[in] ... an optional timestamp holder
+ * \param[in] ... an optional indicator for whether starting next period after a
+ * timeout event
+ *
+ * \return bool whether it is timeout
+ */
+#define perfc_is_time_out_us(...)                                  \
+  CONNECT2(perfc_is_time_out_us, __PLOOC_VA_NUM_ARGS(__VA_ARGS__)) \
+  (__VA_ARGS__)
 
 /*! @} */
 
 /*! @} */
 
+// clang-format off
 /*!
  * \addtogroup gRTOS 2 RTOS Support
  * @{
  */
-#define __super_loop_monitor__(__N, ...)                                                           \
-  using(                                                                                           \
-      struct {                                                                                     \
-        int64_t lStart;                                                                            \
-        int64_t lTaskUsedCycles;                                                                   \
-        int64_t lTimeElapsed;                                                                      \
-      } __cpu_usage__ =                                                                            \
-          {.lStart =                                                                               \
-               get_system_ticks()}) using(int SAFE_NAME(cnt) =                                     \
-                                              (__N)) for (start_task_cycle_counter();              \
-                                                          ; ({                                     \
-                                                            if (!(--SAFE_NAME(                     \
-                                                                    cnt))) {                       \
-                                                              __cpu_usage__                        \
-                                                                  .lTimeElapsed =                  \
-                                                                  get_system_ticks() -             \
-                                                                  __cpu_usage__                    \
-                                                                      .lStart -                    \
-                                                                  g_nOffset;                       \
-                                                              __cpu_usage__                        \
-                                                                  .lTaskUsedCycles =               \
-                                                                  stop_task_cycle_counter();       \
-                                                                                                   \
-                                                              if (__PLOOC_VA_NUM_ARGS(             \
-                                                                      __VA_ARGS__) ==              \
-                                                                  0) {                             \
-                                                                __perf_counter_printf__(           \
-                                                                    "%s CPU "                      \
-                                                                    "Usage "                       \
-                                                                    "%2.3f%%"                      \
-                                                                    "\r\n",                        \
-                                                                    __func__,                      \
-                                                                    (float)((double)__cpu_usage__  \
-                                                                                .lTaskUsedCycles * \
-                                                                            100.0 /                \
-                                                                            (double)__cpu_usage__  \
-                                                                                .lTimeElapsed));   \
-                                                              } else {                             \
-                                                                __VA_ARGS__;                       \
-                                                              }                                    \
-                                                              SAFE_NAME(cnt) =                     \
-                                                                  (__N);                           \
-                                                              __cpu_usage__                        \
-                                                                  .lStart =                        \
-                                                                  get_system_ticks();              \
-                                                              start_task_cycle_counter();          \
-                                                            };                                     \
-                                                          }))
+#define __super_loop_monitor__(__N, ...)                                        \
+    using(                                                                      \
+        struct {                                                                \
+            int64_t lStart;                                                     \
+            int64_t lTaskUsedCycles;                                            \
+            int64_t lTimeElapsed;                                               \
+        } __cpu_usage__ = {.lStart = get_system_ticks()})                       \
+    using(int SAFE_NAME(cnt) = (__N))                                           \
+    for(start_task_cycle_counter();; ({                                         \
+        if (!(--SAFE_NAME(cnt))) {                                              \
+            __cpu_usage__.lTimeElapsed                                          \
+                = get_system_ticks() - __cpu_usage__.lStart - g_nOffset;        \
+            __cpu_usage__.lTaskUsedCycles = stop_task_cycle_counter();          \
+                                                                                \
+            if (__PLOOC_VA_NUM_ARGS(__VA_ARGS__) == 0) {                        \
+                __perf_counter_printf__(                                        \
+                    "%s CPU Usage %2.3f%%\r\n", __func__,                       \
+                    (float)((double)__cpu_usage__.lTaskUsedCycles * 100.0 /     \
+                            (double)__cpu_usage__.lTimeElapsed));               \
+            } else {                                                            \
+                __VA_ARGS__;                                                    \
+            }                                                                   \
+            SAFE_NAME(cnt) = (__N);                                             \
+            __cpu_usage__.lStart = get_system_ticks();                          \
+            start_task_cycle_counter();                                         \
+        };                                                                      \
+    }))
+// clang-format on
 
 /*============================ TYPES =========================================*/
 typedef struct {
@@ -407,9 +529,11 @@ extern int64_t perfc_convert_us_to_ticks(uint32_t wUS);
  * \param[in] lPeriod a time period in ticks
  * \param[in] plTimestamp a pointer points to an int64_t integer, if NULL is
  *            passed, an static local variable inside the function will be used
+ * \param[in] bAutoReload whether starting next period after a timeout event.
  * \return bool whether it is timeout or not
  */
-extern bool __perfc_is_time_out(int64_t lPeriod, int64_t *plTimestamp);
+extern bool __perfc_is_time_out(int64_t lPeriod, int64_t *plTimestamp,
+                                bool bAutoReload);
 
 /*! @} */
 
@@ -423,6 +547,12 @@ extern bool __perfc_is_time_out(int64_t lPeriod, int64_t *plTimestamp);
 /*! \brief initialize the default virtual cycle counter for the current task
  */
 extern void init_task_cycle_counter(void);
+
+/*! \brief check whether the task stack canary is safe or not
+ *  \retval false likely to be a stack-overflow
+ *  \retval true task stack is safe
+ */
+extern bool perfc_check_task_stack_canary_safe(void);
 
 /*! \brief provide cycle information for target task
  *  \details Support RTOS List:
@@ -524,6 +654,7 @@ __attribute__((noinline)) extern int64_t __stop_task_cycle_counter(
 #define enable_task_cycle_info(...) (false)
 #define disable_task_cycle_info(...) (false)
 #define resume_task_cycle_info(...)
+#define perfc_check_task_stack_canary_safe() (false)
 #endif
 
 /*! @} */
@@ -587,6 +718,22 @@ extern void user_code_insert_to_systick_handler(void);
  * \brief update perf_counter as SystemCoreClock has been updated.
  */
 extern void update_perf_counter(void);
+
+/*!
+ * \brief prepare for reconfiguration of SysTick timer.
+ *
+ * \note some systems (e.g. FreeRTOS) might reconfigure the systick timer to
+ *       fulfil the requirement of their feature. To support this, just
+ *       before the reconfiguration, please call this function in order
+ *       to make the perf_counter works correctly later.
+ *
+ * \note after the reconfiguration, please call update_perf_counter() to apply
+ *       the changes to perf_counter.
+ *
+ * \note this function will stop the SysTick, clear the pending bit and set
+ *       the Load register and Current Value register to zero.
+ */
+extern void before_cycle_counter_reconfiguration(void);
 
 /*! @} */
 
