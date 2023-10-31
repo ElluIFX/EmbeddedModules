@@ -54,11 +54,10 @@
 #define _UART_DCACHE_COMPATIBLE 0  // (H7/F7) DCache兼容模式
 #define _UART_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数
 // 收发设置
-#define _UART_SEND_USE_DMA 1  // 对于支持的串口是否使用DMA发送
-#define _UART_SEND_USE_IT 1   // 不支持DMA的串口是否使用中断发送
-#define _UART_SEND_BUFFER_SIZE 128  // 串口静态缓冲区大小(printf/buffered)
-#define _UART_RECV_BUFFER_SIZE 128  // 串口接收缓冲区大小
-#define _UART_TIMEOUT 5      // 串口发送等待超时时间(ms)/0阻塞
+#define _UART_RX_BUF_SIZE 256  // 串口接收缓冲区大小
+#define _UART_TX_USE_DMA 1     // 对于支持的串口是否使用DMA发送
+#define _UART_TX_USE_IT 1      // 不支持DMA的串口是否使用中断发送
+#define _UART_TX_TIMEOUT 5     // 串口发送等待超时时间(ms)/0阻塞
 #define _UART_CDC_TIMEOUT 5  // USB CDC发送等待超时时间(ms)/不允许阻塞
 // printf重定向设置
 #define _PRINTF_BLOCK 0           // 是否屏蔽所有printf

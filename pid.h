@@ -125,12 +125,46 @@ typedef struct {      // 时间自适应PID结构体
   m_time_t lastTime;  // 上次计算时间
 } pid_tad_t;
 
+/**
+ * @brief 计算位置式PID
+ * @retval 输出
+ */
 extern float PID_Calculate(pid_t *PIDx, float nextPoint);
+
+/**
+ * @brief 位置式PID(调度间隔自适应)
+ * @retval 输出
+ * @note 暂停->恢复时，pid->lastTime需要手动置为0
+ */
 extern float PID_Calculate_TimeAdaptive(pid_tad_t *PIDx, float nextPoint);
+
+/**
+ * @brief 前馈PID
+ * @note 前馈环节的传递函数需根据实际情况整定，无通用模型
+ */
 extern float PID_Calculate_FeedForward(pid_t *PIDx, float nextPoint);
+
+/**
+ * @brief 快速增量式PID
+ * @retval 增量输出
+ * @note 该函数内联且不可重入，只能被单一控制器专用
+ */
 extern float PID_QuickInc_Calculate(float setPoint, float nextPoint);
+
+/**
+ * @brief 重置PID初始值并清空PID状态
+ * @param  startPoint      PID初始值, 防止PID输出突变
+ */
 extern void PID_Reset_StartPoint(pid_t *PIDx, float startPoint);
+
+/**
+ * @brief 清空PID状态
+ */
 extern void PID_Reset(pid_t *PIDx);
+
+/**
+ * @brief 设置PID参数
+ */
 extern void PID_Set_Tunings(pid_t *PIDx, float kp, float ki, float kd);
 
 #endif  // __PID_H

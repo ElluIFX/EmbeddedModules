@@ -13,10 +13,6 @@
 
 #include "math.h"
 
-/**
- * @brief 计算位置式PID
- * @retval 输出
- */
 float __attribute__((flatten)) PID_Calculate(pid_t *PIDx, float nextPoint) {
   PIDx->output = PIDx->base;
   /* Error */
@@ -93,11 +89,6 @@ float __attribute__((flatten)) PID_Calculate(pid_t *PIDx, float nextPoint) {
   return PIDx->output;
 }
 
-/**
- * @brief 快速增量式PID
- * @retval 增量输出
- * @note 该函数内联且不可重入，只能被单一控制器专用
- */
 float __attribute__((always_inline))
 PID_QuickInc_Calculate(float setPoint, float nextPoint) {
   const float QUICKINC_P = 1.0f, QUICKINC_I = 0.5f, QUICKINC_D = 0.5f;
@@ -109,11 +100,6 @@ PID_QuickInc_Calculate(float setPoint, float nextPoint) {
          QUICKINC_D * (error_0 - 2 * error_1 + error_2);
 }
 
-/**
- * @brief 位置式PID(调度间隔自适应)
- * @retval 输出
- * @note 暂停->恢复时，pid->lastTime需要手动置为0
- */
 float PID_Calculate_TimeAdaptive(pid_tad_t *PIDx, float nextPoint) {
   int64_t time = m_time_ms();
   if (PIDx->lastTime != 0) {
@@ -125,10 +111,6 @@ float PID_Calculate_TimeAdaptive(pid_tad_t *PIDx, float nextPoint) {
   return PID_Calculate(&PIDx->pid, nextPoint);
 }
 
-/**
- * @brief 前馈PID
- * @note 前馈环节的传递函数需根据实际情况整定，无通用模型
- */
 float PID_Calculate_FeedForward(pid_t *PIDx, float nextPoint) {
   float feed = 0;
   float pid = PID_Calculate(PIDx, nextPoint);
@@ -139,19 +121,12 @@ float PID_Calculate_FeedForward(pid_t *PIDx, float nextPoint) {
   return pid + feed;
 }
 
-/**
- * @brief 重置PID初始值并清空PID状态
- * @param  startPoint      PID初始值, 防止PID输出突变
- */
 void PID_Reset_StartPoint(pid_t *PIDx, float startPoint) {
   PID_Reset(PIDx);
   PIDx->output = startPoint;
   PIDx->base = startPoint;
 }
 
-/**
- * @brief 清空PID状态
- */
 void PID_Reset(pid_t *PIDx) {
   PIDx->sumI = 0;
   PIDx->sumP = 0;
@@ -162,9 +137,6 @@ void PID_Reset(pid_t *PIDx) {
   PIDx->output = 0;
 }
 
-/**
- * @brief 设置PID参数
- */
 void PID_Set_Tunings(pid_t *PIDx, float kp, float ki, float kd) {
   PIDx->proportion = kp;
   PIDx->derivative = kd;

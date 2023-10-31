@@ -45,24 +45,6 @@ uint8_t single_heap[SINGLE_HEAP_SIZE] = {0};
 uint8_t single_heap[SINGLE_HEAP_SIZE] _HEAP_SET_ADDR(HEAP_LOCATION) = {0};
 #endif
 bool memory_init_flag = false;
-
-void def_dalloc(uint32_t size, void **ptr) { dalloc(&default_heap, size, ptr); }
-
-void def_dfree(void **ptr) { dfree(&default_heap, ptr, USING_PTR_ADDRESS); }
-
-void def_replace_pointers(void **ptr_to_replace, void **ptr_new) {
-  replace_pointers(&default_heap, ptr_to_replace, ptr_new);
-}
-
-bool def_drealloc(uint32_t size, void **ptr) {
-  return drealloc(&default_heap, size, ptr);
-}
-
-void print_def_dalloc_info() { print_dalloc_info(&default_heap); }
-
-void dump_def_heap() { dump_heap(&default_heap); }
-
-void dump_def_dalloc_ptr_info() { dump_dalloc_ptr_info(&default_heap); }
 #endif
 
 void heap_init(heap_t *heap_struct_ptr, void *mem_ptr,
@@ -280,12 +262,6 @@ void dfree(heap_t *heap_struct_ptr, void **ptr,
     *(*(heap_struct_ptr->alloc_info.ptr_info_arr[ptr_index].ptr) + i) = 0;
   }
 #endif
-
-  //    /* Set given ptr to NULL */
-  if (condition == USING_PTR_ADDRESS) {
-    *ptr = NULL;
-  }
-
   defrag_memory(heap_struct_ptr);
 }
 
@@ -316,6 +292,7 @@ bool drealloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
   uint8_t *new_ptr = NULL;
   dalloc(heap_struct_ptr, size, (void **)&new_ptr);
   if (new_ptr == NULL) {
+    LOG_E("drealloc failed due to dalloc failed");
     return false;
   }
 
@@ -330,38 +307,41 @@ bool drealloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
 }
 
 void print_dalloc_info(heap_t *heap_struct_ptr) {
-  printf("************ Mem Info ************\r\n");
-  printf("Total memory, bytes: %lu\r\n",
-         (long unsigned int)heap_struct_ptr->total_size);
-  printf("Memory in use, bytes: %lu\r\n",
-         (long unsigned int)heap_struct_ptr->offset);
-  printf("Number of allocations: %lu\r\n",
-         (long unsigned int)heap_struct_ptr->alloc_info.allocations_num);
-  printf("The biggest memory was in use: %lu\r\n",
-         (long unsigned int)heap_struct_ptr->alloc_info.max_memory_amount);
-  printf("Max allocations number: %lu\r\n",
-         (long unsigned int)heap_struct_ptr->alloc_info.max_allocations_amount);
-  printf("**********************************\r\n");
+  LOG_RAWLN("************ Mem Info ************LOG_RAWLN$1");
+  LOG_RAWLN("Total memory, bytes: %luLOG_RAWLN$1",
+            (long unsigned int)heap_struct_ptr->total_size);
+  LOG_RAWLN("Memory in use, bytes: %luLOG_RAWLN$1",
+            (long unsigned int)heap_struct_ptr->offset);
+  LOG_RAWLN("Number of allocations: %luLOG_RAWLN$1",
+            (long unsigned int)heap_struct_ptr->alloc_info.allocations_num);
+  LOG_RAWLN("The biggest memory was in use: %luLOG_RAWLN$1",
+            (long unsigned int)heap_struct_ptr->alloc_info.max_memory_amount);
+  LOG_RAWLN(
+      "Max allocations number: %luLOG_RAWLN$1",
+      (long unsigned int)heap_struct_ptr->alloc_info.max_allocations_amount);
+  LOG_RAWLN("**********************************LOG_RAWLN$1");
 }
 
 void dump_heap(heap_t *heap_struct_ptr) {
-  printf("************ Dump Heap ***********\r\n");
+  LOG_RAWLN("************ Dump Heap ***********LOG_RAWLN$1");
   for (uint32_t i = 0; i < heap_struct_ptr->total_size; i++) {
-    printf("%02X ", heap_struct_ptr->mem[i]);
+    LOG_RAW("%02X ", heap_struct_ptr->mem[i]);
   }
-  printf("**********************************\r\n");
+  LOG_RAWLN("**********************************LOG_RAWLN$1");
 }
 
 void dump_dalloc_ptr_info(heap_t *heap_struct_ptr) {
-  printf("************ Ptr Info ************\r\n");
+  LOG_RAWLN("************ Ptr Info ************LOG_RAWLN$1");
   for (uint32_t i = 0; i < heap_struct_ptr->alloc_info.allocations_num; i++) {
-    printf("Ptr address: 0x%08X, ptr first val: 0x%02X, alloc size: %lu\r\n",
-           (size_t)(heap_struct_ptr->alloc_info.ptr_info_arr[i].ptr),
-           (uint8_t)(**heap_struct_ptr->alloc_info.ptr_info_arr[i].ptr),
-           (long unsigned int)ALLOCSIZE_GET(
-               heap_struct_ptr->alloc_info.ptr_info_arr[i]));
+    LOG_RAWLN(
+        "Ptr address: 0x%08X, ptr first val: 0x%02X, alloc size: "
+        "%luLOG_RAWLN$1",
+        (size_t)(heap_struct_ptr->alloc_info.ptr_info_arr[i].ptr),
+        (uint8_t)(**heap_struct_ptr->alloc_info.ptr_info_arr[i].ptr),
+        (long unsigned int)ALLOCSIZE_GET(
+            heap_struct_ptr->alloc_info.ptr_info_arr[i]));
   }
-  printf("**********************************\r\n");
+  LOG_RAWLN("**********************************LOG_RAWLN$1");
 }
 
 float get_heap_usage(heap_t *heap_struct_ptr) {
@@ -371,5 +351,3 @@ float get_heap_usage(heap_t *heap_struct_ptr) {
   }
   return (float)alloc_size / (float)heap_struct_ptr->total_size;
 }
-
-float get_def_heap_usage() { return get_heap_usage(&default_heap); }

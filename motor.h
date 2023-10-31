@@ -36,15 +36,17 @@
 #define ENCODER_MID_VALUE ENCODER_TIM_PERIOD / 2  // 编码器中值
 #define SPEED_FILTER 0.2                          // 速度更新滤波系数
 
-#define MOTOR_MODE_BRAKE 0    // 电机刹车模式
-#define MOTOR_MODE_SLIDE 1    // 电机滑行模式
-#define MOTOR_MODE_RUN_SPD 2  // 电机速度环模式
-#define MOTOR_MODE_RUN_POS 3  // 电机位置环模式
-#define MOTOR_MODE_MANUAL 4   // 电机手动模式
+enum MOTOR_MODES {
+  MOTOR_MODE_BRAKE = 0,    // 电机刹车模式
+  MOTOR_MODE_SLIDE = 1,    // 电机滑行模式
+  MOTOR_MODE_RUN_SPD = 2,  // 电机速度环模式
+  MOTOR_MODE_RUN_POS = 3,  // 电机位置环模式
+  MOTOR_MODE_MANUAL = 4    // 电机手动模式
+};
 /****************** 数据类型定义 ******************/
 
 typedef struct {  // 电机闭环控制结构体
-  uint8_t mode;  // 电机模式(0:刹车 1:滑行 2:速度环 3:位置环 4:手动)
+  enum MOTOR_MODES mode;  // 电机模式(0:刹车 1:滑行 2:速度环 3:位置环 4:手动)
   float speed;                    // 速度 (rpm)
   int32_t pos;                    // 位置 (pulse)
   int32_t lastPos;                // 上一次位置
@@ -123,10 +125,31 @@ typedef struct {  // 电机闭环控制结构体
   PID_Reset_StartPoint(&motor.posPID, motor.pos)
 
 /****************** 函数声明 ******************/
+/**
+ * @brief  电机初始化
+ * @param  motor 电机结构体
+*/
 extern void Motor_Setup(motor_t *motor);
-extern void Motor_Encoder_Tick(motor_t *motor, float runTimeHz);
-// extern void Motor_Encoder_Overflow(motor_t *motor);
+
+/**
+ * @brief  定时计算电机速度
+ * @param  motor 电机结构体
+*/
+extern void Motor_Encoder_Tick(motor_t *motor, const float runTimeHz);
+
+/**
+ * @brief  电机运行
+ * @param  motor 电机结构体
+*/
 extern void Motor_Run(motor_t *motor);
+
+/**
+ * @brief  计算双轮车的目标速度
+ * @param  V              车辆线速度
+ * @param  angular_velocity 车辆角速度
+ * @param  target_rpm_left  目标左轮rpm
+ * @param  target_rpm_right 目标右轮rpm
+ */
 void Two_Wheel_Speed_Calc(float V, float angular_velocity,
                           float *target_rpm_left, float *target_rpm_right);
 #endif  // __MOTOR_H

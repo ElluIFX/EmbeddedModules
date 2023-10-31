@@ -28,6 +28,10 @@ typedef struct {       // 用户任务结构
   __attribute__((used)) scheduler_task_t _sch_task_item_##func __SCH_SECTION( \
       "1") = {func, periodMs, 0}
 
+/**
+ * @brief 时分调度器主函数
+ * @param  block            是否阻塞
+ **/
 extern void Scheduler_Run(const uint8_t block);
 
 #endif  // __SCHEDULER_LITE_H__

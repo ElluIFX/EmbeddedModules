@@ -24,7 +24,7 @@ extern "C" {
 
 #define DALLOC_VERSION "1.3.0"
 
-#define FILL_FREED_MEMORY_BY_NULLS 0
+#define FILL_FREED_MEMORY_BY_NULLS 1
 #ifdef _MOD_HEAP_ALLOCATIONS
 #define MAX_NUM_OF_ALLOCATIONS _MOD_HEAP_ALLOCATIONS
 #else
@@ -100,14 +100,55 @@ typedef struct {
 extern heap_t default_heap;
 extern uint8_t single_heap[];
 
-void def_dalloc(uint32_t size, void **ptr);
-void def_dfree(void **ptr);
-void def_replace_pointers(void **ptr_to_replace, void **ptr_new);
-bool def_drealloc(uint32_t size, void **ptr);
-void print_def_dalloc_info();
-void dump_def_heap();
-void dump_def_dalloc_ptr_info();
-float get_def_heap_usage();
+/**
+ * @brief Allocate memory from default heap
+ * @param  size - size of memory to allocate
+ * @param  ptr - pointer to pointer to allocated memory
+ */
+#define def_dalloc(size, ptr) dalloc(&default_heap, size, ptr)
+
+/**
+ * @brief Free memory from default heap
+ * @param  ptr - pointer to pointer to allocated memory
+ */
+#define def_dfree(ptr) dfree(&default_heap, ptr, USING_PTR_ADDRESS)
+
+/**
+ * @brief Replace a pointer in the default heap with a new pointer
+ * @param  ptr_to_replace - pointer to pointer to be replaced
+ * @param  ptr_new - pointer to new memory block
+ */
+#define def_replace_pointers(ptr_to_replace, ptr_new) \
+  replace_pointers(&default_heap, ptr_to_replace, ptr_new)
+
+/**
+ * @brief Reallocate memory from default heap
+ * @param  size - size of memory to allocate
+ * @param  ptr - pointer to pointer to allocated memory
+ * @return true if reallocation was successful, false otherwise
+ */
+#define def_drealloc(size, ptr) drealloc(&default_heap, size, ptr)
+
+/**
+ * @brief Print information about the default heap
+ */
+#define print_def_dalloc_info() print_dalloc_info(&default_heap)
+
+/**
+ * @brief Dump information about the default heap
+ */
+#define dump_def_heap() dump_heap(&default_heap)
+
+/**
+ * @brief Dump information about pointers in the default heap
+ */
+#define dump_def_dalloc_ptr_info() dump_dalloc_ptr_info(&default_heap)
+
+/**
+ * @brief Get the usage percentage of the default heap
+ * @return the usage percentage of the default heap
+ */
+#define get_def_heap_usage() get_heap_usage(&default_heap)
 
 #define _dalloc(ptr, size) def_dalloc(size, (void **)&(ptr))
 #define _dfree(ptr) def_dfree((void **)&(ptr))
@@ -116,19 +157,84 @@ float get_def_heap_usage();
   def_replace_pointers((void **)&(ptr_to_replace), (void **)&(ptr_new))
 #endif
 
+/**
+ * @brief Initialize a heap structure with a memory block
+ * @param  heap_struct_ptr - pointer to heap structure
+ * @param  mem_ptr - pointer to memory block
+ * @param  mem_size - size of memory block
+ */
 void heap_init(heap_t *heap_struct_ptr, void *mem_ptr, uint32_t mem_size);
+
+/**
+ * @brief Allocate memory from a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ * @param  size - size of memory to allocate
+ * @param  ptr - pointer to pointer to allocated memory
+ */
 void dalloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr);
+
+/**
+ * @brief Reallocate memory from a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ * @param  size - size of memory to allocate
+ * @param  ptr - pointer to pointer to allocated memory
+ * @return true if reallocation was successful, false otherwise
+ */
 bool drealloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr);
+
+/**
+ * @brief Validate a pointer in a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ * @param  ptr - pointer to pointer to allocated memory
+ * @param  condition - condition for validation
+ * @param  ptr_index - pointer to index of pointer in heap
+ * @return true if pointer is valid, false otherwise
+ */
 bool validate_ptr(heap_t *heap_struct_ptr, void **ptr,
-                  validate_ptr_condition_t condition, uint32_t *ptr_index);
+          validate_ptr_condition_t condition, uint32_t *ptr_index);
+
+/**
+ * @brief Free memory from a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ * @param  ptr - pointer to pointer to allocated memory
+ * @param  condition - condition for validation
+ */
 void dfree(heap_t *heap_struct_ptr, void **ptr,
-           validate_ptr_condition_t condition);
+       validate_ptr_condition_t condition);
+
+/**
+ * @brief Print information about a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ */
 void print_dalloc_info(heap_t *heap_struct_ptr);
+
+/**
+ * @brief Dump information about pointers in a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ */
 void dump_dalloc_ptr_info(heap_t *heap_struct_ptr);
+
+/**
+ * @brief Dump information about a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ */
 void dump_heap(heap_t *heap_struct_ptr);
+
+/**
+ * @brief Get the usage percentage of a heap
+ * @param  heap_struct_ptr - pointer to heap structure
+ * @return the usage percentage of the heap
+ */
 float get_heap_usage(heap_t *heap_struct_ptr);
+
+/**
+ * @brief Replace a pointer in a heap with a new pointer
+ * @param  heap_struct_ptr - pointer to heap structure
+ * @param  ptr_to_replace - pointer to pointer to be replaced
+ * @param  ptr_new - pointer to new memory block
+ */
 void replace_pointers(heap_t *heap_struct_ptr, void **ptr_to_replace,
-                      void **ptr_new);
+            void **ptr_new);
 
 #ifdef __cplusplus
 }

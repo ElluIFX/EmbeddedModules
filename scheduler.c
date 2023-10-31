@@ -13,73 +13,111 @@ typedef struct {       // 用户任务结构
   m_time_t period;     // 任务调度周期(Tick)
   m_time_t lastRun;    // 上次执行时间(Tick)
   uint8_t enable;      // 是否使能
+  uint8_t priority;    // 优先级
   uint16_t taskId;     // 任务ID
 #if _SCH_DEBUG_MODE
+  uint8_t flag;         // 任务标志(1:新增, 2:删除, 4:设置变更)
   m_time_t max_cost;    // 任务最大执行时间(Tick)
   m_time_t total_cost;  // 任务总执行时间(Tick)
   m_time_t max_lat;     // 任务调度延迟(Tick)
   m_time_t total_lat;   // 任务调度延迟总和(Tick)
   uint16_t run_cnt;     // 任务执行次数
+  float last_usage;     // 任务上次执行占用率
   char name[13];        // 任务名
 #endif
 } scheduler_task_t;
 #pragma pack()
 
 static struct {
-  scheduler_task_t *tasks;                  // 任务存储区
-  uint16_t num;                             // 存储区总任务数量
-  uint16_t size;                            // 存储区总大小
+  scheduler_task_t *tasks;                          // 任务存储区
+  uint16_t num;                                     // 存储区总任务数量
+  uint16_t size;                                    // 存储区总大小
   uint16_t priOffset[_SCH_MAX_PRIORITY_LEVEL + 1];  // 各优先级偏移量
-  uint16_t maxId;                           // 最大编号
+  uint16_t tempId;                                  // 最大编号
 } thd = {0};
 
 #if _SCH_DEBUG_MODE
+#include "log.h"
 #warning 调度器调试模式已开启, 预期性能下降, 且任务句柄占用内存增加
-#include <log.h>
+static void delete_task(uint16_t i, bool skip_mem_free);
+static scheduler_task_t *get_task(uint16_t taskId);
 
 static inline void Debug_PrintInfo(void) {
   static uint8_t first_print = 1;
   static m_time_t _sch_debug_last_print = 0;
   m_time_t now = m_tick();
-  if (now - _sch_debug_last_print <= _SCH_DEBUG_PERIOD * m_tick_clk) return;
-  if (first_print) {
-    LOG_RAW("The first report is skipped due to inaccurate data.\r\n");
+  if (first_print) {  // 因为初始化耗时等原因，第一次的数据无参考价值，不打印
     first_print = 0;
   } else {
+    if (now - _sch_debug_last_print <= _SCH_DEBUG_PERIOD * m_tick_clk) return;
     double temp = m_tick_per_us;
     m_time_t period = now - _sch_debug_last_print;
     m_time_t other = period;
-    LOG_RAW(
-        "\r\n"
-        "--------------------- Scheduler Report ----------------------\r\n");
-    LOG_RAW(" ID | PRI | Run | Tmax  | Usage | Lavg  | Lmax  | Function\r\n");
-    uint8_t pri = 0;
+    LOG_RAWLN(TERM_FMT(RESET, BOLD, BLUE));
+    LOG_RAWLN("--------------------- Scheduler Report ----------------------");
+    LOG_RAWLN("PID | Pri | Run | Tmax  | Usage | LTavg | LTmax | Function");
+    float usage;
+    char op;
     for (uint16_t i = 0; i < thd.num; i++) {
-      if (pri != _SCH_MAX_PRIORITY_LEVEL && i == thd.priOffset[pri + 1]) pri++;
-      if (thd.tasks[i].enable)
-        LOG_RAW(" #%-4d %d    %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s \r\n",
-                thd.tasks[i].taskId, pri, thd.tasks[i].run_cnt,
-                (double)thd.tasks[i].max_cost / temp,
-                (double)thd.tasks[i].total_cost / period * 100,
-                (double)thd.tasks[i].total_lat / thd.tasks[i].run_cnt / temp,
-                (double)thd.tasks[i].max_lat / temp, thd.tasks[i].name);
-      else {
-        LOG_RAW(" #%-4d %d    %-5s %-7s %-7s %-7s %-7s %s \r\n",
-                thd.tasks[i].taskId, pri, "-", "-", "-", "-", "-",
-                thd.tasks[i].name);
+      if (thd.tasks[i].enable) {
+        usage = (double)thd.tasks[i].total_cost / period * 100;
+        if (thd.tasks[i].flag & 0x01) {  // 任务新增
+          LOG_RAW(TERM_FMT(RESET, BOLD, CYAN));
+          op = '+';
+        } else if (thd.tasks[i].flag & 0x04) {  // 任务优先级变更
+          LOG_RAW(TERM_FMT(RESET, BOLD, MAGENTA));
+          op = '>';
+        } else if ((thd.tasks[i].last_usage != 0 &&
+                    usage / thd.tasks[i].last_usage > 2) ||
+                   usage > 20) {  // 任务占用率大幅度增加或者超过20%
+          LOG_RAW(TERM_FMT(RESET, BOLD, YELLOW));
+          op = '!';
+        } else {
+          LOG_RAW(TERM_FMT(RESET, GREEN));  // 正常
+          op = ' ';
+        }
+        LOG_RAWLN("%c%-5d %-4d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op,
+                  thd.tasks[i].taskId, thd.tasks[i].priority,
+                  thd.tasks[i].run_cnt, (double)thd.tasks[i].max_cost / temp,
+                  usage,
+                  (double)thd.tasks[i].total_lat / thd.tasks[i].run_cnt / temp,
+                  (double)thd.tasks[i].max_lat / temp, thd.tasks[i].name);
+        thd.tasks[i].last_usage = usage;
+      } else {
+        if (thd.tasks[i].flag & 0x02) {  // 任务已被删除
+          LOG_RAW(TERM_FMT(RESET, BOLD, RED));
+          op = '-';
+        } else if (thd.tasks[i].flag & 0x04) {  // 任务设置变更
+          LOG_RAW(TERM_FMT(RESET, BOLD, MAGENTA));
+          op = '>';
+        } else {
+          LOG_RAW(TERM_FMT(RESET, WHITE));  // 禁用
+          op = ' ';
+        }
+        LOG_RAWLN("%c%-5d %-4d %-5s %-7s %-7s %-7s %-7s %s ", op,
+                  thd.tasks[i].taskId, thd.tasks[i].priority, "-", "-", "-",
+                  "-", "-", thd.tasks[i].name);
+        thd.tasks[i].last_usage = 0;
       }
       other -= thd.tasks[i].total_cost;
     }
-#if _MOD_USE_DALLOC
-    LOG_RAW("Core: %.0fMhz / RunTime: %ds / Idle: %.3f%% / Mem: %.3f%%\r\n",
-            temp, m_time_s(), (double)other / period * 100,
-            get_def_heap_usage() * 100);
-#else
-    LOG_RAW("Core: %.0fMhz / RunTime: %ds / Idle: %.3f%%\r\n", temp, m_time_s(),
+    LOG_RAW(TERM_FMT(RESET, CYAN));
+    LOG_RAW("Core: %.0fMhz / RunTime: %ds / Idle: %.3f%%", temp, m_time_s(),
             (double)other / period * 100);
+#if _MOD_USE_DALLOC
+    LOG_RAW(" / Mem: %.3f%%", get_def_heap_usage() * 100);
 #endif
-    LOG_RAW(
-        "-------------------------------------------------------------\r\n");
+    LOG_RAWLN(TERM_FMT(BOLD, BLUE));
+    LOG_RAWLN("-------------------------------------------------------------");
+    LOG_RAW(TERM_FMT(RESET));
+    for (uint16_t i = 0; i < thd.num; i++) {
+      if (thd.tasks[i].flag & 0x02) {
+        delete_task(i, false);  // 实际删除已标记删除的任务
+        i = 0;
+      } else {
+        thd.tasks[i].flag = 0;
+      }
+    }
   }
   now = m_tick();
   for (uint16_t i = 0; i < thd.num; i++) {
@@ -93,15 +131,36 @@ static inline void Debug_PrintInfo(void) {
   _sch_debug_last_print = now;
 }
 static inline void Debug_RunTask(scheduler_task_t *task_p, m_time_t latency) {
+  __IO uint16_t id = task_p->taskId;
   m_time_t _sch_debug_task_tick = m_tick();
   task_p->task();
   _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
+  if (task_p->taskId != id) {  // 任务已被修改, 重新查找
+    task_p = get_task(id);
+    if (task_p == NULL) return;  // 任务已被删除
+  }
   if (task_p->max_cost < _sch_debug_task_tick)
     task_p->max_cost = _sch_debug_task_tick;
   if (latency > task_p->max_lat) task_p->max_lat = latency;
   task_p->total_cost += _sch_debug_task_tick;
   task_p->total_lat += latency;
   task_p->run_cnt++;
+}
+
+static inline void Debug_SetName(scheduler_task_t *p, const char *name) {
+  for (uint8_t i = 0; i < sizeof(p->name); i++) {
+    if (name[i] == '\0') {
+      p->name[i] = '\0';
+      return;
+    }
+    p->name[i] = name[i];
+    if (i >= sizeof(p->name) - 3) {
+      p->name[sizeof(p->name) - 3] = '.';
+      p->name[sizeof(p->name) - 2] = '.';
+      p->name[sizeof(p->name) - 1] = '\0';
+      return;
+    }
+  }
 }
 #endif  // _SCH_DEBUG_MODE
 
@@ -113,6 +172,7 @@ void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
   do {
     m_time_t latency;
     m_time_t now = m_tick();
+
     if (thd.num) {
 #if _SCH_DEBUG_MODE
       Debug_PrintInfo();
@@ -121,15 +181,15 @@ void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
         if (thd.tasks[i].enable &&
             (now >= thd.tasks[i].lastRun + thd.tasks[i].period)) {
           latency = now - (thd.tasks[i].lastRun + thd.tasks[i].period);
+          if (latency <= _SCH_COMP_RANGE)
+            thd.tasks[i].lastRun += thd.tasks[i].period;
+          else
+            thd.tasks[i].lastRun = now;
 #if _SCH_DEBUG_MODE
           Debug_RunTask(&thd.tasks[i], latency);
 #else
           thd.tasks[i].task();
 #endif  // _SCH_DEBUG_MODE
-          if (latency <= _SCH_COMP_RANGE)
-            thd.tasks[i].lastRun += thd.tasks[i].period;
-          else
-            thd.tasks[i].lastRun = now;
           break;
         }
       }
@@ -155,7 +215,8 @@ static scheduler_task_t *insert_task(uint8_t priority) {
   }
   if (thd.num + 1 > thd.size) {  // 扩容
     scheduler_task_t *old = thd.tasks;
-    if (!m_realloc(thd.tasks, sizeof(scheduler_task_t) * thd.size * 2)) {
+    if (!m_realloc(thd.tasks, sizeof(scheduler_task_t) * thd.size * 2) ||
+        !thd.tasks) {
       thd.tasks = old;
       return NULL;
     }
@@ -165,13 +226,16 @@ static scheduler_task_t *insert_task(uint8_t priority) {
     p = &thd.tasks[thd.num];
   } else {  // 插入priOffset[priority+1]前
     p = &thd.tasks[thd.priOffset[priority + 1]];
-    memmove(p + 1, p,
-            sizeof(scheduler_task_t) * (thd.num - thd.priOffset[priority + 1]));
+    if (thd.priOffset[priority + 1] < thd.num)
+      memmove(
+          p + 1, p,
+          sizeof(scheduler_task_t) * (thd.num - thd.priOffset[priority + 1]));
     for (uint16_t i = priority + 1; i <= _SCH_MAX_PRIORITY_LEVEL; i++) {
       thd.priOffset[i]++;
     }
   }
   thd.num += 1;
+  memset(p, 0, sizeof(scheduler_task_t));
   return p;
 }
 
@@ -183,14 +247,6 @@ static scheduler_task_t *get_task(uint16_t taskId) {
 }
 
 #if !_SCH_DEBUG_MODE
-/**
- * @brief 创建一个调度任务
- * @param  task             任务函数指针
- * @param  freqHz           任务调度频率
- * @param  enable           初始化时是否使能
- * @param  priority         任务优先级
- * @retval uint16_t          任务ID (0xFFFF表示添加失败)
- */
 uint16_t Sch_CreateTask(void (*task)(void), float freqHz, uint8_t enable,
                         uint8_t priority) {
 #else
@@ -202,115 +258,91 @@ uint16_t _Sch_CreateTask(const char *name, void (*task)(void), float freqHz,
   scheduler_task_t *p = insert_task(priority);
   if (p == NULL) return 0xffff;
 #if _SCH_DEBUG_MODE
-  for (uint8_t i = 0; i < sizeof(p->name); i++) {
-    if (name[i] == '\0') {
-      p->name[i] = '\0';
-      break;
-    }
-    p->name[i] = name[i];
-    if (i >= sizeof(p->name) - 3) {
-      p->name[sizeof(p->name) - 3] = '.';
-      p->name[sizeof(p->name) - 2] = '.';
-      p->name[sizeof(p->name) - 1] = '\0';
-      break;
-    }
-  }
+  Debug_SetName(p, name);
 #endif
   p->task = task;
   p->enable = enable;
+  p->priority = priority;
   p->period = (double)m_tick_clk / (double)freqHz;
   if (!p->period) p->period = 1;
   p->lastRun = m_tick() - p->period;
   p->taskId = 0xFFFF;
-RETRY_ID_CHECK:
   for (uint16_t i = 0; i < thd.num; i++) {
-    if (thd.tasks[i].taskId == thd.maxId) {
-      thd.maxId += 1;
-      goto RETRY_ID_CHECK;
+    if (thd.tasks[i].taskId == thd.tempId) {
+      thd.tempId += 1;
+      i = 0;
     }
   }
-  p->taskId = thd.maxId;
-  thd.maxId += 1;
+  p->taskId = thd.tempId;
+  thd.tempId += 1;
+#if _SCH_DEBUG_MODE
+  p->flag |= 1;  // 标记为新增
+#endif
   return p->taskId;
 }
 
-/**
- * @brief 删除一个调度任务
- * @param  taskId           目标任务ID
- */
+static void delete_task(uint16_t i, bool skip_mem_free) {
+  if (thd.tempId == thd.tasks[i].taskId + 1) thd.tempId = thd.tasks[i].taskId;
+  if (i < thd.num - 1) {  // 不是最后一个, 需要移动
+    memmove(&thd.tasks[i], &thd.tasks[i + 1],
+            sizeof(scheduler_task_t) * (thd.num - i - 1));
+    memset(&thd.tasks[thd.num - 1], 0, sizeof(scheduler_task_t));
+  }
+  for (uint8_t j = 0; j <= _SCH_MAX_PRIORITY_LEVEL; j++) {
+    if (thd.priOffset[j] > i) thd.priOffset[j]--;
+  }
+  thd.num -= 1;
+  if (skip_mem_free) return;
+  if (thd.num == 0) {  // 任务已清空
+    m_free(thd.tasks);
+    thd.tasks = NULL;
+    thd.size = 0;
+  } else if (thd.num < thd.size / 2) {  // 缩容
+    scheduler_task_t *old = thd.tasks;
+    if (!m_realloc(thd.tasks, sizeof(scheduler_task_t) * thd.size / 2)) {
+      thd.tasks = old;
+    } else {
+      thd.size /= 2;
+    }
+  }
+}
+
 void Sch_DeleteTask(uint16_t taskId) {
   if (thd.num == 0) return;
   for (uint16_t i = 0; i < thd.num; i++) {
     if (thd.tasks[i].taskId == taskId) {
-      if (i < thd.num - 1) {  // 不是最后一个, 需要移动
-        memmove(&thd.tasks[i], &thd.tasks[i + 1],
-                sizeof(scheduler_task_t) * (thd.num - i - 1));
+#if _SCH_DEBUG_MODE
+      if (!(thd.tasks[i].flag & 0x02)) {
+        thd.tasks[i].flag |= 2;  // 标记为删除
+        thd.tasks[i].enable = 0;
+        return;
       }
-      for (uint8_t j = 0; j <= _SCH_MAX_PRIORITY_LEVEL; j++) {
-        if (thd.priOffset[j] > i) thd.priOffset[j]--;
-      }
-      thd.num -= 1;
-      if (thd.num == 0) {  // 任务已清空
-        m_free(thd.tasks);
-        thd.tasks = NULL;
-        thd.size = 0;
-      } else if (thd.num < thd.size / 2) {  // 缩容
-        scheduler_task_t *old = thd.tasks;
-        if (!m_realloc(thd.tasks, sizeof(scheduler_task_t) * thd.size / 2)) {
-          thd.tasks = old;
-        } else {
-          thd.size /= 2;
-        }
-      }
+#endif
+      delete_task(i, false);
       return;
     }
   }
 }
 
-/**
- * @brief 删除所有调度任务
- */
-void Sch_DeleteAllTasks(void) {
-  if (thd.num == 0) return;
-  m_free(thd.tasks);
-  thd.tasks = NULL;
-  thd.num = 0;
-  thd.size = 0;
-  thd.maxId = 0;
-}
-
-/**
- * @brief 通过任务ID查询任务是否存在
- * @param  taskId           目标任务ID
- * @retval bool             任务是否存在
- */
 bool Sch_IsTaskExist(uint16_t taskId) { return get_task(taskId) != NULL; }
 
-/**
- * @brief 设置任务优先级
- * @param  taskId           目标任务ID
- * @param  priority         任务优先级
- */
 void Sch_SetTaskPriority(uint16_t taskId, uint8_t priority) {
+  if (priority > _SCH_MAX_PRIORITY_LEVEL) priority = _SCH_MAX_PRIORITY_LEVEL;
   scheduler_task_t *p = get_task(taskId);
   if (p == NULL) return;
   scheduler_task_t temp = {0};
   memcpy(&temp, p, sizeof(scheduler_task_t));
-  Sch_DeleteTask(taskId);
+  delete_task(p - thd.tasks, true);
   p = insert_task(priority);
   memcpy(p, &temp, sizeof(scheduler_task_t));
+  p->priority = priority;
+#if _SCH_DEBUG_MODE
+  p->flag |= 4;
+#endif
 }
 
-/**
- * @brief 获取调度器内任务数量
- */
 uint16_t Sch_GetTaskNum(void) { return thd.num; }
 
-/**
- * @brief 切换任务使能状态
- * @param  taskId           目标任务ID
- * @param  enable           使能状态(0xff:切换)
- */
 void Sch_SetTaskState(uint16_t taskId, uint8_t enable) {
   scheduler_task_t *p = get_task(taskId);
   if (p == NULL) return;
@@ -318,26 +350,20 @@ void Sch_SetTaskState(uint16_t taskId, uint8_t enable) {
     p->enable = !p->enable;
   else
     p->enable = enable;
+  if (p->enable) p->lastRun = m_tick() - p->period;
 }
 
-/**
- * @brief 设置任务调度频率
- * @param  taskId           目标任务ID
- * @param  freq             调度频率
- */
 void Sch_SetTaskFreq(uint16_t taskId, float freqHz) {
   scheduler_task_t *p = get_task(taskId);
   if (p == NULL) return;
   p->period = (double)m_tick_clk / (double)freqHz;
   if (!p->period) p->period = 1;
   p->lastRun = m_tick() - p->period;
+#if _SCH_DEBUG_MODE
+  p->flag |= 4;
+#endif
 }
 
-/**
- * @brief 查询指定函数对应的任务ID
- * @param  task             目标任务函数指针
- * @retval uint16_t         任务ID (0xFFFF:未找到)
- */
 uint16_t Sch_GetTaskId(void (*task)(void)) {
   for (uint16_t i = 0; i < thd.num; i++) {
     if (thd.tasks[i].task == task) return thd.tasks[i].taskId;
@@ -361,7 +387,7 @@ struct {
   scheduler_cron_t *tasks;  // 任务存储区
   uint16_t num;             // 存储区总任务数量
   uint16_t size;            // 存储区总大小
-  uint16_t maxId;           // 最大编号
+  uint16_t tempId;          // 最大编号
 } chd = {0};
 
 _cron_handle_t _cron_hp = {0};
@@ -386,13 +412,6 @@ static __attribute__((always_inline)) void Cron_Runner(void) {
   }
 }
 
-/**
- * @brief 创建一个协程
- * @param  task             任务函数指针
- * @param  enable           是否立即启动
- * @param  mode             模式(CR_MODE_xxx)
- * @retval uint16_t         任务ID (0xFFFF表示堆内存分配失败)
- */
 uint16_t Sch_CreateCoron(void (*task)(void), uint8_t enable,
                          enum CR_MODES mode) {
   if (chd.num == 0xFFFE) return 0xffff;
@@ -419,20 +438,16 @@ uint16_t Sch_CreateCoron(void (*task)(void), uint8_t enable,
   p->taskId = 0xFFFF;
 RETRY_ID_CHECK:
   for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].taskId == chd.maxId) {
-      chd.maxId += 1;
+    if (chd.tasks[i].taskId == chd.tempId) {
+      chd.tempId += 1;
       goto RETRY_ID_CHECK;
     }
   }
-  p->taskId = chd.maxId;
-  chd.maxId += 1;
+  p->taskId = chd.tempId;
+  chd.tempId += 1;
   return p->taskId;
 }
 
-/**
- * @brief 删除一个协程
- * @param  taskId           目标任务ID
- */
 void Sch_DeleteCoron(uint16_t taskId) {
   if (chd.num == 0) return;
   for (uint16_t i = 0; i < chd.num; i++) {
@@ -459,12 +474,6 @@ void Sch_DeleteCoron(uint16_t taskId) {
   }
 }
 
-/**
- * @brief 设置协程使能状态
- * @param  taskId           目标任务ID
- * @param  enable           使能状态(0xff: 切换)
- * @param  clearState      是否清除协程状态(从头开始执行)
- */
 void Sch_SetCoronState(uint16_t taskId, uint8_t enable, uint8_t clearState) {
   for (uint16_t i = 0; i < chd.num; i++) {
     if (chd.tasks[i].taskId == taskId) {
@@ -482,16 +491,8 @@ void Sch_SetCoronState(uint16_t taskId, uint8_t enable, uint8_t clearState) {
   }
 }
 
-/**
- * @brief 获取调度器内协程数量
- */
 uint16_t Sch_GetCoronNum(void) { return chd.num; }
 
-/**
- * @brief 查询指定函数对应的协程ID
- * @param  task             目标任务函数指针
- * @retval uint16_t         任务ID (0xFFFF:未找到)
- */
 uint16_t Sch_GetCoronId(void (*task)(void)) {
   for (uint16_t i = 0; i < chd.num; i++) {
     if (chd.tasks[i].task == task) return chd.tasks[i].taskId;
@@ -499,11 +500,6 @@ uint16_t Sch_GetCoronId(void (*task)(void)) {
   return 0xffff;
 }
 
-/**
- * @brief 查询指定任务ID对应的协程是否存在
- * @param  taskId           目标任务ID
- * @retval bool             协程是否存在
- */
 bool Sch_IsCoronExist(uint16_t taskId) {
   for (uint16_t i = 0; i < chd.num; i++) {
     if (chd.tasks[i].taskId == taskId) return true;
@@ -536,12 +532,6 @@ static __attribute__((always_inline)) void CallLater_Runner(void) {
   }
 }
 
-/**
- * @brief 在指定时间后执行目标函数
- * @param  task             任务函数指针
- * @param  delayUs          延时启动时间(us)
- * @retval bool             是否成功
- */
 bool Sch_CallLater(void (*task)(void), m_time_t delayUs) {
   scheduler_call_later_t *p = NULL;
   if (schCallLaterEntry == NULL) {
@@ -562,10 +552,6 @@ bool Sch_CallLater(void (*task)(void), m_time_t delayUs) {
   return true;
 }
 
-/**
- * @brief 取消所有对应函数的延时调用任务
- * @param task              任务函数指针
- */
 void Sch_CancelCallLater(void (*task)(void)) {
   scheduler_call_later_t *p = schCallLaterEntry;
   scheduler_call_later_t *q = NULL;
@@ -590,3 +576,62 @@ void Sch_CancelCallLater(void (*task)(void)) {
   }
 }
 #endif  // _SCH_ENABLE_CALLLATER
+
+#if _SCH_ENABLE_TERMINAL
+#include "log.h"
+#include "nr_micro_shell.h"
+#include "stdlib.h"
+#include "string.h"
+void sch_cmd(char argc, char *argv) {
+  if (argc < 2) {
+    LOG_RAWLN(TERM_FMT(
+        BOLD,
+        BLUE) "Usage: sch [list|enable|disable|delete|setfreq|excute] [taskid] "
+              "[freq]" TERM_RST);
+    return;
+  }
+  if (strcmp(argv + argv[1], "list") == 0) {
+    LOG_RAWLN(TERM_FMT(BOLD, BLUE) "Tasks list:");
+    for (uint16_t i = 0; i < thd.num; i++) {
+      LOG_RAWLN("Task %d: 0x%p", thd.tasks[i].taskId, thd.tasks[i].task);
+    }
+    LOG_RAWLN("Total %d tasks" TERM_RST, thd.num);
+    return;
+  }
+  if (argc < 3) {
+    LOG_RAWLN(TERM_FMT(BOLD, RED) "Task ID is required" TERM_RST);
+    return;
+  }
+  uint16_t taskId = atoi(argv + argv[2]);
+  scheduler_task_t *p = get_task(taskId);
+  if (p == NULL) {
+    LOG_RAWLN(TERM_FMT(BOLD, RED) "Task %d not found" TERM_RST, taskId);
+    return;
+  }
+  if (strcmp(argv + argv[1], "enable") == 0) {
+    Sch_SetTaskState(taskId, ENABLE);
+    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d enabled" TERM_RST, taskId);
+  } else if (strcmp(argv + argv[1], "disable") == 0) {
+    Sch_SetTaskState(taskId, DISABLE);
+    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d disabled" TERM_RST, taskId);
+  } else if (strcmp(argv + argv[1], "delete") == 0) {
+    Sch_DeleteTask(taskId);
+    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d deleted" TERM_RST, taskId);
+  } else if (strcmp(argv + argv[1], "setfreq") == 0) {
+    if (argc < 4) {
+      LOG_RAWLN(TERM_FMT(BOLD, RED) "Frequency is required" TERM_RST);
+      return;
+    }
+    float freq = atof(argv + argv[3]);
+    Sch_SetTaskFreq(taskId, freq);
+    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d frequency set to %.2fHz" TERM_RST,
+              taskId, freq);
+  } else if (strcmp(argv + argv[1], "excute") == 0) {
+    LOG_RAWLN(TERM_FMT(BOLD, YELLOW) "Force excuting task %d" TERM_RST, taskId);
+    p->task();
+  } else {
+    LOG_RAWLN(TERM_FMT(BOLD, RED) "Unknown command" TERM_RST);
+  }
+}
+ADD_CMD(sch, sch_cmd);
+#endif  // _SCH_ENABLE_TERMINAL

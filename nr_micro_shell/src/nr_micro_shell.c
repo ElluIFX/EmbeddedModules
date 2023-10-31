@@ -100,8 +100,6 @@ void _shell_init(shell_st *shell) {
 
   shell_printf("%s", shell->user_name);
   shell_his_queue_init(&shell->cmd_his);
-  shell_his_queue_add_cmd(&shell->cmd_his, "ls");
-  shell->cmd_his.index = 1;
 }
 
 shell_fun_t shell_search_cmd(shell_st *shell, char *str) {
@@ -123,14 +121,17 @@ void shell_parser(shell_st *shell, char *str) {
   shell_fun_t fp;
   char index = NR_SHELL_CMD_PARAS_MAX_NUM;
 
-  if (shell_his_queue_search_cmd(&shell->cmd_his, str) == 0 && str[0] != '\0') {
-    shell_his_queue_add_cmd(&shell->cmd_his, str);
-  }
-
   if (strlen(str) > NR_SHELL_CMD_LINE_MAX_LENGTH) {
     shell_printf("this command is too long." NR_SHELL_NEXT_LINE);
     shell_printf("%s", shell->user_name);
     return;
+  }
+  unsigned short his_id = 0;
+  if (str[0] != '\0') {
+    his_id = shell_his_queue_search_cmd(&shell->cmd_his, str);
+    if (his_id == 0) {
+      shell_his_queue_add_cmd(&shell->cmd_his, str);
+    }
   }
 
   token = nr_shell_strtok(token, " ");
@@ -138,8 +139,9 @@ void shell_parser(shell_st *shell, char *str) {
 
   if (fp == NULL) {
     if (isalpha(str[0])) {
-      shell_printf("no command named: %s" NR_SHELL_NEXT_LINE, token);
+      shell_printf("Command not found: %s" NR_SHELL_NEXT_LINE, token);
     }
+    shell->cmd_his.index = shell->cmd_his.len;
   } else {
     argv[argc] = index;
     strcpy(argv + index, str);
@@ -154,10 +156,10 @@ void shell_parser(shell_st *shell, char *str) {
       argc++;
       token = nr_shell_strtok(NULL, " ");
     }
-  }
-
-  if (fp != NULL) {
     fp(argc, argv);
+    if(his_id != 0) {
+      shell->cmd_his.index = his_id;
+    }
   }
 
   shell_printf("%s", shell->user_name);
@@ -195,6 +197,7 @@ void shell_his_queue_init(shell_his_queue_st *queue) {
   queue->store_front = 0;
   queue->store_rear = 0;
   queue->store_num = 0;
+  queue->index = 0;
 }
 
 void shell_his_queue_add_cmd(shell_his_queue_st *queue, char *str) {
@@ -238,6 +241,7 @@ void shell_his_queue_add_cmd(shell_his_queue_st *queue, char *str) {
     queue->store_num++;
   }
   queue->queue[queue->rp] = queue->store_rear;
+  queue->index = queue->len;
 }
 
 unsigned short int shell_his_queue_search_cmd(shell_his_queue_st *queue,

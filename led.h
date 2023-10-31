@@ -14,11 +14,26 @@
 
 
 #if _LED_USE_PWM
+
+/**
+ * @brief LED控制
+ * @param  R/G/B: 0-255.0f, <0-忽略
+ */
 extern void LED(float R, float G, float B);
 #else
 #if defined(LED_R_Pin) && defined(LED_G_Pin) && defined(LED_B_Pin)
+
+/**
+ * @brief LED控制
+ * @param  R/G/B: 0-熄灭 1-点亮 0xFF-翻转 其他-忽略
+ */
 extern void LED(uint8_t R, uint8_t G, uint8_t B);
 #elif defined(LED_Pin)
+
+/**
+ * @brief LED控制
+ * @param  act: 0-熄灭 1-点亮 0xFF-翻转 其他-忽略
+ */
 extern void LED(uint8_t act);
 #endif
 #endif  // !_PWM_RGB_LED

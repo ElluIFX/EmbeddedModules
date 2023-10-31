@@ -109,11 +109,6 @@ static void key_update(uint16_t key_val) {
   }
 }
 
-/**
- * @brief read a key event from fifo
- * @param None
- * @retval key_event: (KEY_EVENT | KEY_NUMBER<<8)
- */
 uint16_t Key_Read(void) {
   if (key_buf.wr == key_buf.rd) {
     return KEY_EVENT_NULL;
@@ -442,10 +437,6 @@ static void key_status_hold_up_handle(key_dev_t *key_dev, uint8_t key_idx,
   key_dev->status = key_status_down_check;
 }
 
-/**
- * @brief Run all key state machine once every KEY_CHECK_MS
- * @retval None
- */
 void Key_Tick(void) {
   if (key_dev_p == NULL || key_read_func == NULL) {
     return;
@@ -455,13 +446,6 @@ void Key_Tick(void) {
   }
 }
 
-/**
- * @brief Register a callback function for key event
- * @note Once a callback function is registered, Key_Read() will not work
- * anymore
- * @note Only one callback function can be registered
- * @param  func - void func(uint16_t key_event)
- */
 void Key_Register_Callback(void (*func)(uint16_t key_event)) {
   key_callback = func;
 }
@@ -477,13 +461,6 @@ void Key_Register_Callback_Alt(void (*func)(uint8_t key, uint8_t event)) {
   key_callback_alt = func;
 }
 
-/**
- * @brief Initialize key device
- * @note This function must be called before using key device
- * @param  read_func - uint8_t read_func(uint8_t idx)
- * @param  num - key total number (idx in 0 - num-1)
- * @retval None
- */
 void Key_Init(uint8_t (*read_func)(uint8_t idx), uint8_t num) {
   key_read_func = read_func;
   key_num = num;

@@ -14,10 +14,6 @@
 #define LED_STATE(s) (s ? GPIO_PIN_RESET : GPIO_PIN_SET)
 
 #if defined(LED_R_Pin) && defined(LED_G_Pin) && defined(LED_B_Pin)
-/**
- * @brief LED控制
- * @param  R/G/B: 0-熄灭 1-点亮 0xFF-翻转 其他-忽略
- */
 void LED(uint8_t R, uint8_t G, uint8_t B) {
   if (R <= 1)
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, LED_STATE(R));
@@ -33,10 +29,6 @@ void LED(uint8_t R, uint8_t G, uint8_t B) {
     HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
 }
 #elif defined(LED_Pin)
-/**
- * @brief LED控制
- * @param  act: 0-熄灭 1-点亮 0xFF-翻转 其他-忽略
- */
 void LED(uint8_t act) {
   if (act <= 1)
     HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_STATE(act));
@@ -48,10 +40,6 @@ void LED(uint8_t act) {
 
 #else
 #include "tim.h"
-/**
- * @brief LED控制
- * @param  R/G/B: 0-255.0f, <0-忽略
- */
 void LED(float R, float G, float B) {
   static uint8_t inited = 0;
   if (R >= 0)

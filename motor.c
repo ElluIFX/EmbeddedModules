@@ -14,10 +14,6 @@
 
 #include "macro.h"
 
-/**
- * @brief Setup motor structure and configure Timers.
- * @param  motor            Target
- */
 void Motor_Setup(motor_t *motor) {
   motor->mode = MOTOR_MODE_BRAKE;
   motor->pwmDuty = 0;
@@ -44,12 +40,7 @@ void Motor_Setup(motor_t *motor) {
   HAL_TIM_PWM_Start(motor->timPWM, motor->pwmChannel);
 }
 
-/**
- * @brief Get motor speed and position
- * @param  motor            Target
- * @param  runTimeHz        How fast this function is called
- */
-void Motor_Encoder_Tick(motor_t *motor, float runTimeHz) {
+void Motor_Encoder_Tick(motor_t *motor, const float runTimeHz) {
   float speed = 0;
   if (motor->encoderReverse)
     motor->pos +=
@@ -64,10 +55,6 @@ void Motor_Encoder_Tick(motor_t *motor, float runTimeHz) {
   motor->speed += (speed - motor->speed) * SPEED_FILTER;
 }
 
-/**
- * @brief Calculate motor speed and position
- * @param  motor            Target
- */
 void Motor_Run(motor_t *motor) {
   float pwmDuty = 0;
   if (motor->mode == MOTOR_MODE_RUN_POS) {
@@ -121,14 +108,6 @@ void Motor_Run(motor_t *motor) {
   }
   if (motor->mode != MOTOR_MODE_MANUAL) motor->pwmDuty = pwmDuty;
 }
-
-/**
- * @brief  计算双轮车的目标速度
- * @param  V              车辆线速度
- * @param  angular_velocity 车辆角速度
- * @param  target_rpm_left  目标左轮rpm
- * @param  target_rpm_right 目标右轮rpm
- */
 void Two_Wheel_Speed_Calc(float V, float angular_velocity,
                           float *target_rpm_left, float *target_rpm_right) {
   // 计算车辆线速度和角速度

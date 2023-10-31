@@ -16,10 +16,6 @@ scheduler_task_t _sch_task_end_ __SCH_SECTION("1.end") = {NULL, 0, 0, 0};
 
 scheduler_task_t *schTaskList = NULL;
 
-/**
- * @brief 时分调度器主函数
- * @param  block            是否阻塞
- **/
 __attribute__((always_inline)) void Scheduler_Run(const uint8_t block) {
   m_time_t now;
   m_time_t period;

@@ -118,7 +118,7 @@ The end of line.
  * the maximum number of commands that can be stored. When the history command
  * line cache is full, it will automatically release the earliest command
  * record) */
-#define NR_SHELL_MAX_CMD_HISTORY_NUM 3
+#define NR_SHELL_MAX_CMD_HISTORY_NUM 8
 
 /* History command cache length */
 #define NR_SHELL_CMD_HISTORY_BUF_LENGTH 128

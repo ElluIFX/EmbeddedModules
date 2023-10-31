@@ -49,10 +49,40 @@ extern uint16_t key_set_continue_send_ms;
 extern uint16_t key_set_continue_send_speedup;
 extern uint16_t key_set_continue_send_min_ms;
 
+/**
+ * @brief 按键系统初始化
+ * @param  read_func 按键读取函数(传入按键序号，返回按键状态(KEY_READ_UP/DOWN))
+ * @param  num            总按键数量
+ */
 extern void Key_Init(uint8_t (*read_func)(uint8_t idx), uint8_t num);
+
+/**
+ * @brief 按键系统周期调用函数(KEY_CHECK_MS)
+ */
 extern void Key_Tick(void);
+
+/**
+ * @brief 按键读取函数
+ * @retval uint16_t 按键事件(KEY_EVENT | KEY_ID<<8)
+ */
 extern uint16_t Key_Read(void);
+
+/**
+ * @brief 按键注册回调函数
+ * @param  func            回调函数指针(传入同Key_Read的返回值)
+ */
 extern void Key_Register_Callback(void (*func)(uint16_t key_event));
+
+/**
+ * @brief 按键注册回调函数(带按键序号)
+ * @param  func            回调函数指针(分别传入按键序号和事件)
+ */
 extern void Key_Register_Callback_Alt(void (*func)(uint8_t key, uint8_t event));
+
+/**
+ * @brief 获取按键事件名称字符串
+ * @param  event           按键事件
+ * @retval char*           按键事件名称字符串
+ */
 extern char *Key_Get_Event_Name(uint8_t event);
 #endif
