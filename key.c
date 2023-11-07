@@ -10,13 +10,17 @@
  */
 #include "key.h"
 
-uint16_t key_set_long_ms = 300;    // 长按时间
-uint16_t key_set_hold_ms = 800;    // 按住时间
-uint16_t key_set_double_ms = 200;  // 双击最大间隔时间 (0:关闭)
-uint16_t key_set_continue_wait_ms = 600;  // 按住/双击按住连发等待时间 (0:关闭)
-uint16_t key_set_continue_send_ms = 100;  // 按住/双击按住连发执行间隔
-uint16_t key_set_continue_send_speedup = 1;  // 按住/双击按住连发执行加速
-uint16_t key_set_continue_send_min_ms = 10;  // 按住/双击按住连发最小间隔
+key_setting_t key_setting = {
+    .simple_event = 1,
+    .complex_event = 1,
+    .long_ms = 300,
+    .hold_ms = 800,
+    .double_ms = 200,
+    .continue_wait_ms = 600,
+    .continue_send_ms = 100,
+    .continue_send_speedup = 1,
+    .continue_send_min_ms = 10,
+};
 
 /* key callback function pointer */
 static void (*key_callback)(uint16_t key_event) = NULL;
@@ -52,12 +56,8 @@ static void key_status_hold_check(key_dev_t *key_dev, uint8_t key_idx,
                                   uint8_t key_read);
 static void key_status_short_up_shake(key_dev_t *key_dev, uint8_t key_idx,
                                       uint8_t key_read);
-static void key_status_short_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                       uint8_t key_read);
 static void key_status_long_up_shake(key_dev_t *key_dev, uint8_t key_idx,
                                      uint8_t key_read);
-static void key_status_long_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                      uint8_t key_read);
 static void key_status_double_check(key_dev_t *key_dev, uint8_t key_idx,
                                     uint8_t key_read);
 static void key_status_double_down_shake(key_dev_t *key_dev, uint8_t key_idx,
@@ -69,10 +69,6 @@ static void key_status_double_continue_check(key_dev_t *key_dev,
                                              uint8_t key_idx, uint8_t key_read);
 static void key_status_double_up_shake(key_dev_t *key_dev, uint8_t key_idx,
                                        uint8_t key_read);
-static void key_status_double_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                        uint8_t key_read);
-static void key_status_hold_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                   uint8_t key_read);
 static void key_status_hold_continue_wait_check(key_dev_t *key_dev,
                                                 uint8_t key_idx,
                                                 uint8_t key_read);
@@ -80,8 +76,6 @@ static void key_status_hold_continue_check(key_dev_t *key_dev, uint8_t key_idx,
                                            uint8_t key_read);
 static void key_status_hold_up_shake(key_dev_t *key_dev, uint8_t key_idx,
                                      uint8_t key_read);
-static void key_status_hold_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                      uint8_t key_read);
 
 /**
  * @brief write key vaule to buffer
@@ -89,6 +83,12 @@ static void key_status_hold_up_handle(key_dev_t *key_dev, uint8_t key_idx,
  * @retval None
  */
 static void key_update(uint16_t key_val) {
+  if (!key_setting.simple_event &&
+      ((key_val & 0xFF) == KEY_EVENT_UP || (key_val & 0xFF) == KEY_EVENT_DOWN))
+    return;
+  if (!key_setting.complex_event &&
+      ((key_val & 0xFF) != KEY_EVENT_UP && (key_val & 0xFF) != KEY_EVENT_DOWN))
+    return;
   if (key_callback != NULL) {
     key_callback(key_val);
     return;
@@ -136,26 +136,20 @@ static void key_status_down_shake(key_dev_t *key_dev, uint8_t key_idx,
   }
 
   if (key_read == KEY_READ_DOWN) {
-    key_dev->status = key_status_down_handle;
+    key_update(key_idx << 8 | KEY_EVENT_DOWN);
+
+    key_dev->status = key_status_hold_check;
+    key_dev->count_ms = 0;
   } else {
     key_dev->status = key_status_down_check;
   }
-}
-
-static void key_status_down_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                   uint8_t key_read) {
-  uint16_t key_val = key_idx << 8 | KEY_EVENT_DOWN;
-  key_update(key_val);
-
-  key_dev->status = key_status_hold_check;
-  key_dev->count_ms = 0;
 }
 
 static void key_status_hold_check(key_dev_t *key_dev, uint8_t key_idx,
                                   uint8_t key_read) {
   key_dev->count_ms += KEY_CHECK_MS;
 
-  if (key_dev->count_ms < key_set_long_ms) {
+  if (key_dev->count_ms < key_setting.long_ms) {
     if (key_read == KEY_READ_UP) {
       key_dev->count_temp = key_dev->count_ms;
       key_dev->status = key_status_short_up_shake;
@@ -163,7 +157,7 @@ static void key_status_hold_check(key_dev_t *key_dev, uint8_t key_idx,
     return;
   }
 
-  if (key_dev->count_ms < key_set_hold_ms) {
+  if (key_dev->count_ms < key_setting.hold_ms) {
     if (key_read == KEY_READ_UP) {
       key_dev->count_temp = key_dev->count_ms;
       key_dev->status = key_status_long_up_shake;
@@ -171,7 +165,9 @@ static void key_status_hold_check(key_dev_t *key_dev, uint8_t key_idx,
     return;
   }
 
-  key_dev->status = key_status_hold_handle;
+  key_update(key_idx << 8 | KEY_EVENT_HOLD);
+  key_dev->status = key_status_hold_continue_wait_check;
+  key_dev->count_ms = 0;
 }
 
 static void key_status_short_up_shake(key_dev_t *key_dev, uint8_t key_idx,
@@ -183,22 +179,12 @@ static void key_status_short_up_shake(key_dev_t *key_dev, uint8_t key_idx,
   }
 
   if (key_read == KEY_READ_UP) {
+    key_update(key_idx << 8 | KEY_EVENT_UP);
     key_dev->count_ms = 0;
     key_dev->status = key_status_double_check;
   } else {
     key_dev->status = key_status_hold_check;
   }
-}
-
-static void key_status_short_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                       uint8_t key_read) {
-  uint16_t key_val;
-
-  key_val = key_idx << 8 | KEY_EVENT_SHORT;
-
-  key_update(key_val);
-
-  key_dev->status = key_status_down_check;
 }
 
 static void key_status_long_up_shake(key_dev_t *key_dev, uint8_t key_idx,
@@ -210,35 +196,27 @@ static void key_status_long_up_shake(key_dev_t *key_dev, uint8_t key_idx,
   }
 
   if (key_read == KEY_READ_UP) {
-    key_dev->status = key_status_long_up_handle;
+    key_update(key_idx << 8 | KEY_EVENT_UP);
+    key_update(key_idx << 8 | KEY_EVENT_LONG);
+    key_dev->status = key_status_down_check;
     key_dev->count_ms = 0;
   } else {
     key_dev->status = key_status_hold_check;
   }
 }
 
-static void key_status_long_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                      uint8_t key_read) {
-  uint16_t key_val;
-
-  key_val = key_idx << 8 | KEY_EVENT_LONG;
-
-  key_update(key_val);
-
-  key_dev->status = key_status_down_check;
-}
-
 static void key_status_double_check(key_dev_t *key_dev, uint8_t key_idx,
                                     uint8_t key_read) {
   key_dev->count_ms += KEY_CHECK_MS;
 
-  if (key_dev->count_ms < key_set_double_ms) {
+  if (key_dev->count_ms < key_setting.double_ms) {
     if (key_read == KEY_READ_DOWN) {
       key_dev->status = key_status_double_down_shake;
       key_dev->count_temp = key_dev->count_ms;
     }
   } else {
-    key_dev->status = key_status_short_up_handle;
+    key_update(key_idx << 8 | KEY_EVENT_SHORT);
+    key_dev->status = key_status_down_check;
   }
 }
 
@@ -251,11 +229,8 @@ static void key_status_double_down_shake(key_dev_t *key_dev, uint8_t key_idx,
   }
 
   if (key_read == KEY_READ_DOWN) {
-    uint16_t key_val;
-
-    key_val = key_idx << 8 | KEY_EVENT_DOUBLE;
-
-    key_update(key_val);
+    key_update(key_idx << 8 | KEY_EVENT_DOWN);
+    key_update(key_idx << 8 | KEY_EVENT_DOUBLE);
 
     key_dev->status = key_status_double_continue_wait_check;
     key_dev->count_ms = 0;
@@ -267,39 +242,33 @@ static void key_status_double_down_shake(key_dev_t *key_dev, uint8_t key_idx,
 static void key_status_double_continue_wait_check(key_dev_t *key_dev,
                                                   uint8_t key_idx,
                                                   uint8_t key_read) {
-  uint16_t key_val;
-
   key_dev->count_ms += KEY_CHECK_MS;
 
   if (key_read == KEY_READ_UP) {
     key_dev->status = key_status_double_up_shake;
   }
 
-  if (key_dev->count_ms < key_set_continue_wait_ms) {
+  if (key_dev->count_ms < key_setting.continue_wait_ms) {
     return;
   }
 
-  if (key_set_continue_send_ms == 0) {
+  if (key_setting.continue_send_ms == 0) {
     return;
   }
 
-  key_val = key_idx << 8 | KEY_EVENT_DOUBLE_CONTINUE;
-
-  key_update(key_val);
+  key_update(key_idx << 8 | KEY_EVENT_DOUBLE_CONTINUE);
   key_dev->status = key_status_double_continue_check;
   key_dev->count_ms = 0;
-  key_dev->count_temp = key_set_continue_send_ms;
+  key_dev->count_temp = key_setting.continue_send_ms;
 }
 
 static void key_status_double_continue_check(key_dev_t *key_dev,
                                              uint8_t key_idx,
                                              uint8_t key_read) {
-  uint16_t key_val;
-
   key_dev->count_ms += KEY_CHECK_MS;
 
-  if (key_dev->count_temp < key_set_continue_send_min_ms) {
-    key_dev->count_temp = key_set_continue_send_min_ms;
+  if (key_dev->count_temp < key_setting.continue_send_min_ms) {
+    key_dev->count_temp = key_setting.continue_send_min_ms;
   }
 
   if (key_read == KEY_READ_UP) {
@@ -311,11 +280,9 @@ static void key_status_double_continue_check(key_dev_t *key_dev,
     return;
   }
 
-  key_val = key_idx << 8 | KEY_EVENT_DOUBLE_CONTINUE;
-
-  key_update(key_val);
+  key_update(key_idx << 8 | KEY_EVENT_DOUBLE_CONTINUE);
   key_dev->count_ms = 0;
-  key_dev->count_temp -= key_set_continue_send_speedup;
+  key_dev->count_temp -= key_setting.continue_send_speedup;
 }
 
 static void key_status_double_up_shake(key_dev_t *key_dev, uint8_t key_idx,
@@ -327,71 +294,43 @@ static void key_status_double_up_shake(key_dev_t *key_dev, uint8_t key_idx,
   }
 
   if (key_read == KEY_READ_UP) {
-    key_dev->status = key_status_double_up_handle;
+    key_update(key_idx << 8 | KEY_EVENT_UP);
+    key_dev->status = key_status_down_check;
   } else {
     key_dev->status = key_status_double_continue_check;
-    key_dev->count_temp = key_set_continue_send_ms;
+    key_dev->count_temp = key_setting.continue_send_ms;
   }
-}
-
-static void key_status_double_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                        uint8_t key_read) {
-  uint16_t key_val;
-
-  key_val = key_idx << 8 | KEY_EVENT_UP_DOUBLE;
-
-  key_update(key_val);
-
-  key_dev->status = key_status_down_check;
-}
-
-static void key_status_hold_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                   uint8_t key_read) {
-  uint16_t key_val;
-
-  key_val = key_idx << 8 | KEY_EVENT_HOLD;
-
-  key_update(key_val);
-
-  key_dev->status = key_status_hold_continue_wait_check;
-  key_dev->count_ms = 0;
 }
 
 static void key_status_hold_continue_wait_check(key_dev_t *key_dev,
                                                 uint8_t key_idx,
                                                 uint8_t key_read) {
-  uint16_t key_val;
-
   key_dev->count_ms += KEY_CHECK_MS;
 
   if (key_read == KEY_READ_UP) {
     key_dev->status = key_status_hold_up_shake;
   }
 
-  if (key_dev->count_ms < key_set_continue_wait_ms) {
+  if (key_dev->count_ms < key_setting.continue_wait_ms) {
     return;
   }
 
-  if (key_set_continue_send_ms == 0) {
+  if (key_setting.continue_send_ms == 0) {
     return;
   }
 
-  key_val = key_idx << 8 | KEY_EVENT_HOLD_CONTINUE;
-
-  key_update(key_val);
+  key_update(key_idx << 8 | KEY_EVENT_HOLD_CONTINUE);
   key_dev->status = key_status_hold_continue_check;
   key_dev->count_ms = 0;
-  key_dev->count_temp = key_set_continue_send_ms;
+  key_dev->count_temp = key_setting.continue_send_ms;
 }
 
 static void key_status_hold_continue_check(key_dev_t *key_dev, uint8_t key_idx,
                                            uint8_t key_read) {
-  uint16_t key_val;
-
   key_dev->count_ms += KEY_CHECK_MS;
 
-  if (key_dev->count_temp < key_set_continue_send_min_ms) {
-    key_dev->count_temp = key_set_continue_send_min_ms;
+  if (key_dev->count_temp < key_setting.continue_send_min_ms) {
+    key_dev->count_temp = key_setting.continue_send_min_ms;
   }
 
   if (key_read == KEY_READ_UP) {
@@ -403,11 +342,9 @@ static void key_status_hold_continue_check(key_dev_t *key_dev, uint8_t key_idx,
     return;
   }
 
-  key_val = key_idx << 8 | KEY_EVENT_HOLD_CONTINUE;
-
-  key_update(key_val);
+  key_update(key_idx << 8 | KEY_EVENT_HOLD_CONTINUE);
   key_dev->count_ms = 0;
-  key_dev->count_temp -= key_set_continue_send_speedup;
+  key_dev->count_temp -= key_setting.continue_send_speedup;
 }
 
 static void key_status_hold_up_shake(key_dev_t *key_dev, uint8_t key_idx,
@@ -419,22 +356,12 @@ static void key_status_hold_up_shake(key_dev_t *key_dev, uint8_t key_idx,
   }
 
   if (key_read == KEY_READ_UP) {
-    key_dev->status = key_status_hold_up_handle;
+    key_update(key_idx << 8 | KEY_EVENT_UP);
+    key_dev->status = key_status_down_check;
   } else {
     key_dev->status = key_status_hold_continue_check;
-    key_dev->count_temp = key_set_continue_send_ms;
+    key_dev->count_temp = key_setting.continue_send_ms;
   }
-}
-
-static void key_status_hold_up_handle(key_dev_t *key_dev, uint8_t key_idx,
-                                      uint8_t key_read) {
-  uint16_t key_val;
-
-  key_val = key_idx << 8 | KEY_EVENT_UP_HOLD;
-
-  key_update(key_val);
-
-  key_dev->status = key_status_down_check;
 }
 
 void Key_Tick(void) {
@@ -491,6 +418,8 @@ char *Key_Get_Event_Name(uint8_t event) {
   switch (event & 0xFF) {
     case KEY_EVENT_DOWN:
       return "DOWN";
+    case KEY_EVENT_UP:
+      return "UP";
     case KEY_EVENT_SHORT:
       return "SHORT";
     case KEY_EVENT_LONG:
@@ -499,14 +428,10 @@ char *Key_Get_Event_Name(uint8_t event) {
       return "DOUBLE";
     case KEY_EVENT_HOLD:
       return "HOLD";
-    case KEY_EVENT_UP_HOLD:
-      return "UP_HOLD";
-    case KEY_EVENT_UP_DOUBLE:
-      return "UP_DOUBLE";
     case KEY_EVENT_HOLD_CONTINUE:
-      return "HOLD_CONTINUE";
+      return "HOLD_CON";
     case KEY_EVENT_DOUBLE_CONTINUE:
-      return "DOUBLE_CONTINUE";
+      return "DOUBLE_CON";
     default:
       return "NULL";
   }

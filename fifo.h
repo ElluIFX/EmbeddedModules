@@ -1,6 +1,6 @@
 /**,.,
  * @file fifo.h
- * @brief 使用宏函数的方式简化fifo的初始化和使用
+ * @brief 简单的FIFO缓冲区实现
  * @author Ellu (ellu.grif@gmail.com)
  * @version 1.0
  * @date 2023-07-20
@@ -10,178 +10,102 @@
 
 #ifndef __FIFO_H__
 #define __FIFO_H__
-#include "stdint.h"
-/**
- * @brief 定义一个FIFO缓冲区，包括缓冲区名、缓冲区类型和缓冲区长度
- *
- * @param FIFO_NAME 缓冲区名
- * @param FIFO_TYPE 缓冲区类型
- * @param FIFO_LENGTH 缓冲区长度
- */
-#define FIFO_INIT(FIFO_NAME, FIFO_TYPE, FIFO_LENGTH) \
-  FIFO_TYPE _fifo_##FIFO_NAME##_buffer[FIFO_LENGTH]; \
-  uint16_t _fifo_##FIFO_NAME##_write = 0;            \
-  uint16_t _fifo_##FIFO_NAME##_read = 0;             \
-  const uint16_t _fifo_##FIFO_NAME##_length = FIFO_LENGTH;
+#include "modules.h"
+
+typedef struct {
+  uint8_t *buffer;
+  uint16_t size;
+  uint16_t wr;
+  uint16_t rd;
+} fifo_t;
 
 /**
- * @brief 声明一个FIFO缓冲区，包括缓冲区名、缓冲区类型和缓冲区长度
- *
- * @param FIFO_NAME 缓冲区名
- * @param FIFO_TYPE 缓冲区类型
- * @param FIFO_LENGTH 缓冲区长度
+ * @brief 初始化FIFO, 使用静态缓冲区
+ * @param  fifo               FIFO对象
+ * @param  static_buffer_p    静态缓冲区指针
+ * @param  size               静态缓冲区大小
+ * @note  实际可用空间为size-1
  */
-#define FIFO_EXTERN(FIFO_NAME, FIFO_TYPE, FIFO_LENGTH)      \
-  extern FIFO_TYPE _fifo_##FIFO_NAME##_buffer[FIFO_LENGTH]; \
-  extern uint16_t _fifo_##FIFO_NAME##_write;                \
-  extern uint16_t _fifo_##FIFO_NAME##_read;                 \
-  extern const uint16_t _fifo_##FIFO_NAME##_length;
+extern void Fifo_Init_Static(fifo_t *fifo, uint8_t *static_buffer_p,
+                             uint16_t size);
 
 /**
- * @brief 判断FIFO缓冲区是否为空
- *
- * @param FIFO_NAME 缓冲区名
- * @return true 缓冲区为空
- * @return false 缓冲区不为空
+ * @brief 初始化FIFO, 使用动态缓冲区
+ * @param  fifo             FIFO对象
+ * @param  size             请求的缓冲区大小
+ * @retval 0                成功
+ * @note  实际申请的空间为size+1
  */
-#define FIFO_IS_EMPTY(FIFO_NAME) \
-  (_fifo_##FIFO_NAME##_write == _fifo_##FIFO_NAME##_read)
+extern uint8_t Fifo_Init_Dynamic(fifo_t *fifo, uint16_t size);
 
 /**
- * @brief 判断FIFO缓冲区是否已满
- *
- * @param FIFO_NAME 缓冲区名
- * @return true 缓冲区已满
- * @return false 缓冲区未满
+ * @brief 销毁动态缓冲区FIFO
+ * @param  fifo             FIFO对象
+ * @warning 禁止对静态缓冲区FIFO使用此函数
  */
-#define FIFO_IS_FULL(FIFO_NAME)                                    \
-  ((_fifo_##FIFO_NAME##_write + 1) % _fifo_##FIFO_NAME##_length == \
-   _fifo_##FIFO_NAME##_read)
+extern void Fifo_Destory_Dynamic(fifo_t *fifo);
 
 /**
- * @brief 获取FIFO缓冲区长度
- *
- * @param FIFO_NAME 缓冲区名
- * @return const uint16_t 缓冲区长度
+ * @brief 获取FIFO的大小
+ * @param  fifo             FIFO对象
+ * @retval uint16_t         FIFO的大小
+ * @note  返回的实际可用大小为缓冲区大小-1
  */
-#define FIFO_LENGTH(FIFO_NAME) _fifo_##FIFO_NAME##_length
+extern uint16_t Fifo_GetSize(fifo_t *fifo);
 
 /**
- * @brief 获取FIFO缓冲区剩余空间
- *
- * @param FIFO_NAME 缓冲区名
- * @return uint16_t 缓冲区剩余空间
+ * @brief 获取FIFO的空闲空间
+ * @param  fifo             FIFO对象
+ * @retval uint16_t         FIFO的空闲空间
  */
-#define FIFO_FREE_SPACE(FIFO_NAME) \
-  (_fifo_##FIFO_NAME##_length - FIFO_DATA_LENGTH(FIFO_NAME) - 1)
+extern uint16_t Fifo_GetFree(fifo_t *fifo);
 
 /**
- * @brief 获取FIFO缓冲区数据长度
- *
- * @param FIFO_NAME 缓冲区名
- * @return uint16_t 缓冲区数据长度
+ * @brief 获取FIFO的已用空间
+ * @param  fifo             FIFO对象
+ * @retval uint16_t         FIFO的已用空间
  */
-#define FIFO_DATA_LENGTH(FIFO_NAME)                               \
-  (_fifo_##FIFO_NAME##_write >= _fifo_##FIFO_NAME##_read          \
-       ? _fifo_##FIFO_NAME##_write - _fifo_##FIFO_NAME##_read     \
-       : _fifo_##FIFO_NAME##_length + _fifo_##FIFO_NAME##_write - \
-             _fifo_##FIFO_NAME##_read)
+extern uint16_t Fifo_GetUsed(fifo_t *fifo);
 
 /**
- * @brief 清空FIFO缓冲区
- *
- * @param FIFO_NAME 缓冲区名
+ * @brief 清空FIFO并填充数据
+ * @param  fifo             FIFO对象
+ * @param  fill_data        清空FIFO时填充的数据
  */
-#define FIFO_CLEAR(FIFO_NAME) \
-  _fifo_##FIFO_NAME##_write = _fifo_##FIFO_NAME##_read = 0
+extern void Fifo_Fill(fifo_t *fifo, const uint8_t fill_data);
 
 /**
- * @brief 向FIFO缓冲区中添加数据
- *
- * @param FIFO_NAME 缓冲区名
- * @param DATA 数据
+ * @brief 清空FIFO
+ * @param  fifo             FIFO对象
  */
-#define FIFO_PUSH(FIFO_NAME, DATA)                              \
-  _fifo_##FIFO_NAME##_buffer[_fifo_##FIFO_NAME##_write] = DATA; \
-  _fifo_##FIFO_NAME##_write =                                   \
-      (_fifo_##FIFO_NAME##_write + 1) % _fifo_##FIFO_NAME##_length
+extern void Fifo_Clear(fifo_t *fifo);
 
 /**
- * @brief 从FIFO缓冲区中弹出数据
- *
- * @param FIFO_NAME 缓冲区名
- * @return typeof(_fifo_##FIFO_NAME##_buffer[0]) 弹出的数据
+ * @brief 向FIFO中写入数据
+ * @param  fifo             FIFO对象
+ * @param  data             写入数据缓冲区指针
+ * @param  len              期望写入的数据长度
+ * @retval uint16_t         实际写入的数据长度
  */
-#define FIFO_POP(FIFO_NAME)                             \
-  _fifo_##FIFO_NAME##_buffer[_fifo_##FIFO_NAME##_read]; \
-  _fifo_##FIFO_NAME##_read =                            \
-      (_fifo_##FIFO_NAME##_read + 1) % _fifo_##FIFO_NAME##_length
+extern uint16_t Fifo_Put(fifo_t *fifo, uint8_t *data, uint16_t len);
 
 /**
- * @brief 获取FIFO缓冲区中的第一个数据
- *
- * @param FIFO_NAME 缓冲区名
- * @return typeof(_fifo_##FIFO_NAME##_buffer[0]) 第一个数据
+ * @brief 从FIFO中读取数据
+ * @param  fifo             FIFO对象
+ * @param  data             存放数据的缓冲区指针
+ * @param  len              期望读取的数据长度
+ * @retval uint16_t         实际读取的数据长度
+ * @note 传入NULL指针可丢弃数据
  */
-#define FIFO_PEEK(FIFO_NAME) \
-  _fifo_##FIFO_NAME##_buffer[_fifo_##FIFO_NAME##_read]
+extern uint16_t Fifo_Get(fifo_t *fifo, uint8_t *data, uint16_t len);
 
 /**
- * @brief 获取FIFO缓冲区中指定偏移量的数据
- *
- * @param FIFO_NAME 缓冲区名
- * @param OFFSET 偏移量
- * @return typeof(_fifo_##FIFO_NAME##_buffer[0]) 指定偏移量的数据
+ * @brief 查看FIFO中的数据, 不改变FIFO的状态
+ * @param  fifo             FIFO对象
+ * @param  data             存放数据的缓冲区指针
+ * @param  len              期望查看的数据长度
+ * @retval uint16_t         实际查看的数据长度
  */
-#define FIFO_PEEK_OFFSET(FIFO_NAME, OFFSET)                        \
-  _fifo_##FIFO_NAME##_buffer[(_fifo_##FIFO_NAME##_read + OFFSET) % \
-                             _fifo_##FIFO_NAME##_length]
-
-/**
- * @brief 获取FIFO缓冲区中最后一个数据
- *
- * @param FIFO_NAME 缓冲区名
- * @return typeof(_fifo_##FIFO_NAME##_buffer[0]) 最后一个数据
- */
-#define FIFO_PEEK_LAST(FIFO_NAME)                               \
-  _fifo_##FIFO_NAME##_buffer[(_fifo_##FIFO_NAME##_write +       \
-                              _fifo_##FIFO_NAME##_length - 1) % \
-                             _fifo_##FIFO_NAME##_length]
-
-/**
- * @brief 向FIFO缓冲区中添加数据数组
- *
- * @param FIFO_NAME 缓冲区名
- * @param BUFFER 数据数组
- * @param LENGTH 数据数组长度
- */
-#define FIFO_PUSH_BUFFER(FIFO_NAME, BUFFER, LENGTH) \
-  for (uint16_t i = 0; i < LENGTH; i++) {           \
-    FIFO_PUSH(FIFO_NAME, BUFFER[i]);                \
-  }
-
-/**
- * @brief 从FIFO缓冲区中弹出数据数组
- *
- * @param FIFO_NAME 缓冲区名
- * @param BUFFER 数据数组
- * @param LENGTH 数据数组长度
- */
-#define FIFO_POP_BUFFER(FIFO_NAME, BUFFER, LENGTH) \
-  for (uint16_t i = 0; i < LENGTH; i++) {          \
-    BUFFER[i] = FIFO_POP(FIFO_NAME);               \
-  }
-
-/**
- * @brief 获取FIFO缓冲区中指定长度的数据数组
- *
- * @param FIFO_NAME 缓冲区名
- * @param BUFFER 数据数组
- * @param LENGTH 数据数组长度
- */
-#define FIFO_PEEK_BUFFER(FIFO_NAME, BUFFER, LENGTH) \
-  for (uint16_t i = 0; i < LENGTH; i++) {           \
-    BUFFER[i] = FIFO_PEEK_OFFSET(FIFO_NAME, i);     \
-  }
+extern uint16_t Fifo_Peek(fifo_t *fifo, uint8_t *data, uint16_t len);
 
 #endif  // __FIFO_H__

@@ -15,10 +15,6 @@
 #include "stdlib.h"
 #include "string.h"
 
-#if _MOD_USE_DALLOC
-#include "dalloc.h"
-#endif
-
 // SPI模拟一个bit要发送的数据定义:
 // T0H: 350ns T0L: 800ns
 // T1H: 700ns T1L: 600ns

@@ -12,19 +12,15 @@
 #include "usart.h"
 
 // typedef
-typedef struct {                         // 中断串口接收控制结构体
-  uint8_t rxBuf[_UART_RX_BUF_SIZE];      // 接收缓冲区
-  uint8_t buffer[_UART_RX_BUF_SIZE];     // 接收保存缓冲区
-  __IO uint8_t finished;                 // 接收完成标志位
-  __IO uint16_t len;                     // 接收保存区长度
-  uint16_t rxIdx;                        // 接收缓冲区索引
-  m_time_t rxTime;                       // 接收超时计时器
-  uint16_t rxTimeout;                    // 接收超时时间
-  UART_HandleTypeDef *huart;             // 串口句柄
-  void (*rxCallback)(char *, uint16_t);  // 接收完成回调函数
-  uint8_t cbkInIRQ;                      // 回调函数是否在中断中执行
-  void *next;                            // 下一个串口接收控制结构体
-} uart_it_rx_t;
+typedef struct {                    // 中断FIFO串口接收控制结构体
+  uint8_t fifo[_UART_RX_BUF_SIZE];  // 接收保存缓冲区
+  uint8_t full;                     // 接收保存区满标志位
+  uint16_t rd;                      // 接收保存区读偏移
+  uint16_t wr;                      // 接收保存区写偏移
+  UART_HandleTypeDef *huart;        // 串口句柄
+  void (*rxCallback)(uint8_t);      // 接收完成回调函数
+  void *next;                       // 下一个串口接收控制结构体
+} uart_fifo_rx_t;
 
 #if _UART_ENABLE_DMA
 typedef struct {  // DMA串口接收控制结构体
@@ -87,6 +83,7 @@ extern uint8_t uart_error_state;
  * @retval 发送的字节数
  */
 extern int printft(UART_HandleTypeDef *huart, char *fmt, ...);
+extern uint8_t disable_printft;
 
 /**
  * @brief 等待串口发送完成
@@ -119,35 +116,29 @@ extern int Uart_Getchar(UART_HandleTypeDef *huart);
 extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
 
 /**
- * @brief 串口中断接收初始化
+ * @brief 串口中断FIFO接收初始化
  * @param  ctrl             结构体指针
  * @param  huart            目标串口
- * @param  rxTimeout        接收超时时间
  * @param  rxCallback       接收完成回调函数
- * @param  cbkInIRQ         回调函数是否在中断中执行
  */
-extern void Uart_IT_Rx_Init(uart_it_rx_t *ctrl, UART_HandleTypeDef *huart,
-                            uint16_t rxTimeout,
-                            void (*rxCallback)(char *data, uint16_t len),
-                            uint8_t cbkInIRQ);
-/**
- * @brief 串口中断接收超时判断，在调度器中调用
- */
-extern void Uart_IT_Timeout_Check(void);
-
+extern void Uart_FIFO_Rx_Init(uart_fifo_rx_t *ctrl, UART_HandleTypeDef *huart,
+                              void (*rxCallback)(uint8_t data));
 /**
  * @brief 轮询以在主循环中响应串口接收完成回调(cbkInIRQ=0)
- * @note 若轮询频率小于接收频率, 回调请求会被覆盖
+ * @note FIFO接收需要该函数, DMA接收在cbkInIRQ=0时也需要该函数
+ * @note 若轮询频率小于接收频率, DMA回调请求会被覆盖
  */
 extern void Uart_Callback_Check(void);
 
 /**
  * @brief 串口发送完成中断处理，在函数HAL_UART_TxCpltCallback中调用
+ * @note FIFO发送需要该函数
  */
 extern void Uart_Tx_Process(UART_HandleTypeDef *huart);
 
 /**
  * @brief 串口接收中断处理，在函数HAL_UART_RxCpltCallback中调用
+ * @note FIFO接收需要该函数
  */
 extern void Uart_Rx_Process(UART_HandleTypeDef *huart);
 
@@ -181,6 +172,7 @@ extern void Uart_DMA_Rx_Init(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
 
 /**
  * @brief 串口DMA接收处理，在函数HAL_UARTEx_RxEventCallback中调用
+ * @note DMA接收需要该函数
  */
 extern void Uart_DMA_Rx_Process(UART_HandleTypeDef *huart, uint16_t Size);
 #endif  // _UART_ENABLE_DMA

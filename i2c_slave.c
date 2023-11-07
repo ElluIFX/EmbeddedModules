@@ -1,39 +1,14 @@
 
 #include "i2c_slave.h"
 
-#include <log.h>
-#include <stdio.h>
-#include <string.h>
+__weak void Slave_I2C_Init_Callback(void) {}
+__weak void Slave_I2C_TransmitBegin_Callback(void) {}
+__weak void Slave_I2C_TransmitEnd_Callback(void) {}
+__weak void Slave_I2C_TransmitIn_Callback(uint8_t data) {}
+__weak void Slave_I2C_TransmitOut_Callback(uint8_t* data) {}
 
-static uint8_t slave_i2c_addr = 0x00;
-static uint8_t slave_i2c_mem[256] = {0};
-static uint8_t op_offset = 0;
-static uint8_t op_addr = 0x00;
-
-enum {
-  STATE_IDLE = 0,
-  STATE_READY,
-  STATE_TX,
-  STATE_RX,
-} i2c_state = STATE_IDLE;
-
-__weak void Slave_I2C_RecvDone_Callback(uint16_t offset, uint8_t* mem,
-                                        uint16_t len) {
-  LOG_LIMIT(25, "RX: 0x%02X %d", offset, len, len, mem + offset);
-}
-__weak void Slave_I2C_PreSend_Callback(uint16_t offset, uint8_t* mem) {
-  LOG_LIMIT(25, "QR: 0x%02X", offset);
-}
-__weak void Slave_I2C_SendDone_Callback(uint16_t offset, uint8_t* mem,
-                                        uint16_t len) {
-  LOG_LIMIT(25, "TX: 0x%02X %d", offset, len, len, mem + offset);
-}
-uint8_t* Slave_I2C_GetMem(void) { return slave_i2c_mem; }
-
-static void Slave_Enable_IT(void) {
+static inline void Slave_Enable_IT(void) {
   LL_I2C_Enable(_SLAVE_I2C_INSTANCE);
-  // LL_I2C_DisableClockStretching(_SLAVE_I2C_INSTANCE);
-  // LL_I2C_EnableClockStretching(_SLAVE_I2C_INSTANCE);
   LL_I2C_EnableIT_ADDR(_SLAVE_I2C_INSTANCE);
   LL_I2C_EnableIT_TX(_SLAVE_I2C_INSTANCE);
   LL_I2C_EnableIT_RX(_SLAVE_I2C_INSTANCE);
@@ -42,7 +17,7 @@ static void Slave_Enable_IT(void) {
   LL_I2C_EnableIT_STOP(_SLAVE_I2C_INSTANCE);
 }
 
-static void Slave_Disable_IT(void) {
+static inline void Slave_Disable_IT(void) {
   LL_I2C_DisableIT_ADDR(_SLAVE_I2C_INSTANCE);
   LL_I2C_DisableIT_TX(_SLAVE_I2C_INSTANCE);
   LL_I2C_DisableIT_RX(_SLAVE_I2C_INSTANCE);
@@ -51,70 +26,83 @@ static void Slave_Disable_IT(void) {
   LL_I2C_DisableIT_STOP(_SLAVE_I2C_INSTANCE);
 }
 
-void Slave_I2C_Error_IRQHandler(void) {
+static uint8_t slave_addr = 0x00;
+
+void Slave_I2C_Init(void) {
+  slave_addr = READ_BIT(_SLAVE_I2C_INSTANCE->OAR1, I2C_OAR1_OA1);
   Slave_Disable_IT();
   Slave_Enable_IT();
-  LL_I2C_AcknowledgeNextData(_SLAVE_I2C_INSTANCE, LL_I2C_NACK);
+  Slave_I2C_Init_Callback();
 }
 
-void Slave_I2C_Init(const uint8_t addr) {
-  slave_i2c_addr = (addr << 1);
-  i2c_state = STATE_IDLE;
-  Slave_Disable_IT();
-  Slave_Enable_IT();
-}
-
-static void Slave_Check_Callback(void) {  // 检查是否执行回调函数
-  if (i2c_state == STATE_IDLE) return;
-  Slave_Disable_IT();  // 关闭中断
-  if (i2c_state == STATE_RX) {
-    Slave_I2C_RecvDone_Callback(op_addr, (uint8_t*)slave_i2c_mem,
-                                op_offset - op_addr);
-  } else if (i2c_state == STATE_READY) {
-    Slave_I2C_PreSend_Callback(op_addr, (uint8_t*)slave_i2c_mem);
-  } else if (i2c_state == STATE_TX) {
-    Slave_I2C_SendDone_Callback(op_addr, (uint8_t*)slave_i2c_mem,
-                                op_offset - op_addr - 1);
+void Slave_I2C_SetITEnable(uint8_t state) {
+  if (state) {
+    Slave_Enable_IT();
+  } else {
+    Slave_Disable_IT();
   }
-  if (i2c_state != STATE_READY) {  // 重置状态
-    i2c_state = STATE_IDLE;
-    op_offset = 0;
-    op_addr = 0;
-  }
-  Slave_Enable_IT();  // 打开中断
 }
 
-static void Slave_Reception_Callback(void) {  // 接收数据完成
+void Slave_I2C_SetAddress(uint8_t addr) {
+  if (addr < 0x08 || addr > 0x77 || addr == (slave_addr >> 1)) return;
+  slave_addr = (addr << 1);
+  Slave_I2C_SetEnable(0);
+  LL_I2C_DisableOwnAddress1(_SLAVE_I2C_INSTANCE);
+  LL_I2C_SetOwnAddress1(_SLAVE_I2C_INSTANCE, slave_addr,
+                        LL_I2C_OWNADDRESS1_7BIT);
+  LL_I2C_EnableOwnAddress1(_SLAVE_I2C_INSTANCE);
+  Slave_I2C_SetEnable(1);
+}
+
+void Slave_I2C_SetEnable(uint8_t state) {
+  if (state) {
+    LL_I2C_Enable(_SLAVE_I2C_INSTANCE);
+    Slave_Enable_IT();
+  } else {
+    Slave_Disable_IT();
+    LL_I2C_Disable(_SLAVE_I2C_INSTANCE);
+  }
+}
+
+static inline void Slave_I2C_Transmit_Stop_Callback(void) {
+  // Slave_Disable_IT();
+  Slave_I2C_TransmitEnd_Callback();
+  // Slave_Enable_IT();
+}
+
+static inline void Slave_I2C_Transmit_Start_Callback(void) {
+  // Slave_Disable_IT();
+  Slave_I2C_TransmitBegin_Callback();
+  // Slave_Enable_IT();
+}
+
+static inline void Slave_Reception_Callback(void) {
+  // Slave_Disable_IT();
   uint8_t data = LL_I2C_ReceiveData8(_SLAVE_I2C_INSTANCE);
-  if (i2c_state == STATE_IDLE) {
-    op_offset = data;
-    op_addr = data;
-    i2c_state = STATE_READY;
-    return;
-  }
-  i2c_state = STATE_RX;
-  slave_i2c_mem[op_offset] = data;
-  op_offset = (op_offset + 1) % sizeof(slave_i2c_mem);
+  Slave_I2C_TransmitIn_Callback(data);
+  // Slave_Enable_IT();
 }
 
-static void Slave_Ready_To_Transmit_Callback(void) {  // 准备发送数据
-  i2c_state = STATE_TX;
-  LL_I2C_TransmitData8(_SLAVE_I2C_INSTANCE, slave_i2c_mem[op_offset]);
-  op_offset = (op_offset + 1) % sizeof(slave_i2c_mem);
+static inline void Slave_Ready_To_Transmit_Callback(void) {
+  // Slave_Disable_IT();
+  uint8_t data = 0x00;
+  Slave_I2C_TransmitOut_Callback(&data);
+  LL_I2C_TransmitData8(_SLAVE_I2C_INSTANCE, data);
+  // Slave_Enable_IT();
 }
 
 void Slave_I2C_IRQHandler(void) {
   /* Check ADDR flag value in ISR register */
   if (LL_I2C_IsActiveFlag_ADDR(_SLAVE_I2C_INSTANCE)) {
+    /* Clear ADDR flag value in ISR register */
+    LL_I2C_ClearFlag_ADDR(_SLAVE_I2C_INSTANCE);
     /* Verify the Address Match with the OWN Slave address */
-    if (LL_I2C_GetAddressMatchCode(_SLAVE_I2C_INSTANCE) == slave_i2c_addr) {
-      Slave_Check_Callback();
+    if (LL_I2C_GetAddressMatchCode(_SLAVE_I2C_INSTANCE) == slave_addr) {
+      Slave_I2C_Transmit_Start_Callback();
       /* Verify the transfer direction, a write direction, Slave enters receiver
        * mode */
       if (LL_I2C_GetTransferDirection(_SLAVE_I2C_INSTANCE) ==
           LL_I2C_DIRECTION_WRITE) {
-        /* Clear ADDR flag value in ISR register */
-        LL_I2C_ClearFlag_ADDR(_SLAVE_I2C_INSTANCE);
         /* Enable Receive Interrupt */
         LL_I2C_EnableIT_RX(_SLAVE_I2C_INSTANCE);
       }
@@ -122,19 +110,13 @@ void Slave_I2C_IRQHandler(void) {
          transmitter mode */
       else if (LL_I2C_GetTransferDirection(_SLAVE_I2C_INSTANCE) ==
                LL_I2C_DIRECTION_READ) {
-        /* Clear ADDR flag value in ISR register */
-        LL_I2C_ClearFlag_ADDR(_SLAVE_I2C_INSTANCE);
         /* Enable Transmit Interrupt */
         LL_I2C_EnableIT_TX(_SLAVE_I2C_INSTANCE);
       } else {
-        /* Clear ADDR flag value in ISR register */
-        LL_I2C_ClearFlag_ADDR(_SLAVE_I2C_INSTANCE);
         /* Call Error function */
         Slave_I2C_Error_IRQHandler();
       }
     } else {
-      /* Clear ADDR flag value in ISR register */
-      LL_I2C_ClearFlag_ADDR(_SLAVE_I2C_INSTANCE);
       /* Call Error function */
       Slave_I2C_Error_IRQHandler();
     }
@@ -164,7 +146,7 @@ void Slave_I2C_IRQHandler(void) {
       LL_I2C_ClearFlag_TXE(_SLAVE_I2C_INSTANCE);
     }
     /* Call function Slave Complete Callback */
-    Slave_Check_Callback();
+    Slave_I2C_Transmit_Stop_Callback();
   }
   /* Check TXE flag value in ISR register */
   else if (!LL_I2C_IsActiveFlag_TXE(_SLAVE_I2C_INSTANCE)) {
@@ -176,4 +158,10 @@ void Slave_I2C_IRQHandler(void) {
     /* Call Error function */
     Slave_I2C_Error_IRQHandler();
   }
+}
+
+void Slave_I2C_Error_IRQHandler(void) {
+  Slave_Disable_IT();
+  Slave_Enable_IT();
+  LL_I2C_AcknowledgeNextData(_SLAVE_I2C_INSTANCE, LL_I2C_NACK);
 }
