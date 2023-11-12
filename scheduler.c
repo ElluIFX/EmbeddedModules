@@ -1,10 +1,15 @@
 #include <scheduler.h>
 
+#define _STATIC_INLINE static inline __attribute__((always_inline))
+
 #if _SCH_ENABLE_COROUTINE
-static void Cron_Runner(void);
+_STATIC_INLINE void Cron_Runner(void);
 #endif
 #if _SCH_ENABLE_CALLLATER
-static void CallLater_Runner(void);
+_STATIC_INLINE void CallLater_Runner(void);
+#endif
+#if _SCH_ENABLE_SOFTINT
+_STATIC_INLINE void SoftInt_Runner(void);
 #endif
 
 #pragma pack(1)
@@ -53,7 +58,7 @@ static inline void Debug_PrintInfo(void) {
     double temp = m_tick_per_us;
     m_time_t period = now - _sch_debug_last_print;
     m_time_t other = period;
-    LOG_RAWLN(TERM_FMT(RESET, BOLD, BLUE));
+    LOG_RAWLN(T_FMT(T_RESET, T_BOLD, T_BLUE));
     LOG_RAWLN("--------------------- Scheduler Report ----------------------");
     LOG_RAWLN("PID | Pri | Run | Tmax  | Usage | LTavg | LTmax | Function");
     float usage;
@@ -62,18 +67,18 @@ static inline void Debug_PrintInfo(void) {
       if (thd.tasks[i].enable) {
         usage = (double)thd.tasks[i].total_cost / period * 100;
         if (thd.tasks[i].flag & 0x01) {  // 任务新增
-          LOG_RAW(TERM_FMT(RESET, BOLD, CYAN));
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_CYAN));
           op = '+';
         } else if (thd.tasks[i].flag & 0x04) {  // 任务优先级变更
-          LOG_RAW(TERM_FMT(RESET, BOLD, MAGENTA));
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_MAGENTA));
           op = '>';
         } else if ((thd.tasks[i].last_usage != 0 &&
                     usage / thd.tasks[i].last_usage > 2) ||
                    usage > 20) {  // 任务占用率大幅度增加或者超过20%
-          LOG_RAW(TERM_FMT(RESET, BOLD, YELLOW));
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
           op = '!';
         } else {
-          LOG_RAW(TERM_FMT(RESET, GREEN));  // 正常
+          LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
           op = ' ';
         }
         LOG_RAWLN("%c%-5d %-4d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op,
@@ -85,13 +90,13 @@ static inline void Debug_PrintInfo(void) {
         thd.tasks[i].last_usage = usage;
       } else {
         if (thd.tasks[i].flag & 0x02) {  // 任务已被删除
-          LOG_RAW(TERM_FMT(RESET, BOLD, RED));
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_RED));
           op = '-';
         } else if (thd.tasks[i].flag & 0x04) {  // 任务设置变更
-          LOG_RAW(TERM_FMT(RESET, BOLD, MAGENTA));
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_MAGENTA));
           op = '>';
         } else {
-          LOG_RAW(TERM_FMT(RESET, WHITE));  // 禁用
+          LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
           op = ' ';
         }
         LOG_RAWLN("%c%-5d %-4d %-5s %-7s %-7s %-7s %-7s %s ", op,
@@ -101,15 +106,15 @@ static inline void Debug_PrintInfo(void) {
       }
       other -= thd.tasks[i].total_cost;
     }
-    LOG_RAW(TERM_FMT(RESET, CYAN));
+    LOG_RAW(T_FMT(T_RESET, T_CYAN));
     LOG_RAW("Core: %.0fMhz / RunTime: %ds / Idle: %.3f%%", temp, m_time_s(),
             (double)other / period * 100);
 #if _MOD_USE_DALLOC
     LOG_RAW(" / Mem: %.3f%%", get_def_heap_usage() * 100);
 #endif
-    LOG_RAWLN(TERM_FMT(BOLD, BLUE));
+    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE));
     LOG_RAWLN("-------------------------------------------------------------");
-    LOG_RAW(TERM_FMT(RESET));
+    LOG_RAW(T_RST);
     for (uint16_t i = 0; i < thd.num; i++) {
       if (thd.tasks[i].flag & 0x02) {
         delete_task(i, false);  // 实际删除已标记删除的任务
@@ -194,7 +199,9 @@ void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
         }
       }
     }
-
+#if _SCH_ENABLE_SOFTINT
+    SoftInt_Runner();
+#endif
 #if _SCH_ENABLE_COROUTINE
     Cron_Runner();
 #endif
@@ -392,7 +399,7 @@ struct {
 
 _cron_handle_t _cron_hp = {0};
 
-static __attribute__((always_inline)) void Cron_Runner(void) {
+_STATIC_INLINE void Cron_Runner(void) {
   for (uint16_t i = 0; i < chd.num; i++) {
     if (chd.tasks[i].enable && m_time_us() >= chd.tasks[i].yieldUntil) {
       _cron_hp.ptr = chd.tasks[i].ptr;
@@ -520,7 +527,7 @@ typedef struct {       // 延时调用任务结构
 scheduler_call_later_t *schCallLaterEntry = NULL;
 scheduler_call_later_t *callLater_p = NULL;
 
-static __attribute__((always_inline)) void CallLater_Runner(void) {
+_STATIC_INLINE void CallLater_Runner(void) {
   if (schCallLaterEntry != NULL) {
     if (callLater_p == NULL) callLater_p = schCallLaterEntry;
     if (m_time_us() >= callLater_p->runTimeUs) {
@@ -577,6 +584,43 @@ void Sch_CancelCallLater(void (*task)(void)) {
 }
 #endif  // _SCH_ENABLE_CALLLATER
 
+#if _SCH_ENABLE_SOFTINT
+
+static uint8_t int_main_mask = 0;
+static uint8_t int_sub_masks[8] = {0};
+
+void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel) {
+  if (mainChannel > 7 || subChannel > 7) return;
+  int_main_mask |= 1 << mainChannel;
+  int_sub_masks[mainChannel] |= 1 << subChannel;
+}
+
+__weak void Scheduler_SoftIntHandler_Ch0(uint8_t subMask) {}
+__weak void Scheduler_SoftIntHandler_Ch1(uint8_t subMask) {}
+__weak void Scheduler_SoftIntHandler_Ch2(uint8_t subMask) {}
+__weak void Scheduler_SoftIntHandler_Ch3(uint8_t subMask) {}
+__weak void Scheduler_SoftIntHandler_Ch4(uint8_t subMask) {}
+__weak void Scheduler_SoftIntHandler_Ch5(uint8_t subMask) {}
+__weak void Scheduler_SoftIntHandler_Ch6(uint8_t subMask) {}
+__weak void Scheduler_SoftIntHandler_Ch7(uint8_t subMask) {}
+
+_STATIC_INLINE void SoftInt_Runner(void) {
+  if (int_main_mask) {
+    if (int_main_mask & 0x01) Scheduler_SoftIntHandler_Ch0(int_sub_masks[0]);
+    if (int_main_mask & 0x02) Scheduler_SoftIntHandler_Ch1(int_sub_masks[1]);
+    if (int_main_mask & 0x04) Scheduler_SoftIntHandler_Ch2(int_sub_masks[2]);
+    if (int_main_mask & 0x08) Scheduler_SoftIntHandler_Ch3(int_sub_masks[3]);
+    if (int_main_mask & 0x10) Scheduler_SoftIntHandler_Ch4(int_sub_masks[4]);
+    if (int_main_mask & 0x20) Scheduler_SoftIntHandler_Ch5(int_sub_masks[5]);
+    if (int_main_mask & 0x40) Scheduler_SoftIntHandler_Ch6(int_sub_masks[6]);
+    if (int_main_mask & 0x80) Scheduler_SoftIntHandler_Ch7(int_sub_masks[7]);
+    int_main_mask = 0;
+    memset(int_sub_masks, 0, sizeof(int_sub_masks));
+  }
+}
+
+#endif  // _SCH_ENABLE_SOFTINT
+
 #if _SCH_ENABLE_TERMINAL
 #include "log.h"
 #include "nr_micro_shell.h"
@@ -584,53 +628,55 @@ void Sch_CancelCallLater(void (*task)(void)) {
 #include "string.h"
 void sch_cmd(char argc, char *argv) {
   if (argc < 2) {
-    LOG_RAWLN(TERM_FMT(
-        BOLD,
-        BLUE) "Usage: sch [list|enable|disable|delete|setfreq|excute] [taskid] "
-              "[freq]" TERM_RST);
+    LOG_RAWLN(T_FMT(
+        T_BOLD,
+        T_BLUE) "Usage: sch [list|enable|disable|delete|setfreq|excute] "
+                "[taskid] "
+                "[freq]" T_RST);
     return;
   }
   if (strcmp(argv + argv[1], "list") == 0) {
-    LOG_RAWLN(TERM_FMT(BOLD, BLUE) "Tasks list:");
+    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Tasks list:");
     for (uint16_t i = 0; i < thd.num; i++) {
       LOG_RAWLN("Task %d: 0x%p", thd.tasks[i].taskId, thd.tasks[i].task);
     }
-    LOG_RAWLN("Total %d tasks" TERM_RST, thd.num);
+    LOG_RAWLN("Total %d tasks" T_RST, thd.num);
     return;
   }
   if (argc < 3) {
-    LOG_RAWLN(TERM_FMT(BOLD, RED) "Task ID is required" TERM_RST);
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task ID is required" T_RST);
     return;
   }
   uint16_t taskId = atoi(argv + argv[2]);
   scheduler_task_t *p = get_task(taskId);
   if (p == NULL) {
-    LOG_RAWLN(TERM_FMT(BOLD, RED) "Task %d not found" TERM_RST, taskId);
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task %d not found" T_RST, taskId);
     return;
   }
   if (strcmp(argv + argv[1], "enable") == 0) {
     Sch_SetTaskState(taskId, ENABLE);
-    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d enabled" TERM_RST, taskId);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d enabled" T_RST, taskId);
   } else if (strcmp(argv + argv[1], "disable") == 0) {
     Sch_SetTaskState(taskId, DISABLE);
-    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d disabled" TERM_RST, taskId);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d disabled" T_RST, taskId);
   } else if (strcmp(argv + argv[1], "delete") == 0) {
     Sch_DeleteTask(taskId);
-    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d deleted" TERM_RST, taskId);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d deleted" T_RST, taskId);
   } else if (strcmp(argv + argv[1], "setfreq") == 0) {
     if (argc < 4) {
-      LOG_RAWLN(TERM_FMT(BOLD, RED) "Frequency is required" TERM_RST);
+      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Frequency is required" T_RST);
       return;
     }
     float freq = atof(argv + argv[3]);
     Sch_SetTaskFreq(taskId, freq);
-    LOG_RAWLN(TERM_FMT(BOLD, GREEN) "Task %d frequency set to %.2fHz" TERM_RST,
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d frequency set to %.2fHz" T_RST,
               taskId, freq);
   } else if (strcmp(argv + argv[1], "excute") == 0) {
-    LOG_RAWLN(TERM_FMT(BOLD, YELLOW) "Force excuting task %d" TERM_RST, taskId);
+    LOG_RAWLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting task %d" T_RST,
+              taskId);
     p->task();
   } else {
-    LOG_RAWLN(TERM_FMT(BOLD, RED) "Unknown command" TERM_RST);
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }
 }
 ADD_CMD(sch, sch_cmd);

@@ -14,7 +14,6 @@ typedef struct {
 #define SW_IIC_WAIT_TIME 15       // default 25us
 #define SW_IIC_WAIT_TIME_LONG 25  // default 25us
 
-/* functions */
 extern void SW_IIC_Init(sw_iic_t* dev);
 extern void SW_IIC_Write_Data(sw_iic_t* dev, uint8_t data);
 extern uint8_t SW_IIC_Read_Data(sw_iic_t* dev);

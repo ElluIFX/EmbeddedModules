@@ -12,11 +12,11 @@
 #define __FIFO_H__
 #include "modules.h"
 
-typedef struct {
-  uint8_t *buffer;
-  uint16_t size;
-  uint16_t wr;
-  uint16_t rd;
+typedef struct {  // FIFO对象
+  uint8_t *buf;   // 缓冲区指针
+  uint16_t size;  // 缓冲区大小
+  uint16_t wr;    // 写指针
+  uint16_t rd;    // 读指针
 } fifo_t;
 
 /**
@@ -72,7 +72,7 @@ extern uint16_t Fifo_GetUsed(fifo_t *fifo);
  * @param  fifo             FIFO对象
  * @param  fill_data        清空FIFO时填充的数据
  */
-extern void Fifo_Fill(fifo_t *fifo, const uint8_t fill_data);
+extern void Fifo_ClearFill(fifo_t *fifo, const uint8_t fill_data);
 
 /**
  * @brief 清空FIFO
@@ -100,12 +100,57 @@ extern uint16_t Fifo_Put(fifo_t *fifo, uint8_t *data, uint16_t len);
 extern uint16_t Fifo_Get(fifo_t *fifo, uint8_t *data, uint16_t len);
 
 /**
+ * @brief 向FIFO中写入一字节数据
+ * @param  fifo             FIFO对象
+ * @param  data             写入数据
+ * @retval 0                成功
+ */
+extern uint8_t Fifo_PutByte(fifo_t *fifo, uint8_t data);
+
+/**
+ * @brief 从FIFO中读取一字节数据
+ * @param  fifo             FIFO对象
+ * @retval uint8_t          读取的数据
+ * @note 读取失败仍返回0, 注意检查FIFO是否为空
+ */
+extern uint8_t Fifo_GetByte(fifo_t *fifo);
+
+/**
  * @brief 查看FIFO中的数据, 不改变FIFO的状态
  * @param  fifo             FIFO对象
+ * @param  offset           期望查看的数据偏移
  * @param  data             存放数据的缓冲区指针
  * @param  len              期望查看的数据长度
  * @retval uint16_t         实际查看的数据长度
  */
-extern uint16_t Fifo_Peek(fifo_t *fifo, uint8_t *data, uint16_t len);
+extern uint16_t Fifo_Peek(fifo_t *fifo, uint16_t offset, uint8_t *data,
+                          uint16_t len);
+
+/**
+ * @brief 查看FIFO中的一字节数据, 不改变FIFO的状态
+ * @param  fifo             FIFO对象
+ * @param  offset           期望查看的数据偏移
+ * @retval uint8_t          读取的数据
+ * @note 读取失败仍返回0, 注意检查偏移值是否超出范围
+ */
+extern uint8_t Fifo_PeekByte(fifo_t *fifo, uint16_t offset);
+
+/**
+ * @brief 获取FIFO当前的写数据指针
+ * @param  fifo             FIFO对象
+ * @param  offset           期望获取的数据偏移
+ * @retval uint8_t*          当前的写指针
+ * @note 0偏移指针指向的是下一个将要写入的数据
+ */
+extern uint8_t *Fifo_GetWrPtr(fifo_t *fifo, int16_t offset);
+
+/**
+ * @brief 获取FIFO当前的读数据指针
+ * @param  fifo             FIFO对象
+ * @param  offset           期望获取的数据偏移
+ * @retval uint8_t*          当前的读指针
+ * @note 0偏移指针指向的是下一个将要读出的数据
+ */
+extern uint8_t *Fifo_GetRdPtr(fifo_t *fifo, int16_t offset);
 
 #endif  // __FIFO_H__

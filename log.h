@@ -16,75 +16,78 @@
 #include "uart_pack.h"
 
 /****************************    日志格式设置     ***********************/
+// 调试日志颜色(BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE)
+#define _LOG_D_COLOR T_CYAN     // 调试日志
+#define _LOG_I_COLOR T_GREEN    // 信息日志
+#define _LOG_W_COLOR T_YELLOW   // 警告日志
+#define _LOG_E_COLOR T_RED      // 错误日志
+#define _LOG_F_COLOR T_MAGENTA  // 致命错误日志
+#define _LOG_L_COLOR T_BLUE     // LIMIT日志
+#define _LOG_R_COLOR T_BLUE     // REFRESH日志
+#define _LOG_A_COLOR T_RED      // ASSERT日志
+#define _LOG_T_COLOR T_YELLOW   // TIMEIT日志
 /*********************************************************************/
 
 // 终端颜色代码
-#define _TF_BLACK "30"
-#define _TF_RED "31"
-#define _TF_GREEN "32"
-#define _TF_YELLOW "33"
-#define _TF_BLUE "34"
-#define _TF_MAGENTA "35"
-#define _TF_CYAN "36"
-#define _TF_WHITE "37"
+#define T_BLACK "30"
+#define T_RED "31"
+#define T_GREEN "32"
+#define T_YELLOW "33"
+#define T_BLUE "34"
+#define T_MAGENTA "35"
+#define T_CYAN "36"
+#define T_WHITE "37"
 // 终端背景代码
-#define _TF_BLACK_BK "40"
-#define _TF_RED_BK "41"
-#define _TF_GREEN_BK "42"
-#define _TF_YELLOW_BK "43"
-#define _TF_BLUE_BK "44"
-#define _TF_MAGENTA_BK "45"
-#define _TF_CYAN_BK "46"
-#define _TF_WHITE_BK "47"
+#define T_BLACK_BK "40"
+#define T_RED_BK "41"
+#define T_GREEN_BK "42"
+#define T_YELLOW_BK "43"
+#define T_BLUE_BK "44"
+#define T_MAGENTA_BK "45"
+#define T_CYAN_BK "46"
+#define T_WHITE_BK "47"
 // 终端格式代码
-#define _TF_RESET "0"
-#define _TF_BOLD "1"
-#define _TF_LIGHT "2"
-#define _TF_ITALIC "3"
-#define _TF_UNDERLINE "4"
-#define _TF_BLINK "5"
-#define _TF_REVERSE "7"
-#define _TF_HIDE "8"
-#define _TF_CROSS "9"
-
-#define _MERGE(a, b) a##b
-#define __MERGE(a, b) _MERGE(a, b)
+#define T_RESET "0"
+#define T_BOLD "1"
+#define T_LIGHT "2"
+#define T_ITALIC "3"
+#define T_UNDERLINE "4"
+#define T_BLINK "5"
+#define T_REVERSE "7"
+#define T_HIDE "8"
+#define T_CROSS "9"
 
 #if _LOG_ENABLE_COLOR
-#define __TERM_FMT1(fmt) "\033[" __MERGE(_TF_, fmt) "m"
-#define __TERM_FMT2(fmt1, fmt2) \
-  "\033[" __MERGE(_TF_, fmt1) ";" __MERGE(_TF_, fmt2) "m"
-#define __TERM_FMT3(fmt1, fmt2, fmt3)                                   \
-  "\033[" __MERGE(_TF_, fmt1) ";" __MERGE(_TF_, fmt2) ";" __MERGE(_TF_, \
-                                                                  fmt3) "m"
-#define __TERM_FMT4(fmt1, fmt2, fmt3, fmt4)                        \
-  "\033[" __MERGE(_TF_, fmt1) ";" __MERGE(_TF_, fmt2) ";" __MERGE( \
-      _TF_, fmt3) ";" __MERGE(_TF_, fmt4) "m"
+#define __T_FMT1(fmt) "\033[" fmt "m"
+#define __T_FMT2(fmt1, fmt2) "\033[" fmt1 ";" fmt2 "m"
+#define __T_FMT3(fmt1, fmt2, fmt3) "\033[" fmt1 ";" fmt2 ";" fmt3 "m"
+#define __T_FMT4(fmt1, fmt2, fmt3, fmt4) \
+  "\033[" fmt1 ";" fmt2 ";" fmt3 ";" f mt4 "m"
 #else
-#define __TERM_FMT1(fmt) ""
-#define __TERM_FMT2(fmt1, fmt2) ""
-#define __TERM_FMT3(fmt1, fmt2, fmt3) ""
-#define __TERM_FMT4(fmt1, fmt2, fmt3, fmt4) ""
+#define __T_FMT1(fmt) ""
+#define __T_FMT2(fmt1, fmt2) ""
+#define __T_FMT3(fmt1, fmt2, fmt3) ""
+#define __T_FMT4(fmt1, fmt2, fmt3, fmt4) ""
 #endif
 
 /**
  * @brief 设定终端输出格式, 可以混合使用
- * @note 颜色: BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE
+ * @note 颜色: T_BLACK/T_RED/T_GREEN/T_YELLOW/T_BLUE/T_MAGENTA/T_CYAN/T_WHITE
  * @note 背景: 在颜色后加 _BK
- * @note 格式: RESET/BOLD/UNDERLINE/BLINK/REVERSE/HIDE
+ * @note 格式: T_RESET/T_BOLD/T_UNDERLINE/T_BLINK/T_REVERSE/T_HIDE
  */
-#define TERM_FMT(...) EVAL(__TERM_FMT, __VA_ARGS__)(__VA_ARGS__)
-#define TERM_RST TERM_FMT(RESET)
+#define T_FMT(...) EVAL(__T_FMT, __VA_ARGS__)(__VA_ARGS__)
+#define T_RST T_FMT(T_RESET)
 
 #if _LOG_ENABLE
 #if _LOG_ENABLE_TIMESTAMP
 #define _DBG_LOG_TS(hd, level, ts, color, end, fmt, args...)            \
-  _LOG_PRINTF(hd TERM_FMT(color) "[" level "/" _LOG_TIMESTAMP_FMT "" ts \
-                                 "] " fmt TERM_RST end,                 \
+  _LOG_PRINTF(hd T_FMT(color) "[" level "/" _LOG_TIMESTAMP_FMT "" ts \
+                                 "] " fmt T_RST end,                 \
               _LOG_TIMESTAMP, ##args)
 #elif !_LOG_ENABLE_TIMESTAMP
 #define _DBG_LOG_TS(hd, level, ts, color, end, fmt, args...) \
-  _LOG_PRINTF(hd TERM_FMT(color) "[" level "" ts "] " fmt TERM_RST end, ##args)
+  _LOG_PRINTF(hd T_FMT(color) "[" level "" ts "] " fmt T_RST end, ##args)
 #endif
 
 #if _LOG_ENABLE_FUNC_LINE

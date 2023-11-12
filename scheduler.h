@@ -206,4 +206,29 @@ extern bool Sch_CallLater(void (*task)(void), m_time_t delayUs);
 extern void Sch_CancelCallLater(void (*task)(void));
 #endif  // _SCH_ENABLE_CALLLATER
 
+#if _SCH_ENABLE_SOFTINT
+
+/**
+ * @brief 触发软中断
+ * @param  mainChannel     主通道(0~7)
+ * @param  subChannel     子通道(0~7)
+ */
+extern void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel);
+
+/**
+ * @brief 软中断处理函数
+ * @param  subMask        子通道掩码(1 << subChannel)
+ * @note  由调度器自动调用, 由用户实现
+ */
+extern void Scheduler_SoftIntHandler_Ch0(uint8_t subMask),
+    Scheduler_SoftIntHandler_Ch1(uint8_t subMask),
+    Scheduler_SoftIntHandler_Ch2(uint8_t subMask),
+    Scheduler_SoftIntHandler_Ch3(uint8_t subMask),
+    Scheduler_SoftIntHandler_Ch4(uint8_t subMask),
+    Scheduler_SoftIntHandler_Ch5(uint8_t subMask),
+    Scheduler_SoftIntHandler_Ch6(uint8_t subMask),
+    Scheduler_SoftIntHandler_Ch7(uint8_t subMask);
+
+#endif  // _SCH_ENABLE_SOFTINT
+
 #endif  // _SCHEDULER_H_

@@ -112,7 +112,7 @@ static void fifo_exchange(uart_fifo_tx_t *fifo, uint8_t force) {
   }
 }
 
-static inline int wait_fifo(uart_fifo_tx_t *fifo) {
+static inline int wait_fifo(uart_fifo_tx_t *fifo, uint16_t len) {
 #if _UART_FIFO_TIMEOUT < 0
   return -1;
 #else
@@ -130,7 +130,7 @@ static inline int wait_fifo(uart_fifo_tx_t *fifo) {
 static int fifo_send(uart_fifo_tx_t *fifo, uint8_t *data, uint16_t len) {
   if (len > fifo->size) return -1;
   if (FIFO_TX_FREE_SPACE(fifo) < len) {  // FIFO空间不足
-    if (wait_fifo(fifo) < 0) return -1;
+    if (wait_fifo(fifo, len) < 0) return -1;
   }
   if (fifo->wr + len > fifo->size) {  // 需要循环
     uart_memcpy(fifo->buffer + fifo->wr, data, fifo->size - fifo->wr);
@@ -151,7 +151,7 @@ static int fifo_lwprintf_fn(int ch, lwprintf_t *lwobj) {
     return 0;
   }
   if (FIFO_TX_FREE_SPACE(fifo) < 1) {  // FIFO空间不足
-    if (wait_fifo(fifo) < 0) return -1;
+    if (wait_fifo(fifo, 1) < 0) return -1;
   }
   fifo->buffer[fifo->wr] = ch;
   fifo->wr = (fifo->wr + 1) % fifo->size;

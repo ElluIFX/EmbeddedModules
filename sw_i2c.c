@@ -51,7 +51,7 @@ static void scl_out_mode(sw_iic_t *dev) {
 
 #define SSHigh(GPIOx, Pinx) ((GPIOx)->BSRR = (Pinx))
 // ((GPIOx)->BSRR = (Pinx) << 16) or ((GPIOx)->BRR = (Pinx))
-#define SSLow(GPIOx, Pinx) ((GPIOx)->BRR = (Pinx))
+#define SSLow(GPIOx, Pinx) ((GPIOx)->BSRR = (Pinx) << 16)
 #define SSRead(GPIOx, Pinx) (((GPIOx)->IDR) & (Pinx))
 #define sda_high() SSHigh(dev->sdaPort, dev->sdaPin)
 #define sda_low() SSLow(dev->sdaPort, dev->sdaPin)

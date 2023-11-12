@@ -1,6 +1,7 @@
 /**
- * @file modules.h
+ * @file modules_conf.h (modules_conf_template.h)
  * @brief 配置Modules文件夹下所有模块的设置
+ * @note  将此文件复制一份并重命名为modules_conf.h
  * @author Ellu (ellu.grif@gmail.com)
  * @version 1.0
  * @date 2023-04-29
@@ -8,12 +9,8 @@
  * THINK DIFFERENTLY
  */
 
-#ifndef __MODULES_H
-#define __MODULES_H
-
-#include "main.h"
-#include "stdint.h"
-
+#ifndef __MODULES_CONF_H
+#define __MODULES_CONF_H
 /*********************************************************************/
 /****************************** 全局设置 ******************************/
 #define _MOD_USE_PERF_COUNTER 1  // 是否使用perf_counter模块提供所有时基
@@ -26,11 +23,13 @@
 /******************************调度器设置******************************/
 #define _SCH_ENABLE_COROUTINE 1  // 支持宏协程
 #define _SCH_ENABLE_CALLLATER 1  // 支持延时调用
+#define _SCH_ENABLE_SOFTINT 1    // 支持软中断
 
 #define _SCH_MAX_PRIORITY_LEVEL 5            // 最大优先级(0-N)
 #define _SCH_COMP_RANGE (1 * m_tick_per_ms)  // 任务调度自动补偿范围(TICK)
 #define _SCH_DEBUG_MODE 0                    // 调试模式(统计任务信息)
 #define _SCH_DEBUG_PERIOD 10  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
+#define _SCH_ENABLE_TERMINAL 1  // 是否启用"sch"终端命令(依赖nr-micro-shell)
 
 /****************************** 日志设置 ******************************/
 // 调试日志设置
@@ -45,6 +44,21 @@
 #define _LOG_ENABLE_WARN 1   // 是否输出WARN日志
 #define _LOG_ENABLE_ERROR 1  // 是否输出ERROR日志
 #define _LOG_ENABLE_FATAL 1  // 是否输出FATAL日志
+// 调试日志格式
+#define _LOG_PRINTF printf  // 调试日志输出函数
+#define _LOG_TIMESTAMP ((double)(m_time_ms()) / 1000)  // 时间戳获取
+#define _LOG_TIMESTAMP_FMT "%.3lf"                     // 时间戳格式
+#define _LOG_ENDL "\r\n"                               // 日志换行符
+// 调试日志颜色(BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE)
+#define _LOG_D_COLOR CYAN     // 调试日志
+#define _LOG_I_COLOR GREEN    // 信息日志
+#define _LOG_W_COLOR YELLOW   // 警告日志
+#define _LOG_E_COLOR RED      // 错误日志
+#define _LOG_F_COLOR MAGENTA  // 致命错误日志
+#define _LOG_L_COLOR BLUE     // LIMIT日志
+#define _LOG_R_COLOR BLUE     // REFRESH日志
+#define _LOG_A_COLOR RED      // ASSERT日志
+#define _LOG_T_COLOR YELLOW   // TIMEIT日志
 
 /****************************** 串口设置 ******************************/
 // 组件设置
@@ -95,58 +109,4 @@
 
 /*********************************************************************/
 /**************************** 设置结束 *******************************/
-/*******************************************************************/
-
-#if _MOD_USE_PERF_COUNTER
-#include "perf_counter.h"
-typedef int64_t m_time_t;
-#define Init_Module_Timebase() init_cycle_counter(1);
-#define m_time_ms() get_system_ms()
-#define m_time_us() get_system_us()
-#define m_time_ns() (get_system_us() * 1000)
-#define m_time_s() (get_system_ms() / 1000)
-#define m_delay_ms(x) delay_ms(x)
-#define m_delay_us(x) delay_us(x)
-#define m_delay_ns(x) delay_us(x / 1000)
-#define m_delay_s(x) delay_ms(x * 1000)
-#define m_tick() get_system_ticks()
-#define m_tick_clk (SystemCoreClock)
-#define m_tick_per_ms ((double)SystemCoreClock / 1000)
-#define m_tick_per_us ((double)SystemCoreClock / 1000000)
-#else
-typedef uint32_t m_time_t;
-#define Init_Module_Timebase() ((void)0)
-#define m_time_ms() HAL_GetTick()
-#define m_time_us() (HAL_GetTick() * 1000)
-#define m_time_ns() (HAL_GetTick() * 1000000)
-#define m_time_s() (HAL_GetTick() / 1000)
-#define m_delay_ms(x) HAL_Delay(x)
-#define m_delay_us(x) HAL_Delay(x / 1000)
-#define m_delay_ns(x) HAL_Delay(x / 1000000)
-#define m_delay_s(x) HAL_Delay(x * 1000)
-#define m_tick() HAL_GetTick()
-#define m_tick_clk (1000)
-#define m_tick_per_ms (1)
-#define m_tick_per_us (0.001)
-#endif  // _MOD_USE_PERF_COUNTER
-
-#if _MOD_USE_DALLOC
-#include "dalloc.h"
-#define m_alloc(ptr, size) _dalloc((ptr), size)
-#define m_free(ptr) _dfree((ptr))
-#define m_realloc(ptr, size) _drealloc((ptr), size)
-#define m_replace(from_ptr, to_ptr) _dreplace((from_ptr), (to_ptr))
-#else
-#include "stdlib.h"
-#define m_alloc(ptr, size) ((ptr) = (void*)malloc(size))
-#define m_free(ptr) free(ptr)
-#define m_realloc(ptr, size) (bool)((ptr) = (void*)realloc((ptr), size))
-#define m_replace(from_ptr, to_ptr) ((to_ptr) = (from_ptr))
-#endif
-
-#define ENABLE 0x01
-#define DISABLE 0x00
-#define IGNORE 0x02
-#define TOGGLE 0xFF
-
-#endif  // __MODULES_H
+#endif  // __MODULES_CONF_H
