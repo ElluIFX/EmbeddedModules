@@ -203,6 +203,8 @@ _INLINE uint8_t I2C_Check_Device(uint8_t addr) {
 void I2C_Bus_Scan(void) {
   LOG_RAWLN(T_FMT(T_YELLOW) "> I2C Bus Scan Start");
   for (uint8_t i = 1; i < 128; i++) {
+    // dummy read for waking up some device
+    I2C_Read_Byte(i << 1, 0);
     if (I2C_Check_Device(i << 1)) {
       LOG_RAWLN(T_FMT(T_CYAN) "- Found Device: 0x%02X", i);
     }

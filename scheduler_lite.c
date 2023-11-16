@@ -10,9 +10,9 @@
 
 #include "scheduler_lite.h"
 __attribute__((used))
-scheduler_task_t _sch_task_start_ __SCH_SECTION("0.end") = {NULL, 0, 0, 0};
+scheduler_task_t _sch_task_start_ __SCH_SECTION("0.end") = {NULL, 0, 0};
 __attribute__((used))
-scheduler_task_t _sch_task_end_ __SCH_SECTION("1.end") = {NULL, 0, 0, 0};
+scheduler_task_t _sch_task_end_ __SCH_SECTION("1.end") = {NULL, 0, 0};
 
 scheduler_task_t *schTaskList = NULL;
 

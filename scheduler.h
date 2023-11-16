@@ -67,6 +67,14 @@ extern void Sch_SetTaskPriority(uint16_t taskId, uint8_t priority);
 extern bool Sch_IsTaskExist(uint16_t taskId);
 
 /**
+ * @brief 延迟(推后)指定任务下一次调度的时间
+ * @param  taskId          目标任务ID
+ * @param  delayUs         延迟时间(us)
+ * @param  fromNow         是否从当前时间开始计算延迟
+ */
+extern void Sch_DelayTask(uint16_t taskId, m_time_t delayUs, uint8_t fromNow);
+
+/**
  * @brief 获取调度器内任务数量
  */
 extern uint16_t Sch_GetTaskNum(void);

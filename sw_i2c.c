@@ -38,16 +38,8 @@ static void scl_out_mode(sw_iic_t *dev) {
   HAL_GPIO_Init(dev->sclPort, &GPIO_InitStruct);
 }
 
-#if SW_IIC_WAIT_TIME
-#define wait_i2c() m_delay_us(SW_IIC_WAIT_TIME)
-#else
-#define wait_i2c()
-#endif
-#if SW_IIC_WAIT_TIME_LONG
-#define wait_i2c_long() m_delay_us(SW_IIC_WAIT_TIME_LONG)
-#else
-#define wait_i2c_long()
-#endif
+#define wait_i2c() m_delay_us(dev->waitTime)
+#define wait_i2c_long() m_delay_us(dev->waitTimeLong)
 
 #define SSHigh(GPIOx, Pinx) ((GPIOx)->BSRR = (Pinx))
 // ((GPIOx)->BSRR = (Pinx) << 16) or ((GPIOx)->BRR = (Pinx))
@@ -154,6 +146,11 @@ static void i2c_send_ack(sw_iic_t *dev) {
   wait_i2c();
 }
 
+#define DEFAULT_WAIT_TIME 1
+#define DEFAULT_WAIT_TIME_LONG 3
+// (1,3) -> 400KHz Fast Mode
+// (4,10) -> 100KHz Standard Mode
+
 /**
  * @brief Initializes the software I2C device.
  *
@@ -161,6 +158,8 @@ static void i2c_send_ack(sw_iic_t *dev) {
  * @note The required GPIO pins must be enabled in CubeMX first.
  */
 void SW_IIC_Init(sw_iic_t *dev) {
+  if (!dev->waitTime) dev->waitTime = DEFAULT_WAIT_TIME;
+  if (!dev->waitTimeLong) dev->waitTimeLong = DEFAULT_WAIT_TIME_LONG;
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;

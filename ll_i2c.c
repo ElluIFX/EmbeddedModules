@@ -23,6 +23,17 @@ typedef enum {
   I2C_RECEIVER_RESTART
 } i2c_direction_t;
 
+static void I2Cx_CheckError(I2C_TypeDef* I2Cx) {
+  if (LL_I2C_IsActiveFlag_BERR(I2Cx) || LL_I2C_IsActiveFlag_ARLO(I2Cx) ||
+      LL_I2C_IsActiveFlag_OVR(I2Cx)) {
+    LL_I2C_ClearFlag_BERR(I2Cx);
+    LL_I2C_ClearFlag_ARLO(I2Cx);
+    LL_I2C_ClearFlag_OVR(I2Cx);
+    LL_I2C_Disable(I2Cx);
+    LL_I2C_Enable(I2Cx);
+  }
+}
+
 static bool I2Cx_StartTransmission(I2C_TypeDef* I2Cx, i2c_direction_t Direction,
                                    uint8_t SlaveAddr, uint8_t TransferSize) {
   uint32_t Timeout = _LL_IIC_BYTE_TIMEOUT_MS;
@@ -191,23 +202,21 @@ _INLINE uint8_t LL_IIC_Read_Data(I2C_TypeDef* I2Cx) {
   return data;
 }
 _INLINE bool LL_IIC_Read_8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                                  uint8_t RegAddr, uint8_t* pdata,
-                                  uint8_t rcnt) {
+                               uint8_t RegAddr, uint8_t* pdata, uint8_t rcnt) {
   return I2Cx_ReadData(I2Cx, SlaveAddr, RegAddr, 1, pdata, rcnt);
 }
 _INLINE bool LL_IIC_Read_16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                                   uint16_t RegAddr, uint8_t* pdata,
-                                   uint8_t rcnt) {
+                                uint16_t RegAddr, uint8_t* pdata,
+                                uint8_t rcnt) {
   return I2Cx_ReadData(I2Cx, SlaveAddr, RegAddr, 2, pdata, rcnt);
 }
 _INLINE bool LL_IIC_Write_8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                                   uint8_t RegAddr, uint8_t* pdata,
-                                   uint8_t rcnt) {
+                                uint8_t RegAddr, uint8_t* pdata, uint8_t rcnt) {
   return I2Cx_WriteData(I2Cx, SlaveAddr, RegAddr, 1, pdata, rcnt);
 }
 _INLINE bool LL_IIC_Write_16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                                    uint16_t RegAddr, uint8_t* pdata,
-                                    uint8_t rcnt) {
+                                 uint16_t RegAddr, uint8_t* pdata,
+                                 uint8_t rcnt) {
   return I2Cx_WriteData(I2Cx, SlaveAddr, RegAddr, 2, pdata, rcnt);
 }
 bool LL_IIC_Check_SlaveAddr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr) {

@@ -348,6 +348,15 @@ void Sch_SetTaskPriority(uint16_t taskId, uint8_t priority) {
 #endif
 }
 
+void Sch_DelayTask(uint16_t taskId, m_time_t delayUs, uint8_t fromNow) {
+  scheduler_task_t *p = get_task(taskId);
+  if (p == NULL) return;
+  if (fromNow)
+    p->lastRun = delayUs * m_tick_per_us + m_tick();
+  else
+    p->lastRun += delayUs * m_tick_per_us;
+}
+
 uint16_t Sch_GetTaskNum(void) { return thd.num; }
 
 void Sch_SetTaskState(uint16_t taskId, uint8_t enable) {
@@ -586,13 +595,13 @@ void Sch_CancelCallLater(void (*task)(void)) {
 
 #if _SCH_ENABLE_SOFTINT
 
-static uint8_t int_main_mask = 0;
-static uint8_t int_sub_masks[8] = {0};
+static uint8_t _imm = 0;
+static uint8_t _ism[8] = {0};
 
 void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel) {
   if (mainChannel > 7 || subChannel > 7) return;
-  int_main_mask |= 1 << mainChannel;
-  int_sub_masks[mainChannel] |= 1 << subChannel;
+  _imm |= 1 << mainChannel;
+  _ism[mainChannel] |= 1 << subChannel;
 }
 
 __weak void Scheduler_SoftIntHandler_Ch0(uint8_t subMask) {}
@@ -605,17 +614,17 @@ __weak void Scheduler_SoftIntHandler_Ch6(uint8_t subMask) {}
 __weak void Scheduler_SoftIntHandler_Ch7(uint8_t subMask) {}
 
 _STATIC_INLINE void SoftInt_Runner(void) {
-  if (int_main_mask) {
-    if (int_main_mask & 0x01) Scheduler_SoftIntHandler_Ch0(int_sub_masks[0]);
-    if (int_main_mask & 0x02) Scheduler_SoftIntHandler_Ch1(int_sub_masks[1]);
-    if (int_main_mask & 0x04) Scheduler_SoftIntHandler_Ch2(int_sub_masks[2]);
-    if (int_main_mask & 0x08) Scheduler_SoftIntHandler_Ch3(int_sub_masks[3]);
-    if (int_main_mask & 0x10) Scheduler_SoftIntHandler_Ch4(int_sub_masks[4]);
-    if (int_main_mask & 0x20) Scheduler_SoftIntHandler_Ch5(int_sub_masks[5]);
-    if (int_main_mask & 0x40) Scheduler_SoftIntHandler_Ch6(int_sub_masks[6]);
-    if (int_main_mask & 0x80) Scheduler_SoftIntHandler_Ch7(int_sub_masks[7]);
-    int_main_mask = 0;
-    memset(int_sub_masks, 0, sizeof(int_sub_masks));
+  if (_imm) {
+    __IO uint8_t imm = _imm;
+    _imm = 0;
+    if (imm & 0x01) Scheduler_SoftIntHandler_Ch0(_ism[0]), _ism[0] = 0;
+    if (imm & 0x02) Scheduler_SoftIntHandler_Ch1(_ism[1]), _ism[1] = 0;
+    if (imm & 0x04) Scheduler_SoftIntHandler_Ch2(_ism[2]), _ism[2] = 0;
+    if (imm & 0x08) Scheduler_SoftIntHandler_Ch3(_ism[3]), _ism[3] = 0;
+    if (imm & 0x10) Scheduler_SoftIntHandler_Ch4(_ism[4]), _ism[4] = 0;
+    if (imm & 0x20) Scheduler_SoftIntHandler_Ch5(_ism[5]), _ism[5] = 0;
+    if (imm & 0x40) Scheduler_SoftIntHandler_Ch6(_ism[6]), _ism[6] = 0;
+    if (imm & 0x80) Scheduler_SoftIntHandler_Ch7(_ism[7]), _ism[7] = 0;
   }
 }
 
@@ -630,7 +639,7 @@ void sch_cmd(char argc, char *argv) {
   if (argc < 2) {
     LOG_RAWLN(T_FMT(
         T_BOLD,
-        T_BLUE) "Usage: sch [list|enable|disable|delete|setfreq|excute] "
+        T_BLUE) "Usage: sch [list|enable|disable|delete|setfreq|setpri|excute] "
                 "[taskid] "
                 "[freq]" T_RST);
     return;
@@ -638,7 +647,9 @@ void sch_cmd(char argc, char *argv) {
   if (strcmp(argv + argv[1], "list") == 0) {
     LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Tasks list:");
     for (uint16_t i = 0; i < thd.num; i++) {
-      LOG_RAWLN("Task %d: 0x%p", thd.tasks[i].taskId, thd.tasks[i].task);
+      LOG_RAWLN("Task %d: 0x%p pri:%d freq:%.1f en:%d", thd.tasks[i].taskId,
+                thd.tasks[i].task, thd.tasks[i].priority,
+                (double)m_tick_clk / thd.tasks[i].period, thd.tasks[i].enable);
     }
     LOG_RAWLN("Total %d tasks" T_RST, thd.num);
     return;
@@ -671,9 +682,17 @@ void sch_cmd(char argc, char *argv) {
     Sch_SetTaskFreq(taskId, freq);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d frequency set to %.2fHz" T_RST,
               taskId, freq);
+  } else if (strcmp(argv + argv[1], "setpri") == 0) {
+    if (argc < 4) {
+      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
+      return;
+    }
+    uint8_t pri = atoi(argv + argv[3]);
+    Sch_SetTaskPriority(taskId, pri);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d priority set to %d" T_RST, taskId,
+              pri);
   } else if (strcmp(argv + argv[1], "excute") == 0) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting task %d" T_RST,
-              taskId);
+    LOG_RAWLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting task %d" T_RST, taskId);
     p->task();
   } else {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);

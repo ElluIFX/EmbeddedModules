@@ -58,11 +58,7 @@ HAL_StatusTypeDef Strip_Init(LEDStrip_t *strip, uint16_t length,
 
 void Strip_DeInit(LEDStrip_t *strip) {
   if (strip->buffer != NULL) {
-#if _MOD_USE_DALLOC
-    _dfree(strip->buffer);
-#else
-    free(strip->buffer);
-#endif
+    m_free(strip->buffer);
   }
   strip->length = 0;
 }

@@ -15,10 +15,10 @@
 /****************************** 全局设置 ******************************/
 #define _MOD_USE_PERF_COUNTER 1  // 是否使用perf_counter模块提供所有时基
 
-#define _MOD_USE_DALLOC 1                // 使用动态内存分配器
-#define _MOD_HEAP_SIZE (200UL * 1024UL)  // 动态内存分配器堆大小
+#define _MOD_USE_DALLOC 1  // 使用动态内存分配器/使用malloc
+#define _MOD_HEAP_SIZE (32UL * 1024UL)  // 动态内存分配器堆大小
 #define _MOD_HEAP_ALLOCATIONS 64UL  // 动态内存分配器最大分配数量
-#define _MOD_HEAP_LOCATION 0        // 堆起始地址(0则自动分配)
+#define _MOD_HEAP_LOCATION 0x20000000  // 堆起始地址(0则自动分配)
 
 /******************************调度器设置******************************/
 #define _SCH_ENABLE_COROUTINE 1  // 支持宏协程
@@ -28,7 +28,7 @@
 #define _SCH_MAX_PRIORITY_LEVEL 5            // 最大优先级(0-N)
 #define _SCH_COMP_RANGE (1 * m_tick_per_ms)  // 任务调度自动补偿范围(TICK)
 #define _SCH_DEBUG_MODE 0                    // 调试模式(统计任务信息)
-#define _SCH_DEBUG_PERIOD 10  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
+#define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
 #define _SCH_ENABLE_TERMINAL 1  // 是否启用"sch"终端命令(依赖nr-micro-shell)
 
 /****************************** 日志设置 ******************************/
@@ -49,16 +49,6 @@
 #define _LOG_TIMESTAMP ((double)(m_time_ms()) / 1000)  // 时间戳获取
 #define _LOG_TIMESTAMP_FMT "%.3lf"                     // 时间戳格式
 #define _LOG_ENDL "\r\n"                               // 日志换行符
-// 调试日志颜色(BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE)
-#define _LOG_D_COLOR CYAN     // 调试日志
-#define _LOG_I_COLOR GREEN    // 信息日志
-#define _LOG_W_COLOR YELLOW   // 警告日志
-#define _LOG_E_COLOR RED      // 错误日志
-#define _LOG_F_COLOR MAGENTA  // 致命错误日志
-#define _LOG_L_COLOR BLUE     // LIMIT日志
-#define _LOG_R_COLOR BLUE     // REFRESH日志
-#define _LOG_A_COLOR RED      // ASSERT日志
-#define _LOG_T_COLOR YELLOW   // TIMEIT日志
 
 /****************************** 串口设置 ******************************/
 // 组件设置

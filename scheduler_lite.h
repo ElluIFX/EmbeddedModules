@@ -26,7 +26,7 @@ typedef struct {       // 用户任务结构
  */
 #define SCH_TASK(func, periodMs)                                              \
   __attribute__((used)) scheduler_task_t _sch_task_item_##func __SCH_SECTION( \
-      "1") = {func, periodMs, 0}
+      "1") = {func, (periodMs), 0}
 
 /**
  * @brief 时分调度器主函数

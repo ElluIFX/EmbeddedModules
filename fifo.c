@@ -67,7 +67,7 @@ void Fifo_Clear(fifo_t *fifo) {
 uint16_t Fifo_Put(fifo_t *fifo, uint8_t *data, uint16_t len) {
   uint16_t i = 0;
   uint16_t free_size = Fifo_GetFree(fifo);
-  uint16_t wr_t = fifo->wr;
+  __IO uint16_t wr_t = fifo->wr;
   if (len > free_size) {
     len = free_size;
   }
@@ -82,7 +82,7 @@ uint16_t Fifo_Put(fifo_t *fifo, uint8_t *data, uint16_t len) {
 uint16_t Fifo_Get(fifo_t *fifo, uint8_t *data, uint16_t len) {
   uint16_t i = 0;
   uint16_t used_size = Fifo_GetUsed(fifo);
-  uint16_t rd_t = fifo->rd;
+  __IO uint16_t rd_t = fifo->rd;
   if (len > used_size) {
     len = used_size;
   }
@@ -129,7 +129,7 @@ uint16_t Fifo_Peek(fifo_t *fifo, uint16_t offset, uint8_t *data, uint16_t len) {
   if (len + offset > used_size) {
     len = used_size - offset;
   }
-  uint16_t rd_t = (fifo->rd + offset) % fifo->size;
+  __IO uint16_t rd_t = (fifo->rd + offset) % fifo->size;
   for (i = 0; i < len; i++) {
     data[i] = fifo->buf[rd_t];
     rd_t = (rd_t + 1) % fifo->size;

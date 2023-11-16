@@ -9,10 +9,10 @@ typedef struct {
   uint16_t sclPin;
   GPIO_TypeDef* sdaPort;
   uint16_t sdaPin;
+  uint8_t waitTime;
+  uint8_t waitTimeLong;
 } sw_iic_t;
 
-#define SW_IIC_WAIT_TIME 15       // default 25us
-#define SW_IIC_WAIT_TIME_LONG 25  // default 25us
 
 extern void SW_IIC_Init(sw_iic_t* dev);
 extern void SW_IIC_Write_Data(sw_iic_t* dev, uint8_t data);
