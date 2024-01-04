@@ -59,7 +59,7 @@ static uart_fifo_tx_t *fifo_tx_entry = NULL;
 
 static int fifo_lwprintf_fn(int ch, lwprintf_t *lwobj);
 void Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
-                       uint16_t bufSize) {
+                     uint16_t bufSize) {
   if (!bufSize) return;
   uart_fifo_tx_t *fifo = NULL;
   if (!fifo_tx_entry) {
@@ -289,7 +289,7 @@ int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
 static uart_fifo_rx_t *fifo_rx_entry = NULL;
 
 void Uart_FifoRxInit(uart_fifo_rx_t *ctrl, UART_HandleTypeDef *huart,
-                       void (*rxCallback)(uint8_t data)) {
+                     void (*rxCallback)(uint8_t data)) {
   ctrl->huart = huart;
   ctrl->full = 0;
   ctrl->wr = 0;
@@ -352,8 +352,8 @@ inline void Uart_TxProcess(UART_HandleTypeDef *huart) {
 
 static uart_dma_rx_t *dma_rx_entry = NULL;
 void Uart_DmaRxInit(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
-                      void (*rxCallback)(char *data, uint16_t len),
-                      uint8_t cbkInIRQ) {
+                    void (*rxCallback)(char *data, uint16_t len),
+                    uint8_t cbkInIRQ) {
   ctrl->huart = huart;
   ctrl->finished = 0;
   ctrl->len = 0;
@@ -597,7 +597,7 @@ void CDC_WaitConnect(int timeout_ms) {
 }
 
 void CDC_RegisterCallback(void (*callback)(char *buf, uint16_t len),
-                           uint8_t cbkInIRQ) {
+                          uint8_t cbkInIRQ) {
   usb_cdc.rxCallback = callback;
   usb_cdc.cbkInIRQ = cbkInIRQ;
 }

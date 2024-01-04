@@ -17,6 +17,19 @@ extern "C" {
 
 typedef void (*sch_func_t)(void *args);  // 任务函数指针类型
 
+#if _SCH_ENABLE_TASK
+
+typedef enum {                // 任务优先级
+  TASK_PRIORITY_HIGHEST = 0,  // 最高优先级
+  TASK_PRIORITY_HIGHER,       // 较高优先级
+  TASK_PRIORITY_HIGH,         // 高优先级
+  TASK_PRIORITY_NORMAL,       // 正常优先级
+  TASK_PRIORITY_LOW,          // 低优先级
+  TASK_PRIORITY_LOWER,        // 较低优先级
+  TASK_PRIORITY_LOWEST,       // 最低优先级
+  _TASK_PRIORITY_NUM,
+} TASK_PRIORITY;
+
 /**
  * @brief 时分调度器主函数
  * @param  block            是否阻塞
@@ -35,7 +48,7 @@ extern void Scheduler_Run(const uint8_t block, const m_time_t sleep_us);
  * @retval bool             是否成功
  */
 extern bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
-                           uint8_t enable, uint8_t priority, void *args);
+                           uint8_t enable, TASK_PRIORITY priority, void *args);
 
 /**
  * @brief 切换任务使能状态
@@ -66,7 +79,7 @@ extern bool Sch_SetTaskFreq(const char *name, float freqHz);
  * @param  priority         任务优先级
  * @retval bool             是否成功
  */
-extern bool Sch_SetTaskPriority(const char *name, uint8_t priority);
+extern bool Sch_SetTaskPriority(const char *name, TASK_PRIORITY priority);
 
 /**
  * @brief 查询任务是否存在
@@ -88,6 +101,8 @@ extern bool Sch_DelayTask(const char *name, m_time_t delayUs, uint8_t fromNow);
  * @brief 获取调度器内任务数量
  */
 extern uint16_t Sch_GetTaskNum(void);
+
+#endif  // _SCH_ENABLE_TASK
 
 #if _SCH_ENABLE_EVENT
 
@@ -125,19 +140,24 @@ extern bool Sch_SetEventState(const char *name, uint8_t enable);
 extern bool Sch_TriggerEvent(const char *name, void *args);
 
 /**
+ * @brief 获取调度器内事件数量
+ */
+extern uint16_t Sch_GetEventNum(void);
+
+/**
  * @brief 查询指定事件是否存在
  * @param  name             事件名
  * @retval bool             事件是否存在
  */
-extern bool Sch_CheckEvent(const char *name);
+extern bool Sch_IsEventExist(const char *name);
 #endif  // _SCH_ENABLE_EVENT
 
 #if _SCH_ENABLE_COROUTINE
-enum CR_MODES {         // 协程模式
+typedef enum {          // 协程模式
   CR_MODE_ONESHOT = 0,  // 单次执行
   CR_MODE_LOOP,         // 循环执行
   CR_MODE_AUTODEL,      // 执行完毕后自动删除
-};
+} CR_MODE;
 
 #pragma pack(1)
 typedef struct {                // 协程任务结构
@@ -244,8 +264,8 @@ extern _cron_handle_t *_cron_hp;
  * @param  args             任务参数
  * @retval bool             是否成功
  */
-extern bool Sch_CreateCoron(const char *name, sch_func_t func,
-                            uint8_t enable, enum CR_MODES mode, void *args);
+extern bool Sch_CreateCoron(const char *name, sch_func_t func, uint8_t enable,
+                            CR_MODE mode, void *args);
 
 /**
  * @brief 设置协程使能状态

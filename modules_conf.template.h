@@ -25,17 +25,18 @@
 #define _MOD_HEAP_ADDR 0          // 堆起始地址(0则自动分配)
 
 /******************************调度器设置******************************/
+#define _SCH_ENABLE_TASK 1       // 支持任务
 #define _SCH_ENABLE_EVENT 1      // 支持事件
 #define _SCH_ENABLE_COROUTINE 1  // 支持宏协程
 #define _SCH_ENABLE_CALLLATER 1  // 支持延时调用
 #define _SCH_ENABLE_SOFTINT 1    // 支持软中断
 
-#define _SCH_MAX_PRIORITY_LEVEL 5            // 最大优先级(0-N)
 #define _SCH_COMP_RANGE (1 * m_tick_per_ms)  // 任务调度自动补偿范围(TICK)
+#define _SCH_CR_MAX_DEPTH 5                  // 宏协程最大嵌套深度
 
 #define _SCH_DEBUG_REPORT 0  // 输出调度器统计信息(调试模式/低性能)
 #define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
-#define _SCH_ENABLE_TERMINAL 1  // 是否启用"sch"终端命令(依赖nr-micro-shell)
+#define _SCH_ENABLE_TERMINAL 1  // 是否启用终端命令集(依赖embedded-cli)
 
 /****************************** 日志设置 ******************************/
 // 调试日志设置

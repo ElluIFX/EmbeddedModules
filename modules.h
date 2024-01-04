@@ -52,24 +52,24 @@ typedef int64_t m_time_t;
 #endif  // _MOD_TIME_MATHOD
 
 #if _MOD_DELAY_MATHOD == 0  // HAL
-#define m_delay_us(x) HAL_Delay(x / 1000)
-#define m_delay_ms(x) HAL_Delay(x)
-#define m_delay_s(x) HAL_Delay(x * 1000)
+#define m_delay_us(x) HAL_Delay((x) / 1000)
+#define m_delay_ms(x) HAL_Delay((x))
+#define m_delay_s(x) HAL_Delay((x) * 1000)
 #elif _MOD_DELAY_MATHOD == 1  // perf_counter
-#define m_delay_us(x) delay_us(x)
-#define m_delay_ms(x) delay_ms(x)
-#define m_delay_s(x) delay_ms(x * 1000)
+#define m_delay_us(x) delay_us((x))
+#define m_delay_ms(x) delay_ms((x))
+#define m_delay_s(x) delay_ms((x) * 1000)
 #elif _MOD_DELAY_MATHOD == 2  // klite
 #include "kernel.h"
-#define m_delay_us(x) thread_sleep(x)
-#define m_delay_ms(x) thread_sleep(x * 1000)
-#define m_delay_s(x) thread_sleep(x * 1000000)
+#define m_delay_us(x) thread_sleep((x))
+#define m_delay_ms(x) thread_sleep((x) * 1000)
+#define m_delay_s(x) thread_sleep((x) * 1000000)
 #elif _MOD_DELAY_MATHOD == 3  // freertos
 #include "FreeRTOS.h"         // period = 1ms
 #include "task.h"
-#define m_delay_us(x) vTaskDelay(x / 1000)
-#define m_delay_ms(x) vTaskDelay(x)
-#define m_delay_s(x) vTaskDelay(x * 1000)
+#define m_delay_us(x) vTaskDelay((x) / 1000)
+#define m_delay_ms(x) vTaskDelay((x))
+#define m_delay_s(x) vTaskDelay((x) * 1000)
 #else
 #error "MOD_DELAY_MATHOD invalid"
 #endif  // _MOD_DELAY_MATHOD
