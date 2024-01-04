@@ -1,5 +1,7 @@
 
 #include "i2c_slave.h"
+#if __has_include("i2c.h")
+#include "i2c.h"
 
 __weak void Slave_I2C_Init_Callback(I2C_TypeDef* I2Cx) {}
 __weak void Slave_I2C_TransmitBegin_Callback(I2C_TypeDef* I2Cx) {}
@@ -152,3 +154,5 @@ void Slave_I2C_Error_IRQHandler(I2C_TypeDef* I2Cx) {
   Slave_Enable_IT(I2Cx);
   LL_I2C_AcknowledgeNextData(I2Cx, LL_I2C_NACK);
 }
+
+#endif /* __has_include("i2c.h") */

@@ -1,13 +1,17 @@
 #include "sw_i2c.h"
 
+#include "log.h"
+
 #define I2C_READ 0x01
 #define READ_CMD 1
 #define WRITE_CMD 0
+// #define PULL_MODE GPIO_NOPULL
+#define PULL_MODE GPIO_PULLUP
 
 static void sda_in_mode(sw_iic_t *dev) {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = PULL_MODE;
   GPIO_InitStruct.Pin = dev->sdaPin;
   HAL_GPIO_Init(dev->sdaPort, &GPIO_InitStruct);
 }
@@ -16,7 +20,7 @@ static void sda_out_mode(sw_iic_t *dev) {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = PULL_MODE;
   GPIO_InitStruct.Pin = dev->sdaPin;
   HAL_GPIO_Init(dev->sdaPort, &GPIO_InitStruct);
 }
@@ -24,7 +28,7 @@ static void sda_out_mode(sw_iic_t *dev) {
 static void scl_in_mode(sw_iic_t *dev) {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = PULL_MODE;
   GPIO_InitStruct.Pin = dev->sclPin;
   HAL_GPIO_Init(dev->sclPort, &GPIO_InitStruct);
 }
@@ -33,7 +37,7 @@ static void scl_out_mode(sw_iic_t *dev) {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = PULL_MODE;
   GPIO_InitStruct.Pin = dev->sclPin;
   HAL_GPIO_Init(dev->sclPort, &GPIO_InitStruct);
 }
@@ -161,7 +165,7 @@ void SW_IIC_Init(sw_iic_t *dev) {
   if (!dev->waitTime) dev->waitTime = DEFAULT_WAIT_TIME;
   if (!dev->waitTimeLong) dev->waitTimeLong = DEFAULT_WAIT_TIME_LONG;
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = PULL_MODE;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   GPIO_InitStruct.Pin = dev->sclPin;
@@ -179,7 +183,7 @@ void SW_IIC_Init(sw_iic_t *dev) {
  * @param dev Pointer to the software I2C device structure.
  * @param data The byte of data to write.
  */
-void SW_IIC_Write_Data(sw_iic_t *dev, uint8_t data) {
+void SW_IIC_WriteData(sw_iic_t *dev, uint8_t data) {
   int x;
   scl_low();
   for (x = 7; x >= 0; x--) {
@@ -195,7 +199,7 @@ void SW_IIC_Write_Data(sw_iic_t *dev, uint8_t data) {
  * @param dev Pointer to the software I2C device structure.
  * @return The byte of data read from the I2C bus.
  */
-uint8_t SW_IIC_Read_Data(sw_iic_t *dev) {
+uint8_t SW_IIC_ReadData(sw_iic_t *dev) {
   uint8_t x;
   uint8_t readdata = 0;
   sda_in_mode(dev);
@@ -221,7 +225,7 @@ uint8_t SW_IIC_Read_Data(sw_iic_t *dev) {
  * @param rcnt The number of bytes to read.
  * @return 1 if the read was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Read_8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
+uint8_t SW_IIC_Read8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
                           uint8_t *pdata, uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
@@ -248,12 +252,12 @@ uint8_t SW_IIC_Read_8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
   if (rcnt > 1) {
     for (index = 0; index < (rcnt - 1); index++) {
       wait_i2c();
-      pdata[index] = SW_IIC_Read_Data(dev);
+      pdata[index] = SW_IIC_ReadData(dev);
       i2c_send_ack(dev);
     }
   }
   wait_i2c();
-  pdata[rcnt - 1] = SW_IIC_Read_Data(dev);
+  pdata[rcnt - 1] = SW_IIC_ReadData(dev);
   i2c_check_not_ack(dev);
   i2c_stop_condition(dev);
 
@@ -270,7 +274,7 @@ uint8_t SW_IIC_Read_8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
  * @param rcnt The number of bytes to read.
  * @return 1 if the read was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Read_16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
+uint8_t SW_IIC_Read16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
                            uint8_t *pdata, uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
@@ -308,12 +312,12 @@ uint8_t SW_IIC_Read_16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
   if (rcnt > 1) {
     for (index = 0; index < (rcnt - 1); index++) {
       wait_i2c();
-      pdata[index] = SW_IIC_Read_Data(dev);
+      pdata[index] = SW_IIC_ReadData(dev);
       i2c_send_ack(dev);
     }
   }
   wait_i2c();
-  pdata[rcnt - 1] = SW_IIC_Read_Data(dev);
+  pdata[rcnt - 1] = SW_IIC_ReadData(dev);
   i2c_check_not_ack(dev);
   i2c_stop_condition(dev);
 
@@ -330,7 +334,7 @@ uint8_t SW_IIC_Read_16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
  * @param rcnt The number of bytes to write.
  * @return 1 if the write was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Write_8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
+uint8_t SW_IIC_Write8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
                            uint8_t *pdata, uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
@@ -350,7 +354,7 @@ uint8_t SW_IIC_Write_8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
   }
   wait_i2c();
   for (index = 0; index < rcnt; index++) {
-    SW_IIC_Write_Data(dev, pdata[index]);
+    SW_IIC_WriteData(dev, pdata[index]);
     if (!i2c_check_ack(dev)) {
       returnack = 0;
     }
@@ -370,7 +374,7 @@ uint8_t SW_IIC_Write_8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
  * @param rcnt The number of bytes to write.
  * @return 1 if the write was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Write_16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
+uint8_t SW_IIC_Write16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
                             uint8_t *pdata, uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
@@ -399,7 +403,7 @@ uint8_t SW_IIC_Write_16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
   wait_i2c();
   // 写数据
   for (index = 0; index < rcnt; index++) {
-    SW_IIC_Write_Data(dev, pdata[index]);
+    SW_IIC_WriteData(dev, pdata[index]);
     if (!i2c_check_ack(dev)) {
       returnack = 0;
     }
@@ -416,7 +420,7 @@ uint8_t SW_IIC_Write_16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
  * @param SlaveAddr The slave address of the device to check.
  * @return 1 if the device is present, 0 otherwise.
  */
-uint8_t SW_IIC_Check_SlaveAddr(sw_iic_t *dev, uint8_t SlaveAddr) {
+uint8_t SW_IIC_CheckSlaveAddr(sw_iic_t *dev, uint8_t SlaveAddr) {
   uint8_t returnack = 1;
   i2c_start_condition(dev);
   i2c_slave_address(dev, SlaveAddr, WRITE_CMD);
@@ -426,4 +430,27 @@ uint8_t SW_IIC_Check_SlaveAddr(sw_iic_t *dev, uint8_t SlaveAddr) {
   }
   i2c_stop_condition(dev);
   return returnack;
+}
+
+/**
+ * @brief Scans the I2C bus for devices using software I2C.
+ *
+ * @param dev Pointer to the software I2C device structure.
+ * @param addr_list Pointer to the buffer to store the list of addresses found.
+ * @param addr_cnt Pointer to the variable to store the number of addresses
+ */
+void SW_IIC_BusScan(sw_iic_t *dev, uint8_t *addr_list, uint8_t *addr_cnt) {
+  uint8_t temp;
+  if (addr_cnt) *addr_cnt = 0;
+  LOG_RAWLN(T_FMT(T_YELLOW) "> SW I2C Bus Scan Start");
+  for (uint8_t i = 1; i < 128; i++) {
+    // dummy read for waking up some device
+    SW_IIC_Read8addr(dev, i << 1, 0, &temp, 1);
+    if (SW_IIC_CheckSlaveAddr(dev, i << 1)) {
+      LOG_RAWLN(T_FMT(T_CYAN) "- Found Device: 0x%02X", i);
+      if (addr_list) *addr_list++ = i;
+      if (addr_cnt) (*addr_cnt)++;
+    }
+  }
+  LOG_RAWLN(T_FMT(T_YELLOW) "> SW I2C Bus Scan End" T_FMT(T_RESET));
 }

@@ -1,5 +1,9 @@
 #ifndef MACRO_H
 #define MACRO_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -102,7 +106,7 @@
  * @param __array 数组
  * @param __type 元素类型 (可选)
  */
-#define dimof(...) EVAL(__dim_of_, __VA_ARGS__)(__VA_ARGS__)
+#define dim_of(...) EVAL(__dim_of_, __VA_ARGS__)(__VA_ARGS__)
 
 #define __foreach_2(__array, __type)                              \
   using(__type * _ = __array) for (uint_fast32_t SAFE_NAME(cnt) = \
@@ -210,4 +214,7 @@ typedef int64_t s64;
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 /************** 语法糖 END *********************/
+#ifdef __cplusplus
+}
+#endif
 #endif  // MACRO_H

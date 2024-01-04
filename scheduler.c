@@ -1,9 +1,17 @@
-#include <scheduler.h>
+#include "scheduler.h"
+
+#include <string.h>
+
+#include "log.h"
 
 #define _STATIC_INLINE static inline __attribute__((always_inline))
+#define _INLINE inline __attribute__((always_inline))
 
+#if _SCH_ENABLE_EVENT
+_STATIC_INLINE void Event_Runner(void);
+#endif
 #if _SCH_ENABLE_COROUTINE
-_STATIC_INLINE void Cron_Runner(void);
+_STATIC_INLINE void Coron_Runner(void);
 #endif
 #if _SCH_ENABLE_CALLLATER
 _STATIC_INLINE void CallLater_Runner(void);
@@ -12,15 +20,24 @@ _STATIC_INLINE void CallLater_Runner(void);
 _STATIC_INLINE void SoftInt_Runner(void);
 #endif
 
+_STATIC_INLINE bool fast_str_check(const char *str1, const char *str2) {
+  while (*str1 != '\0' && *str2 != '\0') {
+    if (*str1 != *str2) return false;
+    str1++;
+    str2++;
+  }
+  return !*str1 && !*str2;
+}
+
 #pragma pack(1)
-typedef struct {       // 用户任务结构
-  void (*task)(void);  // 任务函数指针
-  m_time_t period;     // 任务调度周期(Tick)
-  m_time_t lastRun;    // 上次执行时间(Tick)
-  uint8_t enable;      // 是否使能
-  uint8_t priority;    // 优先级
-  uint16_t taskId;     // 任务ID
-#if _SCH_DEBUG_MODE
+typedef struct {     // 用户任务结构
+  sch_func_t task;   // 任务函数指针
+  m_time_t period;   // 任务调度周期(Tick)
+  m_time_t lastRun;  // 上次执行时间(Tick)
+  uint8_t enable;    // 是否使能
+  uint8_t priority;  // 优先级
+  void *args;        // 任务参数
+#if _SCH_DEBUG_REPORT
   uint8_t flag;         // 任务标志(1:新增, 2:删除, 4:设置变更)
   m_time_t max_cost;    // 任务最大执行时间(Tick)
   m_time_t total_cost;  // 任务总执行时间(Tick)
@@ -28,8 +45,8 @@ typedef struct {       // 用户任务结构
   m_time_t total_lat;   // 任务调度延迟总和(Tick)
   uint16_t run_cnt;     // 任务执行次数
   float last_usage;     // 任务上次执行占用率
-  char name[13];        // 任务名
 #endif
+  const char *name;  // 任务名
 } scheduler_task_t;
 #pragma pack()
 
@@ -38,178 +55,7 @@ static struct {
   uint16_t num;                                     // 存储区总任务数量
   uint16_t size;                                    // 存储区总大小
   uint16_t priOffset[_SCH_MAX_PRIORITY_LEVEL + 1];  // 各优先级偏移量
-  uint16_t tempId;                                  // 最大编号
 } thd = {0};
-
-#if _SCH_DEBUG_MODE
-#include "log.h"
-#warning 调度器调试模式已开启, 预期性能下降, 且任务句柄占用内存增加
-static void delete_task(uint16_t i, bool skip_mem_free);
-static scheduler_task_t *get_task(uint16_t taskId);
-
-static inline void Debug_PrintInfo(void) {
-  static uint8_t first_print = 1;
-  static m_time_t _sch_debug_last_print = 0;
-  m_time_t now = m_tick();
-  if (first_print) {  // 因为初始化耗时等原因，第一次的数据无参考价值，不打印
-    first_print = 0;
-  } else {
-    if (now - _sch_debug_last_print <= _SCH_DEBUG_PERIOD * m_tick_clk) return;
-    double temp = m_tick_per_us;
-    m_time_t period = now - _sch_debug_last_print;
-    m_time_t other = period;
-    LOG_RAWLN(T_FMT(T_RESET, T_BOLD, T_BLUE));
-    LOG_RAWLN("--------------------- Scheduler Report ----------------------");
-    LOG_RAWLN("PID | Pri | Run | Tmax  | Usage | LTavg | LTmax | Function");
-    float usage;
-    char op;
-    for (uint16_t i = 0; i < thd.num; i++) {
-      if (thd.tasks[i].enable) {
-        usage = (double)thd.tasks[i].total_cost / period * 100;
-        if (thd.tasks[i].flag & 0x01) {  // 任务新增
-          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_CYAN));
-          op = '+';
-        } else if (thd.tasks[i].flag & 0x04) {  // 任务优先级变更
-          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_MAGENTA));
-          op = '>';
-        } else if ((thd.tasks[i].last_usage != 0 &&
-                    usage / thd.tasks[i].last_usage > 2) ||
-                   usage > 20) {  // 任务占用率大幅度增加或者超过20%
-          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
-          op = '!';
-        } else {
-          LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
-          op = ' ';
-        }
-        LOG_RAWLN("%c%-5d %-4d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op,
-                  thd.tasks[i].taskId, thd.tasks[i].priority,
-                  thd.tasks[i].run_cnt, (double)thd.tasks[i].max_cost / temp,
-                  usage,
-                  (double)thd.tasks[i].total_lat / thd.tasks[i].run_cnt / temp,
-                  (double)thd.tasks[i].max_lat / temp, thd.tasks[i].name);
-        thd.tasks[i].last_usage = usage;
-      } else {
-        if (thd.tasks[i].flag & 0x02) {  // 任务已被删除
-          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_RED));
-          op = '-';
-        } else if (thd.tasks[i].flag & 0x04) {  // 任务设置变更
-          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_MAGENTA));
-          op = '>';
-        } else {
-          LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
-          op = ' ';
-        }
-        LOG_RAWLN("%c%-5d %-4d %-5s %-7s %-7s %-7s %-7s %s ", op,
-                  thd.tasks[i].taskId, thd.tasks[i].priority, "-", "-", "-",
-                  "-", "-", thd.tasks[i].name);
-        thd.tasks[i].last_usage = 0;
-      }
-      other -= thd.tasks[i].total_cost;
-    }
-    LOG_RAW(T_FMT(T_RESET, T_CYAN));
-    LOG_RAW("Core: %.0fMhz / RunTime: %ds / Idle: %.3f%%", temp, m_time_s(),
-            (double)other / period * 100);
-#if _MOD_USE_DALLOC
-    LOG_RAW(" / Mem: %.3f%%", get_def_heap_usage() * 100);
-#endif
-    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE));
-    LOG_RAWLN("-------------------------------------------------------------");
-    LOG_RAW(T_RST);
-    for (uint16_t i = 0; i < thd.num; i++) {
-      if (thd.tasks[i].flag & 0x02) {
-        delete_task(i, false);  // 实际删除已标记删除的任务
-        i = 0;
-      } else {
-        thd.tasks[i].flag = 0;
-      }
-    }
-  }
-  now = m_tick();
-  for (uint16_t i = 0; i < thd.num; i++) {
-    thd.tasks[i].lastRun = now;
-    thd.tasks[i].max_cost = 0;
-    thd.tasks[i].total_cost = 0;
-    thd.tasks[i].run_cnt = 0;
-    thd.tasks[i].max_lat = 0;
-    thd.tasks[i].total_lat = 0;
-  }
-  _sch_debug_last_print = now;
-}
-static inline void Debug_RunTask(scheduler_task_t *task_p, m_time_t latency) {
-  __IO uint16_t id = task_p->taskId;
-  m_time_t _sch_debug_task_tick = m_tick();
-  task_p->task();
-  _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
-  if (task_p->taskId != id) {  // 任务已被修改, 重新查找
-    task_p = get_task(id);
-    if (task_p == NULL) return;  // 任务已被删除
-  }
-  if (task_p->max_cost < _sch_debug_task_tick)
-    task_p->max_cost = _sch_debug_task_tick;
-  if (latency > task_p->max_lat) task_p->max_lat = latency;
-  task_p->total_cost += _sch_debug_task_tick;
-  task_p->total_lat += latency;
-  task_p->run_cnt++;
-}
-
-static inline void Debug_SetName(scheduler_task_t *p, const char *name) {
-  for (uint8_t i = 0; i < sizeof(p->name); i++) {
-    if (name[i] == '\0') {
-      p->name[i] = '\0';
-      return;
-    }
-    p->name[i] = name[i];
-    if (i >= sizeof(p->name) - 3) {
-      p->name[sizeof(p->name) - 3] = '.';
-      p->name[sizeof(p->name) - 2] = '.';
-      p->name[sizeof(p->name) - 1] = '\0';
-      return;
-    }
-  }
-}
-#endif  // _SCH_DEBUG_MODE
-
-/**
- * @brief 时分调度器主函数
- * @param  block            是否阻塞
- **/
-void __attribute__((always_inline)) Scheduler_Run(const uint8_t block) {
-  do {
-    m_time_t latency;
-    m_time_t now = m_tick();
-
-    if (thd.num) {
-#if _SCH_DEBUG_MODE
-      Debug_PrintInfo();
-#endif
-      for (uint16_t i = 0; i < thd.num; i++) {
-        if (thd.tasks[i].enable &&
-            (now >= thd.tasks[i].lastRun + thd.tasks[i].period)) {
-          latency = now - (thd.tasks[i].lastRun + thd.tasks[i].period);
-          if (latency <= _SCH_COMP_RANGE)
-            thd.tasks[i].lastRun += thd.tasks[i].period;
-          else
-            thd.tasks[i].lastRun = now;
-#if _SCH_DEBUG_MODE
-          Debug_RunTask(&thd.tasks[i], latency);
-#else
-          thd.tasks[i].task();
-#endif  // _SCH_DEBUG_MODE
-          break;
-        }
-      }
-    }
-#if _SCH_ENABLE_SOFTINT
-    SoftInt_Runner();
-#endif
-#if _SCH_ENABLE_COROUTINE
-    Cron_Runner();
-#endif
-#if _SCH_ENABLE_CALLLATER
-    CallLater_Runner();
-#endif
-  } while (block);
-}
 
 static scheduler_task_t *insert_task(uint8_t priority) {
   scheduler_task_t *p;
@@ -246,50 +92,14 @@ static scheduler_task_t *insert_task(uint8_t priority) {
   return p;
 }
 
-static scheduler_task_t *get_task(uint16_t taskId) {
+static scheduler_task_t *get_task(const char *name) {
   for (uint16_t i = 0; i < thd.num; i++) {
-    if (thd.tasks[i].taskId == taskId) return &thd.tasks[i];
+    if (fast_str_check(thd.tasks[i].name, name)) return &thd.tasks[i];
   }
   return NULL;
 }
 
-#if !_SCH_DEBUG_MODE
-uint16_t Sch_CreateTask(void (*task)(void), float freqHz, uint8_t enable,
-                        uint8_t priority) {
-#else
-#include <string.h>
-uint16_t _Sch_CreateTask(const char *name, void (*task)(void), float freqHz,
-                         uint8_t enable, uint8_t priority) {
-#endif
-  if (thd.num == 0xFFFE) return 0xffff;
-  scheduler_task_t *p = insert_task(priority);
-  if (p == NULL) return 0xffff;
-#if _SCH_DEBUG_MODE
-  Debug_SetName(p, name);
-#endif
-  p->task = task;
-  p->enable = enable;
-  p->priority = priority;
-  p->period = (double)m_tick_clk / (double)freqHz;
-  if (!p->period) p->period = 1;
-  p->lastRun = m_tick() - p->period;
-  p->taskId = 0xFFFF;
-  for (uint16_t i = 0; i < thd.num; i++) {
-    if (thd.tasks[i].taskId == thd.tempId) {
-      thd.tempId += 1;
-      i = 0;
-    }
-  }
-  p->taskId = thd.tempId;
-  thd.tempId += 1;
-#if _SCH_DEBUG_MODE
-  p->flag |= 1;  // 标记为新增
-#endif
-  return p->taskId;
-}
-
 static void delete_task(uint16_t i, bool skip_mem_free) {
-  if (thd.tempId == thd.tasks[i].taskId + 1) thd.tempId = thd.tasks[i].taskId;
   if (i < thd.num - 1) {  // 不是最后一个, 需要移动
     memmove(&thd.tasks[i], &thd.tasks[i + 1],
             sizeof(scheduler_task_t) * (thd.num - i - 1));
@@ -314,88 +124,48 @@ static void delete_task(uint16_t i, bool skip_mem_free) {
   }
 }
 
-void Sch_DeleteTask(uint16_t taskId) {
-  if (thd.num == 0) return;
-  for (uint16_t i = 0; i < thd.num; i++) {
-    if (thd.tasks[i].taskId == taskId) {
-#if _SCH_DEBUG_MODE
-      if (!(thd.tasks[i].flag & 0x02)) {
-        thd.tasks[i].flag |= 2;  // 标记为删除
-        thd.tasks[i].enable = 0;
-        return;
-      }
+#if _SCH_ENABLE_EVENT
+#pragma pack(1)
+typedef struct {    // 事件任务结构
+  sch_func_t task;  // 任务函数指针
+  uint8_t enable;   // 是否使能
+  uint8_t trigger;  // 是否已触发
+  void *args;       // 任务参数
+#if _SCH_DEBUG_REPORT
+  m_time_t trigger_time;  // 触发时间(Tick)
+  m_time_t max_cost;      // 任务最大执行时间(Tick)
+  m_time_t total_cost;    // 任务总执行时间(Tick)
+  m_time_t max_lat;       // 任务调度延迟(Tick)
+  m_time_t total_lat;     // 任务调度延迟总和(Tick)
+  uint16_t run_cnt;       // 任务执行次数
+  uint16_t trigger_cnt;   // 触发次数
+  float last_usage;       // 任务上次执行占用率
 #endif
-      delete_task(i, false);
-      return;
-    }
-  }
-}
+  const char *name;  // 事件名
+} scheduler_event_t;
+#pragma pack()
 
-bool Sch_IsTaskExist(uint16_t taskId) { return get_task(taskId) != NULL; }
-
-void Sch_SetTaskPriority(uint16_t taskId, uint8_t priority) {
-  if (priority > _SCH_MAX_PRIORITY_LEVEL) priority = _SCH_MAX_PRIORITY_LEVEL;
-  scheduler_task_t *p = get_task(taskId);
-  if (p == NULL) return;
-  scheduler_task_t temp = {0};
-  memcpy(&temp, p, sizeof(scheduler_task_t));
-  delete_task(p - thd.tasks, true);
-  p = insert_task(priority);
-  memcpy(p, &temp, sizeof(scheduler_task_t));
-  p->priority = priority;
-#if _SCH_DEBUG_MODE
-  p->flag |= 4;
-#endif
-}
-
-void Sch_DelayTask(uint16_t taskId, m_time_t delayUs, uint8_t fromNow) {
-  scheduler_task_t *p = get_task(taskId);
-  if (p == NULL) return;
-  if (fromNow)
-    p->lastRun = delayUs * m_tick_per_us + m_tick();
-  else
-    p->lastRun += delayUs * m_tick_per_us;
-}
-
-uint16_t Sch_GetTaskNum(void) { return thd.num; }
-
-void Sch_SetTaskState(uint16_t taskId, uint8_t enable) {
-  scheduler_task_t *p = get_task(taskId);
-  if (p == NULL) return;
-  if (enable == TOGGLE)
-    p->enable = !p->enable;
-  else
-    p->enable = enable;
-  if (p->enable) p->lastRun = m_tick() - p->period;
-}
-
-void Sch_SetTaskFreq(uint16_t taskId, float freqHz) {
-  scheduler_task_t *p = get_task(taskId);
-  if (p == NULL) return;
-  p->period = (double)m_tick_clk / (double)freqHz;
-  if (!p->period) p->period = 1;
-  p->lastRun = m_tick() - p->period;
-#if _SCH_DEBUG_MODE
-  p->flag |= 4;
-#endif
-}
-
-uint16_t Sch_GetTaskId(void (*task)(void)) {
-  for (uint16_t i = 0; i < thd.num; i++) {
-    if (thd.tasks[i].task == task) return thd.tasks[i].taskId;
-  }
-  return 0xffff;
-}
+struct {
+  scheduler_event_t *tasks;  // 任务存储区
+  uint16_t num;              // 存储区总任务数量
+  uint16_t size;             // 存储区总大小
+} ehd = {0};
+#endif  // _SCH_ENABLE_EVENT
 
 #if _SCH_ENABLE_COROUTINE
 #pragma pack(1)
-typedef struct {        // 协程任务结构
-  void (*task)(void);   // 任务函数指针
-  uint8_t enable;       // 是否使能
-  uint8_t mode;         // 模式
-  uint16_t taskId;      // 任务ID
-  m_time_t yieldUntil;  // 等待态结束时间(us)
-  long ptr;             // 协程跳入地址
+typedef struct {      // 协程任务结构
+  sch_func_t task;    // 任务函数指针
+  uint8_t enable;     // 是否使能
+  uint8_t mode;       // 模式
+  void *args;         // 任务参数
+  _cron_handle_t hd;  // 协程句柄
+#if _SCH_DEBUG_REPORT
+  m_time_t max_cost;    // 协程最大执行时间(Tick)
+  m_time_t total_cost;  // 协程总执行时间(Tick)
+  float last_usage;     // 协程上次执行占用率
+#endif
+  const char *name;  // 协程名
 } scheduler_cron_t;
 #pragma pack()
 
@@ -403,22 +173,489 @@ struct {
   scheduler_cron_t *tasks;  // 任务存储区
   uint16_t num;             // 存储区总任务数量
   uint16_t size;            // 存储区总大小
-  uint16_t tempId;          // 最大编号
 } chd = {0};
+#endif  // _SCH_ENABLE_COROUTINE
 
-_cron_handle_t _cron_hp = {0};
+#if _SCH_DEBUG_REPORT
 
-_STATIC_INLINE void Cron_Runner(void) {
+#warning Scheduler Debug-Report is on, expect performance degradation and increased memory usage of task handles
+
+static m_time_t _sch_debug_last_print = 0;
+static inline void Debug_PrintInfo(void) {
+  static uint8_t first_print = 1;
+  m_time_t now = m_tick();
+  if (first_print) {  // 因为初始化耗时等原因，第一次的数据无参考价值，不打印
+    first_print = 0;
+  } else {
+    if (now - _sch_debug_last_print <= _SCH_DEBUG_PERIOD * m_tick_clk) return;
+    double temp = m_tick_per_us;  // 统一转换到us
+    m_time_t period = now - _sch_debug_last_print;
+    m_time_t other = period;
+    LOG_RAWLN(T_FMT(T_RESET, T_BOLD, T_BLUE));
+    LOG_RAWLN("------------------- Scheduler Report --------------------");
+    LOG_RAWLN(" No | Pri | Run | Tmax  | Usage | LTavg | LTmax | Name");
+    float usage;
+    char op;
+    for (uint16_t i = 0; i < thd.num; i++) {
+      if (thd.tasks[i].enable) {
+        usage = (double)thd.tasks[i].total_cost / period * 100;
+        if (thd.tasks[i].flag & 0x01) {  // 任务新增
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_CYAN));
+          op = '+';
+        } else if (thd.tasks[i].flag & 0x04) {  // 任务优先级变更
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_MAGENTA));
+          op = '>';
+        } else if ((thd.tasks[i].last_usage != 0 &&
+                    usage / thd.tasks[i].last_usage > 2) ||
+                   usage > 20) {  // 任务占用率大幅度增加或者超过20%
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
+          op = '!';
+        } else {
+          LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
+          op = ' ';
+        }
+        LOG_RAWLN("%c%-4d %-5d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op, i,
+                  thd.tasks[i].priority, thd.tasks[i].run_cnt,
+                  (double)thd.tasks[i].max_cost / temp, usage,
+                  (double)thd.tasks[i].total_lat / thd.tasks[i].run_cnt / temp,
+                  (double)thd.tasks[i].max_lat / temp, thd.tasks[i].name);
+        thd.tasks[i].last_usage = usage;
+        other -= thd.tasks[i].total_cost;
+      } else {
+        if (thd.tasks[i].flag & 0x02) {  // 任务已被删除
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_RED));
+          op = '-';
+        } else if (thd.tasks[i].flag & 0x04) {  // 任务设置变更
+          LOG_RAW(T_FMT(T_RESET, T_BOLD, T_MAGENTA));
+          op = '>';
+        } else {
+          LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
+          op = 'x';
+        }
+        LOG_RAWLN("%c%-4d %-4d %-5s %-7s %-7s %-7s %-7s %s ", op, i,
+                  thd.tasks[i].priority, "-", "-", "-", "-", "-",
+                  thd.tasks[i].name);
+        thd.tasks[i].last_usage = 0;
+      }
+    }
+#if _SCH_ENABLE_EVENT
+    if (ehd.num) {
+      LOG_RAW(T_FMT(T_RESET, T_BOLD, T_BLUE));
+      LOG_RAWLN("--------------------- Event Report ----------------------");
+      LOG_RAWLN(" No | Tri | Run | Tmax  | Usage | LTavg | LTmax | Event");
+      for (uint16_t i = 0; i < ehd.num; i++) {
+        if (ehd.tasks[i].enable && ehd.tasks[i].run_cnt) {
+          usage = (double)ehd.tasks[i].total_cost / period * 100;
+          if ((ehd.tasks[i].last_usage != 0 &&
+               usage / ehd.tasks[i].last_usage > 2) ||
+              usage > 20) {  // 任务占用率大幅度增加或者超过20%
+            LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
+            op = '!';
+          } else {
+            LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
+            op = ' ';
+          }
+          LOG_RAWLN(
+              "%c%-4d %-5d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op, i,
+              ehd.tasks[i].trigger_cnt, ehd.tasks[i].run_cnt,
+              (double)ehd.tasks[i].max_cost / temp, usage,
+              (double)ehd.tasks[i].total_lat / ehd.tasks[i].run_cnt / temp,
+              (double)ehd.tasks[i].max_lat / temp, ehd.tasks[i].name);
+          ehd.tasks[i].last_usage = usage;
+          other -= ehd.tasks[i].total_cost;
+        } else {
+          if (!ehd.tasks[i].enable) {
+            LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
+            op = 'x';
+          } else {
+            LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
+            op = ' ';
+          }
+          LOG_RAWLN("%c%-4d %-5d %-5d -       -       -       -       %s ", op,
+                    i, ehd.tasks[i].trigger_cnt, ehd.tasks[i].run_cnt,
+                    ehd.tasks[i].name);
+          ehd.tasks[i].last_usage = 0;
+        }
+      }
+    }
+#endif  // _SCH_ENABLE_EVENT
+#if _SCH_ENABLE_COROUTINE
+    if (chd.num) {
+      LOG_RAW(T_FMT(T_RESET, T_BOLD, T_BLUE));
+      LOG_RAWLN("------------------- Coroutine Report --------------------");
+      LOG_RAWLN(" No | Tmax  | Usage | Name");
+      for (uint16_t i = 0; i < chd.num; i++) {
+        if (chd.tasks[i].enable) {
+          usage = (double)chd.tasks[i].total_cost / period * 100;
+          if ((chd.tasks[i].last_usage != 0 &&
+               usage / chd.tasks[i].last_usage > 2) ||
+              usage > 20) {  // 任务占用率大幅度增加或者超过20%
+            LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
+            op = '!';
+          } else {
+            LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
+            op = ' ';
+          }
+          LOG_RAWLN("%c%-4d %-7.2f %-7.3f %s ", op, i,
+                    (double)chd.tasks[i].max_cost / temp, usage,
+                    chd.tasks[i].name);
+          chd.tasks[i].last_usage = usage;
+          other -= chd.tasks[i].total_cost;
+        } else {
+          LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
+          LOG_RAWLN("x%-4d -       -       %s ", i, chd.tasks[i].name);
+          ehd.tasks[i].last_usage = 0;
+        }
+      }
+    }
+#endif  // _SCH_ENABLE_COROUTINE
+    LOG_RAW(T_FMT(T_BOLD, T_BLUE));
+    LOG_RAWLN("--------------------- System Stats ----------------------");
+    LOG_RAW(T_RST);
+    LOG_RAW(T_FMT(T_RESET, T_CYAN));
+    LOG_RAW(" CORE %.0fMhz / BOOT %.2fs / IDLE %.2f%%", temp,
+            (double)m_time_ms() / 1000, (double)other / period * 100);
+#ifdef m_usage
+    LOG_RAW(" / MEM %.3f%%", m_usage() * 100);
+#endif
+    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE));
+    LOG_RAWLN("---------------------------------------------------------");
+    LOG_RAW(T_RST);
+    for (uint16_t i = 0; i < thd.num; i++) {
+      if (thd.tasks[i].flag & 0x02) {
+        delete_task(i, false);  // 实际删除已标记删除的任务
+        i = 0;
+      } else {
+        thd.tasks[i].flag = 0;
+      }
+    }
+  }
+  now = m_tick();
+  for (uint16_t i = 0; i < thd.num; i++) {
+    thd.tasks[i].lastRun = now;
+    thd.tasks[i].max_cost = 0;
+    thd.tasks[i].total_cost = 0;
+    thd.tasks[i].run_cnt = 0;
+    thd.tasks[i].max_lat = 0;
+    thd.tasks[i].total_lat = 0;
+  }
+#if _SCH_ENABLE_EVENT
+  for (uint16_t i = 0; i < ehd.num; i++) {
+    ehd.tasks[i].max_cost = 0;
+    ehd.tasks[i].total_cost = 0;
+    ehd.tasks[i].run_cnt = 0;
+    ehd.tasks[i].trigger_cnt = 0;
+    ehd.tasks[i].max_lat = 0;
+    ehd.tasks[i].total_lat = 0;
+    ehd.tasks[i].trigger_time = now;
+    ehd.tasks[i].trigger = 0;
+  }
+#endif
+#if _SCH_ENABLE_COROUTINE
   for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].enable && m_time_us() >= chd.tasks[i].yieldUntil) {
-      _cron_hp.ptr = chd.tasks[i].ptr;
-      _cron_hp.delay = 0;
-      chd.tasks[i].task();  // 执行
-      chd.tasks[i].ptr = _cron_hp.ptr;
-      chd.tasks[i].yieldUntil = _cron_hp.delay;
-      if (!chd.tasks[i].ptr) {
+    chd.tasks[i].max_cost = 0;
+    chd.tasks[i].total_cost = 0;
+  }
+#endif
+  _sch_debug_last_print = now;
+}
+
+static inline void Debug_RunTask(scheduler_task_t *task_p, m_time_t latency) {
+  const char *name = task_p->name;
+  m_time_t _sch_debug_task_tick = m_tick();
+  task_p->task(task_p->args);
+  _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
+  if (task_p->name != name) {  // 任务已被修改, 重新查找
+    task_p = get_task(name);
+    if (task_p == NULL) return;  // 任务已被删除
+  }
+  if (task_p->max_cost < _sch_debug_task_tick)
+    task_p->max_cost = _sch_debug_task_tick;
+  if (latency > task_p->max_lat) task_p->max_lat = latency;
+  task_p->total_cost += _sch_debug_task_tick;
+  task_p->total_lat += latency;
+  task_p->run_cnt++;
+}
+#endif  // _SCH_DEBUG_REPORT
+
+void __attribute__((always_inline))
+Scheduler_Run(const uint8_t block, const m_time_t sleep_us) {
+  do {
+    m_time_t latency;
+    m_time_t now = m_tick();
+
+    if (thd.num) {
+#if _SCH_DEBUG_REPORT
+      Debug_PrintInfo();
+#endif
+      for (uint16_t i = 0; i < thd.num; i++) {
+        if (thd.tasks[i].enable &&
+            (now >= thd.tasks[i].lastRun + thd.tasks[i].period)) {
+          latency = now - (thd.tasks[i].lastRun + thd.tasks[i].period);
+          if (latency <= _SCH_COMP_RANGE)
+            thd.tasks[i].lastRun += thd.tasks[i].period;
+          else
+            thd.tasks[i].lastRun = now;
+#if _SCH_DEBUG_REPORT
+          Debug_RunTask(&thd.tasks[i], latency);
+#else
+          thd.tasks[i].task(thd.tasks[i].args);
+#endif  // _SCH_DEBUG_REPORT
+          break;
+        }
+      }
+    }
+#if _SCH_ENABLE_SOFTINT
+    SoftInt_Runner();
+#endif
+#if _SCH_ENABLE_EVENT
+    Event_Runner();
+#endif
+#if _SCH_ENABLE_COROUTINE
+    Coron_Runner();
+#endif
+#if _SCH_ENABLE_CALLLATER
+    CallLater_Runner();
+#endif
+    if (block && sleep_us) m_delay_us(sleep_us);
+  } while (block);
+}
+
+bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
+                    uint8_t enable, uint8_t priority, void *args) {
+  if (thd.num == 0xFFFE) return false;
+  scheduler_task_t *p = insert_task(priority);
+  if (p == NULL) return false;
+  p->task = func;
+  p->enable = enable;
+  p->priority = priority;
+  p->period = (double)m_tick_clk / (double)freqHz;
+  if (!p->period) p->period = 1;
+  p->lastRun = m_tick() - p->period;
+  p->name = name;
+  p->args = args;
+  return true;
+}
+
+bool Sch_DeleteTask(const char *name) {
+  if (thd.num == 0) return false;
+  for (uint16_t i = 0; i < thd.num; i++) {
+    if (fast_str_check(thd.tasks[i].name, name)) {
+#if _SCH_DEBUG_REPORT
+      if (!(thd.tasks[i].flag & 0x02)) {
+        thd.tasks[i].flag |= 2;  // 标记为删除
+        thd.tasks[i].enable = 0;
+        _sch_debug_last_print = m_tick() - _SCH_DEBUG_PERIOD * m_tick_clk;
+        return true;
+      }
+#endif
+      delete_task(i, false);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Sch_IsTaskExist(const char *name) { return get_task(name) != NULL; }
+
+bool Sch_SetTaskPriority(const char *name, uint8_t priority) {
+  if (priority > _SCH_MAX_PRIORITY_LEVEL) priority = _SCH_MAX_PRIORITY_LEVEL;
+  scheduler_task_t *p = get_task(name);
+  if (p == NULL) return false;
+  scheduler_task_t temp = {0};
+  memcpy(&temp, p, sizeof(scheduler_task_t));
+  delete_task(p - thd.tasks, true);
+  p = insert_task(priority);
+  memcpy(p, &temp, sizeof(scheduler_task_t));
+  p->priority = priority;
+#if _SCH_DEBUG_REPORT
+  p->flag |= 4;
+#endif
+  return true;
+}
+
+bool Sch_DelayTask(const char *name, m_time_t delayUs, uint8_t fromNow) {
+  scheduler_task_t *p = get_task(name);
+  if (p == NULL) return false;
+  if (fromNow)
+    p->lastRun = delayUs * m_tick_per_us + m_tick();
+  else
+    p->lastRun += delayUs * m_tick_per_us;
+  return true;
+}
+
+uint16_t Sch_GetTaskNum(void) { return thd.num; }
+
+bool Sch_SetTaskState(const char *name, uint8_t enable) {
+  scheduler_task_t *p = get_task(name);
+  if (p == NULL) return false;
+  if (enable == TOGGLE)
+    p->enable = !p->enable;
+  else
+    p->enable = enable;
+  if (p->enable) p->lastRun = m_tick() - p->period;
+  return true;
+}
+
+bool Sch_SetTaskFreq(const char *name, float freqHz) {
+  scheduler_task_t *p = get_task(name);
+  if (p == NULL) return false;
+  p->period = (double)m_tick_clk / (double)freqHz;
+  if (!p->period) p->period = 1;
+  p->lastRun = m_tick() - p->period;
+#if _SCH_DEBUG_REPORT
+  p->flag |= 4;
+#endif
+  return true;
+}
+
+#if _SCH_ENABLE_EVENT
+_STATIC_INLINE void Event_Runner(void) {
+  for (uint16_t i = 0; i < ehd.num; i++) {
+    if (ehd.tasks[i].enable && ehd.tasks[i].trigger) {
+#if !_SCH_DEBUG_REPORT
+      ehd.tasks[i].task(ehd.tasks[i].args);
+#else
+      m_time_t _sch_debug_task_tick = m_tick();
+      m_time_t _late = _sch_debug_task_tick - ehd.tasks[i].trigger_time;
+      ehd.tasks[i].task(ehd.tasks[i].args);
+      _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
+      if (ehd.tasks[i].max_cost < _sch_debug_task_tick)
+        ehd.tasks[i].max_cost = _sch_debug_task_tick;
+      ehd.tasks[i].total_cost += _sch_debug_task_tick;
+      if (ehd.tasks[i].max_lat < _late) ehd.tasks[i].max_lat = _late;
+      ehd.tasks[i].total_lat += _late;
+      ehd.tasks[i].run_cnt++;
+#endif  // !_SCH_DEBUG_REPORT
+      ehd.tasks[i].trigger = 0;
+    }
+  }
+}
+
+bool Sch_CreateEvent(const char *name, sch_func_t callback, uint8_t enable) {
+  if (ehd.num == 0xFFFE) return false;
+  if (ehd.tasks == NULL) {
+    m_alloc(ehd.tasks, sizeof(scheduler_event_t) * 2);
+    if (ehd.tasks == NULL) return false;
+    ehd.size = 2;
+  } else {
+    for (uint16_t i = 0; i < ehd.num; i++) {
+      if (fast_str_check(ehd.tasks[i].name, name)) {
+        ehd.tasks[i].task = callback;
+        ehd.tasks[i].enable = enable;
+        ehd.tasks[i].trigger = 0;
+        ehd.tasks[i].args = NULL;
+        return true;
+      }
+    }
+  }
+  if (ehd.num + 1 > ehd.size) {
+    scheduler_event_t *old = ehd.tasks;
+    if (!m_realloc(ehd.tasks, sizeof(scheduler_event_t) * ehd.size * 2)) {
+      ehd.tasks = old;
+      return false;
+    }
+    ehd.size *= 2;
+  }
+  scheduler_event_t *p = &ehd.tasks[ehd.num];
+  ehd.num += 1;
+  p->task = callback;
+  p->enable = enable;
+  p->trigger = 0;
+  p->args = NULL;
+  p->name = name;
+  return true;
+}
+
+bool Sch_DeleteEvent(const char *name) {
+  if (ehd.num == 0) return false;
+  for (uint16_t i = 0; i < ehd.num; i++) {
+    if (fast_str_check(ehd.tasks[i].name, name)) {
+      if (i < ehd.num - 1) {  // 不是最后一个, 需要移动
+        memmove(&ehd.tasks[i], &ehd.tasks[i + 1],
+                sizeof(scheduler_event_t) * (ehd.num - i - 1));
+      }
+      ehd.num -= 1;
+      if (ehd.num == 0) {  // 任务已清空
+        m_free(ehd.tasks);
+        ehd.tasks = NULL;
+        ehd.size = 0;
+      } else if (ehd.num < ehd.size / 2) {  // 缩容
+        scheduler_event_t *old = ehd.tasks;
+        if (!m_realloc(ehd.tasks, sizeof(scheduler_event_t) * ehd.size / 2)) {
+          ehd.tasks = old;
+        } else {
+          ehd.size /= 2;
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Sch_SetEventState(const char *name, uint8_t enable) {
+  for (uint16_t i = 0; i < ehd.num; i++) {
+    if (fast_str_check(ehd.tasks[i].name, name)) {
+      if (enable == TOGGLE) {
+        ehd.tasks[i].enable = !ehd.tasks[i].enable;
+      } else {
+        ehd.tasks[i].enable = enable;
+      }
+      ehd.tasks[i].trigger = 0;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Sch_TriggerEvent(const char *name, void *args) {
+  for (uint16_t i = 0; i < ehd.num; i++) {
+    if (ehd.tasks[i].enable && fast_str_check(ehd.tasks[i].name, name)) {
+      ehd.tasks[i].trigger = 1;
+      ehd.tasks[i].args = args;
+#if _SCH_DEBUG_REPORT
+      ehd.tasks[i].trigger_time = m_tick();
+      ehd.tasks[i].trigger_cnt++;
+#endif
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Sch_CheckEvent(const char *name) {
+  for (uint16_t i = 0; i < ehd.num; i++) {
+    if (fast_str_check(ehd.tasks[i].name, name)) {
+      return true;
+    }
+  }
+  return false;
+}
+#endif  // _SCH_ENABLE_EVENT
+
+#if _SCH_ENABLE_COROUTINE
+_cron_handle_t *_cron_hp = {0};
+
+_STATIC_INLINE void Coron_Runner(void) {
+  for (uint16_t i = 0; i < chd.num; i++) {
+    if (chd.tasks[i].enable && m_time_us() >= chd.tasks[i].hd.yieldUntil) {
+      _cron_hp = &chd.tasks[i].hd;
+      _cron_hp->depth = 0;
+#if _SCH_DEBUG_REPORT
+      m_time_t _sch_debug_task_tick = m_tick();
+      chd.tasks[i].task(chd.tasks[i].args);
+      _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
+      if (chd.tasks[i].max_cost < _sch_debug_task_tick)
+        chd.tasks[i].max_cost = _sch_debug_task_tick;
+      chd.tasks[i].total_cost += _sch_debug_task_tick;
+#else
+      chd.tasks[i].task(chd.tasks[i].args);
+#endif
+      _cron_hp = NULL;
+      if (!chd.tasks[i].hd.ptr[0]) {  // 最外层协程已结束
         if (chd.tasks[i].mode == CR_MODE_AUTODEL) {
-          Sch_DeleteCoron(chd.tasks[i].taskId);
+          Sch_DeleteCoron(chd.tasks[i].name);
           return;  // 指针已被释放
         } else if (chd.tasks[i].mode == CR_MODE_ONESHOT) {
           chd.tasks[i].enable = 0;
@@ -428,46 +665,37 @@ _STATIC_INLINE void Cron_Runner(void) {
   }
 }
 
-uint16_t Sch_CreateCoron(void (*task)(void), uint8_t enable,
-                         enum CR_MODES mode) {
-  if (chd.num == 0xFFFE) return 0xffff;
+bool Sch_CreateCoron(const char *name, sch_func_t func, uint8_t enable,
+                     enum CR_MODES mode, void *args) {
+  if (chd.num == 0xFFFE) return false;
   if (chd.tasks == NULL) {
     m_alloc(chd.tasks, sizeof(scheduler_cron_t) * 2);
-    if (chd.tasks == NULL) return 0xffff;
+    if (chd.tasks == NULL) return false;
     chd.size = 2;
   }
   if (chd.num + 1 > chd.size) {
     scheduler_cron_t *old = chd.tasks;
     if (!m_realloc(chd.tasks, sizeof(scheduler_cron_t) * chd.size * 2)) {
       chd.tasks = old;
-      return 0xffff;
+      return false;
     }
     chd.size *= 2;
   }
   scheduler_cron_t *p = &chd.tasks[chd.num];
   chd.num += 1;
-  p->task = task;
+  p->task = func;
   p->enable = enable;
   p->mode = mode;
-  p->yieldUntil = 0;
-  p->ptr = NULL;
-  p->taskId = 0xFFFF;
-RETRY_ID_CHECK:
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].taskId == chd.tempId) {
-      chd.tempId += 1;
-      goto RETRY_ID_CHECK;
-    }
-  }
-  p->taskId = chd.tempId;
-  chd.tempId += 1;
-  return p->taskId;
+  p->args = args;
+  p->name = name;
+  memset(&p->hd, 0, sizeof(_cron_handle_t));
+  return true;
 }
 
-void Sch_DeleteCoron(uint16_t taskId) {
-  if (chd.num == 0) return;
+bool Sch_DeleteCoron(const char *name) {
+  if (chd.num == 0) return false;
   for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].taskId == taskId) {
+    if (fast_str_check(chd.tasks[i].name, name)) {
       if (i < chd.num - 1) {  // 不是最后一个, 需要移动
         memmove(&chd.tasks[i], &chd.tasks[i + 1],
                 sizeof(scheduler_cron_t) * (chd.num - i - 1));
@@ -485,40 +713,36 @@ void Sch_DeleteCoron(uint16_t taskId) {
           chd.size /= 2;
         }
       }
-      return;
+      return true;
     }
   }
+  return false;
 }
 
-void Sch_SetCoronState(uint16_t taskId, uint8_t enable, uint8_t clearState) {
+bool Sch_SetCoronState(const char *name, uint8_t enable, uint8_t clearState) {
   for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].taskId == taskId) {
+    if (fast_str_check(chd.tasks[i].name, name)) {
       if (enable == TOGGLE) {
         chd.tasks[i].enable = !chd.tasks[i].enable;
       } else {
         chd.tasks[i].enable = enable;
       }
       if (clearState) {
-        chd.tasks[i].ptr = 0;
-        chd.tasks[i].yieldUntil = 0;
+        memset(&chd.tasks[i].hd, 0, sizeof(_cron_handle_t));
       }
-      break;
+      return true;
     }
   }
+  return false;
 }
 
 uint16_t Sch_GetCoronNum(void) { return chd.num; }
 
-uint16_t Sch_GetCoronId(void (*task)(void)) {
+bool Sch_IsCoronExist(const char *name) {
   for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].task == task) return chd.tasks[i].taskId;
-  }
-  return 0xffff;
-}
-
-bool Sch_IsCoronExist(uint16_t taskId) {
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].taskId == taskId) return true;
+    if (fast_str_check(chd.tasks[i].name, name)) {
+      return true;
+    }
   }
   return false;
 }
@@ -528,27 +752,28 @@ bool Sch_IsCoronExist(uint16_t taskId) {
 #if _SCH_ENABLE_CALLLATER
 #pragma pack(1)
 typedef struct {       // 延时调用任务结构
-  void (*task)(void);  // 任务函数指针
+  sch_func_t task;     // 任务函数指针
   m_time_t runTimeUs;  // 执行时间(us)
+  void *args;          // 任务参数
   void *next;
 } scheduler_call_later_t;
 #pragma pack()
 scheduler_call_later_t *schCallLaterEntry = NULL;
-scheduler_call_later_t *callLater_p = NULL;
 
 _STATIC_INLINE void CallLater_Runner(void) {
   if (schCallLaterEntry != NULL) {
-    if (callLater_p == NULL) callLater_p = schCallLaterEntry;
-    if (m_time_us() >= callLater_p->runTimeUs) {
-      callLater_p->task();
-      Sch_CancelCallLater(callLater_p->task);
-      return;
+    for (scheduler_call_later_t *callLater_p = schCallLaterEntry;
+         callLater_p != NULL; callLater_p = callLater_p->next) {
+      if (m_time_us() >= callLater_p->runTimeUs) {
+        callLater_p->task(callLater_p->args);
+        Sch_CancelCallLater(callLater_p->task);
+        return;
+      }
     }
-    callLater_p = callLater_p->next;
   }
 }
 
-bool Sch_CallLater(void (*task)(void), m_time_t delayUs) {
+bool Sch_CallLater(sch_func_t func, m_time_t delayUs, void *args) {
   scheduler_call_later_t *p = NULL;
   if (schCallLaterEntry == NULL) {
     m_alloc(schCallLaterEntry, sizeof(scheduler_call_later_t));
@@ -562,18 +787,19 @@ bool Sch_CallLater(void (*task)(void), m_time_t delayUs) {
     p = q->next;
   }
   if (p == NULL) return false;
-  p->task = task;
+  p->task = func;
   p->runTimeUs = delayUs + m_time_us();
+  p->args = args;
   p->next = NULL;
   return true;
 }
 
-void Sch_CancelCallLater(void (*task)(void)) {
+void Sch_CancelCallLater(sch_func_t func) {
   scheduler_call_later_t *p = schCallLaterEntry;
   scheduler_call_later_t *q = NULL;
   void **temp = NULL;
   while (p != NULL) {
-    if (p->task == task) {
+    if (p->task == func) {
       if (q == NULL) {
         temp = (void **)&(p->next);
         m_free(schCallLaterEntry);
@@ -595,108 +821,290 @@ void Sch_CancelCallLater(void (*task)(void)) {
 
 #if _SCH_ENABLE_SOFTINT
 
-static uint8_t _imm = 0;
-static uint8_t _ism[8] = {0};
+static __IO uint8_t _imm = 0;
+static __IO uint8_t _ism[8] = {0};
 
-void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel) {
+_INLINE void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel) {
   if (mainChannel > 7 || subChannel > 7) return;
   _imm |= 1 << mainChannel;
   _ism[mainChannel] |= 1 << subChannel;
 }
 
-__weak void Scheduler_SoftIntHandler_Ch0(uint8_t subMask) {}
-__weak void Scheduler_SoftIntHandler_Ch1(uint8_t subMask) {}
-__weak void Scheduler_SoftIntHandler_Ch2(uint8_t subMask) {}
-__weak void Scheduler_SoftIntHandler_Ch3(uint8_t subMask) {}
-__weak void Scheduler_SoftIntHandler_Ch4(uint8_t subMask) {}
-__weak void Scheduler_SoftIntHandler_Ch5(uint8_t subMask) {}
-__weak void Scheduler_SoftIntHandler_Ch6(uint8_t subMask) {}
-__weak void Scheduler_SoftIntHandler_Ch7(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch0(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch1(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch2(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch3(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch4(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch5(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch6(uint8_t subMask) {}
+__weak void Scheduler_SoftInt_Handler_Ch7(uint8_t subMask) {}
 
 _STATIC_INLINE void SoftInt_Runner(void) {
+  __IO uint8_t ism;
   if (_imm) {
     __IO uint8_t imm = _imm;
     _imm = 0;
-    if (imm & 0x01) Scheduler_SoftIntHandler_Ch0(_ism[0]), _ism[0] = 0;
-    if (imm & 0x02) Scheduler_SoftIntHandler_Ch1(_ism[1]), _ism[1] = 0;
-    if (imm & 0x04) Scheduler_SoftIntHandler_Ch2(_ism[2]), _ism[2] = 0;
-    if (imm & 0x08) Scheduler_SoftIntHandler_Ch3(_ism[3]), _ism[3] = 0;
-    if (imm & 0x10) Scheduler_SoftIntHandler_Ch4(_ism[4]), _ism[4] = 0;
-    if (imm & 0x20) Scheduler_SoftIntHandler_Ch5(_ism[5]), _ism[5] = 0;
-    if (imm & 0x40) Scheduler_SoftIntHandler_Ch6(_ism[6]), _ism[6] = 0;
-    if (imm & 0x80) Scheduler_SoftIntHandler_Ch7(_ism[7]), _ism[7] = 0;
+    if (imm & 0x01)
+      ism = _ism[0], _ism[0] = 0, Scheduler_SoftInt_Handler_Ch0(ism);
+    if (imm & 0x02)
+      ism = _ism[1], _ism[1] = 0, Scheduler_SoftInt_Handler_Ch1(ism);
+    if (imm & 0x04)
+      ism = _ism[2], _ism[2] = 0, Scheduler_SoftInt_Handler_Ch2(ism);
+    if (imm & 0x08)
+      ism = _ism[3], _ism[3] = 0, Scheduler_SoftInt_Handler_Ch3(ism);
+    if (imm & 0x10)
+      ism = _ism[4], _ism[4] = 0, Scheduler_SoftInt_Handler_Ch4(ism);
+    if (imm & 0x20)
+      ism = _ism[5], _ism[5] = 0, Scheduler_SoftInt_Handler_Ch5(ism);
+    if (imm & 0x40)
+      ism = _ism[6], _ism[6] = 0, Scheduler_SoftInt_Handler_Ch6(ism);
+    if (imm & 0x80)
+      ism = _ism[7], _ism[7] = 0, Scheduler_SoftInt_Handler_Ch7(ism);
   }
 }
 
 #endif  // _SCH_ENABLE_SOFTINT
 
 #if _SCH_ENABLE_TERMINAL
-#include "log.h"
-#include "nr_micro_shell.h"
 #include "stdlib.h"
 #include "string.h"
-void sch_cmd(char argc, char *argv) {
-  if (argc < 2) {
-    LOG_RAWLN(T_FMT(
-        T_BOLD,
-        T_BLUE) "Usage: sch [list|enable|disable|delete|setfreq|setpri|excute] "
-                "[taskid] "
-                "[freq]" T_RST);
+
+void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (!argc) {
+    embeddedCliPrintCurrentHelp(cli);
     return;
   }
-  if (strcmp(argv + argv[1], "list") == 0) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Tasks list:");
+  if (embeddedCliCheckToken(args, "list", 1)) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Tasks list:" T_FMT(T_RESET, T_GREEN));
     for (uint16_t i = 0; i < thd.num; i++) {
-      LOG_RAWLN("Task %d: 0x%p pri:%d freq:%.1f en:%d", thd.tasks[i].taskId,
+      LOG_RAWLN("Task-%s: 0x%p pri:%d freq:%.1f en:%d", thd.tasks[i].name,
                 thd.tasks[i].task, thd.tasks[i].priority,
                 (double)m_tick_clk / thd.tasks[i].period, thd.tasks[i].enable);
     }
-    LOG_RAWLN("Total %d tasks" T_RST, thd.num);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d tasks" T_RST, thd.num);
     return;
   }
-  if (argc < 3) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task ID is required" T_RST);
+  if (argc < 2) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task name is required" T_RST);
     return;
   }
-  uint16_t taskId = atoi(argv + argv[2]);
-  scheduler_task_t *p = get_task(taskId);
+  const char *name = embeddedCliGetToken(args, 2);
+  scheduler_task_t *p = get_task(name);
   if (p == NULL) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task %d not found" T_RST, taskId);
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task-%s not found" T_RST, name);
     return;
   }
-  if (strcmp(argv + argv[1], "enable") == 0) {
-    Sch_SetTaskState(taskId, ENABLE);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d enabled" T_RST, taskId);
-  } else if (strcmp(argv + argv[1], "disable") == 0) {
-    Sch_SetTaskState(taskId, DISABLE);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d disabled" T_RST, taskId);
-  } else if (strcmp(argv + argv[1], "delete") == 0) {
-    Sch_DeleteTask(taskId);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d deleted" T_RST, taskId);
-  } else if (strcmp(argv + argv[1], "setfreq") == 0) {
-    if (argc < 4) {
+  if (embeddedCliCheckToken(args, "enable", 1)) {
+    Sch_SetTaskState(name, ENABLE);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task-%s enabled" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "disable", 1)) {
+    Sch_SetTaskState(name, DISABLE);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task-%s disabled" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "delete", 1)) {
+    Sch_DeleteTask(name);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task-%s deleted" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "setfreq", 1)) {
+    if (argc < 3) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Frequency is required" T_RST);
       return;
     }
-    float freq = atof(argv + argv[3]);
-    Sch_SetTaskFreq(taskId, freq);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d frequency set to %.2fHz" T_RST,
-              taskId, freq);
-  } else if (strcmp(argv + argv[1], "setpri") == 0) {
-    if (argc < 4) {
+    float freq = atof(embeddedCliGetToken(args, 3));
+    Sch_SetTaskFreq(name, freq);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task-%s frequency set to %.2fHz" T_RST,
+              name, freq);
+  } else if (embeddedCliCheckToken(args, "setpri", 1)) {
+    if (argc < 3) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
       return;
     }
-    uint8_t pri = atoi(argv + argv[3]);
-    Sch_SetTaskPriority(taskId, pri);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task %d priority set to %d" T_RST, taskId,
+    uint8_t pri = atoi(embeddedCliGetToken(args, 3));
+    Sch_SetTaskPriority(name, pri);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task-%s priority set to %d" T_RST, name,
               pri);
-  } else if (strcmp(argv + argv[1], "excute") == 0) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting task %d" T_RST, taskId);
-    p->task();
+  } else if (embeddedCliCheckToken(args, "excute", 1)) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting Task-%s" T_RST, name);
+    p->task(p->args);
   } else {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }
 }
-ADD_CMD(sch, sch_cmd);
+
+#if _SCH_ENABLE_EVENT
+void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (!argc) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  if (embeddedCliCheckToken(args, "list", 1)) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Events list:" T_FMT(T_RESET, T_GREEN));
+    for (uint16_t i = 0; i < ehd.num; i++) {
+      LOG_RAWLN("Event-%s: 0x%p en:%d", ehd.tasks[i].name, ehd.tasks[i].task,
+                ehd.tasks[i].enable);
+    }
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d events" T_RST, ehd.num);
+    return;
+  }
+  if (argc < 2) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Event name is required" T_RST);
+    return;
+  }
+  const char *name = embeddedCliGetToken(args, 2);
+  scheduler_event_t *p = NULL;
+  for (uint16_t i = 0; i < ehd.num; i++) {
+    if (fast_str_check(ehd.tasks[i].name, name)) {
+      p = &ehd.tasks[i];
+      break;
+    }
+  }
+  if (p == NULL) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Event-%s not found" T_RST, name);
+    return;
+  }
+  if (embeddedCliCheckToken(args, "enable", 1)) {
+    Sch_SetEventState(name, ENABLE);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event-%s enabled" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "disable", 1)) {
+    Sch_SetEventState(name, DISABLE);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event-%s disabled" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "delete", 1)) {
+    Sch_DeleteEvent(name);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event-%s deleted" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "trigger", 1)) {
+    Sch_TriggerEvent(name, NULL);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event-%s triggered" T_RST, name);
+  } else {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
+  }
+}
+#endif  // _SCH_ENABLE_EVENT
+
+#if _SCH_ENABLE_COROUTINE
+void coron_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (!argc) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  if (embeddedCliCheckToken(args, "list", 1)) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Coroutines list:" T_FMT(T_RESET, T_GREEN));
+    for (uint16_t i = 0; i < chd.num; i++) {
+      LOG_RAWLN("Coron-%s: 0x%p en:%d", chd.tasks[i].name, chd.tasks[i].task,
+                chd.tasks[i].enable);
+    }
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d coroutines" T_RST, chd.num);
+    return;
+  }
+  if (argc < 2) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Coroutine name is required" T_RST);
+    return;
+  }
+  const char *name = embeddedCliGetToken(args, 2);
+  scheduler_cron_t *p = NULL;
+  for (uint16_t i = 0; i < chd.num; i++) {
+    if (fast_str_check(chd.tasks[i].name, name)) {
+      p = &chd.tasks[i];
+      break;
+    }
+  }
+  if (p == NULL) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Coroutine-%s not found" T_RST, name);
+    return;
+  }
+  if (embeddedCliCheckToken(args, "enable", 1)) {
+    Sch_SetCoronState(name, ENABLE, 1);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Coroutine-%s enabled" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "disable", 1)) {
+    Sch_SetCoronState(name, DISABLE, 1);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Coroutine-%s disabled" T_RST, name);
+  } else if (embeddedCliCheckToken(args, "delete", 1)) {
+    Sch_DeleteCoron(name);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Coroutine-%s deleted" T_RST, name);
+  } else {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
+  }
+}
+#endif  // _SCH_ENABLE_COROUTINE
+
+#if _SCH_ENABLE_SOFTINT
+void softint_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (!argc) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  if (argc < 2) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "2 parameters are required" T_RST);
+    return;
+  }
+  uint8_t ch = atoi(embeddedCliGetToken(args, 1));
+  uint8_t sub = atoi(embeddedCliGetToken(args, 2));
+  if (ch > 7) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Channel must be 0~7" T_RST);
+    return;
+  }
+  if (sub > 7) {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Sub-channel must be 0~7" T_RST);
+    return;
+  }
+  Sch_TriggerSoftInt(ch, sub);
+  LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "SoftInt-%d-%d triggered" T_RST, ch, sub);
+}
+#endif  // _SCH_ENABLE_SOFTINT
+
+void Sch_AddCmdToCli(EmbeddedCli *cli) {
+  static CliCommandBinding sch_cmd = {
+      .name = "task",
+      .usage =
+          "task [list|enable|disable|delete|setfreq|setpri|excute] "
+          "[name] "
+          "[freq|pri]",
+      .help = "Task control command (Scheduler)",
+      .context = NULL,
+      .autoTokenizeArgs = true,
+      .func = task_cmd_func,
+  };
+
+  embeddedCliAddBinding(cli, sch_cmd);
+
+#if _SCH_ENABLE_EVENT
+  static CliCommandBinding event_cmd = {
+      .name = "event",
+      .usage = "event [list|enable|disable|delete|trigger] [name]",
+      .help = "Event control command (Scheduler)",
+      .context = NULL,
+      .autoTokenizeArgs = true,
+      .func = event_cmd_func,
+  };
+
+  embeddedCliAddBinding(cli, event_cmd);
+#endif  // _SCH_ENABLE_EVENT
+
+#if _SCH_ENABLE_COROUTINE
+  static CliCommandBinding coron_cmd = {
+      .name = "coron",
+      .usage = "coron [list|enable|disable|delete] [name]",
+      .help = "Coroutine control command (Scheduler)",
+      .context = NULL,
+      .autoTokenizeArgs = true,
+      .func = coron_cmd_func,
+  };
+
+  embeddedCliAddBinding(cli, coron_cmd);
+#endif  // _SCH_ENABLE_COROUTINE
+
+#if _SCH_ENABLE_SOFTINT
+  static CliCommandBinding softint_cmd = {
+      .name = "softint",
+      .usage = "softint [channel] [sub-channel]",
+      .help = "SoftInt manual trigger command (Scheduler)",
+      .context = NULL,
+      .autoTokenizeArgs = true,
+      .func = softint_cmd_func,
+  };
+
+  embeddedCliAddBinding(cli, softint_cmd);
+#endif  // _SCH_ENABLE_SOFTINT
+}
 #endif  // _SCH_ENABLE_TERMINAL

@@ -58,7 +58,7 @@ typedef struct {              // FIFO串口发送控制结构体
 static uart_fifo_tx_t *fifo_tx_entry = NULL;
 
 static int fifo_lwprintf_fn(int ch, lwprintf_t *lwobj);
-void Uart_FIFO_Tx_Init(UART_HandleTypeDef *huart, uint8_t *buffer,
+void Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
                        uint16_t bufSize) {
   if (!bufSize) return;
   uart_fifo_tx_t *fifo = NULL;
@@ -82,6 +82,7 @@ void Uart_FIFO_Tx_Init(UART_HandleTypeDef *huart, uint8_t *buffer,
   fifo->wr = 0;
   fifo->rd = 0;
   fifo->rd_send = 0;
+  fifo->next = NULL;
 }
 
 static uart_fifo_tx_t *is_fifo_tx(UART_HandleTypeDef *huart) {
@@ -160,11 +161,15 @@ static int fifo_lwprintf_fn(int ch, lwprintf_t *lwobj) {
 #endif  // _UART_ENABLE_TX_FIFO
 
 static int pub_lwprintf_fn(int ch, lwprintf_t *lwobj) {
+  UART_HandleTypeDef *huart = (UART_HandleTypeDef *)lwobj->out_fn_arg;
   if (ch == '\0') return 0;
-  if (lwobj->out_fn_arg &&
-      HAL_UART_Transmit((UART_HandleTypeDef *)lwobj->out_fn_arg, (uint8_t *)&ch,
-                        1, 1) == HAL_OK)
+  if (huart) {
+    while (_UART_NOT_READY) {
+      __NOP();
+    }
+    _send_func(huart, (uint8_t *)&ch, 1);
     return ch;
+  }
   return -1;
 }
 
@@ -283,13 +288,14 @@ int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
 
 static uart_fifo_rx_t *fifo_rx_entry = NULL;
 
-void Uart_FIFO_Rx_Init(uart_fifo_rx_t *ctrl, UART_HandleTypeDef *huart,
+void Uart_FifoRxInit(uart_fifo_rx_t *ctrl, UART_HandleTypeDef *huart,
                        void (*rxCallback)(uint8_t data)) {
   ctrl->huart = huart;
   ctrl->full = 0;
   ctrl->wr = 0;
   ctrl->rd = 0;
   ctrl->rxCallback = rxCallback;
+  ctrl->next = NULL;
   HAL_UART_Receive_IT(huart, ctrl->fifo, 1);
   if (!fifo_rx_entry) {
     fifo_rx_entry = ctrl;
@@ -300,7 +306,7 @@ void Uart_FIFO_Rx_Init(uart_fifo_rx_t *ctrl, UART_HandleTypeDef *huart,
   }
 }
 
-inline void Uart_Rx_Process(UART_HandleTypeDef *huart) {
+inline void Uart_RxProcess(UART_HandleTypeDef *huart) {
   uart_fifo_rx_t *ctrl = fifo_rx_entry;
   while (ctrl) {
     if (ctrl->huart != huart) {
@@ -319,7 +325,7 @@ void (*swRxCallback)(char *data, uint16_t len) = NULL;
 char *swRxData = NULL;
 uint16_t swRxLen = 0;
 
-void Uart_Callback_Check(void) {
+void Uart_CallbackCheck(void) {
   if (swRxCallback != NULL) {
     swRxCallback(swRxData, swRxLen);
     swRxCallback = NULL;
@@ -335,7 +341,7 @@ void Uart_Callback_Check(void) {
   }
 }
 
-inline void Uart_Tx_Process(UART_HandleTypeDef *huart) {
+inline void Uart_TxProcess(UART_HandleTypeDef *huart) {
 #if _UART_ENABLE_TX_FIFO
   uart_fifo_tx_t *fifo = is_fifo_tx(huart);
   if (fifo) fifo_exchange(fifo, 1);
@@ -345,7 +351,7 @@ inline void Uart_Tx_Process(UART_HandleTypeDef *huart) {
 #if _UART_ENABLE_DMA
 
 static uart_dma_rx_t *dma_rx_entry = NULL;
-void Uart_DMA_Rx_Init(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
+void Uart_DmaRxInit(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
                       void (*rxCallback)(char *data, uint16_t len),
                       uint8_t cbkInIRQ) {
   ctrl->huart = huart;
@@ -354,6 +360,7 @@ void Uart_DMA_Rx_Init(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
   ctrl->buffer[0] = 0;
   ctrl->rxCallback = rxCallback;
   ctrl->cbkInIRQ = cbkInIRQ;
+  ctrl->next = NULL;
   HAL_UARTEx_ReceiveToIdle_DMA(huart, ctrl->rxBuf, _UART_RX_BUF_SIZE - 1);
   if (!dma_rx_entry) {
     dma_rx_entry = ctrl;
@@ -364,7 +371,7 @@ void Uart_DMA_Rx_Init(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
   }
 }
 
-inline void Uart_DMA_Rx_Process(UART_HandleTypeDef *huart, uint16_t Size) {
+inline void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size) {
   uart_dma_rx_t *dma_rx = dma_rx_entry;
   while (dma_rx) {
     if (dma_rx->huart != huart) {
@@ -395,9 +402,9 @@ inline void Uart_DMA_Rx_Process(UART_HandleTypeDef *huart, uint16_t Size) {
 }
 #endif  // _UART_ENABLE_DMA
 
-uint8_t uart_error_state = 0;
+__IO uint8_t uart_error_state = 0;
 
-inline void Uart_Error_Process(UART_HandleTypeDef *huart) {
+inline void Uart_ErrorProcess(UART_HandleTypeDef *huart) {
   if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_PE)) != RESET) {  // 奇偶校验错误
     __HAL_UNLOCK(huart);
     __HAL_UART_CLEAR_PEFLAG(huart);
@@ -444,20 +451,20 @@ inline void Uart_Error_Process(UART_HandleTypeDef *huart) {
 
 #if _UART_REWRITE_HANLDER  // 重写HAL中断处理函数
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-  Uart_Rx_Process(huart);
+  Uart_RxProcess(huart);
 }
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-  Uart_Tx_Process(huart);
+  Uart_TxProcess(huart);
 }
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-  Uart_Error_Process(huart);
+  Uart_ErrorProcess(huart);
 }
 #if _UART_ENABLE_DMA
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
-  Uart_DMA_Rx_Process(huart, Size);
+  Uart_DmaRxProcess(huart, Size);
 }
 void HAL_UARTEx_TxEventCallback(UART_HandleTypeDef *huart) {
-  Uart_Tx_Process(huart);
+  Uart_TxProcess(huart);
 }
 #endif  // _UART_ENABLE_DMA
 #endif  // _UART_REWRITE_HANLDER
@@ -577,7 +584,7 @@ int CDC_Send(uint8_t *buf, uint16_t len) {
 
 static const char _cbuf[] = "\r\n";
 
-void CDC_Wait_Connect(int timeout_ms) {
+void CDC_WaitConnect(int timeout_ms) {
   _cdc_start_time = m_time_ms();
   while (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) {
     if (timeout_ms > 0 && m_time_ms() - _cdc_start_time > timeout_ms) return;
@@ -589,7 +596,7 @@ void CDC_Wait_Connect(int timeout_ms) {
   }
 }
 
-void CDC_Register_Callback(void (*callback)(char *buf, uint16_t len),
+void CDC_RegisterCallback(void (*callback)(char *buf, uint16_t len),
                            uint8_t cbkInIRQ) {
   usb_cdc.rxCallback = callback;
   usb_cdc.cbkInIRQ = cbkInIRQ;

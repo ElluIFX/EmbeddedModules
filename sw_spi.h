@@ -7,6 +7,9 @@
 
 #ifndef __SW_SPI_H__
 #define __SW_SPI_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "modules.h"
 
@@ -30,4 +33,7 @@ extern void SW_SPI_TransmitThenReceive(sw_spi_t* spidev, uint8_t* txData,
                                        uint16_t nbTx, uint8_t* rxData,
                                        uint16_t nbRx);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* __SW_SPI_H__ */

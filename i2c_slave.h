@@ -1,5 +1,9 @@
 #ifndef I2C_SLAVE_H_
 #define I2C_SLAVE_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "modules.h"
 
 /**
@@ -60,4 +64,7 @@ extern void Slave_I2C_TransmitOut_Callback(I2C_TypeDef* I2Cx, uint8_t* data);
  */
 extern void Slave_I2C_SetITEnable(I2C_TypeDef* I2Cx, uint8_t state);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

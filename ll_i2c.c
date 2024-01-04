@@ -10,6 +10,10 @@
 
 #include "ll_i2c.h"
 
+#if __has_include("i2c.h")
+#include "i2c.h"
+#include "log.h"
+
 #define _INLINE __attribute__((always_inline))
 #if _LL_IIC_CONVERT_SLAVEADDR
 #define SLAVEADDR(addr) ((addr) << 1)
@@ -193,33 +197,33 @@ static bool I2Cx_WriteData(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
   return Result;
 }
 
-_INLINE void LL_IIC_Write_Data(I2C_TypeDef* I2Cx, uint8_t data) {
-  I2Cx_SendByte(I2Cx, data);
+_INLINE bool LL_IIC_WriteData(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
+                               uint8_t* pdata, uint8_t rcnt) {
+  return I2Cx_WriteData(I2Cx, SlaveAddr, 0, 0, pdata, rcnt);
 }
-_INLINE uint8_t LL_IIC_Read_Data(I2C_TypeDef* I2Cx) {
-  uint8_t data = 0;
-  I2Cx_ReceiveByte(I2Cx, &data);
-  return data;
+_INLINE bool LL_IIC_ReadData(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
+                              uint8_t* pdata, uint8_t rcnt) {
+  return I2Cx_ReadData(I2Cx, SlaveAddr, 0, 0, pdata, rcnt);
 }
-_INLINE bool LL_IIC_Read_8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
+_INLINE bool LL_IIC_Read8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
                                uint8_t RegAddr, uint8_t* pdata, uint8_t rcnt) {
   return I2Cx_ReadData(I2Cx, SlaveAddr, RegAddr, 1, pdata, rcnt);
 }
-_INLINE bool LL_IIC_Read_16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
+_INLINE bool LL_IIC_Read16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
                                 uint16_t RegAddr, uint8_t* pdata,
                                 uint8_t rcnt) {
   return I2Cx_ReadData(I2Cx, SlaveAddr, RegAddr, 2, pdata, rcnt);
 }
-_INLINE bool LL_IIC_Write_8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
+_INLINE bool LL_IIC_Write8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
                                 uint8_t RegAddr, uint8_t* pdata, uint8_t rcnt) {
   return I2Cx_WriteData(I2Cx, SlaveAddr, RegAddr, 1, pdata, rcnt);
 }
-_INLINE bool LL_IIC_Write_16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
+_INLINE bool LL_IIC_Write16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
                                  uint16_t RegAddr, uint8_t* pdata,
                                  uint8_t rcnt) {
   return I2Cx_WriteData(I2Cx, SlaveAddr, RegAddr, 2, pdata, rcnt);
 }
-bool LL_IIC_Check_SlaveAddr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr) {
+bool LL_IIC_CheckSlaveAddr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr) {
   if (!I2Cx_StartTransmission(I2Cx, I2C_TRANSMITTER, SLAVEADDR(SlaveAddr), 1)) {
     return false;
   }
@@ -227,3 +231,21 @@ bool LL_IIC_Check_SlaveAddr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr) {
   I2Cx_StopTransmission(I2Cx);
   return true;
 }
+
+void LL_IIC_BusScan(I2C_TypeDef* I2Cx, uint8_t* addr_list, uint8_t* addr_cnt) {
+  uint8_t temp;
+  if (addr_cnt) *addr_cnt = 0;
+  LOG_RAWLN(T_FMT(T_YELLOW) "> LL I2C Bus Scan Start");
+  for (uint8_t i = 1; i < 128; i++) {
+    // dummy read for waking up some device
+    LL_IIC_Read8addr(I2Cx, i << 1, 0, &temp, 1);
+    if (LL_IIC_CheckSlaveAddr(I2Cx, i << 1)) {
+      LOG_RAWLN(T_FMT(T_CYAN) "- Found Device: 0x%02X", i);
+      if (addr_list) *addr_list++ = i;
+      if (addr_cnt) (*addr_cnt)++;
+    }
+  }
+  LOG_RAWLN(T_FMT(T_YELLOW) "> LL I2C Bus Scan End" T_FMT(T_RESET));
+}
+
+#endif /* __has_include("i2c.h") */

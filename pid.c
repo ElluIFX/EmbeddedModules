@@ -100,7 +100,7 @@ PID_QuickInc_Calculate(float setPoint, float nextPoint) {
          QUICKINC_D * (error_0 - 2 * error_1 + error_2);
 }
 
-float PID_Calculate_TimeAdaptive(pid_tad_t *PIDx, float nextPoint) {
+float PID_TimeAdaptive_Calculate(pid_tad_t *PIDx, float nextPoint) {
   int64_t time = m_time_ms();
   if (PIDx->lastTime != 0) {
     PIDx->pid.Ts = (time - PIDx->lastTime) / 1000000.0;
@@ -111,7 +111,7 @@ float PID_Calculate_TimeAdaptive(pid_tad_t *PIDx, float nextPoint) {
   return PID_Calculate(&PIDx->pid, nextPoint);
 }
 
-float PID_Calculate_FeedForward(pid_t *PIDx, float nextPoint) {
+float PID_FeedForward_Calculate(pid_t *PIDx, float nextPoint) {
   float feed = 0;
   float pid = PID_Calculate(PIDx, nextPoint);
   /****Add model here****/
@@ -121,7 +121,7 @@ float PID_Calculate_FeedForward(pid_t *PIDx, float nextPoint) {
   return pid + feed;
 }
 
-void PID_Reset_StartPoint(pid_t *PIDx, float startPoint) {
+void PID_ResetStartPoint(pid_t *PIDx, float startPoint) {
   PID_Reset(PIDx);
   PIDx->output = startPoint;
   PIDx->base = startPoint;
@@ -137,7 +137,7 @@ void PID_Reset(pid_t *PIDx) {
   PIDx->output = 0;
 }
 
-void PID_Set_Tunings(pid_t *PIDx, float kp, float ki, float kd) {
+void PID_SetTuning(pid_t *PIDx, float kp, float ki, float kd) {
   PIDx->proportion = kp;
   PIDx->derivative = kd;
   PIDx->integral = ki;

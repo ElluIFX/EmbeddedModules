@@ -9,11 +9,14 @@
 
 #ifndef __SCHEDULER_LITE_H__
 #define __SCHEDULER_LITE_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "modules.h"
 
 typedef struct {       // 用户任务结构
   void (*task)(void);  // 任务函数指针
-  uint32_t periodMs;   // 任务调度周期(ms)
+  uint32_t period;     // 任务调度周期(ms->Tick)
   m_time_t lastRun;    // 上次执行时间(Tick)
 } scheduler_task_t;
 
@@ -32,6 +35,9 @@ typedef struct {       // 用户任务结构
  * @brief 时分调度器主函数
  * @param  block            是否阻塞
  **/
-extern void Scheduler_Run(const uint8_t block);
+extern void SchedulerLite_Run(const uint8_t block);
 
+#ifdef __cplusplus
+}
+#endif
 #endif  // __SCHEDULER_LITE_H__

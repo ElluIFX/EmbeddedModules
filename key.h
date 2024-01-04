@@ -1,11 +1,13 @@
 #ifndef __key_H
 #define __key_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "modules.h"
 
-#define KEY_CHECK_MS 10         // 按键检测周期，单位ms
-#define KEY_BUF_SIZE 16         // 按键事件FIFO大小
-#define KEY_SHAKE_FILTER_MS 20  // 按键抖动滤波时间
+#define KEY_BUF_SIZE 16  // 按键事件FIFO大小
 
 /******************************************************************************
                            User Interface [START]
@@ -40,8 +42,10 @@
 *******************************************************************************/
 #pragma pack(1)
 typedef struct {
-  uint8_t simple_event;       // 产生简单(按下/松开)事件
-  uint8_t complex_event;      // 产生复杂事件
+  uint16_t check_period_ms;   // 按键检测周期
+  uint16_t shake_filter_ms;   // 按键抖动滤波时间
+  uint8_t simple_event;       // 产生简单事件(按下/松开)
+  uint8_t complex_event;      // 产生复杂事件(短按/长按/双击...)
   uint16_t long_ms;           // 长按时间
   uint16_t hold_ms;           // 按住时间
   uint16_t double_ms;         // 双击最大间隔时间 (0:关闭)
@@ -61,7 +65,7 @@ extern key_setting_t key_setting;
 extern void Key_Init(uint8_t (*read_func)(uint8_t idx), uint8_t num);
 
 /**
- * @brief 按键系统周期调用函数(KEY_CHECK_MS)
+ * @brief 按键系统周期调用函数(key_setting.check_period_ms)
  */
 extern void Key_Tick(void);
 
@@ -75,18 +79,29 @@ extern uint16_t Key_Read(void);
  * @brief 按键注册回调函数
  * @param  func            回调函数指针(传入同Key_Read的返回值)
  */
-extern void Key_Register_Callback(void (*func)(uint16_t key_event));
+extern void Key_RegisterCallback(void (*func)(uint16_t key_event));
 
 /**
  * @brief 按键注册回调函数(带按键序号)
  * @param  func            回调函数指针(分别传入按键序号和事件)
  */
-extern void Key_Register_Callback_Alt(void (*func)(uint8_t key, uint8_t event));
+extern void Key_RegisterCallbackAlt(void (*func)(uint8_t key, uint8_t event));
 
 /**
  * @brief 获取按键事件名称字符串
  * @param  event           按键事件
  * @retval char*           按键事件名称字符串
  */
-extern char *Key_Get_Event_Name(uint8_t event);
+extern char *Key_GetEventName(uint8_t event);
+
+/**
+ * @brief 获取按键事件对应的按键ID
+ * @param  key             按键序号
+ * @retval uint8_t         按键ID
+ */
+#define Key_Get_Event_ID(key) ((key) >> 8)
+
+#ifdef __cplusplus
+}
+#endif
 #endif

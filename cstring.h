@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -146,3 +150,7 @@ extern string string_substr(const string this, size_t pos, size_t len);
  * @brief Write content into string like printf
  */
 extern size_t string_printf(string this, const char *format, ...);
+
+#ifdef __cplusplus
+}
+#endif

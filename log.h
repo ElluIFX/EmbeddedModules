@@ -11,6 +11,9 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "macro.h"
 #include "modules.h"
 #include "uart_pack.h"
@@ -81,9 +84,9 @@
 
 #if _LOG_ENABLE
 #if _LOG_ENABLE_TIMESTAMP
-#define _DBG_LOG_TS(hd, level, ts, color, end, fmt, args...)            \
+#define _DBG_LOG_TS(hd, level, ts, color, end, fmt, args...)         \
   _LOG_PRINTF(hd T_FMT(color) "[" level "/" _LOG_TIMESTAMP_FMT "" ts \
-                                 "] " fmt T_RST end,                 \
+                              "] " fmt T_RST end,                    \
               _LOG_TIMESTAMP, ##args)
 #elif !_LOG_ENABLE_TIMESTAMP
 #define _DBG_LOG_TS(hd, level, ts, color, end, fmt, args...) \
@@ -236,7 +239,7 @@ extern void Assert_Failed_Handler(char *file, uint32_t line);
 #define ASSERT(expr, ...) ((void)0)
 #endif
 
-#if _MOD_USE_PERF_COUNTER
+#if _MOD_TIME_MATHOD == 1  // perf_counter
 /**
  * @brief 测量代码块执行时间
  * @param  NAME             测量名称
@@ -315,4 +318,7 @@ extern void Assert_Failed_Handler(char *file, uint32_t line);
   })
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 #endif  // __LOG_H

@@ -36,7 +36,7 @@
 /* define single_heap array somewhere in your code, like on the example below:
               uint8_t single_heap[SINGLE_HEAP_SIZE] = {0};
 */
-heap_t default_heap;
+dl_heap_t default_heap;
 #if !HEAP_LOCATION
 uint8_t single_heap[SINGLE_HEAP_SIZE] = {0};
 #else
@@ -47,7 +47,7 @@ uint8_t single_heap[SINGLE_HEAP_SIZE] _HEAP_SET_ADDR(HEAP_LOCATION) = {0};
 bool memory_init_flag = false;
 #endif
 
-void heap_init(heap_t *heap_struct_ptr, void *mem_ptr,
+void heap_init(dl_heap_t *heap_struct_ptr, void *mem_ptr,
                uint32_t mem_size) {  // Init here mem structures
   heap_struct_ptr->offset = 0;
   heap_struct_ptr->mem = (uint8_t *)mem_ptr;
@@ -64,7 +64,7 @@ void heap_init(heap_t *heap_struct_ptr, void *mem_ptr,
   }
 }
 
-void dalloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
+void dalloc(dl_heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
 #if USE_SINGLE_HEAP_MEMORY
   if (memory_init_flag == false) {
     heap_init(&default_heap, single_heap, SINGLE_HEAP_SIZE);
@@ -129,7 +129,7 @@ void dalloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
   }
 }
 
-bool validate_ptr(heap_t *heap_struct_ptr, void **ptr,
+bool validate_ptr(dl_heap_t *heap_struct_ptr, void **ptr,
                   validate_ptr_condition_t condition, uint32_t *ptr_index) {
   for (uint32_t i = 0; i < heap_struct_ptr->alloc_info.allocations_num; i++) {
     if (condition == USING_PTR_ADDRESS) {
@@ -151,7 +151,7 @@ bool validate_ptr(heap_t *heap_struct_ptr, void **ptr,
   return false;
 }
 
-bool is_ptr_address_in_heap_area(heap_t *heap_struct_ptr, void **ptr) {
+bool is_ptr_address_in_heap_area(dl_heap_t *heap_struct_ptr, void **ptr) {
   size_t heap_start_area = (size_t)(heap_struct_ptr->mem);
   size_t heap_stop_area =
       (size_t)(heap_struct_ptr->mem) + heap_struct_ptr->total_size;
@@ -161,7 +161,7 @@ bool is_ptr_address_in_heap_area(heap_t *heap_struct_ptr, void **ptr) {
   return false;
 }
 
-void defrag_memory(heap_t *heap_struct_ptr) {
+void defrag_memory(dl_heap_t *heap_struct_ptr) {
   for (uint32_t i = 0; i < heap_struct_ptr->alloc_info.allocations_num; i++) {
     if (FREEFLAG_GET(heap_struct_ptr->alloc_info.ptr_info_arr[i])) {
       /* Optimize memory */
@@ -231,7 +231,7 @@ void defrag_memory(heap_t *heap_struct_ptr) {
   }
 }
 
-void dfree(heap_t *heap_struct_ptr, void **ptr,
+void dfree(dl_heap_t *heap_struct_ptr, void **ptr,
            validate_ptr_condition_t condition) {
   /* Check if heap_ptr is not assigned */
   if (heap_struct_ptr == NULL) {
@@ -265,7 +265,7 @@ void dfree(heap_t *heap_struct_ptr, void **ptr,
   defrag_memory(heap_struct_ptr);
 }
 
-void replace_pointers(heap_t *heap_struct_ptr, void **ptr_to_replace,
+void replace_pointers(dl_heap_t *heap_struct_ptr, void **ptr_to_replace,
                       void **ptr_new) {
   uint32_t ptr_ind = 0;
   if (validate_ptr(heap_struct_ptr, ptr_to_replace, USING_PTR_ADDRESS,
@@ -278,7 +278,7 @@ void replace_pointers(heap_t *heap_struct_ptr, void **ptr_to_replace,
   *ptr_to_replace = NULL;
 }
 
-bool drealloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
+bool drealloc(dl_heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
   uint32_t size_of_old_block = 0;
   uint32_t old_ptr_ind = 0;
   if (validate_ptr(heap_struct_ptr, ptr, USING_PTR_ADDRESS, &old_ptr_ind) ==
@@ -306,7 +306,7 @@ bool drealloc(heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
   return true;
 }
 
-void print_dalloc_info(heap_t *heap_struct_ptr) {
+void print_dalloc_info(dl_heap_t *heap_struct_ptr) {
   LOG_RAWLN("************ Mem Info ************LOG_RAWLN$1");
   LOG_RAWLN("Total memory, bytes: %luLOG_RAWLN$1",
             (long unsigned int)heap_struct_ptr->total_size);
@@ -322,7 +322,7 @@ void print_dalloc_info(heap_t *heap_struct_ptr) {
   LOG_RAWLN("**********************************LOG_RAWLN$1");
 }
 
-void dump_heap(heap_t *heap_struct_ptr) {
+void dump_heap(dl_heap_t *heap_struct_ptr) {
   LOG_RAWLN("************ Dump Heap ***********LOG_RAWLN$1");
   for (uint32_t i = 0; i < heap_struct_ptr->total_size; i++) {
     LOG_RAW("%02X ", heap_struct_ptr->mem[i]);
@@ -330,7 +330,7 @@ void dump_heap(heap_t *heap_struct_ptr) {
   LOG_RAWLN("**********************************LOG_RAWLN$1");
 }
 
-void dump_dalloc_ptr_info(heap_t *heap_struct_ptr) {
+void dump_dalloc_ptr_info(dl_heap_t *heap_struct_ptr) {
   LOG_RAWLN("************ Ptr Info ************LOG_RAWLN$1");
   for (uint32_t i = 0; i < heap_struct_ptr->alloc_info.allocations_num; i++) {
     LOG_RAWLN(
@@ -344,7 +344,7 @@ void dump_dalloc_ptr_info(heap_t *heap_struct_ptr) {
   LOG_RAWLN("**********************************LOG_RAWLN$1");
 }
 
-float get_heap_usage(heap_t *heap_struct_ptr) {
+float get_heap_usage(dl_heap_t *heap_struct_ptr) {
   uint32_t alloc_size = 0;
   for (uint32_t i = 0; i < heap_struct_ptr->alloc_info.allocations_num; i++) {
     alloc_size += ALLOCSIZE_GET(heap_struct_ptr->alloc_info.ptr_info_arr[i]);

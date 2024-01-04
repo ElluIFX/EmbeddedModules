@@ -74,12 +74,12 @@
  *  如果提供的堆内存(heap)较小,很容易malloc()失败,所以建议尽量
  *  定义为静态变量,而不是动态分配
  *
- * 10.PID_Calculate_TimeAdaptive():
+ * 10.PID_TimeAdaptive_Calculate():
  *  本质是通过获取系统时间来自动设置采样周期Ts,但其精度直接取决于系统时间的精度,
  *  比如HAL_GetTick()的精度为1ms,那么Ts的精度也只有1ms,因此更推荐使用定时器
  *  或调度器来固定间隔计算PID,保证积分/微分项的精度
  *
- * 11.PID_Calculate_FeedForward():
+ * 11.PID_FeedForward_Calculate():
  *  前馈控制,本质是在PID输出前加入一个前馈项,用于提前预测输出,从而快速响应系统变化,
  *  但前馈项的计算需要知道系统的模型,因此需要用户根据控制系统自己实现
  *
@@ -90,6 +90,9 @@
 
 #ifndef __PID_H
 #define __PID_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "modules.h"
 
 typedef struct {  // PID结构体(位置式)
@@ -136,13 +139,13 @@ extern float PID_Calculate(pid_t *PIDx, float nextPoint);
  * @retval 输出
  * @note 暂停->恢复时，pid->lastTime需要手动置为0
  */
-extern float PID_Calculate_TimeAdaptive(pid_tad_t *PIDx, float nextPoint);
+extern float PID_TimeAdaptive_Calculate(pid_tad_t *PIDx, float nextPoint);
 
 /**
  * @brief 前馈PID
  * @note 前馈环节的传递函数需根据实际情况整定，无通用模型
  */
-extern float PID_Calculate_FeedForward(pid_t *PIDx, float nextPoint);
+extern float PID_FeedForward_Calculate(pid_t *PIDx, float nextPoint);
 
 /**
  * @brief 快速增量式PID
@@ -155,7 +158,7 @@ extern float PID_QuickInc_Calculate(float setPoint, float nextPoint);
  * @brief 重置PID初始值并清空PID状态
  * @param  startPoint      PID初始值, 防止PID输出突变
  */
-extern void PID_Reset_StartPoint(pid_t *PIDx, float startPoint);
+extern void PID_ResetStartPoint(pid_t *PIDx, float startPoint);
 
 /**
  * @brief 清空PID状态
@@ -165,6 +168,10 @@ extern void PID_Reset(pid_t *PIDx);
 /**
  * @brief 设置PID参数
  */
-extern void PID_Set_Tunings(pid_t *PIDx, float kp, float ki, float kd);
+extern void PID_SetTuning(pid_t *PIDx, float kp, float ki, float kd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // __PID_H

@@ -10,8 +10,10 @@
 #ifndef _LED_H_
 #define _LED_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "modules.h"
-
 
 #if _LED_USE_PWM
 
@@ -38,4 +40,7 @@ extern void LED(uint8_t act);
 #endif
 #endif  // !_PWM_RGB_LED
 
+#ifdef __cplusplus
+}
+#endif
 #endif
