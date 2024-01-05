@@ -29,7 +29,6 @@
 
 #include "kernel.h"
 
-
 typedef struct queue *queue_t;
 
 queue_t queue_create(uint32_t item_size, uint32_t queue_depth);

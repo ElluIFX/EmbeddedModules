@@ -160,78 +160,100 @@ typedef enum {          // 协程模式
 } CR_MODE;
 
 #pragma pack(1)
-typedef struct {                // 协程任务结构
+typedef struct {                // 协程句柄结构
   m_time_t yieldUntil;          // 等待态结束时间(us)
   long ptr[_SCH_CR_MAX_DEPTH];  // 协程跳入地址
   uint8_t depth;                // 协程当前深度
-} _cron_handle_t;
+  void *msg;                    // 协程消息指针
+} __cron_handle_t;
 #pragma pack()
-extern _cron_handle_t *_cron_hp;
+extern __cron_handle_t *__cron_hp;
 
 /**
  * @brief 初始化协程, 在协程函数开头调用
  */
-#define CR_BEGIN()                                          \
-  do {                                                      \
-  crap:;                                                    \
-    void *pcrap = &&crap;                                   \
-    if (_cron_hp) {                                         \
-      _cron_hp->depth++;                                    \
-      if (_cron_hp->depth >= _SCH_CR_MAX_DEPTH) CR_END();   \
-      if ((_cron_hp->ptr[_cron_hp->depth - 1]) != 0)        \
-        goto *(void *)(_cron_hp->ptr[_cron_hp->depth - 1]); \
-    }                                                       \
+#define CR_BEGIN()                                            \
+  do {                                                        \
+  crap:;                                                      \
+    void *pcrap = &&crap;                                     \
+    if (__cron_hp) {                                          \
+      __cron_hp->depth++;                                     \
+      if (__cron_hp->depth >= _SCH_CR_MAX_DEPTH) CR_END();    \
+      if ((__cron_hp->ptr[__cron_hp->depth - 1]) != 0)        \
+        goto *(void *)(__cron_hp->ptr[__cron_hp->depth - 1]); \
+    }                                                         \
   } while (0)
 
 /**
  * @brief 释放CPU, 让出时间片, 下次调度时从此处继续执行
  */
-#define CR_YIELD()                                      \
-  do {                                                  \
-    __label__ l;                                        \
-    if (_cron_hp) {                                     \
-      (_cron_hp->ptr[_cron_hp->depth - 1]) = (long)&&l; \
-      _cron_hp->depth--;                                \
-      return;                                           \
-    }                                                   \
-  l:;                                                   \
-    if (_cron_hp) {                                     \
-      (_cron_hp->ptr[_cron_hp->depth - 1]) = 0;         \
-    }                                                   \
+#define CR_YIELD()                                        \
+  do {                                                    \
+    __label__ l;                                          \
+    if (__cron_hp) {                                      \
+      (__cron_hp->ptr[__cron_hp->depth - 1]) = (long)&&l; \
+      __cron_hp->depth--;                                 \
+      return;                                             \
+    }                                                     \
+  l:;                                                     \
+    if (__cron_hp) {                                      \
+      (__cron_hp->ptr[__cron_hp->depth - 1]) = 0;         \
+    }                                                     \
   } while (0)
 
 /**
  * @brief 执行其他协程函数，并处理跳转
  */
-#define CR_CALL(func)                                   \
-  do {                                                  \
-    __label__ l;                                        \
-    if (_cron_hp) {                                     \
-      (_cron_hp->ptr[_cron_hp->depth - 1]) = (long)&&l; \
-    }                                                   \
-  l:;                                                   \
-    func;                                               \
-    if (_cron_hp) {                                     \
-      if (_cron_hp->ptr[_cron_hp->depth]) {             \
-        _cron_hp->depth--;                              \
-        return;                                         \
-      } else {                                          \
-        (_cron_hp->ptr[_cron_hp->depth - 1]) = 0;       \
-      }                                                 \
-    }                                                   \
+#define CR_CALL(func)                                     \
+  do {                                                    \
+    __label__ l;                                          \
+    if (__cron_hp) {                                      \
+      (__cron_hp->ptr[__cron_hp->depth - 1]) = (long)&&l; \
+    }                                                     \
+  l:;                                                     \
+    func;                                                 \
+    if (__cron_hp) {                                      \
+      if (__cron_hp->ptr[__cron_hp->depth]) {             \
+        __cron_hp->depth--;                               \
+        return;                                           \
+      } else {                                            \
+        (__cron_hp->ptr[__cron_hp->depth - 1]) = 0;       \
+      }                                                   \
+    }                                                     \
   } while (0)
 
 /**
- * @brief 退出协程且不再重入, 在协程函数结尾调用
+ * @brief 退出协程, 在协程函数结尾调用
  */
-#define CR_END()                              \
-  do {                                        \
-    if (_cron_hp) {                           \
-      _cron_hp->ptr[_cron_hp->depth - 1] = 0; \
-      _cron_hp->depth--;                      \
-    }                                         \
-    return;                                   \
+#define CR_END()                                \
+  do {                                          \
+    if (__cron_hp) {                            \
+      __cron_hp->ptr[__cron_hp->depth - 1] = 0; \
+      __cron_hp->depth--;                       \
+    }                                           \
+    return;                                     \
   } while (0)
+
+/**
+ * @brief 等待唤醒
+ */
+#define CR_WAIT_FOR_WAKEUP()     \
+  do {                           \
+    if (__cron_hp) {             \
+      __cron_hp->yieldUntil = 0; \
+      CR_YIELD();                \
+    }                            \
+  } while (0)
+
+/**
+ * @brief 获取信箱指针并清空信箱
+ */
+static inline void *CR_GET_MSG(void) {
+  if (!__cron_hp) return NULL;
+  void *msg = __cron_hp->msg;
+  __cron_hp->msg = NULL;
+  return msg;
+}
 
 /**
  * @brief 无阻塞等待直到条件满足
@@ -244,10 +266,12 @@ extern _cron_handle_t *_cron_hp;
 /**
  * @brief 无阻塞延时, 单位us
  */
-#define CR_DELAY_US(us)                          \
-  do {                                           \
-    _cron_hp->yieldUntil = get_system_us() + us; \
-    CR_YIELD();                                  \
+#define CR_DELAY_US(us)                             \
+  do {                                              \
+    if (__cron_hp) {                                \
+      __cron_hp->yieldUntil = get_system_us() + us; \
+      CR_YIELD();                                   \
+    }                                               \
   } while (0)
 
 /**
@@ -295,6 +319,28 @@ extern uint16_t Sch_GetCoronNum(void);
  * @retval bool             协程是否存在
  */
 extern bool Sch_IsCoronExist(const char *name);
+
+/**
+ * @brief 查询指定协程是否处于等待唤醒状态
+ * @param  name             协程名
+ * @retval bool             协程是否处于等待唤醒状态
+ */
+extern bool Sch_IsCoronWaitForWakeUp(const char *name);
+
+/**
+ * @brief 唤醒指定协程
+ * @param  name             协程名
+ * @retval bool             是否成功
+ */
+extern bool Sch_WakeUpCoron(const char *name);
+
+/**
+ * @brief 发送消息给指定协程
+ * @param  name             协程名
+ * @param  msg              消息指针
+ * @retval bool             是否成功
+ */
+extern bool Sch_SendMsgToCoron(const char *name, void *msg);
 
 /**
  * @brief 运行一次协程, 执行完毕后自动删除

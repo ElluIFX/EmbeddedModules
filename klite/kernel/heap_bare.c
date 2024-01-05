@@ -95,7 +95,13 @@ static void heap_mutex_unlock(void) {
   cpu_leave_critical();
 }
 
-__weak void heap_fault(void) { LOG_ERROR("heap fault"); }
+__weak void heap_fault_handler(void) {
+  LOG_ERROR("heap fault");
+
+  if (CoreDebug->DHCSR & 1) {  // check C_DEBUGEN == 1 -> Debugger Connected
+    __breakpoint(0);           // halt program execution here
+  }
+}
 
 void heap_create(void *addr, uint32_t size) {
   uint32_t start;
@@ -132,7 +138,7 @@ void *heap_alloc(uint32_t size) {
     }
   }
   heap_mutex_unlock();
-  heap_fault();
+  heap_fault_handler();
   return NULL;
 }
 
@@ -158,7 +164,7 @@ void *heap_realloc(void *mem, uint32_t size) {
     heap_free(mem);
     return new_mem;
   }
-  heap_fault();
+  heap_fault_handler();
   return NULL;
 }
 

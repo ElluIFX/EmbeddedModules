@@ -59,9 +59,9 @@
 
 /****************************** 串口设置 ******************************/
 // 组件设置
-#define _UART_ENABLE_DMA 1         // 是否开启串口DMA支持(发送/接收)
+#define _UART_ENABLE_DMA_RX 1         // 是否开启串口DMA支持(发送/接收)
 #define _UART_ENABLE_CDC 0         // 是否开启USB CDC虚拟串口支持
-#define _UART_ENABLE_TX_FIFO 1     // 是否开启串口FIFO发送功能
+#define _UART_ENABLE_FIFO_TX 1     // 是否开启串口FIFO发送功能
 #define _UART_DCACHE_COMPATIBLE 0  // (H7/F7) DCache兼容模式
 #define _UART_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数
 // 收发设置

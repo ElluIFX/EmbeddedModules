@@ -29,33 +29,6 @@ typedef struct {                    // 中断FIFO串口接收控制结构体
   void *next;                       // 下一个串口接收控制结构体
 } uart_fifo_rx_t;
 
-#if _UART_ENABLE_DMA
-typedef struct {  // DMA串口接收控制结构体
-  uint8_t rxBuf[_UART_RX_BUF_SIZE] __ALIGNED(32);   // 接收缓冲区
-  uint8_t buffer[_UART_RX_BUF_SIZE] __ALIGNED(32);  // 接收保存缓冲区
-  __IO uint8_t finished;                            // 接收完成标志位
-  __IO uint16_t len;                                // 接收保存区长度
-  UART_HandleTypeDef *huart;                        // 串口句柄
-  void (*rxCallback)(char *, uint16_t);             // 接收完成回调函数
-  uint8_t cbkInIRQ;  // 回调函数是否在中断中执行
-  void *next;        // 下一个串口接收控制结构体
-} uart_dma_rx_t;
-#endif
-
-#if _UART_ENABLE_CDC
-#include "usbd_cdc_if.h"
-typedef struct {                         // CDC型UART控制结构体
-  uint8_t buffer[APP_RX_DATA_SIZE];      // 接收保存缓冲区
-  __IO uint8_t finished;                 // 接收完成标志位
-  __IO uint16_t len;                     // 接收保存区计数器
-  void (*rxCallback)(char *, uint16_t);  // 接收完成回调函数
-  uint8_t cbkInIRQ;                      // 回调函数是否在中断中执行
-} usb_cdc_ctrl_t;
-
-// USB CDC 串口接收结构体
-extern usb_cdc_ctrl_t usb_cdc;
-#endif
-
 /**
  * @brief 获取串口接收完成标志位
  */
@@ -98,11 +71,6 @@ extern uint8_t disable_printft;
 extern void printft_flush(UART_HandleTypeDef *huart);
 
 /**
- * @brief 打印十六进制数组
- */
-extern void print_hex(const char *text, uint8_t *data, uint16_t len);
-
-/**
  * @brief 向指定串口发送数据
  * @param  huart            目标串口
  * @param  data             数据指针
@@ -112,6 +80,7 @@ extern int Uart_Send(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len);
 
 /**
  * @brief 串口发送数据，阻塞时不等待
+ * @note  不支持FIFO发送，直接将数据写入外设
  */
 extern int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data,
                          uint16_t len);
@@ -154,7 +123,7 @@ extern void Uart_RxProcess(UART_HandleTypeDef *huart);
  */
 extern void Uart_ErrorProcess(UART_HandleTypeDef *huart);
 
-#if _UART_ENABLE_TX_FIFO
+#if _UART_ENABLE_FIFO_TX
 /**
  * @brief 初始化FIFO串口发送
  * @param  huart         目标串口
@@ -165,7 +134,18 @@ extern void Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
                             uint16_t bufSize);
 #endif
 
-#if _UART_ENABLE_DMA
+#if _UART_ENABLE_DMA_RX
+typedef struct {  // DMA串口接收控制结构体
+  uint8_t rxBuf[_UART_RX_BUF_SIZE] __ALIGNED(32);   // 接收缓冲区
+  uint8_t buffer[_UART_RX_BUF_SIZE] __ALIGNED(32);  // 接收保存缓冲区
+  __IO uint8_t finished;                            // 接收完成标志位
+  __IO uint16_t len;                                // 接收保存区长度
+  UART_HandleTypeDef *huart;                        // 串口句柄
+  void (*rxCallback)(char *, uint16_t);             // 接收完成回调函数
+  uint8_t cbkInIRQ;  // 回调函数是否在中断中执行
+  void *next;        // 下一个串口接收控制结构体
+} uart_dma_rx_t;
+
 /**
  * @brief 串口DMA接收初始化
  * @param  ctrl             结构体指针
@@ -182,9 +162,21 @@ extern void Uart_DmaRxInit(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
  * @note DMA接收需要该函数
  */
 extern void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size);
-#endif  // _UART_ENABLE_DMA
+#endif  // _UART_ENABLE_DMA_RX
 
 #if _UART_ENABLE_CDC
+#include "usbd_cdc_if.h"
+typedef struct {                         // CDC型UART控制结构体
+  uint8_t buffer[APP_RX_DATA_SIZE];      // 接收保存缓冲区
+  __IO uint8_t finished;                 // 接收完成标志位
+  __IO uint16_t len;                     // 接收保存区计数器
+  void (*rxCallback)(char *, uint16_t);  // 接收完成回调函数
+  uint8_t cbkInIRQ;                      // 回调函数是否在中断中执行
+} usb_cdc_ctrl_t;
+
+// USB CDC 串口接收结构体
+extern usb_cdc_ctrl_t usb_cdc;
+
 /**
  * @brief USB CDC 发送格式化字符串
  */

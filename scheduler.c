@@ -433,12 +433,12 @@ uint16_t Sch_GetEventNum(void) { return ehd.num; }
 
 #if _SCH_ENABLE_COROUTINE
 #pragma pack(1)
-typedef struct {      // 协程任务结构
-  sch_func_t task;    // 任务函数指针
-  uint8_t enable;     // 是否使能
-  uint8_t mode;       // 模式
-  void *args;         // 任务参数
-  _cron_handle_t hd;  // 协程句柄
+typedef struct {       // 协程任务结构
+  sch_func_t task;     // 任务函数指针
+  uint8_t enable;      // 是否使能
+  uint8_t mode;        // 模式
+  void *args;          // 协程主函数参数
+  __cron_handle_t hd;  // 协程句柄
 #if _SCH_DEBUG_REPORT
   m_time_t max_cost;    // 协程最大执行时间(Tick)
   m_time_t total_cost;  // 协程总执行时间(Tick)
@@ -454,13 +454,14 @@ struct {
   uint16_t size;            // 存储区总大小
 } chd = {0};
 
-_cron_handle_t *_cron_hp = {0};
+__cron_handle_t *__cron_hp = {0};
 
 _STATIC_INLINE void Coron_Runner(void) {
   for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].enable && m_time_us() >= chd.tasks[i].hd.yieldUntil) {
-      _cron_hp = &chd.tasks[i].hd;
-      _cron_hp->depth = 0;
+    if (chd.tasks[i].enable && chd.tasks[i].hd.yieldUntil &&
+        m_time_us() >= chd.tasks[i].hd.yieldUntil) {
+      __cron_hp = &chd.tasks[i].hd;
+      __cron_hp->depth = 0;
 #if _SCH_DEBUG_REPORT
       m_time_t _sch_debug_task_tick = m_tick();
       chd.tasks[i].task(chd.tasks[i].args);
@@ -471,7 +472,7 @@ _STATIC_INLINE void Coron_Runner(void) {
 #else
       chd.tasks[i].task(chd.tasks[i].args);
 #endif
-      _cron_hp = NULL;
+      __cron_hp = NULL;
       if (!chd.tasks[i].hd.ptr[0]) {  // 最外层协程已结束
         if (chd.tasks[i].mode == CR_MODE_AUTODEL) {
           Sch_DeleteCoron(chd.tasks[i].name);
@@ -508,7 +509,8 @@ bool Sch_CreateCoron(const char *name, sch_func_t func, uint8_t enable,
   p->mode = mode;
   p->args = args;
   p->name = name;
-  memset(&p->hd, 0, sizeof(_cron_handle_t));
+  memset(&p->hd, 0, sizeof(__cron_handle_t));
+  p->hd.yieldUntil = m_time_us();
   return true;
 }
 
@@ -550,8 +552,9 @@ bool Sch_SetCoronState(const char *name, uint8_t enable, uint8_t clearState) {
         chd.tasks[i].enable = enable;
       }
       if (clearState) {
-        memset(&chd.tasks[i].hd, 0, sizeof(_cron_handle_t));
+        memset(&chd.tasks[i].hd, 0, sizeof(__cron_handle_t));
       }
+      chd.tasks[i].hd.yieldUntil = m_time_us();
       return true;
     }
   }
@@ -563,6 +566,35 @@ uint16_t Sch_GetCoronNum(void) { return chd.num; }
 bool Sch_IsCoronExist(const char *name) {
   for (uint16_t i = 0; i < chd.num; i++) {
     if (fast_str_check(chd.tasks[i].name, name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Sch_IsCoronWaitForWakeUp(const char *name) {
+  for (uint16_t i = 0; i < chd.num; i++) {
+    if (fast_str_check(chd.tasks[i].name, name)) {
+      return chd.tasks[i].hd.yieldUntil == 0;
+    }
+  }
+  return false;
+}
+
+bool Sch_WakeUpCoron(const char *name) {
+  for (uint16_t i = 0; i < chd.num; i++) {
+    if (fast_str_check(chd.tasks[i].name, name)) {
+      chd.tasks[i].hd.yieldUntil = m_time_us();
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Sch_SendMsgToCoron(const char *name, void *msg) {
+  for (uint16_t i = 0; i < chd.num; i++) {
+    if (fast_str_check(chd.tasks[i].name, name)) {
+      chd.tasks[i].hd.msg = msg;
       return true;
     }
   }

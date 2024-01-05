@@ -93,12 +93,35 @@ typedef int64_t m_time_t;
 #define m_usage() heap_usage_percent()
 #elif _MOD_HEAP_MATHOD == 3  // freertos
 #include "FreeRTOS.h"
-#include "task.h"
 #define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #else
 #error "MOD_HEAP_MATHOD invalid"
+#endif
+
+#if _MOD_USE_OS == 0  // none
+#define MOD_MUTEX_HANDLE void*
+#define MOD_MUTEX_CREATE() (NULL)
+#define MOD_MUTEX_ACQUIRE(mutex) ((void)0)
+#define MOD_MUTEX_RELEASE(mutex) ((void)0)
+#define MOD_MUTEX_FREE(mutex) ((void)0)
+#elif _MOD_USE_OS == 1  // klite
+#include "kernel.h"
+#define MOD_MUTEX_HANDLE mutex_t
+#define MOD_MUTEX_CREATE() mutex_create()
+#define MOD_MUTEX_ACQUIRE(mutex) mutex_lock(mutex)
+#define MOD_MUTEX_RELEASE(mutex) mutex_unlock(mutex)
+#define MOD_MUTEX_FREE(mutex) mutex_delete(mutex)
+#elif _MOD_USE_OS == 2  // freertos
+#include "FreeRTOS.h"
+#define MOD_MUTEX_HANDLE SemaphoreHandle_t
+#define MOD_MUTEX_CREATE() xSemaphoreCreateMutex()
+#define MOD_MUTEX_ACQUIRE(mutex) xSemaphoreTake(mutex, portMAX_DELAY)
+#define MOD_MUTEX_RELEASE(mutex) xSemaphoreGive(mutex)
+#define MOD_MUTEX_FREE(mutex) vSemaphoreDelete(mutex)
+#else
+#error "MOD_USE_OS invalid"
 #endif
 
 #define ENABLE 0x01
