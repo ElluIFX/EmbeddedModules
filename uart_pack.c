@@ -63,19 +63,19 @@ void Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
   if (!bufSize) return;
   uart_fifo_tx_t *fifo = NULL;
   if (!fifo_tx_entry) {
-    m_alloc(fifo_tx_entry, sizeof(uart_fifo_tx_t));
+    fifo_tx_entry = m_alloc(sizeof(uart_fifo_tx_t));
     fifo = fifo_tx_entry;
   } else {
     fifo = fifo_tx_entry;
     while (fifo->next) fifo = fifo->next;
-    m_alloc(fifo->next, sizeof(uart_fifo_tx_t));
+    fifo->next = m_alloc(sizeof(uart_fifo_tx_t));
     fifo = fifo->next;
   }
   if (!fifo) return;
   if (buffer)
     fifo->buffer = buffer;
   else
-    m_alloc(fifo->buffer, bufSize);
+    fifo->buffer = m_alloc(bufSize);
   if (!fifo->buffer) return;
   fifo->huart = huart;
   fifo->size = bufSize;
@@ -117,7 +117,9 @@ static inline int wait_fifo(uart_fifo_tx_t *fifo, uint16_t len) {
 #if _UART_FIFO_TIMEOUT < 0
   return -1;
 #else
+#if _UART_FIFO_TIMEOUT > 0
   m_time_t _start_time = m_time_ms();
+#endif  // _UART_FIFO_TIMEOUT
   while (FIFO_TX_FREE_SPACE(fifo) < len) {
     fifo_exchange(fifo, 0);
 #if _UART_FIFO_TIMEOUT > 0

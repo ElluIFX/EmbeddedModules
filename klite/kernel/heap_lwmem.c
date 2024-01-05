@@ -26,11 +26,9 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if HEAP_USE_UMM
+#if HEAP_USE_LWMEM
 #include "log.h"
-#include "umm_malloc.h"
-
-static uint32_t heap_size = 0;
+#include "lwmem.h"
 
 volatile static uint8_t heap_lock = 0;
 static struct tcb_list heap_tcb;
@@ -55,16 +53,23 @@ static void heap_mutex_unlock(void) {
   cpu_leave_critical();
 }
 
+static lwmem_region_t regions[] = {
+    /* Set start address and size of each region */
+    {NULL, 0},
+    {NULL, 0},
+};
+
 void heap_create(void *addr, uint32_t size) {
-  umm_init_heap(addr, size);
-  heap_size = size;
+  regions[0].start_addr = addr;
+  regions[0].size = size;
+  lwmem_assignmem(regions);
 }
 
 __weak void heap_fault_handler(void) { LOG_ERROR("heap fault"); }
 
 void *heap_alloc(uint32_t size) {
   heap_mutex_lock();
-  void *mem = umm_malloc(size);
+  void *mem = lwmem_malloc(size);
   if (mem == NULL) {
     heap_fault_handler();
   }
@@ -74,28 +79,30 @@ void *heap_alloc(uint32_t size) {
 
 void heap_free(void *mem) {
   heap_mutex_lock();
-  umm_free(mem);
+  lwmem_free(mem);
   heap_mutex_unlock();
 }
 
 void *heap_realloc(void *mem, uint32_t size) {
   heap_mutex_lock();
-  void *new_mem = umm_realloc(mem, size);
+  void *new_mem = lwmem_realloc(mem, size);
   if (new_mem == NULL) {
     heap_fault_handler();
   }
   heap_mutex_unlock();
   return new_mem;
 }
-
-#ifdef UMM_INFO
+lwmem_stats_t stats;
 void heap_usage(uint32_t *used, uint32_t *free) {
-  *free = umm_free_heap_size();
-  *used = heap_size - *free;
+  lwmem_get_stats(&stats);
+  *free = stats.mem_available_bytes;
+  *used = stats.mem_size_bytes - stats.mem_available_bytes;
 }
 
-float heap_usage_percent(heap_t heap) {
-  return (float)(heap_size - umm_free_heap_size()) / (float)(heap_size);
+float heap_usage_percent(void) {
+  lwmem_get_stats(&stats);
+  return (float)(stats.mem_size_bytes - stats.mem_available_bytes) /
+         (float)stats.mem_size_bytes;
 }
-#endif  // UMM_INFO
-#endif  // HEAP_USE_UMM
+
+#endif  // HEAP_USE_LWMEM

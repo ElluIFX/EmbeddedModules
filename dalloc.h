@@ -25,11 +25,8 @@ extern "C" {
 #define DALLOC_VERSION "1.3.0"
 
 #define FILL_FREED_MEMORY_BY_NULLS 1
-#ifdef _MOD_HEAP_MAX_ALLOC
-#define MAX_NUM_OF_ALLOCATIONS _MOD_HEAP_MAX_ALLOC
-#else
+
 #define MAX_NUM_OF_ALLOCATIONS 32UL
-#endif
 
 #define USE_ALIGNMENT 1
 
@@ -37,25 +34,14 @@ extern "C" {
 #define ALLOCATION_ALIGNMENT_BYTES 4U
 #endif
 
-#ifdef _MOD_HEAP_ADDR
-#define HEAP_LOCATION _MOD_HEAP_ADDR
-#else
-#define HEAP_LOCATION 0
-#endif
-
-#if _MOD_USE_DALLOC
-#define USE_SINGLE_HEAP_MEMORY 1
-#else
 #define USE_SINGLE_HEAP_MEMORY 0
-#endif
+
+#define HEAP_LOCATION 0
+
 #define ALLOC_INFO_U16 1
 
 #if USE_SINGLE_HEAP_MEMORY
-#ifdef _MOD_HEAP_SIZE
-#define SINGLE_HEAP_SIZE _MOD_HEAP_SIZE
-#else
 #define SINGLE_HEAP_SIZE (1UL * 1024UL)
-#endif
 #endif
 
 #include <stdbool.h>

@@ -39,7 +39,7 @@ typedef struct cond *cond_t;
 /******************************************************************************
  * kernel
  ******************************************************************************/
-void kernel_init(void);
+void kernel_init(void *heap_addr, uint32_t heap_size);
 void kernel_start(void);
 uint32_t kernel_version(void);
 void kernel_idle(void);
@@ -53,7 +53,7 @@ extern void *kernel_heap_addr;
 /******************************************************************************
  * heap
  ******************************************************************************/
-#define HEAP_USE_UMM 1
+#define HEAP_USE_LWMEM 1
 
 void heap_create(void *addr, uint32_t size);
 void *heap_alloc(uint32_t size);

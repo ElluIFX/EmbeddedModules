@@ -44,7 +44,7 @@ HAL_StatusTypeDef Strip_Init(LEDStrip_t *strip, uint16_t length,
     LOG_W("LED REINIT");  // 最好手动调用Strip_DeInit再重新初始化
     Strip_DeInit(strip);
   }
-  m_alloc(strip->buffer, BUF_LEN(length) + HEAD_ZERO + TAIL_ZERO);
+  strip->buffer = m_alloc(BUF_LEN(length) + HEAD_ZERO + TAIL_ZERO);
   if (strip->buffer == NULL) {
     LOG_E("LED MALLOC FAILED");
     return HAL_ERROR;

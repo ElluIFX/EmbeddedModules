@@ -393,7 +393,7 @@ void Key_Init(uint8_t (*read_func)(uint8_t idx), uint8_t num) {
   if (key_dev_p != NULL) {
     m_free(key_dev_p);
   }
-  m_alloc(key_dev_p, sizeof(key_dev_t) * key_num);
+  key_dev_p = m_alloc(sizeof(key_dev_t) * key_num);
   key_dev_p = (void *)key_dev_p;
   for (uint8_t i = 0; i < key_num; i++) {
     key_dev_p[i].status = key_status_down_check;

@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if !HEAP_USE_UMM
+#if !HEAP_USE_LWMEM
 #include "log.h"
 
 #define MEM_ALIGN_BYTE (4)

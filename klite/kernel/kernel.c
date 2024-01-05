@@ -27,29 +27,21 @@
 #include "kernel.h"
 
 #include "internal.h"
-#include "modules.h"
 
 #define MAKE_VERSION_CODE(a, b, c) ((a << 24) | (b << 16) | (c))
 #define KERNEL_VERSION_CODE MAKE_VERSION_CODE(5, 1, 0)
 
 static uint64_t m_tick_count;
 static thread_t m_idle_thread;
-void *kernel_heap_addr;
+void* kernel_heap_addr;
 
-#if !_MOD_HEAP_ADDR
-static uint8_t heap_buf[_MOD_HEAP_SIZE] = {0};
-#else
-#define HEAP_SET_ADDR(addr) __attribute__((section(".ARM.__at_" #addr)))
-#define _HEAP_SET_ADDR(addr) HEAP_SET_ADDR(addr)
-static uint8_t heap_buf[_MOD_HEAP_SIZE] _HEAP_SET_ADDR(_MOD_HEAP_ADDR) = {0};
-#endif
-
-void kernel_init(void) {
+void kernel_init(void* heap_addr, uint32_t heap_size) {
   m_tick_count = 0;
   m_idle_thread = NULL;
   cpu_sys_init();
   sched_init();
-  heap_create(heap_buf, _MOD_HEAP_SIZE);
+  heap_create(heap_addr, heap_size);
+  kernel_heap_addr = heap_addr;
 }
 
 void kernel_start(void) {

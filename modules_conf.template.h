@@ -68,8 +68,9 @@
 #define _UART_RX_BUF_SIZE 256  // 串口接收缓冲区大小
 #define _UART_TX_USE_DMA 1     // 对于支持的串口是否使用DMA发送
 #define _UART_TX_USE_IT 1      // 不支持DMA的串口是否使用中断发送
-#define _UART_TX_TIMEOUT 5     // 串口发送等待超时时间(ms)/0阻塞
-#define _UART_CDC_TIMEOUT 5  // USB CDC发送等待超时时间(ms)/不允许阻塞
+#define _UART_TX_TIMEOUT 5  // 串口发送等待超时时间(ms)/0阻塞/<0放弃发送
+#define _UART_CDC_TIMEOUT 5  // USB CDC发送等待超时时间(ms)/<=0放弃发送
+#define _UART_FIFO_TIMEOUT 0  // FIFO发送等待超时时间(ms)/0阻塞/<0放弃发送
 // printf重定向设置
 #define _PRINTF_BLOCK 0           // 是否屏蔽所有printf
 #define _PRINTF_REDIRECT 1        // 是否重定向printf
@@ -82,16 +83,19 @@
 #define _VOFA_BUFFER_SIZE 32  // VOFA缓冲区大小
 
 /****************************** LED设置 ******************************/
-#define _LED_USE_PWM 0                // 是否使用PWM控制RGB灯
+#define _LED_USE_PWM 0  // 是否使用PWM控制RGB灯
+#if _LED_USE_PWM
 #define _LED_R_HTIM htim8             // 红灯PWM定时器
 #define _LED_G_HTIM htim8             // 绿灯PWM定时器
 #define _LED_B_HTIM htim8             // 蓝灯PWM定时器
 #define _LED_R_CHANNEL TIM_CHANNEL_1  // 红灯PWM通道
 #define _LED_G_CHANNEL TIM_CHANNEL_2  // 绿灯PWM通道
 #define _LED_B_CHANNEL TIM_CHANNEL_3  // 蓝灯PWM通道
-#define _LED_R_PULSE 1000             // 红灯最大比较值
-#define _LED_G_PULSE 1000             // 绿灯最大比较值
-#define _LED_B_PULSE 1000             // 蓝灯最大比较值
+#define _LED_R_PULSE 400              // 红灯最大比较值
+#define _LED_G_PULSE 650              // 绿灯最大比较值
+#define _LED_B_PULSE 800              // 蓝灯最大比较值
+#define _LED_PWMN_OUTPUT 1            // 互补输出
+#endif
 
 /****************************** IIC设置 ******************************/
 #define _BOARD_I2C_USE_SW_IIC 0       // 是否使用软件IIC

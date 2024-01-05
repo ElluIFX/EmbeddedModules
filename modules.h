@@ -76,32 +76,27 @@ typedef int64_t m_time_t;
 
 #if _MOD_HEAP_MATHOD == 0  // stdlib
 #include "stdlib.h"
-#define m_alloc(ptr, size) ((ptr) = (void*)malloc(size))
+#define m_alloc(size) malloc(size)
 #define m_free(ptr) free(ptr)
-#define m_realloc(ptr, size) (bool)((ptr) = (void*)realloc((ptr), size))
-#define m_replace(from_ptr, to_ptr) ((to_ptr) = (from_ptr))
-#elif _MOD_HEAP_MATHOD == 1  // dalloc
+#define m_realloc(ptr, size) realloc(ptr, size)
+#elif _MOD_HEAP_MATHOD == 1  // lwmem
 #define _MOD_USE_DALLOC 1
-#include "dalloc.h"
-#define m_alloc(ptr, size) _dalloc((ptr), size)
-#define m_free(ptr) _dfree((ptr))
-#define m_realloc(ptr, size) _drealloc((ptr), size)
-#define m_replace(from_ptr, to_ptr) _dreplace((from_ptr), (to_ptr))
-#define m_usage() get_def_heap_usage()
+#include "lwmem.h"
+#define m_alloc(size) lwmem_malloc(size)
+#define m_free(ptr) lwmem_free(ptr)
+#define m_realloc(ptr, size) lwmem_realloc(ptr, size)
 #elif _MOD_HEAP_MATHOD == 2  // klite
 #include "kernel.h"
-#define m_alloc(ptr, size) ((ptr) = heap_alloc(size))
+#define m_alloc(size) heap_alloc(size)
 #define m_free(ptr) heap_free((ptr))
-#define m_realloc(ptr, size) (bool)((ptr) = (void*)heap_realloc((ptr), size))
-#define m_replace(from_ptr, to_ptr) ((to_ptr) = (from_ptr))
-// #define m_usage() heap_usage_percent()
+#define m_realloc(ptr, size) heap_realloc((ptr), size)
+#define m_usage() heap_usage_percent()
 #elif _MOD_HEAP_MATHOD == 3  // freertos
 #include "FreeRTOS.h"
 #include "task.h"
-#define m_alloc(ptr, size) ((ptr) = (void*)pvPortMalloc(size))
+#define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
-#define m_realloc(ptr, size) (bool)((ptr) = (void*)pvPortRealloc((ptr), size))
-#define m_replace(from_ptr, to_ptr) ((to_ptr) = (from_ptr))
+#define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #else
 #error "MOD_HEAP_MATHOD invalid"
 #endif

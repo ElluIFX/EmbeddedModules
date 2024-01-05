@@ -48,10 +48,10 @@ typedef uint16_t fifo_size_t;
 typedef int16_t fifo_offset_t;
 
 typedef struct {          // FIFO对象
-  uint8_t *buf;           // 缓冲区指针
-  fifo_size_t size;       // 缓冲区大小
   fifo_atomic_size_t wr;  // 写指针
   fifo_atomic_size_t rd;  // 读指针
+  fifo_size_t size;       // 缓冲区大小
+  uint8_t *buf;           // 缓冲区指针
 } lfifo_t;
 
 /**
@@ -142,7 +142,7 @@ extern fifo_size_t LFifo_Get(lfifo_t *fifo, uint8_t *data, fifo_size_t len);
  * @retval fifo_size_t         实际查看的数据长度
  */
 extern fifo_size_t LFifo_Peek(lfifo_t *fifo, fifo_size_t offset, uint8_t *data,
-                             fifo_size_t len);
+                              fifo_size_t len);
 
 /**
  * @brief 向FIFO中写入一字节数据
@@ -171,7 +171,7 @@ extern int LFifo_PeekByte(lfifo_t *fifo, fifo_size_t offset);
  * @brief 获取FIFO当前的写数据指针
  * @param  fifo             FIFO对象
  * @param  offset           期望获取的数据偏移
- * @retval uint8_t*          当前的写指针
+ * @retval uint8_t*         当前的写指针
  * @note 0偏移指针指向的是下一个将要写入的数据
  */
 extern uint8_t *LFifo_GetWrPtr(lfifo_t *fifo, fifo_offset_t offset);
@@ -180,7 +180,7 @@ extern uint8_t *LFifo_GetWrPtr(lfifo_t *fifo, fifo_offset_t offset);
  * @brief 获取FIFO当前的读数据指针
  * @param  fifo             FIFO对象
  * @param  offset           期望获取的数据偏移
- * @retval uint8_t*          当前的读指针
+ * @retval uint8_t*         当前的读指针
  * @note 0偏移指针指向的是下一个将要读出的数据
  */
 extern uint8_t *LFifo_GetRdPtr(lfifo_t *fifo, fifo_offset_t offset);
@@ -191,10 +191,40 @@ extern uint8_t *LFifo_GetRdPtr(lfifo_t *fifo, fifo_offset_t offset);
  * @param  data             查找的数据缓冲区指针
  * @param  len              查找的数据长度
  * @param  r_offset         起始查找偏移
- * @retval fifo_offset_t       查找到的数据偏移, 查找失败返回-1
+ * @retval fifo_offset_t    查找到的数据偏移, 查找失败返回-1
  */
 extern fifo_offset_t LFifo_Find(lfifo_t *fifo, uint8_t *data, fifo_size_t len,
-                               fifo_size_t r_offset);
+                                fifo_size_t r_offset);
+
+/**
+ * @brief 申请内存连续的写入空间
+ * @param  fifo             FIFO对象
+ * @param  len              返回可用空间的长度
+ * @retval uint8_t*         可用空间的指针
+ */
+extern uint8_t *LFifo_AcquireLinearWrite(lfifo_t *fifo, fifo_size_t *len);
+
+/**
+ * @brief 释放连续写入空间, 并更新FIFO的写指针
+ * @param  fifo             FIFO对象
+ * @param  len              实际写入的数据长度
+ */
+extern void LFifo_ReleaseLinearWrite(lfifo_t *fifo, fifo_size_t len);
+
+/**
+ * @brief 申请内存连续的读取空间
+ * @param  fifo             FIFO对象
+ * @param  len              返回可用空间的长度
+ * @retval uint8_t*         可用空间的指针
+ */
+extern uint8_t *LFifo_AcquireLinearRead(lfifo_t *fifo, fifo_size_t *len);
+
+/**
+ * @brief 释放连续读取空间, 并更新FIFO的读指针
+ * @param  fifo             FIFO对象
+ * @param  len              实际读取的数据长度
+ */
+extern void LFifo_ReleaseLinearRead(lfifo_t *fifo, fifo_size_t len);
 
 #ifdef __cplusplus
 }
