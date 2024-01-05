@@ -14,15 +14,13 @@
 /*********************************************************************/
 /****************************** 全局设置 ******************************/
 // 动态内存分配方法(m_alloc/m_free/m_realloc):
-#define _MOD_HEAP_MATHOD 2  // 0:stdlib 1:dalloc 2:klite 3:freertos
+#define _MOD_HEAP_MATHOD 0  // 0:stdlib 1:lwmem 2:klite 3:freertos
 // 时间获取方法(m_tick/m_time_*)
 #define _MOD_TIME_MATHOD 1  // 0:HAL 1:perf_counter
 // 延时方法(m_delay_*)
-#define _MOD_DELAY_MATHOD 2  // 0:HAL 1:perf_counter 2:klite 3:freertos
-
-#define _MOD_HEAP_SIZE (32UL * 1024UL)  // 动态内存分配器堆大小(dalloc/klite)
-#define _MOD_HEAP_MAX_ALLOC 64UL  // 动态内存分配器最大分配数量(dalloc)
-#define _MOD_HEAP_ADDR 0          // 堆起始地址(0则自动分配)
+#define _MOD_DELAY_MATHOD 1  // 0:HAL 1:perf_counter 2:klite 3:freertos
+// 是否使用操作系统(MOD_MUTEX_*)
+#define _MOD_USE_OS 0  // 0:none 1:klite 2:freertos
 
 /******************************调度器设置******************************/
 #define _SCH_ENABLE_TASK 1       // 支持任务
@@ -33,6 +31,7 @@
 
 #define _SCH_COMP_RANGE (1 * m_tick_per_ms)  // 任务调度自动补偿范围(TICK)
 #define _SCH_CR_MAX_DEPTH 5                  // 宏协程最大嵌套深度
+#define _SCH_EVENT_ALLOW_DUPLICATE 0  // 允许事件重复注册(单事件可触发多个回调)
 
 #define _SCH_DEBUG_REPORT 0  // 输出调度器统计信息(调试模式/低性能)
 #define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
@@ -59,8 +58,8 @@
 
 /****************************** 串口设置 ******************************/
 // 组件设置
-#define _UART_ENABLE_DMA_RX 1         // 是否开启串口DMA支持(发送/接收)
 #define _UART_ENABLE_CDC 0         // 是否开启USB CDC虚拟串口支持
+#define _UART_ENABLE_DMA_RX 1      // 是否开启串口DMA接收功能
 #define _UART_ENABLE_FIFO_TX 1     // 是否开启串口FIFO发送功能
 #define _UART_DCACHE_COMPATIBLE 0  // (H7/F7) DCache兼容模式
 #define _UART_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数

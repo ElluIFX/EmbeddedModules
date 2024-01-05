@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "log.h"
+#include "ulist.h"
 
 #define _INLINE inline __attribute__((always_inline))
 #define _STATIC_INLINE static _INLINE
@@ -70,114 +71,76 @@ typedef struct {     // 用户任务结构
 #pragma pack()
 
 static struct {
-  scheduler_task_t *tasks;                 // 任务存储区
-  uint16_t num;                            // 存储区总任务数量
-  uint16_t size;                           // 存储区总大小
+  ulist_t list;                            // 任务存储区
   uint16_t priOffset[_TASK_PRIORITY_NUM];  // 各优先级偏移量
-} thd = {0};
+} taskpool = {.list.data = NULL,
+              .list.cap = 0,
+              .list.num = 0,
+              .list.isize = sizeof(scheduler_task_t),
+              .priOffset = {0}};
 
 static scheduler_task_t *insert_task(uint8_t priority) {
   scheduler_task_t *p;
-  if (thd.tasks == NULL) {  // 初始化存储区
-    // 每次创建两倍所需空间, 以减少内存操作
-    thd.tasks = m_alloc(sizeof(scheduler_task_t) * 2);
-    if (thd.tasks == NULL) return NULL;
-    thd.size = 2;
-  }
-  if (thd.num + 1 > thd.size) {  // 扩容
-    scheduler_task_t *old = thd.tasks;
-    thd.tasks = m_realloc(thd.tasks, sizeof(scheduler_task_t) * thd.size * 2);
-    if (!thd.tasks) {
-      thd.tasks = old;
-      return NULL;
-    }
-    thd.size *= 2;
-  }
   if (priority == _TASK_PRIORITY_NUM - 1) {  // 直接添加到末尾
-    p = &thd.tasks[thd.num];
-  } else {  // 插入priOffset[priority+1]前
-    p = &thd.tasks[thd.priOffset[priority + 1]];
-    if (thd.priOffset[priority + 1] < thd.num)
-      memmove(
-          p + 1, p,
-          sizeof(scheduler_task_t) * (thd.num - thd.priOffset[priority + 1]));
+    p = (scheduler_task_t *)ulist_append(&taskpool.list, 1);
+    if (p == NULL) return NULL;
+  } else {  // 插入priOffset[priority]前
+    p = (scheduler_task_t *)ulist_insert(&taskpool.list,
+                                         taskpool.priOffset[priority + 1], 1);
+    if (p == NULL) return NULL;
     for (uint16_t i = priority + 1; i < _TASK_PRIORITY_NUM; i++) {
-      thd.priOffset[i]++;
+      taskpool.priOffset[i]++;
     }
   }
-  thd.num += 1;
-  memset(p, 0, sizeof(scheduler_task_t));
   return p;
 }
 
 static scheduler_task_t *get_task(const char *name) {
-  for (uint16_t i = 0; i < thd.num; i++) {
-    if (fast_str_check(thd.tasks[i].name, name)) return &thd.tasks[i];
+  ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+    if (fast_str_check(task->name, name)) return task;
   }
   return NULL;
 }
 
-static void delete_task(uint16_t i, bool skip_mem_free) {
-  if (i < thd.num - 1) {  // 不是最后一个, 需要移动
-    memmove(&thd.tasks[i], &thd.tasks[i + 1],
-            sizeof(scheduler_task_t) * (thd.num - i - 1));
-    memset(&thd.tasks[thd.num - 1], 0, sizeof(scheduler_task_t));
+static void delete_task(uint16_t i) {
+  for (uint8_t j = 0; j <= _TASK_PRIORITY_NUM; j++) {
+    if (taskpool.priOffset[j] > i) taskpool.priOffset[j]--;
   }
-  for (uint8_t j = 0; j <= TASK_PRIORITY_LOWEST; j++) {
-    if (thd.priOffset[j] > i) thd.priOffset[j]--;
-  }
-  thd.num -= 1;
-  if (skip_mem_free) return;
-  if (thd.num == 0) {  // 任务已清空
-    m_free(thd.tasks);
-    thd.tasks = NULL;
-    thd.size = 0;
-  } else if (thd.num < thd.size / 2) {  // 缩容
-    scheduler_task_t *old = thd.tasks;
-    thd.tasks = m_realloc(thd.tasks, sizeof(scheduler_task_t) * thd.size / 2);
-    if (!thd.tasks) {
-      thd.tasks = old;
-    } else {
-      thd.size /= 2;
-    }
-  }
+  ulist_delete(&taskpool.list, i, 1);
 }
-
-#if _SCH_DEBUG_REPORT
-static inline void Debug_RunTask(scheduler_task_t *task_p, m_time_t latency) {
-  const char *name = task_p->name;
-  m_time_t _sch_debug_task_tick = m_tick();
-  task_p->task(task_p->args);
-  _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
-  if (task_p->name != name) {  // 任务已被修改, 重新查找
-    task_p = get_task(name);
-    if (task_p == NULL) return;  // 任务已被删除
-  }
-  if (task_p->max_cost < _sch_debug_task_tick)
-    task_p->max_cost = _sch_debug_task_tick;
-  if (latency > task_p->max_lat) task_p->max_lat = latency;
-  task_p->total_cost += _sch_debug_task_tick;
-  task_p->total_lat += latency;
-  task_p->run_cnt++;
-}
-#endif  // _SCH_DEBUG_REPORT
 
 _STATIC_INLINE void Task_Runner(void) {
   m_time_t latency;
-  m_time_t now = m_tick();
-  if (thd.num) {
-    for (uint16_t i = 0; i < thd.num; i++) {
-      if (thd.tasks[i].enable &&
-          (now >= thd.tasks[i].lastRun + thd.tasks[i].period)) {
-        latency = now - (thd.tasks[i].lastRun + thd.tasks[i].period);
-        if (latency <= _SCH_COMP_RANGE)
-          thd.tasks[i].lastRun += thd.tasks[i].period;
-        else
-          thd.tasks[i].lastRun = now;
+  m_time_t now;
 #if _SCH_DEBUG_REPORT
-        Debug_RunTask(&thd.tasks[i], latency);
+  __IO const char *old_name;
+#endif  // _SCH_DEBUG_REPORT
+  if (taskpool.list.num) {
+    now = m_tick();
+    ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+      if (task->enable && (now >= task->lastRun + task->period)) {
+        latency = now - (task->lastRun + task->period);
+        if (latency <= _SCH_COMP_RANGE)
+          task->lastRun += task->period;
+        else
+          task->lastRun = now;
+#if _SCH_DEBUG_REPORT
+        old_name = task->name;
+        m_time_t _sch_debug_task_tick = m_tick();
+        task->task(task->args);
+        _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
+        if (task->name != old_name) {  // 任务已被修改, 重新查找
+          task = get_task((const char *)old_name);
+          if (task == NULL) return;  // 任务已被删除
+        }
+        if (task->max_cost < _sch_debug_task_tick)
+          task->max_cost = _sch_debug_task_tick;
+        if (latency > task->max_lat) task->max_lat = latency;
+        task->total_cost += _sch_debug_task_tick;
+        task->total_lat += latency;
+        task->run_cnt++;
 #else
-        thd.tasks[i].task(thd.tasks[i].args);
+        task->task(task->args);
 #endif  // _SCH_DEBUG_REPORT
         return;
       }
@@ -187,7 +150,6 @@ _STATIC_INLINE void Task_Runner(void) {
 
 bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
                     uint8_t enable, TASK_PRIORITY priority, void *args) {
-  if (thd.num == 0xFFFE) return false;
   if (priority >= _TASK_PRIORITY_NUM) priority = _TASK_PRIORITY_NUM - 1;
   scheduler_task_t *p = insert_task(priority);
   if (p == NULL) return false;
@@ -203,10 +165,10 @@ bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
 }
 
 bool Sch_DeleteTask(const char *name) {
-  if (thd.num == 0) return false;
-  for (uint16_t i = 0; i < thd.num; i++) {
-    if (fast_str_check(thd.tasks[i].name, name)) {
-      delete_task(i, false);
+  if (taskpool.list.num == 0) return false;
+  ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+    if (fast_str_check(task->name, name)) {
+      delete_task(task - (scheduler_task_t *)taskpool.list.data);
       return true;
     }
   }
@@ -221,7 +183,7 @@ bool Sch_SetTaskPriority(const char *name, TASK_PRIORITY priority) {
   if (p == NULL) return false;
   scheduler_task_t temp = {0};
   memcpy(&temp, p, sizeof(scheduler_task_t));
-  delete_task(p - thd.tasks, true);
+  delete_task(p - (scheduler_task_t *)taskpool.list.data);
   p = insert_task(priority);
   memcpy(p, &temp, sizeof(scheduler_task_t));
   p->priority = priority;
@@ -238,7 +200,7 @@ bool Sch_DelayTask(const char *name, m_time_t delayUs, uint8_t fromNow) {
   return true;
 }
 
-uint16_t Sch_GetTaskNum(void) { return thd.num; }
+uint16_t Sch_GetTaskNum(void) { return taskpool.list.num; }
 
 bool Sch_SetTaskState(const char *name, uint8_t enable) {
   scheduler_task_t *p = get_task(name);
@@ -282,100 +244,71 @@ typedef struct {    // 事件任务结构
 } scheduler_event_t;
 #pragma pack()
 
-struct {
-  scheduler_event_t *tasks;  // 任务存储区
-  uint16_t num;              // 存储区总任务数量
-  uint16_t size;             // 存储区总大小
-} ehd = {0};
+static ulist_t eventlist = {
+    .data = NULL, .cap = 0, .num = 0, .isize = sizeof(scheduler_event_t)};
+static __IO uint8_t event_modified = 0;
 
 _STATIC_INLINE void Event_Runner(void) {
-  for (uint16_t i = 0; i < ehd.num; i++) {
-    if (ehd.tasks[i].enable && ehd.tasks[i].trigger) {
+  event_modified = 0;
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (event->enable && event->trigger) {
 #if !_SCH_DEBUG_REPORT
-      ehd.tasks[i].task(ehd.tasks[i].args);
+      event->task(event->args);
 #else
       m_time_t _sch_debug_task_tick = m_tick();
-      m_time_t _late = _sch_debug_task_tick - ehd.tasks[i].trigger_time;
-      ehd.tasks[i].task(ehd.tasks[i].args);
+      m_time_t _late = _sch_debug_task_tick - event->trigger_time;
+      event->task(event->args);
       _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
-      if (ehd.tasks[i].max_cost < _sch_debug_task_tick)
-        ehd.tasks[i].max_cost = _sch_debug_task_tick;
-      ehd.tasks[i].total_cost += _sch_debug_task_tick;
-      if (ehd.tasks[i].max_lat < _late) ehd.tasks[i].max_lat = _late;
-      ehd.tasks[i].total_lat += _late;
-      ehd.tasks[i].run_cnt++;
+      if (event->max_cost < _sch_debug_task_tick)
+        event->max_cost = _sch_debug_task_tick;
+      event->total_cost += _sch_debug_task_tick;
+      if (event->max_lat < _late) event->max_lat = _late;
+      event->total_lat += _late;
+      event->run_cnt++;
 #endif  // !_SCH_DEBUG_REPORT
-      ehd.tasks[i].trigger = 0;
+      event->trigger = 0;
     }
+    if (event_modified) return;
   }
 }
 
 bool Sch_CreateEvent(const char *name, sch_func_t callback, uint8_t enable) {
-  if (ehd.num == 0xFFFE) return false;
-  if (ehd.tasks == NULL) {
-    ehd.tasks = m_alloc(sizeof(scheduler_event_t) * 2);
-    if (ehd.tasks == NULL) return false;
-    ehd.size = 2;
-  } else {
 #if !_SCH_EVENT_ALLOW_DUPLICATE
-    for (uint16_t i = 0; i < ehd.num; i++) {
-      if (fast_str_check(ehd.tasks[i].name, name)) {
-        ehd.tasks[i].task = callback;
-        ehd.tasks[i].enable = enable;
-        ehd.tasks[i].trigger = 0;
-        ehd.tasks[i].args = NULL;
-        return true;
-      }
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (fast_str_check(event->name, name)) {
+      event->task = callback;
+      event->enable = enable;
+      event->trigger = 0;
+      event->args = NULL;
+      return true;
     }
+  }
 #endif  // !_SCH_EVENT_ALLOW_DUPLICATE
-  }
-  if (ehd.num + 1 > ehd.size) {
-    scheduler_event_t *old = ehd.tasks;
-    ehd.tasks = m_realloc(ehd.tasks, sizeof(scheduler_event_t) * ehd.size * 2);
-    if (!ehd.tasks) {
-      ehd.tasks = old;
-      return false;
-    }
-    ehd.size *= 2;
-  }
-  scheduler_event_t *p = &ehd.tasks[ehd.num];
-  ehd.num += 1;
+  scheduler_event_t *p = (scheduler_event_t *)ulist_append(&eventlist, 1);
+  if (p == NULL) return false;
   p->task = callback;
   p->enable = enable;
   p->trigger = 0;
   p->args = NULL;
   p->name = name;
+  event_modified = 1;
   return true;
 }
 
 bool Sch_DeleteEvent(const char *name) {
-  if (ehd.num == 0) return false;
+  if (eventlist.num == 0) return false;
   bool ret = false;
-  for (uint16_t i = 0; i < ehd.num; i++) {
-    if (fast_str_check(ehd.tasks[i].name, name)) {
-      if (i < ehd.num - 1) {  // 不是最后一个, 需要移动
-        memmove(&ehd.tasks[i], &ehd.tasks[i + 1],
-                sizeof(scheduler_event_t) * (ehd.num - i - 1));
-      }
-      ehd.num -= 1;
-      if (ehd.num == 0) {  // 任务已清空
-        m_free(ehd.tasks);
-        ehd.tasks = NULL;
-        ehd.size = 0;
-      } else if (ehd.num < ehd.size / 2) {  // 缩容
-        scheduler_event_t *old = ehd.tasks;
-        ehd.tasks =
-            m_realloc(ehd.tasks, sizeof(scheduler_event_t) * ehd.size / 2);
-        if (!ehd.tasks) {
-          ehd.tasks = old;
-        } else {
-          ehd.size /= 2;
-        }
-      }
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (fast_str_check(event->name, name)) {
+      ulist_delete(&eventlist, event - (scheduler_event_t *)eventlist.data, 1);
+      event_end--;
+      event--;
       ret = true;
+      event_modified = 1;
 #if !_SCH_EVENT_ALLOW_DUPLICATE
       break;
 #endif  // !_SCH_EVENT_ALLOW_DUPLICATE
+      continue;
     }
   }
   return ret;
@@ -383,14 +316,14 @@ bool Sch_DeleteEvent(const char *name) {
 
 bool Sch_SetEventState(const char *name, uint8_t enable) {
   bool ret = false;
-  for (uint16_t i = 0; i < ehd.num; i++) {
-    if (fast_str_check(ehd.tasks[i].name, name)) {
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (fast_str_check(event->name, name)) {
       if (enable == TOGGLE) {
-        ehd.tasks[i].enable = !ehd.tasks[i].enable;
+        event->enable = !event->enable;
       } else {
-        ehd.tasks[i].enable = enable;
+        event->enable = enable;
       }
-      ehd.tasks[i].trigger = 0;
+      event->trigger = 0;
       ret = true;
 #if !_SCH_EVENT_ALLOW_DUPLICATE
       break;
@@ -402,15 +335,14 @@ bool Sch_SetEventState(const char *name, uint8_t enable) {
 
 bool Sch_TriggerEvent(const char *name, void *args) {
   bool ret = false;
-  for (uint16_t i = 0; i < ehd.num; i++) {
-    if (ehd.tasks[i].enable && fast_str_check(ehd.tasks[i].name, name)) {
-      ehd.tasks[i].trigger = 1;
-      ehd.tasks[i].args = args;
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (event->enable && fast_str_check(event->name, name)) {
+      event->trigger = 1;
+      event->args = args;
 #if _SCH_DEBUG_REPORT
-      ehd.tasks[i].trigger_time = m_tick();
-      ehd.tasks[i].trigger_cnt++;
+      event->trigger_time = m_tick();
+      event->trigger_cnt++;
 #endif
-      ret = true;
 #if !_SCH_EVENT_ALLOW_DUPLICATE
       break;
 #endif  // !_SCH_EVENT_ALLOW_DUPLICATE
@@ -420,123 +352,92 @@ bool Sch_TriggerEvent(const char *name, void *args) {
 }
 
 bool Sch_IsEventExist(const char *name) {
-  for (uint16_t i = 0; i < ehd.num; i++) {
-    if (fast_str_check(ehd.tasks[i].name, name)) {
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (fast_str_check(event->name, name)) {
       return true;
     }
   }
   return false;
 }
 
-uint16_t Sch_GetEventNum(void) { return ehd.num; }
+uint16_t Sch_GetEventNum(void) { return eventlist.num; }
 #endif  // _SCH_ENABLE_EVENT
 
 #if _SCH_ENABLE_COROUTINE
 #pragma pack(1)
-typedef struct {       // 协程任务结构
-  sch_func_t task;     // 任务函数指针
-  uint8_t enable;      // 是否使能
-  uint8_t mode;        // 模式
-  void *args;          // 协程主函数参数
-  __cron_handle_t hd;  // 协程句柄
+typedef struct {        // 协程任务结构
+  sch_func_t task;      // 任务函数指针
+  uint8_t enable;       // 是否使能
+  uint8_t mode;         // 模式
+  void *args;           // 协程主函数参数
+  __coron_handle_t hd;  // 协程句柄
 #if _SCH_DEBUG_REPORT
   m_time_t max_cost;    // 协程最大执行时间(Tick)
   m_time_t total_cost;  // 协程总执行时间(Tick)
   float last_usage;     // 协程上次执行占用率
 #endif
   const char *name;  // 协程名
-} scheduler_cron_t;
+} scheduler_coron_t;
 #pragma pack()
 
-struct {
-  scheduler_cron_t *tasks;  // 任务存储区
-  uint16_t num;             // 存储区总任务数量
-  uint16_t size;            // 存储区总大小
-} chd = {0};
+static ulist_t coronlist = {
+    .data = NULL, .cap = 0, .num = 0, .isize = sizeof(scheduler_coron_t)};
 
-__cron_handle_t *__cron_hp = {0};
+__coron_handle_t *__coron_hp = {0};
+static __IO uint8_t cr_modified = 0;
 
 _STATIC_INLINE void Coron_Runner(void) {
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (chd.tasks[i].enable && chd.tasks[i].hd.yieldUntil &&
-        m_time_us() >= chd.tasks[i].hd.yieldUntil) {
-      __cron_hp = &chd.tasks[i].hd;
-      __cron_hp->depth = 0;
+  cr_modified = 0;
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (coron->enable && coron->hd.yieldUntil &&
+        m_time_us() >= coron->hd.yieldUntil) {
+      __coron_hp = &coron->hd;
+      __coron_hp->depth = 0;
 #if _SCH_DEBUG_REPORT
       m_time_t _sch_debug_task_tick = m_tick();
-      chd.tasks[i].task(chd.tasks[i].args);
+      coron->task(coron->args);
       _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
-      if (chd.tasks[i].max_cost < _sch_debug_task_tick)
-        chd.tasks[i].max_cost = _sch_debug_task_tick;
-      chd.tasks[i].total_cost += _sch_debug_task_tick;
+      if (coron->max_cost < _sch_debug_task_tick)
+        coron->max_cost = _sch_debug_task_tick;
+      coron->total_cost += _sch_debug_task_tick;
 #else
-      chd.tasks[i].task(chd.tasks[i].args);
+      coron->task(coron->args);
 #endif
-      __cron_hp = NULL;
-      if (!chd.tasks[i].hd.ptr[0]) {  // 最外层协程已结束
-        if (chd.tasks[i].mode == CR_MODE_AUTODEL) {
-          Sch_DeleteCoron(chd.tasks[i].name);
+      __coron_hp = NULL;
+      if (!coron->hd.ptr[0]) {  // 最外层协程已结束
+        if (coron->mode == CR_MODE_AUTODEL) {
+          Sch_DeleteCoron(coron->name);
           return;  // 指针已被释放
-        } else if (chd.tasks[i].mode == CR_MODE_ONESHOT) {
-          chd.tasks[i].enable = 0;
+        } else if (coron->mode == CR_MODE_ONESHOT) {
+          coron->enable = 0;
         }
       }
     }
+    if (cr_modified) return;
   }
 }
 
 bool Sch_CreateCoron(const char *name, sch_func_t func, uint8_t enable,
                      CR_MODE mode, void *args) {
-  if (chd.num == 0xFFFE) return false;
-  if (chd.tasks == NULL) {
-    chd.tasks = m_alloc(sizeof(scheduler_cron_t) * 2);
-    if (chd.tasks == NULL) return false;
-    chd.size = 2;
-  }
-  if (chd.num + 1 > chd.size) {
-    scheduler_cron_t *old = chd.tasks;
-    chd.tasks = m_realloc(chd.tasks, sizeof(scheduler_cron_t) * chd.size * 2);
-    if (!chd.tasks) {
-      chd.tasks = old;
-      return false;
-    }
-    chd.size *= 2;
-  }
-  scheduler_cron_t *p = &chd.tasks[chd.num];
-  chd.num += 1;
+  scheduler_coron_t *p = (scheduler_coron_t *)ulist_append(&coronlist, 1);
+  if (p == NULL) return false;
   p->task = func;
   p->enable = enable;
   p->mode = mode;
   p->args = args;
   p->name = name;
-  memset(&p->hd, 0, sizeof(__cron_handle_t));
+  memset(&p->hd, 0, sizeof(__coron_handle_t));
   p->hd.yieldUntil = m_time_us();
+  cr_modified = 1;
   return true;
 }
 
 bool Sch_DeleteCoron(const char *name) {
-  if (chd.num == 0) return false;
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (fast_str_check(chd.tasks[i].name, name)) {
-      if (i < chd.num - 1) {  // 不是最后一个, 需要移动
-        memmove(&chd.tasks[i], &chd.tasks[i + 1],
-                sizeof(scheduler_cron_t) * (chd.num - i - 1));
-      }
-      chd.num -= 1;
-      if (chd.num == 0) {  // 任务已清空
-        m_free(chd.tasks);
-        chd.tasks = NULL;
-        chd.size = 0;
-      } else if (chd.num < chd.size / 2) {  // 缩容
-        scheduler_cron_t *old = chd.tasks;
-        chd.tasks =
-            m_realloc(chd.tasks, sizeof(scheduler_cron_t) * chd.size / 2);
-        if (!chd.tasks) {
-          chd.tasks = old;
-        } else {
-          chd.size /= 2;
-        }
-      }
+  if (coronlist.num == 0) return false;
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (fast_str_check(coron->name, name)) {
+      ulist_delete(&coronlist, coron - (scheduler_coron_t *)coronlist.data, 1);
+      cr_modified = 1;
       return true;
     }
   }
@@ -544,28 +445,28 @@ bool Sch_DeleteCoron(const char *name) {
 }
 
 bool Sch_SetCoronState(const char *name, uint8_t enable, uint8_t clearState) {
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (fast_str_check(chd.tasks[i].name, name)) {
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (fast_str_check(coron->name, name)) {
       if (enable == TOGGLE) {
-        chd.tasks[i].enable = !chd.tasks[i].enable;
+        coron->enable = !coron->enable;
       } else {
-        chd.tasks[i].enable = enable;
+        coron->enable = enable;
       }
       if (clearState) {
-        memset(&chd.tasks[i].hd, 0, sizeof(__cron_handle_t));
+        memset(&coron->hd, 0, sizeof(__coron_handle_t));
       }
-      chd.tasks[i].hd.yieldUntil = m_time_us();
+      coron->hd.yieldUntil = m_time_us();
       return true;
     }
   }
   return false;
 }
 
-uint16_t Sch_GetCoronNum(void) { return chd.num; }
+uint16_t Sch_GetCoronNum(void) { return coronlist.num; }
 
 bool Sch_IsCoronExist(const char *name) {
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (fast_str_check(chd.tasks[i].name, name)) {
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (fast_str_check(coron->name, name)) {
       return true;
     }
   }
@@ -573,18 +474,18 @@ bool Sch_IsCoronExist(const char *name) {
 }
 
 bool Sch_IsCoronWaitForWakeUp(const char *name) {
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (fast_str_check(chd.tasks[i].name, name)) {
-      return chd.tasks[i].hd.yieldUntil == 0;
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (fast_str_check(coron->name, name)) {
+      return coron->hd.yieldUntil == 0;
     }
   }
   return false;
 }
 
 bool Sch_WakeUpCoron(const char *name) {
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (fast_str_check(chd.tasks[i].name, name)) {
-      chd.tasks[i].hd.yieldUntil = m_time_us();
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (fast_str_check(coron->name, name)) {
+      coron->hd.yieldUntil = m_time_us();
       return true;
     }
   }
@@ -592,9 +493,9 @@ bool Sch_WakeUpCoron(const char *name) {
 }
 
 bool Sch_SendMsgToCoron(const char *name, void *msg) {
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (fast_str_check(chd.tasks[i].name, name)) {
-      chd.tasks[i].hd.msg = msg;
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (fast_str_check(coron->name, name)) {
+      coron->hd.msg = msg;
       return true;
     }
   }
@@ -609,62 +510,39 @@ typedef struct {       // 延时调用任务结构
   sch_func_t task;     // 任务函数指针
   m_time_t runTimeUs;  // 执行时间(us)
   void *args;          // 任务参数
-  void *next;
 } scheduler_call_later_t;
 #pragma pack()
-scheduler_call_later_t *schCallLaterEntry = NULL;
+
+static ulist_t clist = {
+    .data = NULL, .cap = 0, .num = 0, .isize = sizeof(scheduler_call_later_t)};
 
 _STATIC_INLINE void CallLater_Runner(void) {
-  if (schCallLaterEntry != NULL) {
-    for (scheduler_call_later_t *callLater_p = schCallLaterEntry;
-         callLater_p != NULL; callLater_p = callLater_p->next) {
-      if (m_time_us() >= callLater_p->runTimeUs) {
-        callLater_p->task(callLater_p->args);
-        Sch_CancelCallLater(callLater_p->task);
-        return;
-      }
+  ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
+    if (m_time_us() >= callLater_p->runTimeUs) {
+      callLater_p->task(callLater_p->args);
+      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data,
+                   1);
+      return;
     }
   }
 }
 
 bool Sch_CallLater(sch_func_t func, m_time_t delayUs, void *args) {
-  scheduler_call_later_t *p = NULL;
-  if (schCallLaterEntry == NULL) {
-    schCallLaterEntry = m_alloc(sizeof(scheduler_call_later_t));
-    p = schCallLaterEntry;
-  } else {
-    p = schCallLaterEntry;
-    while (p->next != NULL) {
-      p = p->next;
-    }
-    p->next = m_alloc(sizeof(scheduler_call_later_t));
-    p = p->next;
-  }
+  scheduler_call_later_t *p = (scheduler_call_later_t *)ulist_append(&clist, 1);
   if (p == NULL) return false;
   p->task = func;
   p->runTimeUs = delayUs + m_time_us();
   p->args = args;
-  p->next = NULL;
   return true;
 }
 
 void Sch_CancelCallLater(sch_func_t func) {
-  scheduler_call_later_t *p = schCallLaterEntry;
-  scheduler_call_later_t *q = NULL;
-  while (p != NULL) {
-    if (p->task == func) {
-      if (q == NULL) {
-        m_free(schCallLaterEntry);
-        schCallLaterEntry = NULL;
-        p = NULL;
-      } else {
-        q->next = p->next;
-        m_free(p);
-      }
-      continue;
+  ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
+    if (callLater_p->task == func) {
+      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data,
+                   1);
+      return;
     }
-    q = p;
-    p = p->next;
   }
 }
 #endif  // _SCH_ENABLE_CALLLATER
@@ -723,6 +601,7 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
   static uint8_t first_print = 1;
   float usage;
   char op;
+  uint16_t i;
   m_time_t now = m_tick();
   m_time_t offset = now;
   if (first_print) {  // 因为初始化耗时等原因，第一次的数据无参考价值，不打印
@@ -734,15 +613,15 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
     m_time_t other = period;
     LOG_RAWLN("");
 #if _SCH_ENABLE_TASK
-    if (thd.num) {
+    if (taskpool.list.num) {
       LOG_RAW(T_FMT(T_RESET, T_BOLD, T_BLUE));
       LOG_RAWLN("[ Task Report ]------------------------------------------");
       LOG_RAWLN(" No | Pri | Run | Tmax  | Usage | LTavg | LTmax | Name");
-      for (uint16_t i = 0; i < thd.num; i++) {
-        if (thd.tasks[i].enable) {
-          usage = (double)thd.tasks[i].total_cost / period * 100;
-          if ((thd.tasks[i].last_usage != 0 &&
-               usage / thd.tasks[i].last_usage > 2) ||
+      i = 0;
+      ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+        if (task->enable) {
+          usage = (double)task->total_cost / period * 100;
+          if ((task->last_usage != 0 && usage / task->last_usage > 2) ||
               usage > 20) {  // 任务占用率大幅度增加或者超过20%
             LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
             op = '!';
@@ -750,35 +629,34 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
             LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
             op = ' ';
           }
-          LOG_RAWLN(
-              "%c%-4d %-5d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op, i,
-              thd.tasks[i].priority, thd.tasks[i].run_cnt,
-              (double)thd.tasks[i].max_cost / temp, usage,
-              (double)thd.tasks[i].total_lat / thd.tasks[i].run_cnt / temp,
-              (double)thd.tasks[i].max_lat / temp, thd.tasks[i].name);
-          thd.tasks[i].last_usage = usage;
-          other -= thd.tasks[i].total_cost;
+          LOG_RAWLN("%c%-4d %-5d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op, i,
+                    task->priority, task->run_cnt,
+                    (double)task->max_cost / temp, usage,
+                    (double)task->total_lat / task->run_cnt / temp,
+                    (double)task->max_lat / temp, task->name);
+          task->last_usage = usage;
+          other -= task->total_cost;
         } else {
           LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
-          op = 'x';
-          LOG_RAWLN("%c%-4d %-4d %-5s %-7s %-7s %-7s %-7s %s ", op, i,
-                    thd.tasks[i].priority, "-", "-", "-", "-", "-",
-                    thd.tasks[i].name);
-          thd.tasks[i].last_usage = 0;
+          op = '-';
+          LOG_RAWLN("%c%-4d %-5d %-5s %-7s %-7s %-7s %-7s %s ", op, i,
+                    task->priority, "-", "-", "-", "-", "-", task->name);
+          task->last_usage = 0;
         }
+        i++;
       }
     }
 #endif  // _SCH_ENABLE_TASK
 #if _SCH_ENABLE_EVENT
-    if (ehd.num) {
+    if (eventlist.num) {
       LOG_RAW(T_FMT(T_RESET, T_BOLD, T_BLUE));
       LOG_RAWLN("[ Event Report ]-----------------------------------------");
       LOG_RAWLN(" No | Tri | Run | Tmax  | Usage | LTavg | LTmax | Event");
-      for (uint16_t i = 0; i < ehd.num; i++) {
-        if (ehd.tasks[i].enable && ehd.tasks[i].run_cnt) {
-          usage = (double)ehd.tasks[i].total_cost / period * 100;
-          if ((ehd.tasks[i].last_usage != 0 &&
-               usage / ehd.tasks[i].last_usage > 2) ||
+      i = 0;
+      ulist_foreach(&eventlist, scheduler_event_t, event) {
+        if (event->enable && event->run_cnt) {
+          usage = (double)event->total_cost / period * 100;
+          if ((event->last_usage != 0 && usage / event->last_usage > 2) ||
               usage > 20) {  // 任务占用率大幅度增加或者超过20%
             LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
             op = '!';
@@ -786,40 +664,40 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
             LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
             op = ' ';
           }
-          LOG_RAWLN(
-              "%c%-4d %-5d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op, i,
-              ehd.tasks[i].trigger_cnt, ehd.tasks[i].run_cnt,
-              (double)ehd.tasks[i].max_cost / temp, usage,
-              (double)ehd.tasks[i].total_lat / ehd.tasks[i].run_cnt / temp,
-              (double)ehd.tasks[i].max_lat / temp, ehd.tasks[i].name);
-          ehd.tasks[i].last_usage = usage;
-          other -= ehd.tasks[i].total_cost;
+          LOG_RAWLN("%c%-4d %-5d %-5d %-7.2f %-7.3f %-7.2f %-7.2f %s ", op, i,
+                    event->trigger_cnt, event->run_cnt,
+                    (double)event->max_cost / temp, usage,
+                    (double)event->total_lat / event->run_cnt / temp,
+                    (double)event->max_lat / temp, event->name);
+          event->last_usage = usage;
+          other -= event->total_cost;
         } else {
-          if (!ehd.tasks[i].enable) {
+          if (!event->enable) {
             LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
-            op = 'x';
+            op = '-';
           } else {
             LOG_RAW(T_FMT(T_RESET, T_GREEN));  // 正常
             op = ' ';
           }
-          LOG_RAWLN("%c%-4d %-5d %-5d -       -       -       -       %s ", op,
-                    i, ehd.tasks[i].trigger_cnt, ehd.tasks[i].run_cnt,
-                    ehd.tasks[i].name);
-          ehd.tasks[i].last_usage = 0;
+          LOG_RAWLN("%c%-4d %-5d %-5d %-7s %-7s %-7s %-7s %s ", op, i,
+                    event->trigger_cnt, event->run_cnt, "-", "-", "-", "-",
+                    event->name);
+          event->last_usage = 0;
         }
+        i++;
       }
     }
 #endif  // _SCH_ENABLE_EVENT
 #if _SCH_ENABLE_COROUTINE
-    if (chd.num) {
+    if (coronlist.num) {
       LOG_RAW(T_FMT(T_RESET, T_BOLD, T_BLUE));
       LOG_RAWLN("[ Coroutine Report ]-------------------------------------");
       LOG_RAWLN(" No | Tmax  | Usage | Name");
-      for (uint16_t i = 0; i < chd.num; i++) {
-        if (chd.tasks[i].enable) {
-          usage = (double)chd.tasks[i].total_cost / period * 100;
-          if ((chd.tasks[i].last_usage != 0 &&
-               usage / chd.tasks[i].last_usage > 2) ||
+      i = 0;
+      ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+        if (coron->enable) {
+          usage = (double)coron->total_cost / period * 100;
+          if ((coron->last_usage != 0 && usage / coron->last_usage > 2) ||
               usage > 20) {  // 任务占用率大幅度增加或者超过20%
             LOG_RAW(T_FMT(T_RESET, T_BOLD, T_YELLOW));
             op = '!';
@@ -828,15 +706,15 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
             op = ' ';
           }
           LOG_RAWLN("%c%-4d %-7.2f %-7.3f %s ", op, i,
-                    (double)chd.tasks[i].max_cost / temp, usage,
-                    chd.tasks[i].name);
-          chd.tasks[i].last_usage = usage;
-          other -= chd.tasks[i].total_cost;
+                    (double)coron->max_cost / temp, usage, coron->name);
+          coron->last_usage = usage;
+          other -= coron->total_cost;
         } else {
           LOG_RAW(T_FMT(T_RESET, T_WHITE));  // 禁用
-          LOG_RAWLN("x%-4d -       -       %s ", i, chd.tasks[i].name);
-          ehd.tasks[i].last_usage = 0;
+          LOG_RAWLN("-%-4d -       -       %s ", i, coron->name);
+          coron->last_usage = 0;
         }
+        i++;
       }
     }
 #endif  // _SCH_ENABLE_COROUTINE
@@ -854,31 +732,31 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
   }
   offset = m_tick() - offset;
 #if _SCH_ENABLE_TASK
-  for (uint16_t i = 0; i < thd.num; i++) {
-    thd.tasks[i].lastRun += offset;
-    thd.tasks[i].max_cost = 0;
-    thd.tasks[i].total_cost = 0;
-    thd.tasks[i].run_cnt = 0;
-    thd.tasks[i].max_lat = 0;
-    thd.tasks[i].total_lat = 0;
+  ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+    task->lastRun += offset;
+    task->max_cost = 0;
+    task->total_cost = 0;
+    task->run_cnt = 0;
+    task->max_lat = 0;
+    task->total_lat = 0;
   }
 #endif  // _SCH_ENABLE_TASK
 #if _SCH_ENABLE_EVENT
-  for (uint16_t i = 0; i < ehd.num; i++) {
-    ehd.tasks[i].trigger_time += offset;
-    ehd.tasks[i].max_cost = 0;
-    ehd.tasks[i].total_cost = 0;
-    ehd.tasks[i].run_cnt = 0;
-    ehd.tasks[i].trigger_cnt = 0;
-    ehd.tasks[i].max_lat = 0;
-    ehd.tasks[i].total_lat = 0;
-    ehd.tasks[i].trigger = 0;
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    event->trigger_time += offset;
+    event->max_cost = 0;
+    event->total_cost = 0;
+    event->run_cnt = 0;
+    event->trigger_cnt = 0;
+    event->max_lat = 0;
+    event->total_lat = 0;
+    event->trigger = 0;
   }
 #endif  // _SCH_ENABLE_EVENT
 #if _SCH_ENABLE_COROUTINE
-  for (uint16_t i = 0; i < chd.num; i++) {
-    chd.tasks[i].max_cost = 0;
-    chd.tasks[i].total_cost = 0;
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    coron->max_cost = 0;
+    coron->total_cost = 0;
   }
 #endif
   last_print = now;
@@ -896,13 +774,13 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "list", 1)) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Tasks list:" T_FMT(T_RESET, T_GREEN));
-    for (uint16_t i = 0; i < thd.num; i++) {
-      LOG_RAWLN("Task-%s: 0x%p pri:%d freq:%.1f en:%d", thd.tasks[i].name,
-                thd.tasks[i].task, thd.tasks[i].priority,
-                (double)m_tick_clk / thd.tasks[i].period, thd.tasks[i].enable);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Tasks list:" T_FMT(T_RESET, T_GREEN));
+    ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+      LOG_RAWLN("  %s: 0x%p pri:%d freq:%.1f en:%d", task->name, task->task,
+                task->priority, (double)m_tick_clk / task->period,
+                task->enable);
     }
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d tasks" T_RST, thd.num);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d tasks" T_RST, taskpool.list.num);
     return;
   }
   if (argc < 2) {
@@ -959,12 +837,11 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "list", 1)) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Events list:" T_FMT(T_RESET, T_GREEN));
-    for (uint16_t i = 0; i < ehd.num; i++) {
-      LOG_RAWLN("Event-%s: 0x%p en:%d", ehd.tasks[i].name, ehd.tasks[i].task,
-                ehd.tasks[i].enable);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Events list:" T_FMT(T_RESET, T_GREEN));
+    ulist_foreach(&eventlist, scheduler_event_t, event) {
+      LOG_RAWLN("  %s: 0x%p en:%d", event->name, event->task, event->enable);
     }
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d events" T_RST, ehd.num);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d events" T_RST, eventlist.num);
     return;
   }
   if (argc < 2) {
@@ -973,9 +850,9 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   const char *name = embeddedCliGetToken(args, 2);
   scheduler_event_t *p = NULL;
-  for (uint16_t i = 0; i < ehd.num; i++) {
-    if (fast_str_check(ehd.tasks[i].name, name)) {
-      p = &ehd.tasks[i];
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (fast_str_check(event->name, name)) {
+      p = event;
       break;
     }
   }
@@ -1009,12 +886,13 @@ void coron_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "list", 1)) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_BLUE) "Coroutines list:" T_FMT(T_RESET, T_GREEN));
-    for (uint16_t i = 0; i < chd.num; i++) {
-      LOG_RAWLN("Coron-%s: 0x%p en:%d", chd.tasks[i].name, chd.tasks[i].task,
-                chd.tasks[i].enable);
+    LOG_RAWLN(
+        T_FMT(T_BOLD, T_GREEN) "Coroutines list:" T_FMT(T_RESET, T_GREEN));
+    ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+      LOG_RAWLN("  %s: 0x%p en:%d", coron->name, coron->task, coron->enable);
     }
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d coroutines" T_RST, chd.num);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d coroutines" T_RST,
+              coronlist.num);
     return;
   }
   if (argc < 2) {
@@ -1022,10 +900,10 @@ void coron_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   const char *name = embeddedCliGetToken(args, 2);
-  scheduler_cron_t *p = NULL;
-  for (uint16_t i = 0; i < chd.num; i++) {
-    if (fast_str_check(chd.tasks[i].name, name)) {
-      p = &chd.tasks[i];
+  scheduler_coron_t *p = NULL;
+  ulist_foreach(&coronlist, scheduler_coron_t, coron) {
+    if (fast_str_check(coron->name, name)) {
+      p = coron;
       break;
     }
   }
