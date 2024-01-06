@@ -17,38 +17,6 @@ extern "C" {
 #if __has_include("usart.h")
 #include "usart.h"
 #endif
-
-// typedef
-typedef struct {                    // 中断FIFO串口接收控制结构体
-  uint8_t fifo[_UART_RX_BUF_SIZE];  // 接收保存缓冲区
-  uint8_t full;                     // 接收保存区满标志位
-  uint16_t rd;                      // 接收保存区读偏移
-  uint16_t wr;                      // 接收保存区写偏移
-  UART_HandleTypeDef *huart;        // 串口句柄
-  void (*rxCallback)(uint8_t);      // 接收完成回调函数
-  void *next;                       // 下一个串口接收控制结构体
-} uart_fifo_rx_t;
-
-/**
- * @brief 获取串口接收完成标志位
- */
-#define UART_RX_DONE(uart_t) uart_t.finished
-
-/**
- * @brief 获取串口接收数据保存区
- */
-#define UART_RX_DATA(uart_t) ((char *)uart_t.buffer)
-
-/**
- * @brief 获取串口接收数据长度
- */
-#define UART_RX_LEN(uart_t) uart_t.len
-
-/**
- * @brief 清除串口接收完成标志位
- */
-#define UART_RX_CLEAR(uart_t) (uart_t.finished = 0)
-
 /**
  * @brief 串口错误状态
  * @note 1:奇偶校验错误 2:帧错误 3:噪声错误 4:接收溢出
@@ -91,18 +59,23 @@ extern void Uart_Puts(UART_HandleTypeDef *huart, char *str);
 extern int Uart_Getchar(UART_HandleTypeDef *huart);
 extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
 
+#include "lfifo.h"
+
 /**
  * @brief 串口中断FIFO接收初始化
- * @param  ctrl             结构体指针
  * @param  huart            目标串口
  * @param  rxCallback       接收完成回调函数
+ * @param  buf              接收缓冲区(NULL则尝试动态分配)
+ * @param  bufSize          缓冲区大小
+ * @retval lfifo_t          LFIFO句柄, NULL:失败
  */
-extern void Uart_FifoRxInit(uart_fifo_rx_t *ctrl, UART_HandleTypeDef *huart,
-                            void (*rxCallback)(uint8_t data));
+extern lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart,
+                                void (*rxCallback)(uint8_t data), uint8_t *buf,
+                                uint16_t bufSize);
 /**
- * @brief 轮询以在主循环中响应串口接收完成回调(cbkInIRQ=0)
+ * @brief 轮询以在主循环中响应串口接收完成回调
  * @note FIFO接收需要该函数, DMA接收在cbkInIRQ=0时也需要该函数
- * @note 若轮询频率小于接收频率, DMA回调请求会被覆盖
+ * @note 若轮询频率小于接收频率, DMA回调请求会粘包
  */
 extern void Uart_CallbackCheck(void);
 
@@ -135,27 +108,20 @@ extern void Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
 #endif
 
 #if _UART_ENABLE_DMA_RX
-typedef struct {  // DMA串口接收控制结构体
-  uint8_t rxBuf[_UART_RX_BUF_SIZE] __ALIGNED(32);   // 接收缓冲区
-  uint8_t buffer[_UART_RX_BUF_SIZE] __ALIGNED(32);  // 接收保存缓冲区
-  __IO uint8_t finished;                            // 接收完成标志位
-  __IO uint16_t len;                                // 接收保存区长度
-  UART_HandleTypeDef *huart;                        // 串口句柄
-  void (*rxCallback)(char *, uint16_t);             // 接收完成回调函数
-  uint8_t cbkInIRQ;  // 回调函数是否在中断中执行
-  void *next;        // 下一个串口接收控制结构体
-} uart_dma_rx_t;
+#include "lfbb.h"
 
 /**
  * @brief 串口DMA接收初始化
- * @param  ctrl             结构体指针
  * @param  huart            目标串口
  * @param  rxCallback       接收完成回调函数
  * @param  cbkInIRQ         回调函数是否在中断中执行
+ * @param  buf              接收缓冲区(NULL则尝试动态分配)
+ * @param  bufSize          缓冲区大小
+ * @retval LFBB_Inst_Type*  LFBB句柄, NULL:失败
  */
-extern void Uart_DmaRxInit(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
-                           void (*rxCallback)(char *data, uint16_t len),
-                           uint8_t cbkInIRQ);
+extern LFBB_Inst_Type *Uart_DmaRxInit(
+    UART_HandleTypeDef *huart, void (*rxCallback)(uint8_t *data, uint16_t len),
+    uint8_t cbkInIRQ, uint8_t *buf, uint16_t bufSize);
 
 /**
  * @brief 串口DMA接收处理，在函数HAL_UARTEx_RxEventCallback中调用

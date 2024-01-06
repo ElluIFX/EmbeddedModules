@@ -6,6 +6,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "ulist.h"
 
 #if 0  // memcpy 实现
 static void uart_memcpy(void *dst, const void *src, uint16_t len) {
@@ -301,58 +302,46 @@ int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
   return 0;
 }
 
-static uart_fifo_rx_t *fifo_rx_entry = NULL;
+typedef struct {                // 中断FIFO串口接收控制结构体
+  lfifo_t fifo;                 // 接收保存区
+  uint8_t tmp;                  // 临时变量
+  UART_HandleTypeDef *huart;    // 串口句柄
+  void (*rxCallback)(uint8_t);  // 接收完成回调函数
+} uart_fifo_rx_t;
 
-void Uart_FifoRxInit(uart_fifo_rx_t *ctrl, UART_HandleTypeDef *huart,
-                     void (*rxCallback)(uint8_t data)) {
-  ctrl->huart = huart;
-  ctrl->full = 0;
-  ctrl->wr = 0;
-  ctrl->rd = 0;
-  ctrl->rxCallback = rxCallback;
-  ctrl->next = NULL;
-  HAL_UART_Receive_IT(huart, ctrl->fifo, 1);
-  if (!fifo_rx_entry) {
-    fifo_rx_entry = ctrl;
+static ulist_t fifo_rx_list = {
+    .data = NULL,
+    .cap = 0,
+    .num = 0,
+    .isize = sizeof(uart_fifo_rx_t),
+    .cfg = ULIST_CFG_NO_ALLOC_EXTEND,
+};
+
+lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart,
+                         void (*rxCallback)(uint8_t data), uint8_t *buf,
+                         uint16_t bufSize) {
+  uart_fifo_rx_t *ctrl = (uart_fifo_rx_t *)ulist_append(&fifo_rx_list, 1);
+  if (!ctrl) return NULL;
+  if (!buf) {
+    if (LFifo_Init(&ctrl->fifo, bufSize) != 0) {
+      ulist_remove(&fifo_rx_list, ctrl);
+      return NULL;
+    }
   } else {
-    uart_fifo_rx_t *item = fifo_rx_entry;
-    while (item->next) item = item->next;
-    item->next = ctrl;
+    LFifo_AssignBuf(&ctrl->fifo, buf, bufSize);
   }
+  ctrl->huart = huart;
+  ctrl->rxCallback = rxCallback;
+  HAL_UART_Receive_IT(huart, &ctrl->tmp, 1);
+  return &ctrl->fifo;
 }
 
 inline void Uart_RxProcess(UART_HandleTypeDef *huart) {
-  uart_fifo_rx_t *ctrl = fifo_rx_entry;
-  while (ctrl) {
-    if (ctrl->huart != huart) {
-      ctrl = ctrl->next;
-      continue;
-    }
-    if (!ctrl->full) ctrl->wr = (ctrl->wr + 1) % _UART_RX_BUF_SIZE;
-    if (ctrl->wr == (ctrl->rd > 0 ? ctrl->rd - 1 : _UART_RX_BUF_SIZE - 1))
-      ctrl->full = 1;
-    HAL_UART_Receive_IT(ctrl->huart, ctrl->fifo + ctrl->wr, 1);
+  ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
+    if (ctrl->huart != huart) continue;
+    LFifo_WriteByte(&ctrl->fifo, ctrl->tmp);
+    HAL_UART_Receive_IT(ctrl->huart, &ctrl->tmp, 1);
     return;
-  }
-}
-
-static void (*swRxCallback)(char *data, uint16_t len) = NULL;
-static char *swRxData = NULL;
-static uint16_t swRxLen = 0;
-
-void Uart_CallbackCheck(void) {
-  if (swRxCallback != NULL) {
-    swRxCallback(swRxData, swRxLen);
-    swRxCallback = NULL;
-  }
-  uart_fifo_rx_t *ctrl = fifo_rx_entry;
-  while (ctrl) {
-    while (ctrl->rd != ctrl->wr) {
-      ctrl->rxCallback(ctrl->fifo[ctrl->rd]);
-      ctrl->rd = (ctrl->rd + 1) % _UART_RX_BUF_SIZE;
-      ctrl->full = 0;
-    }
-    ctrl = ctrl->next;
   }
 }
 
@@ -364,57 +353,110 @@ inline void Uart_TxProcess(UART_HandleTypeDef *huart) {
 }
 
 #if _UART_ENABLE_DMA_RX
-static uart_dma_rx_t *dma_rx_entry = NULL;
-void Uart_DmaRxInit(uart_dma_rx_t *ctrl, UART_HandleTypeDef *huart,
-                    void (*rxCallback)(char *data, uint16_t len),
-                    uint8_t cbkInIRQ) {
+static uint8_t dma_tmp = 0;
+
+typedef struct {                            // DMA串口接收控制结构体
+  LFBB_Inst_Type lfbb;                      // 接收缓冲区
+  uint8_t *pBuffer;                         // 接收缓冲区
+  size_t pSize;                             // 接收缓冲区大小
+  UART_HandleTypeDef *huart;                // 串口句柄
+  void (*rxCallback)(uint8_t *, uint16_t);  // 接收完成回调函数
+  uint8_t cbkInIRQ;  // 回调函数是否在中断中执行
+} uart_dma_rx_t;
+
+static ulist_t dma_rx_list = {
+    .data = NULL,
+    .cap = 0,
+    .num = 0,
+    .isize = sizeof(uart_dma_rx_t),
+    .cfg = ULIST_CFG_NO_ALLOC_EXTEND,
+};
+
+LFBB_Inst_Type *Uart_DmaRxInit(UART_HandleTypeDef *huart,
+                               void (*rxCallback)(uint8_t *data, uint16_t len),
+                               uint8_t cbkInIRQ, uint8_t *buf,
+                               uint16_t bufSize) {
+  uart_dma_rx_t *ctrl = (uart_dma_rx_t *)ulist_append(&dma_rx_list, 1);
+  if (!ctrl) return NULL;
   ctrl->huart = huart;
-  ctrl->finished = 0;
-  ctrl->len = 0;
-  ctrl->buffer[0] = 0;
   ctrl->rxCallback = rxCallback;
   ctrl->cbkInIRQ = cbkInIRQ;
-  ctrl->next = NULL;
-  HAL_UARTEx_ReceiveToIdle_DMA(huart, ctrl->rxBuf, _UART_RX_BUF_SIZE - 1);
-  if (!dma_rx_entry) {
-    dma_rx_entry = ctrl;
-  } else {
-    uart_dma_rx_t *dma_rx = dma_rx_entry;
-    while (dma_rx->next) dma_rx = dma_rx->next;
-    dma_rx->next = ctrl;
+  if (!buf) {
+    ctrl->lfbb.data = m_alloc(bufSize);
+    if (!ctrl->lfbb.data) {
+      ulist_remove(&dma_rx_list, ctrl);
+      return NULL;
+    }
+    buf = ctrl->lfbb.data;
   }
+  LFBB_Init(&ctrl->lfbb, buf, bufSize);
+  ctrl->pBuffer = LFBB_WriteAcquire2(&ctrl->lfbb, &ctrl->pSize);
+  if (!ctrl->pBuffer) {
+    m_free(ctrl->lfbb.data);
+    ulist_remove(&dma_rx_list, ctrl);
+    return NULL;
+  }
+  HAL_UARTEx_ReceiveToIdle_DMA(huart, ctrl->pBuffer, ctrl->pSize);
+  return &ctrl->lfbb;
 }
 
 inline void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size) {
-  uart_dma_rx_t *dma_rx = dma_rx_entry;
-  while (dma_rx) {
-    if (dma_rx->huart != huart) {
-      dma_rx = dma_rx->next;
-      continue;
-    }
+  size_t len;
+  uint8_t *data;
+  ulist_foreach(&dma_rx_list, uart_dma_rx_t, ctrl) {
+    if (ctrl->huart != huart) continue;
+    if (ctrl->pBuffer != &dma_tmp) {
+      LFBB_WriteRelease(&ctrl->lfbb, Size);
 #if _UART_DCACHE_COMPATIBLE
-    SCB_CleanInvalidateDCache_by_Addr((uint32_t *)dma_rx->rxBuf,
-                                      ((Size + 31) / 32) * 32);
+      SCB_CleanInvalidateDCache_by_Addr((uint32_t *)ctrl->pBuffer,
+                                        ((ctrl->pSize + 31) / 32) * 32);
 #endif
-    uart_memcpy(dma_rx->buffer, dma_rx->rxBuf, Size);
-    dma_rx->len = Size;
-    dma_rx->buffer[Size] = 0;
-    dma_rx->finished = 1;
-    HAL_UARTEx_ReceiveToIdle_DMA(dma_rx->huart, dma_rx->rxBuf,
-                                 _UART_RX_BUF_SIZE - 1);
-    if (dma_rx->rxCallback) {
-      if (dma_rx->cbkInIRQ) {
-        dma_rx->rxCallback((char *)dma_rx->buffer, dma_rx->len);
-      } else {
-        swRxCallback = dma_rx->rxCallback;
-        swRxData = (char *)dma_rx->buffer;
-        swRxLen = dma_rx->len;
-      }
+    }
+    ctrl->pBuffer = LFBB_WriteAcquire2(&ctrl->lfbb, &ctrl->pSize);
+    if (!ctrl->pBuffer) {
+      ctrl->pBuffer = &dma_tmp;
+      ctrl->pSize = 1;
+    }
+    HAL_UARTEx_ReceiveToIdle_DMA(huart, ctrl->pBuffer, ctrl->pSize);
+    if (ctrl->rxCallback && ctrl->cbkInIRQ) {
+      data = LFBB_ReadAcquire(&ctrl->lfbb, &len);
+      if (!data) return;
+      ctrl->rxCallback(data, len);
+      LFBB_ReadRelease(&ctrl->lfbb, len);
     }
     return;
   }
 }
 #endif  // _UART_ENABLE_DMA_RX
+
+static void (*swRxCallback)(char *data, uint16_t len) = NULL;
+static char *swRxData = NULL;
+static uint16_t swRxLen = 0;
+
+void Uart_CallbackCheck(void) {
+  if (swRxCallback != NULL) {
+    swRxCallback(swRxData, swRxLen);
+    swRxCallback = NULL;
+  }
+  int tmp;
+  ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
+    if (ctrl->rxCallback == NULL) continue;
+    while (tmp = LFifo_ReadByte(&ctrl->fifo), tmp >= 0) {
+      ctrl->rxCallback(tmp & 0xFF);
+    }
+  }
+#if _UART_ENABLE_DMA_RX
+  size_t len;
+  uint8_t *data;
+  ulist_foreach(&dma_rx_list, uart_dma_rx_t, ctrl) {
+    if (ctrl->rxCallback == NULL || ctrl->cbkInIRQ) continue;
+    data = LFBB_ReadAcquire(&ctrl->lfbb, &len);
+    if (!data) continue;
+    ctrl->rxCallback(data, len);
+    LFBB_ReadRelease(&ctrl->lfbb, len);
+  }
+#endif  // _UART_ENABLE_DMA_RX
+}
 
 __IO uint8_t uart_error_state = 0;
 
@@ -441,25 +483,19 @@ inline void Uart_ErrorProcess(UART_HandleTypeDef *huart) {
   }
   // 自动重启 DMA
 #if _UART_ENABLE_DMA_RX
-  uart_dma_rx_t *dma_rx = dma_rx_entry;
-  while (dma_rx) {
-    if (dma_rx->huart->Instance == huart->Instance) {
-      HAL_UART_DMAStop(dma_rx->huart);
-      HAL_UARTEx_ReceiveToIdle_DMA(dma_rx->huart, dma_rx->rxBuf,
-                                   _UART_RX_BUF_SIZE - 1);
-      // break;
+  ulist_foreach(&dma_rx_list, uart_dma_rx_t, ctrl) {
+    if (ctrl->huart->Instance == huart->Instance) {
+      HAL_UART_DMAStop(ctrl->huart);
+      HAL_UARTEx_ReceiveToIdle_DMA(huart, ctrl->pBuffer, ctrl->pSize);
     }
-    dma_rx = dma_rx->next;
   }
 #endif
   // 自动重启中断
-  uart_fifo_rx_t *fifo_rx = fifo_rx_entry;
-  while (fifo_rx) {
-    if (fifo_rx->huart->Instance == huart->Instance) {
-      HAL_UART_AbortReceive_IT(fifo_rx->huart);
-      HAL_UART_Receive_IT(fifo_rx->huart, fifo_rx->fifo + fifo_rx->wr, 1);
+  ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
+    if (ctrl->huart->Instance == huart->Instance) {
+      HAL_UART_AbortReceive_IT(ctrl->huart);
+      HAL_UART_Receive_IT(ctrl->huart, &ctrl->tmp, 1);
     }
-    fifo_rx = fifo_rx->next;
   }
 }
 
@@ -547,7 +583,8 @@ __attribute__((constructor(255)))  // 自动Hook
   USBD_Interface_fops_FS.DeInit = Hook_CDC_DeInit_FS;
   USBD_Interface_fops_FS.Control = Hook_CDC_Control_FS;
   USBD_Interface_fops_FS.Receive = Hook_CDC_Receive_FS;
-#if 1  // TransmitCplt 只在部分MCU上支持
+// TransmitCplt 只在部分MCU上支持
+#if __has_keyword(USBD_Interface_fops_FS, TransmitCplt)
   USBD_Interface_fops_FS.TransmitCplt = Hook_CDC_TransmitCplt_FS;
 #endif
 }

@@ -71,6 +71,8 @@ _INLINE fifo_size_t LFifo_GetFree(lfifo_t *fifo) {
   return fifo->size - LFifo_GetUsed(fifo) - 1;
 }
 
+_INLINE bool LFifo_IsEmpty(lfifo_t *fifo) { return (fifo->wr == fifo->rd); }
+
 void LFifo_ClearFill(lfifo_t *fifo, const uint8_t fill_data) {
   memset(fifo->buf, fill_data, fifo->size);
   fifo->wr = 0;
@@ -82,18 +84,18 @@ void LFifo_Clear(lfifo_t *fifo) {
   fifo->rd = 0;
 }
 
-fifo_size_t LFifo_Put(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
+fifo_size_t LFifo_Write(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
   fifo_size_t free_size = LFifo_GetFree(fifo);
   if (len > free_size) len = free_size;
   fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_ACQ);
   fifo_size_t tocpy = len;
   if (len > fifo->size - wr_t) tocpy = fifo->size - wr_t;
-  FIFO_MEMCPY(&fifo->buf[wr_t], data, tocpy);
+  if (data != NULL) FIFO_MEMCPY(&fifo->buf[wr_t], data, tocpy);
   wr_t += tocpy;
   data += tocpy;
   tocpy = len - tocpy;
   if (tocpy) {
-    FIFO_MEMCPY(fifo->buf, data, tocpy);
+    if (data != NULL) FIFO_MEMCPY(fifo->buf, data, tocpy);
     wr_t = tocpy;
   }
   wr_t %= fifo->size;
@@ -101,7 +103,7 @@ fifo_size_t LFifo_Put(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
   return len;
 }
 
-fifo_size_t LFifo_Get(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
+fifo_size_t LFifo_Read(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
   fifo_size_t used_size = LFifo_GetUsed(fifo);
   if (len > used_size) len = used_size;
   if (data == NULL) {  // discard data
@@ -111,12 +113,12 @@ fifo_size_t LFifo_Get(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
   fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_ACQ);
   fifo_size_t tocpy = len;
   if (len > fifo->size - rd_t) tocpy = fifo->size - rd_t;
-  FIFO_MEMCPY(data, &fifo->buf[rd_t], tocpy);
+  if (data != NULL) FIFO_MEMCPY(data, &fifo->buf[rd_t], tocpy);
   rd_t += tocpy;
   data += tocpy;
   tocpy = len - tocpy;
   if (tocpy) {
-    FIFO_MEMCPY(data, fifo->buf, tocpy);
+    if (data != NULL) FIFO_MEMCPY(data, fifo->buf, tocpy);
     rd_t = tocpy;
   }
   rd_t %= fifo->size;
@@ -139,10 +141,8 @@ fifo_size_t LFifo_Peek(lfifo_t *fifo, fifo_size_t offset, uint8_t *data,
   return len;
 }
 
-_INLINE int LFifo_PutByte(lfifo_t *fifo, uint8_t data) {
-  if (LFifo_GetFree(fifo) == 0) {
-    return -1;
-  }
+_INLINE int LFifo_WriteByte(lfifo_t *fifo, uint8_t data) {
+  if (fifo->wr == (fifo->rd + fifo->size - 1) % fifo->size) return -1;
   fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_ACQ);
   fifo->buf[wr_t] = data;
   wr_t = (wr_t + 1) % fifo->size;
@@ -150,10 +150,8 @@ _INLINE int LFifo_PutByte(lfifo_t *fifo, uint8_t data) {
   return 0;
 }
 
-_INLINE int LFifo_GetByte(lfifo_t *fifo) {
-  if (LFifo_GetUsed(fifo) == 0) {
-    return -1;
-  }
+_INLINE int LFifo_ReadByte(lfifo_t *fifo) {
+  if (fifo->wr == fifo->rd) return -1;
   fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_ACQ);
   uint8_t data = fifo->buf[rd_t];
   rd_t = (rd_t + 1) % fifo->size;
@@ -168,7 +166,7 @@ _INLINE int LFifo_PeekByte(lfifo_t *fifo, fifo_size_t offset) {
   return fifo->buf[(fifo->rd + offset) % fifo->size];
 }
 
-uint8_t *LFifo_GetWrPtr(lfifo_t *fifo, fifo_offset_t offset) {
+uint8_t *LFifo_GetWritePtr(lfifo_t *fifo, fifo_offset_t offset) {
   fifo_offset_t temp = (fifo_offset_t)fifo->wr + offset;
   while (temp < 0) {
     temp += fifo->size;
@@ -176,7 +174,7 @@ uint8_t *LFifo_GetWrPtr(lfifo_t *fifo, fifo_offset_t offset) {
   return &fifo->buf[temp % fifo->size];
 }
 
-uint8_t *LFifo_GetRdPtr(lfifo_t *fifo, fifo_offset_t offset) {
+uint8_t *LFifo_GetReadPtr(lfifo_t *fifo, fifo_offset_t offset) {
   fifo_offset_t temp = (fifo_offset_t)fifo->rd + offset;
   while (temp < 0) {
     temp += fifo->size;

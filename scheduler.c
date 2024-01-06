@@ -70,43 +70,28 @@ typedef struct {     // 用户任务结构
 } scheduler_task_t;
 #pragma pack()
 
-static struct {
-  ulist_t list;                            // 任务存储区
-  uint16_t priOffset[_TASK_PRIORITY_NUM];  // 各优先级偏移量
-} taskpool = {.list.data = NULL,
-              .list.cap = 0,
-              .list.num = 0,
-              .list.isize = sizeof(scheduler_task_t),
-              .priOffset = {0}};
+static ulist_t tasklist = {.data = NULL,
+                           .cap = 0,
+                           .num = 0,
+                           .isize = sizeof(scheduler_task_t),
+                           .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 
-static scheduler_task_t *insert_task(uint8_t priority) {
-  scheduler_task_t *p;
-  if (priority == _TASK_PRIORITY_NUM - 1) {  // 直接添加到末尾
-    p = (scheduler_task_t *)ulist_append(&taskpool.list, 1);
-    if (p == NULL) return NULL;
-  } else {  // 插入priOffset[priority]前
-    p = (scheduler_task_t *)ulist_insert(&taskpool.list,
-                                         taskpool.priOffset[priority + 1], 1);
-    if (p == NULL) return NULL;
-    for (uint16_t i = priority + 1; i < _TASK_PRIORITY_NUM; i++) {
-      taskpool.priOffset[i]++;
-    }
-  }
-  return p;
+static int taskcmp(const void *a, const void *b) {
+  int priority1 = ((scheduler_task_t *)a)->priority;
+  int priority2 = ((scheduler_task_t *)b)->priority;
+  return priority2 - priority1;
 }
 
 static scheduler_task_t *get_task(const char *name) {
-  ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+  ulist_foreach(&tasklist, scheduler_task_t, task) {
     if (fast_str_check(task->name, name)) return task;
   }
   return NULL;
 }
 
-static void delete_task(uint16_t i) {
-  for (uint8_t j = 0; j <= _TASK_PRIORITY_NUM; j++) {
-    if (taskpool.priOffset[j] > i) taskpool.priOffset[j]--;
-  }
-  ulist_delete(&taskpool.list, i, 1);
+static void resort_task(void) {
+  if (tasklist.num <= 1) return;
+  ulist_sort(&tasklist, taskcmp, SLICE_START, SLICE_END);
 }
 
 _STATIC_INLINE void Task_Runner(void) {
@@ -115,9 +100,9 @@ _STATIC_INLINE void Task_Runner(void) {
 #if _SCH_DEBUG_REPORT
   __IO const char *old_name;
 #endif  // _SCH_DEBUG_REPORT
-  if (taskpool.list.num) {
+  if (tasklist.num) {
     now = m_tick();
-    ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+    ulist_foreach(&tasklist, scheduler_task_t, task) {
       if (task->enable && (now >= task->lastRun + task->period)) {
         latency = now - (task->lastRun + task->period);
         if (latency <= _SCH_COMP_RANGE)
@@ -149,9 +134,8 @@ _STATIC_INLINE void Task_Runner(void) {
 }
 
 bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
-                    uint8_t enable, TASK_PRIORITY priority, void *args) {
-  if (priority >= _TASK_PRIORITY_NUM) priority = _TASK_PRIORITY_NUM - 1;
-  scheduler_task_t *p = insert_task(priority);
+                    uint8_t enable, uint8_t priority, void *args) {
+  scheduler_task_t *p = (scheduler_task_t *)ulist_append(&tasklist, 1);
   if (p == NULL) return false;
   p->task = func;
   p->enable = enable;
@@ -161,14 +145,15 @@ bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
   p->lastRun = m_tick() - p->period;
   p->name = name;
   p->args = args;
+  resort_task();
   return true;
 }
 
 bool Sch_DeleteTask(const char *name) {
-  if (taskpool.list.num == 0) return false;
-  ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+  if (tasklist.num == 0) return false;
+  ulist_foreach(&tasklist, scheduler_task_t, task) {
     if (fast_str_check(task->name, name)) {
-      delete_task(task - (scheduler_task_t *)taskpool.list.data);
+      ulist_delete(&tasklist, task - (scheduler_task_t *)tasklist.data, 1);
       return true;
     }
   }
@@ -177,16 +162,11 @@ bool Sch_DeleteTask(const char *name) {
 
 bool Sch_IsTaskExist(const char *name) { return get_task(name) != NULL; }
 
-bool Sch_SetTaskPriority(const char *name, TASK_PRIORITY priority) {
-  if (priority >= _TASK_PRIORITY_NUM) priority = _TASK_PRIORITY_NUM - 1;
+bool Sch_SetTaskPriority(const char *name, uint8_t priority) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return false;
-  scheduler_task_t temp = {0};
-  memcpy(&temp, p, sizeof(scheduler_task_t));
-  delete_task(p - (scheduler_task_t *)taskpool.list.data);
-  p = insert_task(priority);
-  memcpy(p, &temp, sizeof(scheduler_task_t));
   p->priority = priority;
+  resort_task();
   return true;
 }
 
@@ -200,7 +180,7 @@ bool Sch_DelayTask(const char *name, m_time_t delayUs, uint8_t fromNow) {
   return true;
 }
 
-uint16_t Sch_GetTaskNum(void) { return taskpool.list.num; }
+uint16_t Sch_GetTaskNum(void) { return tasklist.num; }
 
 bool Sch_SetTaskState(const char *name, uint8_t enable) {
   scheduler_task_t *p = get_task(name);
@@ -244,8 +224,11 @@ typedef struct {    // 事件任务结构
 } scheduler_event_t;
 #pragma pack()
 
-static ulist_t eventlist = {
-    .data = NULL, .cap = 0, .num = 0, .isize = sizeof(scheduler_event_t)};
+static ulist_t eventlist = {.data = NULL,
+                            .cap = 0,
+                            .num = 0,
+                            .isize = sizeof(scheduler_event_t),
+                            .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 static __IO uint8_t event_modified = 0;
 
 _STATIC_INLINE void Event_Runner(void) {
@@ -380,8 +363,11 @@ typedef struct {        // 协程任务结构
 } scheduler_coron_t;
 #pragma pack()
 
-static ulist_t coronlist = {
-    .data = NULL, .cap = 0, .num = 0, .isize = sizeof(scheduler_coron_t)};
+static ulist_t coronlist = {.data = NULL,
+                            .cap = 0,
+                            .num = 0,
+                            .isize = sizeof(scheduler_coron_t),
+                            .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 
 __coron_handle_t *__coron_hp = {0};
 static __IO uint8_t cr_modified = 0;
@@ -513,8 +499,11 @@ typedef struct {       // 延时调用任务结构
 } scheduler_call_later_t;
 #pragma pack()
 
-static ulist_t clist = {
-    .data = NULL, .cap = 0, .num = 0, .isize = sizeof(scheduler_call_later_t)};
+static ulist_t clist = {.data = NULL,
+                        .cap = 0,
+                        .num = 0,
+                        .isize = sizeof(scheduler_call_later_t),
+                        .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 
 _STATIC_INLINE void CallLater_Runner(void) {
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
@@ -613,12 +602,12 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
     m_time_t other = period;
     LOG_RAWLN("");
 #if _SCH_ENABLE_TASK
-    if (taskpool.list.num) {
+    if (tasklist.num) {
       LOG_RAW(T_FMT(T_RESET, T_BOLD, T_BLUE));
       LOG_RAWLN("[ Task Report ]------------------------------------------");
       LOG_RAWLN(" No | Pri | Run | Tmax  | Usage | LTavg | LTmax | Name");
       i = 0;
-      ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+      ulist_foreach(&tasklist, scheduler_task_t, task) {
         if (task->enable) {
           usage = (double)task->total_cost / period * 100;
           if ((task->last_usage != 0 && usage / task->last_usage > 2) ||
@@ -732,7 +721,7 @@ _STATIC_INLINE void DebugInfo_Runner(void) {
   }
   offset = m_tick() - offset;
 #if _SCH_ENABLE_TASK
-  ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+  ulist_foreach(&tasklist, scheduler_task_t, task) {
     task->lastRun += offset;
     task->max_cost = 0;
     task->total_cost = 0;
@@ -775,12 +764,12 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   if (embeddedCliCheckToken(args, "list", 1)) {
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Tasks list:" T_FMT(T_RESET, T_GREEN));
-    ulist_foreach(&taskpool.list, scheduler_task_t, task) {
+    ulist_foreach(&tasklist, scheduler_task_t, task) {
       LOG_RAWLN("  %s: 0x%p pri:%d freq:%.1f en:%d", task->name, task->task,
                 task->priority, (double)m_tick_clk / task->period,
                 task->enable);
     }
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d tasks" T_RST, taskpool.list.num);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d tasks" T_RST, tasklist.num);
     return;
   }
   if (argc < 2) {

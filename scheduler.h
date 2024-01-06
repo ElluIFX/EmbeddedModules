@@ -19,17 +19,6 @@ typedef void (*sch_func_t)(void *args);  // 任务函数指针类型
 
 #if _SCH_ENABLE_TASK
 
-typedef enum {                // 任务优先级
-  TASK_PRIORITY_HIGHEST = 0,  // 最高优先级
-  TASK_PRIORITY_HIGHER,       // 较高优先级
-  TASK_PRIORITY_HIGH,         // 高优先级
-  TASK_PRIORITY_NORMAL,       // 正常优先级
-  TASK_PRIORITY_LOW,          // 低优先级
-  TASK_PRIORITY_LOWER,        // 较低优先级
-  TASK_PRIORITY_LOWEST,       // 最低优先级
-  _TASK_PRIORITY_NUM,
-} TASK_PRIORITY;
-
 /**
  * @brief 时分调度器主函数
  * @param  block            是否阻塞
@@ -43,12 +32,12 @@ extern void Scheduler_Run(const uint8_t block, const m_time_t sleep_us);
  * @param  func             任务函数指针
  * @param  freqHz           任务调度频率
  * @param  enable           初始化时是否使能
- * @param  priority         任务优先级
+ * @param  priority         任务优先级(越大优先级越高)
  * @param  args             任务参数
  * @retval bool             是否成功
  */
 extern bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
-                           uint8_t enable, TASK_PRIORITY priority, void *args);
+                           uint8_t enable, uint8_t priority, void *args);
 
 /**
  * @brief 切换任务使能状态
@@ -79,7 +68,7 @@ extern bool Sch_SetTaskFreq(const char *name, float freqHz);
  * @param  priority         任务优先级
  * @retval bool             是否成功
  */
-extern bool Sch_SetTaskPriority(const char *name, TASK_PRIORITY priority);
+extern bool Sch_SetTaskPriority(const char *name, uint8_t priority);
 
 /**
  * @brief 查询任务是否存在

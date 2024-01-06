@@ -98,6 +98,35 @@ uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, const size_t free_required) {
   return NULL;
 }
 
+uint8_t *LFBB_WriteAcquire2(LFBB_Inst_Type *inst, size_t *available) {
+  assert(inst != NULL);
+  assert(inst->data != NULL);
+
+  /* Preload variables with adequate memory ordering */
+  const size_t w = atomic_load_explicit(&inst->w, memory_order_relaxed);
+  const size_t r = atomic_load_explicit(&inst->r, memory_order_acquire);
+  const size_t size = inst->size;
+
+  const size_t free = CalcFree(w, r, size);
+  const size_t linear_space = size - w;
+  const size_t linear_free = MIN(free, linear_space);
+
+  /* Try to find enough linear space until the end of the buffer */
+
+  if (free - linear_free <= linear_free) {
+    *available = linear_free;
+    return &inst->data[w];
+  } else {
+    inst->write_wrapped = true;
+    *available = free - linear_free;
+    return &inst->data[0];
+  }
+
+  /* Could not find free linear space with required size */
+  *available = 0;
+  return NULL;
+}
+
 void LFBB_WriteRelease(LFBB_Inst_Type *inst, const size_t written) {
   assert(inst != NULL);
   assert(inst->data != NULL);

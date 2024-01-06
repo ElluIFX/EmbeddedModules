@@ -105,6 +105,14 @@ void LFBB_Init(LFBB_Inst_Type *inst, uint8_t *data_array, size_t size);
 uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, size_t free_required);
 
 /**
+ * @brief Acquires a linear region in the bipartite buffer for writing
+ * @param[in] Instance pointer
+ * @param[out] Available linear space in the buffer
+ * @retval Pointer to the beginning of the linear space
+ */
+uint8_t *LFBB_WriteAcquire2(LFBB_Inst_Type *inst, size_t *available);
+
+/**
  * @brief Releases the bipartite buffer after a write
  * @param[in] Instance pointer
  * @param[in] Bytes written to the linear space
