@@ -17,14 +17,24 @@ extern "C" {
 
 typedef void (*sch_func_t)(void *args);  // 任务函数指针类型
 
-#if _SCH_ENABLE_TASK
+/**
+ * @brief 调度器主函数
+ * @param  block            是否阻塞, 若不阻塞则应将此函数放在SuperLoop中
+ * @retval m_time_t         返回时间: 距离下一次调度的时间(us)
+ * @note block=0时. SuperLoop应保证在返回时间前交还CPU以最小化调度延迟
+ * @note block=1时. 查看Scheduler_Idle_Callback函数说明
+ **/
+extern m_time_t Scheduler_Run(const uint8_t block);
 
 /**
- * @brief 时分调度器主函数
- * @param  block            是否阻塞
- * @param  sleep_us         block每轮休眠时间, 用于RTOS
- **/
-extern void Scheduler_Run(const uint8_t block, const m_time_t sleep_us);
+ * @brief 调度器空闲回调函数, 由用户实现(block=1时调用)
+ * @param  idleTimeUs      空闲时间(us)
+ * @note  应保证在空闲时间前交还CPU以最小化调度延迟
+ * @note  可在此函数内实现低功耗
+ */
+extern void Scheduler_Idle_Callback(m_time_t idleTimeUs);
+
+#if _SCH_ENABLE_TASK
 
 /**
  * @brief 创建一个调度任务
@@ -152,11 +162,11 @@ typedef enum {          // 协程模式
 typedef struct {                // 协程句柄结构
   m_time_t yieldUntil;          // 等待态结束时间(us)
   long ptr[_SCH_CR_MAX_DEPTH];  // 协程跳入地址
-  uint8_t depth;                // 协程当前深度
+  uint8_t depth;                // 协程当前嵌套深度
   void *msg;                    // 协程消息指针
-} __coron_handle_t;
+} __cortn_handle_t;
 #pragma pack()
-extern __coron_handle_t *__coron_hp;
+extern __cortn_handle_t *__cortn_hp;
 
 /**
  * @brief 初始化协程, 在协程函数开头调用
@@ -165,11 +175,11 @@ extern __coron_handle_t *__coron_hp;
   do {                                                          \
   crap:;                                                        \
     void *pcrap = &&crap;                                       \
-    if (__coron_hp) {                                           \
-      __coron_hp->depth++;                                      \
-      if (__coron_hp->depth >= _SCH_CR_MAX_DEPTH) CR_END();     \
-      if ((__coron_hp->ptr[__coron_hp->depth - 1]) != 0)        \
-        goto *(void *)(__coron_hp->ptr[__coron_hp->depth - 1]); \
+    if (__cortn_hp) {                                           \
+      __cortn_hp->depth++;                                      \
+      if (__cortn_hp->depth >= _SCH_CR_MAX_DEPTH) CR_END();     \
+      if ((__cortn_hp->ptr[__cortn_hp->depth - 1]) != 0)        \
+        goto *(void *)(__cortn_hp->ptr[__cortn_hp->depth - 1]); \
     }                                                           \
   } while (0)
 
@@ -179,14 +189,14 @@ extern __coron_handle_t *__coron_hp;
 #define CR_YIELD()                                          \
   do {                                                      \
     __label__ l;                                            \
-    if (__coron_hp) {                                       \
-      (__coron_hp->ptr[__coron_hp->depth - 1]) = (long)&&l; \
-      __coron_hp->depth--;                                  \
+    if (__cortn_hp) {                                       \
+      (__cortn_hp->ptr[__cortn_hp->depth - 1]) = (long)&&l; \
+      __cortn_hp->depth--;                                  \
       return;                                               \
     }                                                       \
   l:;                                                       \
-    if (__coron_hp) {                                       \
-      (__coron_hp->ptr[__coron_hp->depth - 1]) = 0;         \
+    if (__cortn_hp) {                                       \
+      (__cortn_hp->ptr[__cortn_hp->depth - 1]) = 0;         \
     }                                                       \
   } while (0)
 
@@ -196,17 +206,17 @@ extern __coron_handle_t *__coron_hp;
 #define CR_CALL(func)                                       \
   do {                                                      \
     __label__ l;                                            \
-    if (__coron_hp) {                                       \
-      (__coron_hp->ptr[__coron_hp->depth - 1]) = (long)&&l; \
+    if (__cortn_hp) {                                       \
+      (__cortn_hp->ptr[__cortn_hp->depth - 1]) = (long)&&l; \
     }                                                       \
   l:;                                                       \
     func;                                                   \
-    if (__coron_hp) {                                       \
-      if (__coron_hp->ptr[__coron_hp->depth]) {             \
-        __coron_hp->depth--;                                \
+    if (__cortn_hp) {                                       \
+      if (__cortn_hp->ptr[__cortn_hp->depth]) {             \
+        __cortn_hp->depth--;                                \
         return;                                             \
       } else {                                              \
-        (__coron_hp->ptr[__coron_hp->depth - 1]) = 0;       \
+        (__cortn_hp->ptr[__cortn_hp->depth - 1]) = 0;       \
       }                                                     \
     }                                                       \
   } while (0)
@@ -216,20 +226,20 @@ extern __coron_handle_t *__coron_hp;
  */
 #define CR_END()                                  \
   do {                                            \
-    if (__coron_hp) {                             \
-      __coron_hp->ptr[__coron_hp->depth - 1] = 0; \
-      __coron_hp->depth--;                        \
+    if (__cortn_hp) {                             \
+      __cortn_hp->ptr[__cortn_hp->depth - 1] = 0; \
+      __cortn_hp->depth--;                        \
     }                                             \
     return;                                       \
   } while (0)
 
 /**
- * @brief 等待唤醒
+ * @brief 等待消息并唤醒
  */
-#define CR_WAIT_FOR_WAKEUP()      \
+#define CR_WAIT_FOR_MSG()         \
   do {                            \
-    if (__coron_hp) {             \
-      __coron_hp->yieldUntil = 0; \
+    if (__cortn_hp) {             \
+      __cortn_hp->yieldUntil = 0; \
       CR_YIELD();                 \
     }                             \
   } while (0)
@@ -238,16 +248,21 @@ extern __coron_handle_t *__coron_hp;
  * @brief 获取信箱指针并清空信箱
  */
 static inline void *CR_GET_MSG(void) {
-  if (!__coron_hp) return NULL;
-  void *msg = __coron_hp->msg;
-  __coron_hp->msg = NULL;
+  if (!__cortn_hp) return NULL;
+  void *msg = __cortn_hp->msg;
+  __cortn_hp->msg = NULL;
   return msg;
 }
 
 /**
+ * @brief 查询是否有消息
+ */
+#define CR_HAS_MSG() (__cortn_hp && __cortn_hp->msg != NULL)
+
+/**
  * @brief 检查当前是否是协程上下文
  */
-#define CR_IS_CORON() (__coron_hp != NULL)
+#define CR_IS_CORTN() (__cortn_hp != NULL)
 
 /**
  * @brief 无阻塞等待直到条件满足
@@ -262,8 +277,8 @@ static inline void *CR_GET_MSG(void) {
  */
 #define CR_DELAY_US(us)                              \
   do {                                               \
-    if (__coron_hp) {                                \
-      __coron_hp->yieldUntil = get_system_us() + us; \
+    if (__cortn_hp) {                                \
+      __cortn_hp->yieldUntil = get_system_us() + us; \
       CR_YIELD();                                    \
     }                                                \
   } while (0)
@@ -282,7 +297,7 @@ static inline void *CR_GET_MSG(void) {
  * @param  args             任务参数
  * @retval bool             是否成功
  */
-extern bool Sch_CreateCoron(const char *name, sch_func_t func, uint8_t enable,
+extern bool Sch_CreateCortn(const char *name, sch_func_t func, uint8_t enable,
                             CR_MODE mode, void *args);
 
 /**
@@ -292,7 +307,7 @@ extern bool Sch_CreateCoron(const char *name, sch_func_t func, uint8_t enable,
  * @param  clearState      是否清除协程状态(从头开始执行)
  * @retval bool            是否成功
  */
-extern bool Sch_SetCoronState(const char *name, uint8_t enable,
+extern bool Sch_SetCortnState(const char *name, uint8_t enable,
                               uint8_t clearState);
 
 /**
@@ -300,47 +315,40 @@ extern bool Sch_SetCoronState(const char *name, uint8_t enable,
  * @param  name            协程名
  * @retval bool            是否成功
  */
-extern bool Sch_DeleteCoron(const char *name);
+extern bool Sch_DeleteCortn(const char *name);
 
 /**
  * @brief 获取调度器内协程数量
  */
-extern uint16_t Sch_GetCoronNum(void);
+extern uint16_t Sch_GetCortnNum(void);
 
 /**
  * @brief 查询指定协程的协程是否存在
  * @param  name             协程名
  * @retval bool             协程是否存在
  */
-extern bool Sch_IsCoronExist(const char *name);
+extern bool Sch_IsCortnExist(const char *name);
 
 /**
- * @brief 查询指定协程是否处于等待唤醒状态
+ * @brief 查询指定协程是否处于等待消息状态
  * @param  name             协程名
- * @retval bool             协程是否处于等待唤醒状态
+ * @retval bool             协程是否处于等待消息状态
  */
-extern bool Sch_IsCoronWaitForWakeUp(const char *name);
+extern bool Sch_IsCortnWaitForMsg(const char *name);
 
 /**
- * @brief 唤醒指定协程
- * @param  name             协程名
- * @retval bool             是否成功
- */
-extern bool Sch_WakeUpCoron(const char *name);
-
-/**
- * @brief 发送消息给指定协程
+ * @brief 发送消息给指定协程并唤醒
  * @param  name             协程名
  * @param  msg              消息指针
  * @retval bool             是否成功
  */
-extern bool Sch_SendMsgToCoron(const char *name, void *msg);
+extern bool Sch_SendMsgToCortn(const char *name, void *msg);
 
 /**
  * @brief 运行一次协程, 执行完毕后自动删除
  */
-#define Sch_RunCorontine(func, args) \
-  Sch_CreateCoron(#func, func, 1, CR_MODE_AUTODEL, args)
+#define Sch_RunCoroutine(func, args) \
+  Sch_CreateCortn(#func, func, 1, CR_MODE_AUTODEL, args)
 
 #endif  // _SCH_ENABLE_COROUTINE
 
@@ -372,24 +380,18 @@ extern void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel);
 
 /**
  * @brief 软中断回调函数
+ * @param  mainChannel    主通道(0-7)
  * @param  subMask        8个子通道掩码(1 << subChannel)
  * @note  调度器自动调用, 由用户实现
  */
-extern void Scheduler_SoftInt_Handler_Ch0(uint8_t subMask),
-    Scheduler_SoftInt_Handler_Ch1(uint8_t subMask),
-    Scheduler_SoftInt_Handler_Ch2(uint8_t subMask),
-    Scheduler_SoftInt_Handler_Ch3(uint8_t subMask),
-    Scheduler_SoftInt_Handler_Ch4(uint8_t subMask),
-    Scheduler_SoftInt_Handler_Ch5(uint8_t subMask),
-    Scheduler_SoftInt_Handler_Ch6(uint8_t subMask),
-    Scheduler_SoftInt_Handler_Ch7(uint8_t subMask);
+extern void Scheduler_SoftInt_Handler(uint8_t mainChannel, uint8_t subMask);
 
 #endif  // _SCH_ENABLE_SOFTINT
 
 #if _SCH_ENABLE_TERMINAL
 #include "embedded_cli.h"
 /**
- * @brief 添加调度器相关的终端命令(task/event/coron/softint)
+ * @brief 添加调度器相关的终端命令(task/event/cortn/softint)
  */
 extern void Sch_AddCmdToCli(EmbeddedCli *cli);
 #endif  // _SCH_ENABLE_TERMINAL

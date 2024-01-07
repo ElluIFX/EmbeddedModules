@@ -32,9 +32,9 @@ typedef uint32_t m_time_t;
 #define m_time_ns() (HAL_GetTick() * 1000000)
 #define m_time_s() (HAL_GetTick() / 1000)
 #define m_tick() HAL_GetTick()
-#define m_tick_clk (1000)
-#define m_tick_per_ms (1)
-#define m_tick_per_us (0.001)
+#define m_tick_clk(type) ((type)1000)
+#define m_tick_per_ms(type) ((type)1)
+#define m_tick_per_us(type) ((type)0.001)
 #elif _MOD_TIME_MATHOD == 1  // perf_counter
 #include "perf_counter.h"
 typedef int64_t m_time_t;
@@ -44,9 +44,9 @@ typedef int64_t m_time_t;
 #define m_time_ns() (get_system_us() * 1000)
 #define m_time_s() (get_system_ms() / 1000)
 #define m_tick() get_system_ticks()
-#define m_tick_clk (SystemCoreClock)
-#define m_tick_per_ms ((double)SystemCoreClock / 1000)
-#define m_tick_per_us ((double)SystemCoreClock / 1000000)
+#define m_tick_clk(type) ((type)SystemCoreClock)
+#define m_tick_per_ms(type) ((type)SystemCoreClock / 1000)
+#define m_tick_per_us(type) ((type)SystemCoreClock / 1000000)
 #else
 #error "MOD_TIME_MATHOD invalid"
 #endif  // _MOD_TIME_MATHOD
@@ -90,7 +90,6 @@ typedef int64_t m_time_t;
 #define m_alloc(size) heap_alloc(size)
 #define m_free(ptr) heap_free((ptr))
 #define m_realloc(ptr, size) heap_realloc((ptr), size)
-#define m_usage() heap_usage_percent()
 #elif _MOD_HEAP_MATHOD == 3  // freertos
 #include "FreeRTOS.h"
 #define m_alloc(size) vPortMalloc(size)
@@ -123,6 +122,12 @@ typedef int64_t m_time_t;
 #else
 #error "MOD_USE_OS invalid"
 #endif
+
+// 触发调试断点
+#define MOD_TRIG_DEBUG_HALT() \
+  if (CoreDebug->DHCSR & 1) { \
+    __breakpoint(0);          \
+  }
 
 #define ENABLE 0x01
 #define DISABLE 0x00

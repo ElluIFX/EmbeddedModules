@@ -102,8 +102,9 @@ extern void Uart_ErrorProcess(UART_HandleTypeDef *huart);
  * @param  huart         目标串口
  * @param  buffer        发送缓冲区, 若为NULL则尝试动态分配
  * @param  bufSize       缓冲区大小
+ * @retval int           0:成功 -1:失败
  */
-extern void Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
+extern int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
                             uint16_t bufSize);
 #endif
 

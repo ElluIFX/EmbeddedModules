@@ -102,6 +102,15 @@ extern "C" {
 #endif  // _LOG_ENABLE_FUNC_LINE
 #if _LOG_ENABLE_DEBUG
 
+#if _LOG_EF_TRIG_DEBUG_HALT
+#define _DBG_LOG_EF(hd, level, color, end, fmt, args...) \
+  _DBG_LOG_FL(hd, level, color, end, fmt, ##args);       \
+  MOD_TRIG_DEBUG_HALT()
+#else
+#define _DBG_LOG_EF(hd, level, color, end, fmt, args...) \
+  _DBG_LOG_FL(hd, level, color, end, fmt, ##args)
+#endif  // _LOG_EF_TRIG_DEBUG_HALT
+
 /**
  * @brief 调试日志输出
  */
@@ -127,14 +136,14 @@ extern "C" {
  * @brief 错误日志输出
  */
 #define LOG_E(fmt, args...) \
-  _DBG_LOG_FL("", "E", _LOG_E_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_EF("", "E", _LOG_E_COLOR, _LOG_ENDL, fmt, ##args)
 #endif
 #if _LOG_ENABLE_FATAL
 /**
  * @brief 致命错误日志输出
  */
 #define LOG_F(fmt, args...) \
-  _DBG_LOG_FL("", "F", _LOG_F_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_EF("", "F", _LOG_F_COLOR, _LOG_ENDL, fmt, ##args)
 #endif
 /**
  * @brief 原始日志输出

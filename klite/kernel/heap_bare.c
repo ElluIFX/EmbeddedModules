@@ -97,10 +97,7 @@ static void heap_mutex_unlock(void) {
 
 __weak void heap_fault_handler(void) {
   LOG_ERROR("heap fault");
-
-  if (CoreDebug->DHCSR & 1) {  // check C_DEBUGEN == 1 -> Debugger Connected
-    __breakpoint(0);           // halt program execution here
-  }
+  MOD_TRIG_DEBUG_HALT();
 }
 
 void heap_create(void *addr, uint32_t size) {

@@ -560,8 +560,14 @@ EmbeddedCli *embeddedCliNew(EmbeddedCliConfig *config) {
   return cli;
 }
 
+static void defaultWriteChar(EmbeddedCli *embeddedCli, char c) { putchar(c); }
+
 EmbeddedCli *embeddedCliNewDefault(void) {
-  return embeddedCliNew(embeddedCliDefaultConfig());
+  EmbeddedCli *cli = embeddedCliNew(embeddedCliDefaultConfig());
+  if (cli != NULL) {
+    cli->writeChar = defaultWriteChar;
+  }
+  return cli;
 }
 
 void embeddedCliReceiveChar(EmbeddedCli *cli, char c) {

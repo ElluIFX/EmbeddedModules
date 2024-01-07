@@ -22,7 +22,7 @@ __attribute__((always_inline)) void SchedulerLite_Run(const uint8_t block) {
     schTaskList = (scheduler_task_t *)(&_sch_task_start_ + 1);
     for (uint16_t i = 0; schTaskList[i].task != NULL; i++) {
       schTaskList[i].period =
-          (m_time_t)m_tick_clk * schTaskList[i].period / 1000;
+          m_tick_clk(m_time_t) * schTaskList[i].period / 1000;
     }
     inited = 1;
   }

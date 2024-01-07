@@ -9,6 +9,7 @@
  */
 #include "lfifo.h"
 
+
 #if FIFO_DISABLE_ATOMIC
 #define FIFO_INIT(var, val) (var) = (val)
 #define FIFO_LOAD(var, type) (var)
@@ -72,6 +73,10 @@ _INLINE fifo_size_t LFifo_GetFree(lfifo_t *fifo) {
 }
 
 _INLINE bool LFifo_IsEmpty(lfifo_t *fifo) { return (fifo->wr == fifo->rd); }
+
+_INLINE bool LFifo_IsFull(lfifo_t *fifo) {
+  return ((fifo->wr + 1) % fifo->size == fifo->rd);
+}
 
 void LFifo_ClearFill(lfifo_t *fifo, const uint8_t fill_data) {
   memset(fifo->buf, fill_data, fifo->size);

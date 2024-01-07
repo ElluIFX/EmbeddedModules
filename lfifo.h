@@ -108,6 +108,12 @@ extern fifo_size_t LFifo_GetUsed(lfifo_t *fifo);
 extern bool LFifo_IsEmpty(lfifo_t *fifo);
 
 /**
+ * @brief 判断FIFO是否已满
+ * @param  fifo             FIFO对象
+ */
+extern bool LFifo_IsFull(lfifo_t *fifo);
+
+/**
  * @brief 清空FIFO并填充数据
  * @param  fifo             FIFO对象
  * @param  fill_data        清空FIFO时填充的数据
