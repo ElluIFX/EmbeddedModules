@@ -1,15 +1,14 @@
 #include "uart_pack.h"
 
+#include <stdarg.h>
+#include <string.h>
+
+#include "lfbb.h"
 #include "lwprintf.h"
-#include "macro.h"
-#include "stdarg.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
 #include "ulist.h"
 
 #if 0  // memcpy 实现
-static void uart_memcpy(void *dst, const void *src, uint16_t len) {
+static inline void uart_memcpy(void *dst, const void *src, uint16_t len) {
   uint8_t *dst8 = (uint8_t *)dst;
   uint8_t *src8 = (uint8_t *)src;
   while (len--) {
@@ -47,8 +46,8 @@ static inline void _send_func(UART_HandleTypeDef *huart, uint8_t *data,
 
 #if _UART_ENABLE_FIFO_TX
 typedef struct {              // FIFO串口发送控制结构体
-  lfifo_t fifo;               // 发送保存区
-  uint16_t sending;           // 正在发送的数据长度
+  LFBB_Inst_Type lfbb;        // 发送缓冲区
+  size_t sending;             // 正在发送的数据长度
   UART_HandleTypeDef *huart;  // 串口句柄
 #if _MOD_USE_OS
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
@@ -63,20 +62,19 @@ static ulist_t fifo_tx_list = {
     .cfg = ULIST_CFG_NO_ALLOC_EXTEND,
 };
 
-static int fifo_lwprintf_fn(int ch, lwprintf_t *lwobj);
-int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
-                    uint16_t bufSize) {
+int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf, uint16_t bufSize) {
   if (!bufSize) return -1;
   uart_fifo_tx_t *ctrl = (uart_fifo_tx_t *)ulist_append(&fifo_tx_list, 1);
   if (!ctrl) return -1;
-  if (buffer) {
-    LFifo_AssignBuf(&ctrl->fifo, buffer, bufSize);
-  } else {
-    if (LFifo_Init(&ctrl->fifo, bufSize) != 0) {
+  if (!buf) {
+    ctrl->lfbb.data = m_alloc(bufSize);
+    if (!ctrl->lfbb.data) {
       ulist_remove(&fifo_tx_list, ctrl);
-      return -1;
+      return NULL;
     }
+    buf = ctrl->lfbb.data;
   }
+  LFBB_Init(&ctrl->lfbb, buf, bufSize);
   ctrl->huart = huart;
   ctrl->sending = 0;
 #if _MOD_USE_OS
@@ -97,71 +95,82 @@ static void fifo_exchange(uart_fifo_tx_t *ctrl, uint8_t force) {
   UART_HandleTypeDef *huart = ctrl->huart;
   if (!force && _UART_NOT_READY) return;  // 串口正在发送
   if (ctrl->sending) {
-    LFifo_ReleaseLinearRead(&ctrl->fifo, ctrl->sending);
+    LFBB_ReadRelease(&ctrl->lfbb, ctrl->sending);
     ctrl->sending = 0;
   }
-  if (LFifo_IsEmpty(&ctrl->fifo)) return;  // FIFO为空
-  uint8_t *data = LFifo_AcquireLinearRead(&ctrl->fifo, &ctrl->sending);
-  if (!data) return;
-  _send_func(huart, data, ctrl->sending);
+  uint8_t *data = LFBB_ReadAcquire(&ctrl->lfbb, &ctrl->sending);
+  if (data) {
+    _send_func(huart, data, ctrl->sending);
+  } else {
+    ctrl->sending = 0;
+  }
 }
 
-static inline int wait_fifo(uart_fifo_tx_t *ctrl, uint16_t len) {
+static inline uint8_t *wait_fifo(uart_fifo_tx_t *ctrl, const bool is2,
+                                 uint16_t len, size_t *len2) {
 #if _UART_FIFO_TIMEOUT < 0
-  return -1;
+  if (is2) {
+    return LFBB_WriteAcquire2(&ctrl->lfbb, len2);
+  } else {
+    return LFBB_WriteAcquire(&ctrl->lfbb, len);
+  }
 #else
 #if _UART_FIFO_TIMEOUT > 0
   m_time_t _start_time = m_time_ms();
 #endif  // _UART_FIFO_TIMEOUT
-  while (LFifo_GetFree(&ctrl->fifo) < len) {
+  uint8_t *data;
+  while (1) {
+    if (is2) {
+      data = LFBB_WriteAcquire2(&ctrl->lfbb, len2);
+    } else {
+      data = LFBB_WriteAcquire(&ctrl->lfbb, len);
+    }
+    if (data) return data;
     fifo_exchange(ctrl, 0);
 #if _UART_FIFO_TIMEOUT > 0
     m_delay_ms(1);
-    if (m_time_ms() - _start_time > _UART_FIFO_TIMEOUT) return -1;
+    if (m_time_ms() - _start_time > _UART_FIFO_TIMEOUT) return NULL;
 #endif  // _UART_FIFO_TIMEOUT
   }
-  return 0;
+  return NULL;
 #endif  // _UART_FIFO_TIMEOUT
 }
 
-static int fifo_send(uart_fifo_tx_t *ctrl, uint8_t *data, uint16_t len) {
-  if (len > ctrl->fifo.size - 1) return -1;
-#if _MOD_USE_OS
+static inline int fifo_send(uart_fifo_tx_t *ctrl, uint8_t *data, uint16_t len) {
+  if (len > ctrl->lfbb.size - 1) return -1;
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
-#endif
-  if (LFifo_GetFree(&ctrl->fifo) < len) {  // FIFO空间不足
-    if (wait_fifo(ctrl, len) < 0) {
-#if _MOD_USE_OS
-      MOD_MUTEX_RELEASE(ctrl->mutex);
-#endif
-      return -1;
-    }
+  uint8_t *buf = wait_fifo(ctrl, false, len, NULL);
+  if (!buf) {
+    MOD_MUTEX_RELEASE(ctrl->mutex);
+    return -1;
   }
-  LFifo_Write(&ctrl->fifo, data, len);
-  fifo_exchange(ctrl, 0);
-#if _MOD_USE_OS
+  uart_memcpy(buf, data, len);
+  LFBB_WriteRelease(&ctrl->lfbb, len);
   MOD_MUTEX_RELEASE(ctrl->mutex);
-#endif
+  fifo_exchange(ctrl, 0);
   return 0;
 }
 
-static int fifo_lwprintf_fn(int ch, lwprintf_t *lwobj) {
-  uart_fifo_tx_t *ctrl = (uart_fifo_tx_t *)lwobj->out_fn_arg;
-  if (ch == '\0') {
-    fifo_exchange(ctrl, 0);
+static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, char *fmt, va_list ap) {
+  size_t sendLen;
+  MOD_MUTEX_ACQUIRE(ctrl->mutex);
+  uint8_t *buf = wait_fifo(ctrl, true, 0, &sendLen);
+  if (!buf) {
+    MOD_MUTEX_RELEASE(ctrl->mutex);
     return 0;
   }
-  if (LFifo_IsFull(&ctrl->fifo)) {  // FIFO空间不足
-    if (wait_fifo(ctrl, 1) < 0) return ch;
-  }
-  LFifo_WriteByte(&ctrl->fifo, ch & 0xFF);
-  return ch;
+  sendLen = lwprintf_vsnprintf((char *)buf, sendLen, fmt, ap);
+  LFBB_WriteRelease(&ctrl->lfbb, sendLen);
+  fifo_exchange(ctrl, 0);
+  MOD_MUTEX_RELEASE(ctrl->mutex);
+  return sendLen;
 }
+
 #endif  // _UART_ENABLE_FIFO_TX
 
 static int pub_lwprintf_fn(int ch, lwprintf_t *lwobj) {
-  UART_HandleTypeDef *huart = (UART_HandleTypeDef *)lwobj->out_fn_arg;
   if (ch == '\0') return 0;
+  UART_HandleTypeDef *huart = (UART_HandleTypeDef *)lwobj->arg;
   if (huart) {
     HAL_UART_Transmit(huart, (uint8_t *)&ch, 1, 0xFFFF);
     return ch;
@@ -175,26 +184,18 @@ int printft(UART_HandleTypeDef *huart, char *fmt, ...) {
   if (unlikely(disable_printft)) return 0;
   int sendLen;
   va_list ap;
-  lwprintf_t lwp_pub;
 #if _UART_ENABLE_FIFO_TX
   uart_fifo_tx_t *ctrl = is_fifo_tx(huart);
   if (ctrl) {
-    lwp_pub.out_fn = fifo_lwprintf_fn;
-    lwp_pub.out_fn_arg = (void *)ctrl;
     va_start(ap, fmt);
-#if _MOD_USE_OS
-    MOD_MUTEX_ACQUIRE(ctrl->mutex);
-#endif
-    sendLen = lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
-#if _MOD_USE_OS
-    MOD_MUTEX_RELEASE(ctrl->mutex);
-#endif
+    sendLen = fifo_send_va(ctrl, fmt, ap);
     va_end(ap);
     return sendLen;
   }
 #endif
+  lwprintf_t lwp_pub;
   lwp_pub.out_fn = pub_lwprintf_fn;
-  lwp_pub.out_fn_arg = (void *)huart;
+  lwp_pub.arg = (void *)huart;
   va_start(ap, fmt);
   sendLen = lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
   va_end(ap);
@@ -205,7 +206,7 @@ void printft_flush(UART_HandleTypeDef *huart) {
 #if _UART_ENABLE_FIFO_TX
   uart_fifo_tx_t *ctrl = is_fifo_tx(huart);
   if (ctrl) {
-    while (!LFifo_IsEmpty(&ctrl->fifo)) {
+    while (!LFBB_IsEmpty(&ctrl->lfbb)) {
       fifo_exchange(ctrl, 0);
     }
   }
@@ -277,11 +278,11 @@ int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
   return 0;
 }
 
-typedef struct {                // 中断FIFO串口接收控制结构体
-  lfifo_t fifo;                 // 接收保存区
-  uint8_t tmp;                  // 临时变量
-  UART_HandleTypeDef *huart;    // 串口句柄
-  void (*rxCallback)(uint8_t);  // 接收完成回调函数
+typedef struct {                      // 中断FIFO串口接收控制结构体
+  lfifo_t fifo;                       // 接收保存区
+  uint8_t tmp;                        // 临时变量
+  UART_HandleTypeDef *huart;          // 串口句柄
+  void (*rxCallback)(lfifo_t *fifo);  // 接收完成回调函数
 } uart_fifo_rx_t;
 
 static ulist_t fifo_rx_list = {
@@ -293,7 +294,7 @@ static ulist_t fifo_rx_list = {
 };
 
 lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart,
-                         void (*rxCallback)(uint8_t data), uint8_t *buf,
+                         void (*rxCallback)(lfifo_t *fifo), uint8_t *buf,
                          uint16_t bufSize) {
   if (!bufSize) return NULL;
   uart_fifo_rx_t *ctrl = (uart_fifo_rx_t *)ulist_append(&fifo_rx_list, 1);
@@ -406,20 +407,17 @@ inline void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size) {
 }
 #endif  // _UART_ENABLE_DMA_RX
 
+#if _UART_ENABLE_CDC
 static void (*swRxCallback)(char *data, uint16_t len) = NULL;
 static char *swRxData = NULL;
 static uint16_t swRxLen = 0;
+#endif  // _UART_ENABLE_CDC
 
 void Uart_CallbackCheck(void) {
-  if (swRxCallback != NULL) {
-    swRxCallback(swRxData, swRxLen);
-    swRxCallback = NULL;
-  }
-  int tmp;
   ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
     if (ctrl->rxCallback == NULL) continue;
-    while (tmp = LFifo_ReadByte(&ctrl->fifo), tmp >= 0) {
-      ctrl->rxCallback(tmp & 0xFF);
+    while (!LFifo_IsEmpty(&ctrl->fifo)) {
+      ctrl->rxCallback(&ctrl->fifo);
     }
   }
 #if _UART_ENABLE_DMA_RX
@@ -433,6 +431,12 @@ void Uart_CallbackCheck(void) {
     LFBB_ReadRelease(&ctrl->lfbb, len);
   }
 #endif  // _UART_ENABLE_DMA_RX
+#if _UART_ENABLE_CDC
+  if (swRxCallback != NULL) {
+    swRxCallback(swRxData, swRxLen);
+    swRxCallback = NULL;
+  }
+#endif  // _UART_ENABLE_CDC
 }
 
 __IO uint8_t uart_error_state = 0;
@@ -458,7 +462,12 @@ inline void Uart_ErrorProcess(UART_HandleTypeDef *huart) {
     __HAL_UART_CLEAR_OREFLAG(huart);
     uart_error_state = 4;
   }
-  // 自动重启 DMA
+  ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
+    if (ctrl->huart->Instance == huart->Instance) {
+      HAL_UART_AbortReceive_IT(ctrl->huart);
+      HAL_UART_Receive_IT(ctrl->huart, &ctrl->tmp, 1);
+    }
+  }
 #if _UART_ENABLE_DMA_RX
   ulist_foreach(&dma_rx_list, uart_dma_rx_t, ctrl) {
     if (ctrl->huart->Instance == huart->Instance) {
@@ -467,13 +476,15 @@ inline void Uart_ErrorProcess(UART_HandleTypeDef *huart) {
     }
   }
 #endif
-  // 自动重启中断
-  ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
-    if (ctrl->huart->Instance == huart->Instance) {
-      HAL_UART_AbortReceive_IT(ctrl->huart);
-      HAL_UART_Receive_IT(ctrl->huart, &ctrl->tmp, 1);
-    }
+#if _UART_ENABLE_FIFO_TX
+  uart_fifo_tx_t *fifo = is_fifo_tx(huart);
+  if (fifo) {
+    HAL_UART_DMAStop(fifo->huart);
+    HAL_UART_AbortTransmit_IT(fifo->huart);
+    fifo->sending = 0;
+    fifo_exchange(fifo, 1);
   }
+#endif
 }
 
 #if _UART_REWRITE_HANLDER  // 重写HAL中断处理函数
@@ -566,10 +577,9 @@ __attribute__((constructor(255)))  // 自动Hook
 #endif
 }
 
-int32_t _cdc_start_time = 0;
 int printfcdc(char *fmt, ...) {
   if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) return -3;
-  _cdc_start_time = m_time_ms();
+  m_time_t _cdc_start_time = m_time_ms();
   while (hcdc->TxState != 0) {  // 检查上一次发送是否完成
 #if _UART_CDC_TIMEOUT > 0
     m_delay_ms(1);
@@ -592,7 +602,7 @@ int printfcdc(char *fmt, ...) {
 }
 
 void printfcdc_flush(void) {
-  _cdc_start_time = m_time_ms();
+  m_time_t _cdc_start_time = m_time_ms();
   while (hcdc->TxState != 0) {
     if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) return;
     m_delay_ms(1);
@@ -602,7 +612,7 @@ void printfcdc_flush(void) {
 
 int CDC_Send(uint8_t *buf, uint16_t len) {
   if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) return -3;
-  _cdc_start_time = m_time_ms();
+  m_time_t _cdc_start_time = m_time_ms();
   while (hcdc->TxState != 0) {  // 检查上一次发送是否完成
 #if _UART_CDC_TIMEOUT > 0
     m_delay_ms(1);
@@ -620,7 +630,7 @@ int CDC_Send(uint8_t *buf, uint16_t len) {
 static const char _cbuf[] = "\r\n";
 
 void CDC_WaitConnect(int timeout_ms) {
-  _cdc_start_time = m_time_ms();
+  m_time_t _cdc_start_time = m_time_ms();
   while (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) {
     if (timeout_ms > 0 && m_time_ms() - _cdc_start_time > timeout_ms) return;
   }

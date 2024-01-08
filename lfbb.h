@@ -101,6 +101,7 @@ void LFBB_Init(LFBB_Inst_Type *inst, uint8_t *data_array, size_t size);
  * @param[in] Instance pointer
  * @param[in] Free linear space in the buffer required
  * @retval Pointer to the beginning of the linear space
+ * @note Use this function if you know exactly how much data you want to write
  */
 uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, size_t free_required);
 
@@ -109,6 +110,7 @@ uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, size_t free_required);
  * @param[in] Instance pointer
  * @param[out] Available linear space in the buffer
  * @retval Pointer to the beginning of the linear space
+ * @note Use this function if you want to write as much data as possible
  */
 uint8_t *LFBB_WriteAcquire2(LFBB_Inst_Type *inst, size_t *available);
 
@@ -135,6 +137,13 @@ uint8_t *LFBB_ReadAcquire(LFBB_Inst_Type *inst, size_t *available);
  * @retval None
  */
 void LFBB_ReadRelease(LFBB_Inst_Type *inst, size_t read);
+
+/**
+ * @brief Checks if the bipartite buffer is empty
+ * @param[in] Instance pointer
+ * @retval true if empty, false otherwise
+ */
+bool LFBB_IsEmpty(LFBB_Inst_Type *inst);
 
 #ifdef __cplusplus
 }

@@ -189,7 +189,7 @@ typedef int (*lwprintf_output_fn)(int ch, struct lwprintf* lwobj);
  */
 typedef struct lwprintf {
   lwprintf_output_fn out_fn; /*!< Output function for direct print operations */
-  void* out_fn_arg;          /*!< Output function argument */
+  void* arg;                 /*!< Output function argument */
 } lwprintf_t;
 
 uint8_t lwprintf_init_ex(lwprintf_t* lwobj, lwprintf_output_fn out_fn);

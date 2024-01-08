@@ -229,3 +229,13 @@ static size_t CalcFree(const size_t w, const size_t r, const size_t size) {
     return (size - (w - r)) - 1U;
   }
 }
+
+bool LFBB_IsEmpty(LFBB_Inst_Type *inst) {
+  assert(inst != NULL);
+  assert(inst->data != NULL);
+  /* When read and write indexes are equal, the buffer is empty */
+  if (inst->r == inst->w) {
+    return true;
+  }
+  return false;
+}

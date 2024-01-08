@@ -25,12 +25,13 @@ _STATIC_INLINE bool fast_strcmp(const char *str1, const char *str2) {
 #define SCH_LARGE_TIME 0x7FFFFFFF
 
 __weak void Scheduler_Idle_Callback(m_time_t idleTimeUs) {
+  if (idleTimeUs <= 0) return;
   if (idleTimeUs > 1000000) idleTimeUs = 1000000;  // 限制最大休眠时间为1s
 #if _MOD_USE_OS > 0  // 如果使用操作系统, 则直接释放CPU
   m_delay_us(idleTimeUs);
 #else  // 简单的低功耗实现
   m_time_t start = m_time_us();
-  while (m_time_us() - start < idleTimeUs - 1) {  // 补偿1us误差
+  while (m_time_us() - start < idleTimeUs) {
     __WFI();  // 关闭CPU直到下一次systick中断
   }
 #endif
@@ -61,7 +62,7 @@ m_time_t _INLINE Scheduler_Run(const uint8_t block) {
 #if _SCH_DEBUG_REPORT
     if (DebugInfo_Runner()) continue;
 #endif
-    if (block && (mslp > m_time_us())) {
+    if (block && mslp > 0) {
       Scheduler_Idle_Callback(mslp - m_time_us());
     }
   } while (block);
@@ -956,8 +957,11 @@ static void softint_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 }
 #endif  // _SCH_ENABLE_SOFTINT
 
-static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
-  LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "System Info:" T_FMT(T_RESET, T_GREEN));
+static void sysinfo_print(void *arg) {
+  if (arg != NULL) LOG_RAWLN();
+  LOG_RAWLN(
+      T_FMT(T_BOLD, T_GREEN) "[ System Info ]-------------------------" T_FMT(
+          T_RESET, T_GREEN));
   LOG_RAWLN("  Core Clock: %.3f Mhz", m_tick_per_us(float));
   LOG_RAWLN("  After Boot: %.2fs", (double)m_time_ms() / 1000);
 #if _MOD_USE_OS == 1  // klite
@@ -983,7 +987,9 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   LOG_RAWLN("  Coroutine : %d", cortnlist.num);
 #endif  // _SCH_ENABLE_COROUTINE
 #if _MOD_HEAP_MATHOD == 1 || (_MOD_HEAP_MATHOD == 2 && HEAP_USE_LWMEM)
-  LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Heap Info:" T_FMT(T_RESET, T_GREEN));
+  LOG_RAWLN(
+      T_FMT(T_BOLD, T_GREEN) "[ LwMem Info ]--------------------------" T_FMT(
+          T_RESET, T_GREEN));
   lwmem_stats_t stats;
   lwmem_get_stats(&stats);
   LOG_RAWLN("  Total     : %d Bytes", stats.mem_size_bytes);
@@ -997,7 +1003,39 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   LOG_RAWLN("  Allocated : %d blocks", stats.nr_alloc);
   LOG_RAWLN("  Freed     : %d blocks", stats.nr_free);
 #endif
-  LOG_RAW(T_RST);
+  LOG_RAWLN(
+      T_FMT(T_BOLD, T_GREEN) "----------------------------------------" T_RST);
+}
+
+static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (!argc) {
+    sysinfo_print(NULL);
+    return;
+  }
+#if _SCH_ENABLE_TASK
+  float freq = 2;
+  if (argc > 1) {
+    freq = atof(embeddedCliGetToken(args, 2));
+  }
+  if (embeddedCliCheckToken(args, "start", 1)) {
+    if (Sch_IsTaskExist("sysinfo")) {
+      LOG_RAWLN(
+          T_FMT(T_BOLD, T_YELLOW) "System Info printing already started" T_RST);
+      return;
+    }
+    Sch_CreateTask("sysinfo", sysinfo_print, freq, 1, 0, (void *)1);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "System Info printing started" T_RST);
+
+  } else if (embeddedCliCheckToken(args, "stop", 1)) {
+    Sch_DeleteTask("sysinfo");
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "System Info printing stopped" T_RST);
+  } else {
+    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
+  }
+#else
+  LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task module is not supported" T_RST);
+#endif
 }
 
 void Sch_AddCmdToCli(EmbeddedCli *cli) {
@@ -1058,7 +1096,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
 
   static CliCommandBinding sysinfo_cmd = {
       .name = "sysinfo",
-      .usage = "sysinfo",
+      .usage = "sysinfo [start|stop] [freq]",
       .help = "Show system info (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = true,

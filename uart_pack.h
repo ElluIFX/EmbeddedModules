@@ -70,7 +70,7 @@ extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
  * @retval lfifo_t          LFIFO句柄, NULL:失败
  */
 extern lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart,
-                                void (*rxCallback)(uint8_t data), uint8_t *buf,
+                                void (*rxCallback)(lfifo_t *fifo), uint8_t *buf,
                                 uint16_t bufSize);
 /**
  * @brief 轮询以在主循环中响应串口接收完成回调
@@ -100,12 +100,12 @@ extern void Uart_ErrorProcess(UART_HandleTypeDef *huart);
 /**
  * @brief 初始化FIFO串口发送
  * @param  huart         目标串口
- * @param  buffer        发送缓冲区, 若为NULL则尝试动态分配
+ * @param  buf           发送缓冲区, 若为NULL则尝试动态分配
  * @param  bufSize       缓冲区大小
  * @retval int           0:成功 -1:失败
  */
-extern int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buffer,
-                            uint16_t bufSize);
+extern int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf,
+                           uint16_t bufSize);
 #endif
 
 #if _UART_ENABLE_DMA_RX
