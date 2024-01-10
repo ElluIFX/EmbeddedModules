@@ -33,38 +33,40 @@ typedef struct {
 
 typedef ulist_t* ULIST;
 
-#define ULIST_DIRTY_REGION_FILL_DATA 0x66  // 区域填充值
+#define ULIST_DIRTY_REGION_FILL_DATA 0x00  // 区域填充值
+#define ULIST_DISABLE_ALL_LOG 0            // 禁用所有日志
 
 #define ULIST_CFG_CLEAR_DIRTY_REGION 0x01  // 用memset填充释放的内存区域
 #define ULIST_CFG_NO_ALLOC_EXTEND 0x02  // 严格按照需要的大小分配内存
-#define ULIST_CFG_NO_SHRINK 0x04        // 不自动缩小内存
-#define ULIST_CFG_NO_AUTO_FREE 0x08     // 元素个数为0时不释放内存
+#define ULIST_CFG_NO_SHRINK 0x04  // 不自动缩小内存(但元素个数为0时仍会释放内存)
+#define ULIST_CFG_NO_AUTO_FREE 0x08        // 元素个数为0时不释放内存
 #define ULIST_CFG_IGNORE_SLICE_ERROR 0x10  // 忽略切片越界错误
-#define ULIST_CFG_IGNORE_NUM_ERROR 0x20    // 忽略元素个数错误
-#define ULIST_CFG_SLICE_ERROR_NO_LOG 0x40  // 切片越界时不打印日志
+#define ULIST_CFG_NO_ERROR_LOG 0x20        // 出错时不打印日志
 
 /**
  * @brief 初始化列表
  * @param  list         列表结构体
  * @param  isize        列表元素大小(使用sizeof计算)
- * @param  initial_cap  列表初始容量
+ * @param  init_size    列表初始大小
  * @param  cfg          配置
+ * @retval              是否初始化成功
+ * @note 需手动调用ulist_clear释放列表
  * @note 对于静态分配的ulist_t, 可手动设置isize代替本函数
  */
-extern void ulist_init(ULIST list, ulist_size_t isize, ulist_size_t initial_cap,
+extern bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
                        uint8_t cfg);
 
 /**
  * @brief 创建列表
  * @param  list         列表结构体
  * @param  isize        列表元素大小(使用sizeof计算)
- * @param  initial_cap  列表初始容量
+ * @param  init_size    列表初始大小
  * @param  cfg          配置
  * @retval              返回列表结构体
  * @note 需手动调用ulist_free释放列表
  * @note 返回NULL说明内存操作失败
  */
-extern ULIST ulist_create(ulist_size_t isize, ulist_size_t initial_cap,
+extern ULIST ulist_create(ulist_size_t isize, ulist_size_t init_size,
                           uint8_t cfg);
 
 /**
@@ -74,43 +76,24 @@ extern ULIST ulist_create(ulist_size_t isize, ulist_size_t initial_cap,
  * @return         返回追加部分的头指针
  * @note 返回NULL说明内存操作失败
  */
-extern void* ulist_append(ULIST list, ulist_size_t num);
+extern void* ulist_append_multi(ULIST list, ulist_size_t num);
 
 /**
- * @brief 从指定缓冲区将num个元素追加到列表末尾
+ * @brief 将1个元素追加到列表末尾
  * @param  list    列表结构体
- * @param  num     追加元素个数
- * @param  buf     追加元素缓冲区
+ * @return         返回追加部分的头指针
+ * @note 返回NULL说明内存操作失败
+ */
+extern void* ulist_append(ULIST list);
+
+/**
+ * @brief 将1个外部元素追加到列表末尾
+ * @param  list    列表结构体
+ * @param  src     追加元素指针
  * @return         是否追加成功
  * @note 返回false说明内存操作失败
- * @note 缓冲区数据需具有和列表元素相同的大小
  */
-extern bool ulist_append_buf(ULIST list, ulist_size_t num, const void* buf);
-
-/**
- * @brief 将num个元素插入到列表中index位置(第index个元素之前)
- * @param  list    列表结构体
- * @param  index   插入位置(Python-like)
- * @param  num     插入元素个数
- * @return         返回插入部分的头指针
- * @note 返回NULL说明内存操作失败或者index越界
- * @note index==SLICE_END时, 等价于append
- */
-extern void* ulist_insert(ULIST list, ulist_offset_t index, ulist_size_t num);
-
-/**
- * @brief 从指定缓冲区将num个元素插入到列表中index位置(第index个元素之前)
- * @param  list    列表结构体
- * @param  index   插入位置(Python-like)
- * @param  num     插入元素个数
- * @param  buf     插入元素缓冲区
- * @return         是否插入成功
- * @note 返回false说明内存操作失败或者index越界
- * @note index==SLICE_END时, 等价于append_buf
- * @note 缓冲区数据需具有和列表元素相同的大小
- */
-extern bool ulist_insert_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
-                             const void* buf);
+extern bool ulist_append_from_ptr(ULIST list, const void* src);
 
 /**
  * @brief 将另一个列表追加到列表末尾
@@ -122,6 +105,50 @@ extern bool ulist_insert_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
 extern bool ulist_extend(ULIST list, ULIST other);
 
 /**
+ * @brief 将num个元素插入到列表中index位置(第index个元素之前)
+ * @param  list    列表结构体
+ * @param  index   插入位置(Python-like)
+ * @param  num     插入元素个数
+ * @return         返回插入部分的头指针
+ * @note 返回NULL说明内存操作失败或者index越界
+ * @note index==SLICE_END时, 等价于append
+ */
+extern void* ulist_insert_multi(ULIST list, ulist_offset_t index,
+                                ulist_size_t num);
+
+/**
+ * @brief 将1个元素插入到列表中index位置(第index个元素之前)
+ * @param  list    列表结构体
+ * @param  index   插入位置(Python-like)
+ * @return         返回插入部分的头指针
+ * @note 返回NULL说明内存操作失败或者index越界
+ * @note index==SLICE_END时, 等价于append
+ */
+extern void* ulist_insert(ULIST list, ulist_offset_t index);
+
+/**
+ * @brief 将1个外部元素插入到列表中index位置(第index个元素之前)
+ * @param  list    列表结构体
+ * @param  index   插入位置(Python-like)
+ * @param  src     插入元素指针
+ * @return         是否插入成功
+ * @note 返回false说明内存操作失败或者index越界
+ * @note index==SLICE_END时, 等价于append_buf
+ * @note 缓冲区数据需具有和列表元素相同的大小
+ */
+extern bool ulist_insert_from_ptr(ULIST list, ulist_offset_t index,
+                                  const void* src);
+
+/**
+ * @brief 将另一个列表插入到列表中index位置(第index个元素之前)
+ * @param  list    列表结构体
+ * @param  index   插入位置(Python-like)
+ * @param  other   另一个列表结构体
+ * @retval         是否插入成功
+ */
+extern bool ulist_insert_list(ULIST list, ulist_offset_t index, ULIST other);
+
+/**
  * @brief 删除列表中给定位置的元素
  * @param  list       列表结构体
  * @param  index      删除位置(Python-like)
@@ -130,7 +157,28 @@ extern bool ulist_extend(ULIST list, ULIST other);
  * @note 超出列表范围的num会被截断, 不会导致删除失败
  * @note 返回false说明index越界
  */
-extern bool ulist_delete(ULIST list, ulist_offset_t index, ulist_size_t num);
+extern bool ulist_delete_multi(ULIST list, ulist_offset_t index,
+                               ulist_size_t num);
+
+/**
+ * @brief 删除列表中给定位置的元素
+ * @param  list       列表结构体
+ * @param  index      删除位置(Python-like)
+ * @return            是否删除成功
+ * @note 返回false说明index越界
+ */
+extern bool ulist_delete(ULIST list, ulist_offset_t index);
+
+/**
+ * @brief 删除列表中的给定元素
+ * @param  list       列表结构体
+ * @param  start      删除起始位置(Python-like)
+ * @param  end        删除结束位置(Python-like, 不包括)
+ * @return            是否删除成功
+ * @note 返回false说明index越界
+ */
+extern bool ulist_delete_slice(ULIST list, ulist_offset_t start,
+                               ulist_offset_t end);
 
 /**
  * @brief 删除列表中的给定元素
@@ -142,78 +190,62 @@ extern bool ulist_delete(ULIST list, ulist_offset_t index, ulist_size_t num);
 extern bool ulist_remove(ULIST list, const void* ptr);
 
 /**
- * @brief 返回列表元素的浅拷贝, 创建新数据块
+ * @brief 返回列表元素的切片(浅拷贝), 创建新数据块
  * @param  list       列表结构体
- * @param  index      拷贝起始位置(Python-like)
- * @param  num        拷贝元素个数
- * @retval            返回拷贝后的数据块头指针
- * @note 弹出的元素需由用户手动调用free释放
- * @note 超出列表范围的num会导致弹出失败
+ * @param  start      切片起始位置(Python-like)
+ * @param  end        切片结束位置(Python-like, 不包括)
+ * @retval            返回切片后的数据块头指针
+ * @note 切片的元素需由用户手动调用free释放
  * @note 返回NULL说明index越界
+ * @note 常规意义的切片应使用ulist_get_ptr，此处返回副本
  */
-extern void* ulist_copy(ULIST list, ulist_offset_t index, ulist_size_t num);
+extern void* ulist_slice(ULIST list, ulist_offset_t start, ulist_offset_t end);
 
 /**
- * @brief 返回列表元素的浅拷贝, 写入缓冲区
+ * @brief 返回列表元素的切片(浅拷贝), 写入缓冲区
  * @param  list       列表结构体
- * @param  index      拷贝起始位置(Python-like)
- * @param  num        拷贝元素个数
- * @param  buf        拷贝元素缓冲区
- * @return            是否拷贝成功
+ * @param  start      切片起始位置(Python-like)
+ * @param  end        切片结束位置(Python-like, 不包括)
+ * @param  buf        切片元素缓冲区
+ * @return            是否切片成功
  * @note 超出列表范围的num会导致拷贝失败
  * @note 返回false说明index越界
  */
-extern bool ulist_copy_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
-                           void* buf);
+extern bool ulist_slice_to_buf(ULIST list, ulist_offset_t start,
+                               ulist_offset_t end, void* buf);
 
 /**
- * @brief 返回列表元素的浅拷贝, 创建新列表
+ * @brief 返回列表元素的切片(浅拷贝), 创建新列表
  * @param  list      列表结构体
- * @param  index     拷贝起始位置(Python-like)
- * @param  num       拷贝元素个数
- * @retval           返回拷贝后的列表结构体
- * @note 拷贝后的列表需由用户手动调用ulist_free释放
+ * @param  start      切片起始位置(Python-like)
+ * @param  end        切片结束位置(Python-like, 不包括)
+ * @retval           返回切片后的列表结构体
+ * @note 切片后的列表需由用户手动调用ulist_free释放
  * @note 返回NULL说明内存操作失败
  */
-extern ULIST ulist_copy_list(ULIST list, ulist_offset_t index,
-                             ulist_size_t num);
+extern ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
+                                    ulist_offset_t end);
 
 /**
  * @brief 弹出并删除列表中的元素, 创建新数据块
  * @param  list       列表结构体
  * @param  index      弹出位置(Python-like)
- * @param  num        弹出元素个数
  * @return            返回弹出部分的头指针
  * @note 弹出的元素需由用户手动调用free释放
- * @note 超出列表范围的num会导致弹出失败
  * @note 返回NULL说明index越界
+ * @note 不建议使用该函数以减少内存碎片
  */
-extern void* ulist_pop(ULIST list, ulist_offset_t index, ulist_size_t num);
+extern void* ulist_pop(ULIST list, ulist_offset_t index);
 
 /**
- * @brief 弹出并删除列表中的元素, 创建新列表
+ * @brief 用外部元素更新列表中index位置的元素
  * @param  list       列表结构体
- * @param  index      弹出位置(Python-like)
- * @param  num        弹出元素个数
- * @return            返回弹出部分的列表结构体
- * @note 弹出的元素需由用户手动调用ulist_free释放
- * @note 超出列表范围的num会导致弹出失败
- * @note 返回NULL说明index越界
- */
-extern ULIST ulist_pop_list(ULIST list, ulist_offset_t index, ulist_size_t num);
-
-/**
- * @brief 弹出并删除列表中的元素, 写入缓冲区
- * @param  list       列表结构体
- * @param  index      弹出位置(Python-like)
- * @param  num        弹出元素个数
- * @param  buf        弹出元素缓冲区
- * @return            是否弹出成功
- * @note 超出列表范围的num会导致弹出失败
+ * @param  index      元素位置(Python-like)
+ * @param  src        元素指针
+ * @return            是否更新成功
  * @note 返回false说明index越界
  */
-extern bool ulist_pop_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
-                          void* buf);
+extern bool ulist_update(ULIST list, ulist_offset_t index, const void* src);
 
 /**
  * @brief 获取列表中index位置的元素
@@ -225,11 +257,21 @@ extern bool ulist_pop_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
 extern void* ulist_get(ULIST list, ulist_offset_t index);
 
 /**
+ * @brief 获取列表中index位置的元素, 写入给定副本中
+ * @param  list       列表结构体
+ * @param  index      元素位置(Python-like)
+ * @param  target     元素副本指针
+ * @return            是否获取成功
+ * @note 返回NULL说明index越界
+ */
+extern bool ulist_get_item(ULIST list, ulist_offset_t index, void* target);
+
+/**
  * @brief 获取元素指针在列表中的位置
  * @param  list       列表结构体
  * @param  ptr        元素指针(必须在列表中)
  * @return            返回元素位置(>=0)
- * @note 返回<0说明指针不在列表中
+ * @note 返回-1说明指针不在列表中
  */
 extern ulist_offset_t ulist_index(ULIST list, const void* ptr);
 
@@ -238,8 +280,8 @@ extern ulist_offset_t ulist_index(ULIST list, const void* ptr);
  * @param  list       列表结构体
  * @param  ptr        数据指针(比较数据内容)
  * @return            返回元素位置(>=0)
- * @note 返回<0说明数据不在列表中
- * @note 数据需具有和列表元素相同的大小
+ * @note 返回-1说明数据不在列表中
+ * @note 数据需具有和列表元素相同的结构
  */
 extern ulist_offset_t ulist_find(ULIST list, const void* ptr);
 

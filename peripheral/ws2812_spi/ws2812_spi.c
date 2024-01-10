@@ -29,7 +29,7 @@
 #define BIT0 0b100
 #define BUF_LEN(n) ((n) * BIT_LEN * 3)  // n个灯需要的缓冲区长度 / bytes
 
-// #define WAIT_TIME 50  // 发送间隔 / us
+#define IS_GRB_FORMAT 1  // 0: RGB 1: GRB
 
 // SPI空闲时MOSI总线为高电平, 这可能造成第一个数据发送错误
 // 首尾灯珠不正常时, 在数据前后添加一定数量的低电平或添加一个额外的灯珠,
@@ -65,14 +65,16 @@ void Strip_DeInit(LEDStrip_t *strip) {
   strip->length = 0;
 }
 
-void Strip_Set(LEDStrip_t *strip, uint16_t index, uint32_t RGBcolor) {
+void Strip_Set(LEDStrip_t *strip, uint16_t index, uint32_t color) {
   if (index >= strip->length || (!strip->buffer)) return;  // overrun check
   uint8_t *buf = strip->buffer + index * BIT_LEN * 3 + HEAD_ZERO;
-  uint32_t GRBdata = (RGBcolor & 0x00FF00) << 8 | (RGBcolor & 0xFF0000) >> 8 |
-                     (RGBcolor & 0x0000FF);
+#if IS_GRB_FORMAT
+  color =
+      (color & 0x00FF00) << 8 | (color & 0xFF0000) >> 8 | (color & 0x0000FF);
+#endif
   memset(buf, 0, BIT_LEN * 3);
   for (uint16_t bit_offset = 0; bit_offset < BIT_LEN * 8 * 3; bit_offset++) {
-    if (GRBdata & (((uint32_t)1) << (23 - bit_offset / BIT_LEN))) {
+    if (color & (((uint32_t)1) << (23 - bit_offset / BIT_LEN))) {
       buf[bit_offset / 8] |=
           ((BIT1 >> (BIT_LEN - 1 - bit_offset % BIT_LEN)) & 0x01)
           << (7 - bit_offset % 8);
@@ -84,23 +86,6 @@ void Strip_Set(LEDStrip_t *strip, uint16_t index, uint32_t RGBcolor) {
   }
 }
 
-void Strip_Set_RGB(LEDStrip_t *strip, uint16_t index, uint32_t RGBcolor) {
-  if (index >= strip->length || (!strip->buffer)) return;  // overrun check
-  uint8_t *buf = strip->buffer + index * BIT_LEN * 3 + HEAD_ZERO;
-  uint32_t GRBdata = RGBcolor;
-  memset(buf, 0, BIT_LEN * 3);
-  for (uint16_t bit_offset = 0; bit_offset < BIT_LEN * 8 * 3; bit_offset++) {
-    if (GRBdata & (((uint32_t)1) << (23 - bit_offset / BIT_LEN))) {
-      buf[bit_offset / 8] |=
-          ((BIT1 >> (BIT_LEN - 1 - bit_offset % BIT_LEN)) & 0x01)
-          << (7 - bit_offset % 8);
-    } else {
-      buf[bit_offset / 8] |=
-          (((BIT0 >> (BIT_LEN - 1 - bit_offset % BIT_LEN)) & 0x01)
-           << (7 - bit_offset % 8));
-    }
-  }
-}
 void Strip_Set_Range(LEDStrip_t *strip, uint16_t start, uint16_t end,
                      uint32_t RGBcolor) {
   if (!strip->length) return;

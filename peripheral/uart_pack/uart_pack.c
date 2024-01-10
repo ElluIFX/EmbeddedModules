@@ -27,7 +27,7 @@ static inline void uart_memcpy(void *dst, const void *src, uint16_t len) {
 #define _UART_NOT_READY huart->gState != HAL_UART_STATE_READY
 #endif
 
-static inline void _send_func(UART_HandleTypeDef *huart, uint8_t *data,
+static inline void _send_func(UART_HandleTypeDef *huart, const uint8_t *data,
                               uint16_t len) {
 #if _UART_TX_USE_DMA
   if (huart->hdmatx) {
@@ -59,12 +59,12 @@ static ulist_t fifo_tx_list = {
     .cap = 0,
     .num = 0,
     .isize = sizeof(uart_fifo_tx_t),
-    .cfg = ULIST_CFG_NO_ALLOC_EXTEND,
+    .cfg = ULIST_CFG_NO_ALLOC_EXTEND | ULIST_CFG_CLEAR_DIRTY_REGION,
 };
 
 int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf, uint16_t bufSize) {
   if (!bufSize) return -1;
-  uart_fifo_tx_t *ctrl = (uart_fifo_tx_t *)ulist_append(&fifo_tx_list, 1);
+  uart_fifo_tx_t *ctrl = (uart_fifo_tx_t *)ulist_append(&fifo_tx_list);
   if (!ctrl) return -1;
   if (!buf) {
     ctrl->lfbb.data = m_alloc(bufSize);
@@ -136,7 +136,7 @@ static inline uint8_t *wait_fifo(uart_fifo_tx_t *ctrl, const bool is2,
 #endif  // _UART_FIFO_TIMEOUT
 }
 
-static inline int fifo_send(uart_fifo_tx_t *ctrl, uint8_t *data, uint16_t len) {
+static inline int fifo_send(uart_fifo_tx_t *ctrl, const uint8_t *data, uint16_t len) {
   if (len > ctrl->lfbb.size - 1) return -1;
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
   uint8_t *buf = wait_fifo(ctrl, false, len, NULL);
@@ -151,7 +151,7 @@ static inline int fifo_send(uart_fifo_tx_t *ctrl, uint8_t *data, uint16_t len) {
   return 0;
 }
 
-static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, char *fmt, va_list ap) {
+static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt, va_list ap) {
   size_t sendLen;
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
   uint8_t *buf = wait_fifo(ctrl, true, 0, &sendLen);
@@ -180,7 +180,7 @@ static int pub_lwprintf_fn(int ch, lwprintf_t *lwobj) {
 
 uint8_t disable_printft = 0;  // 关闭printf输出
 
-int printft(UART_HandleTypeDef *huart, char *fmt, ...) {
+int printft(UART_HandleTypeDef *huart, const char *fmt, ...) {
   if (unlikely(disable_printft)) return 0;
   int sendLen;
   va_list ap;
@@ -216,7 +216,7 @@ void printft_flush(UART_HandleTypeDef *huart) {
   }
 }
 
-int Uart_Send(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
+int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, uint16_t len) {
   if (!len) return 0;
 #if _UART_ENABLE_FIFO_TX
   uart_fifo_tx_t *ctrl = is_fifo_tx(huart);
@@ -243,7 +243,7 @@ void Uart_Putchar(UART_HandleTypeDef *huart, uint8_t data) {
   Uart_Send(huart, &data, 1);
 }
 
-void Uart_Puts(UART_HandleTypeDef *huart, char *str) {
+void Uart_Puts(UART_HandleTypeDef *huart, const char *str) {
   Uart_Send(huart, (uint8_t *)str, strlen(str));
 }
 
@@ -290,14 +290,14 @@ static ulist_t fifo_rx_list = {
     .cap = 0,
     .num = 0,
     .isize = sizeof(uart_fifo_rx_t),
-    .cfg = ULIST_CFG_NO_ALLOC_EXTEND,
+    .cfg = ULIST_CFG_NO_ALLOC_EXTEND | ULIST_CFG_CLEAR_DIRTY_REGION,
 };
 
 lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart,
                          void (*rxCallback)(lfifo_t *fifo), uint8_t *buf,
                          uint16_t bufSize) {
   if (!bufSize) return NULL;
-  uart_fifo_rx_t *ctrl = (uart_fifo_rx_t *)ulist_append(&fifo_rx_list, 1);
+  uart_fifo_rx_t *ctrl = (uart_fifo_rx_t *)ulist_append(&fifo_rx_list);
   if (!ctrl) return NULL;
   if (!buf) {
     if (LFifo_Init(&ctrl->fifo, bufSize) != 0) {
@@ -346,7 +346,7 @@ static ulist_t dma_rx_list = {
     .cap = 0,
     .num = 0,
     .isize = sizeof(uart_dma_rx_t),
-    .cfg = ULIST_CFG_NO_ALLOC_EXTEND,
+    .cfg = ULIST_CFG_NO_ALLOC_EXTEND | ULIST_CFG_CLEAR_DIRTY_REGION,
 };
 
 LFBB_Inst_Type *Uart_DmaRxInit(UART_HandleTypeDef *huart,
@@ -354,7 +354,7 @@ LFBB_Inst_Type *Uart_DmaRxInit(UART_HandleTypeDef *huart,
                                uint8_t cbkInIRQ, uint8_t *buf,
                                uint16_t bufSize) {
   if (!bufSize) return NULL;
-  uart_dma_rx_t *ctrl = (uart_dma_rx_t *)ulist_append(&dma_rx_list, 1);
+  uart_dma_rx_t *ctrl = (uart_dma_rx_t *)ulist_append(&dma_rx_list);
   if (!ctrl) return NULL;
   ctrl->huart = huart;
   ctrl->rxCallback = rxCallback;

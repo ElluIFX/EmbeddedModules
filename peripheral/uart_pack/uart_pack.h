@@ -30,7 +30,7 @@ extern __IO uint8_t uart_error_state;
  * @param  fmt              类似printf的格式化字符串
  * @retval 发送的字节数
  */
-extern int printft(UART_HandleTypeDef *huart, char *fmt, ...);
+extern int printft(UART_HandleTypeDef *huart, const char *fmt, ...);
 extern uint8_t disable_printft;
 
 /**
@@ -44,7 +44,8 @@ extern void printft_flush(UART_HandleTypeDef *huart);
  * @param  data             数据指针
  * @param  len              数据长度
  */
-extern int Uart_Send(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len);
+extern int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data,
+                     uint16_t len);
 
 /**
  * @brief 串口发送数据，阻塞时不等待
@@ -55,7 +56,7 @@ extern int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data,
 
 // 适配标准C输入输出函数
 extern void Uart_Putchar(UART_HandleTypeDef *huart, uint8_t data);
-extern void Uart_Puts(UART_HandleTypeDef *huart, char *str);
+extern void Uart_Puts(UART_HandleTypeDef *huart, const char *str);
 extern int Uart_Getchar(UART_HandleTypeDef *huart);
 extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
 

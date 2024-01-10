@@ -23,15 +23,14 @@
 #define _ulist_realloc m_realloc
 #define _ulist_memcmp memcmp
 
-/**
- * @brief 计算满足num个元素的最小容量
- * @note  当前实现为2的幂次, 降低内存操作次数
- */
-static inline ulist_size_t calc_min_req_size(ulist_size_t num) {
-  ulist_size_t min_req_size = 2;
-  while (min_req_size < num) min_req_size *= 2;
-  return min_req_size;
-}
+#if ULIST_DISABLE_ALL_LOG
+#define LIST_LOG(...) ((void)0)
+#else
+#define LIST_LOG(...)                          \
+  if (!(list->cfg & ULIST_CFG_NO_ERROR_LOG)) { \
+    LOG_E(__VA_ARGS__);                        \
+  }
+#endif
 
 /**
  * @brief 将Python风格的负索引转换为C风格的正索引
@@ -45,25 +44,31 @@ static inline ulist_offset_t convert_pylike_offset(ULIST list,
   if (index < 0) {
     index += list->num;
     if (index < 0) {
-      if (!(list->cfg & ULIST_CFG_SLICE_ERROR_NO_LOG)) {
-        LOG_E("ulist: index out of range: %d", index);
-      }
       if (list->cfg & ULIST_CFG_IGNORE_SLICE_ERROR) {
         return 0;
       }
+      LIST_LOG("ulist: index out of range: %d", index);
       return -1;
     }
   }
   if (index >= list->num) {
-    if (!(list->cfg & ULIST_CFG_SLICE_ERROR_NO_LOG)) {
-      LOG_E("ulist: index out of range: %d", index);
-    }
     if (list->cfg & ULIST_CFG_IGNORE_SLICE_ERROR) {
       return list->num - 1;
     }
+    LIST_LOG("ulist: index out of range: %d", index);
     return -1;
   }
   return index;
+}
+
+/**
+ * @brief 计算满足num个元素的最小容量
+ * @note  当前实现为2的幂次, 降低内存操作次数
+ */
+static inline ulist_size_t calc_min_req_size(ulist_size_t num) {
+  ulist_size_t min_req_size = 2;
+  while (min_req_size < num) min_req_size *= 2;
+  return min_req_size;
 }
 
 /**
@@ -71,37 +76,36 @@ static inline ulist_offset_t convert_pylike_offset(ULIST list,
  * @note  如果扩容失败, 返回false
  */
 static bool ulist_expend(ULIST list, ulist_size_t req_num) {
-  ulist_size_t min_req_size;
   if (list->data == NULL || list->cap == 0) {  // list is empty
-    if (list->cfg & ULIST_CFG_NO_ALLOC_EXTEND) {
-      min_req_size = req_num;
-    } else {
-      min_req_size = calc_min_req_size(req_num);
+    if (!(list->cfg & ULIST_CFG_NO_ALLOC_EXTEND)) {
+      req_num = calc_min_req_size(req_num);
     }
-    list->data = _ulist_malloc(min_req_size * list->isize);
-    if (list->data == NULL) return false;
+    list->data = _ulist_malloc(req_num * list->isize);
+    if (list->data == NULL) {
+      LIST_LOG("ulist: malloc failed");
+      return false;
+    }
     if (list->cfg & ULIST_CFG_CLEAR_DIRTY_REGION) {
       _ulist_memset(list->data, ULIST_DIRTY_REGION_FILL_DATA,
-                    min_req_size * list->isize);
+                    req_num * list->isize);
     }
-    list->cap = min_req_size;
+    list->cap = req_num;
   } else if (req_num > list->cap) {  // list is full
-    if (list->cfg & ULIST_CFG_NO_ALLOC_EXTEND) {
-      min_req_size = req_num;
-    } else {
-      min_req_size = calc_min_req_size(req_num);
+    if (!(list->cfg & ULIST_CFG_NO_ALLOC_EXTEND)) {
+      req_num = calc_min_req_size(req_num);
     }
-    void* new_data = _ulist_realloc(list->data, min_req_size * list->isize);
+    void* new_data = _ulist_realloc(list->data, req_num * list->isize);
     if (new_data == NULL) {
+      LIST_LOG("ulist: malloc failed");
       return false;
     }
     list->data = new_data;
     if (list->cfg & ULIST_CFG_CLEAR_DIRTY_REGION) {
       _ulist_memset((uint8_t*)new_data + list->cap * list->isize,
                     ULIST_DIRTY_REGION_FILL_DATA,
-                    (min_req_size - list->cap) * list->isize);
+                    (req_num - list->cap) * list->isize);
     }
-    list->cap = min_req_size;
+    list->cap = req_num;
   }
   return true;
 }
@@ -111,9 +115,6 @@ static bool ulist_expend(ULIST list, ulist_size_t req_num) {
  * @note  如果req_num为0, 则释放列表
  */
 static void ulist_shrink(ULIST list, ulist_size_t req_num) {
-  if (list->cfg & ULIST_CFG_NO_SHRINK) {
-    goto check_dirty_region;
-  }
   if (req_num == 0) {  // free all
     if (list->cfg & ULIST_CFG_NO_AUTO_FREE) {
       goto check_dirty_region;
@@ -124,12 +125,17 @@ static void ulist_shrink(ULIST list, ulist_size_t req_num) {
     list->cap = 0;
     return;
   }
-  ulist_size_t min_req_size = calc_min_req_size(req_num);
-  if (min_req_size < list->cap) {  // shrink
-    void* new_data = _ulist_realloc(list->data, min_req_size * list->isize);
+  if (list->cfg & ULIST_CFG_NO_SHRINK) {
+    goto check_dirty_region;
+  }
+  if (!(list->cfg & ULIST_CFG_NO_ALLOC_EXTEND)) {
+    req_num = calc_min_req_size(req_num);
+  }
+  if (req_num < list->cap) {  // shrink
+    void* new_data = _ulist_realloc(list->data, req_num * list->isize);
     if (new_data != NULL) {
       list->data = new_data;
-      list->cap = min_req_size;
+      list->cap = req_num;
     }
   }
 check_dirty_region:
@@ -140,51 +146,56 @@ check_dirty_region:
   }
 }
 
-void ulist_init(ULIST list, ulist_size_t isize, ulist_size_t initial_cap,
+bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
                 uint8_t cfg) {
   list->data = NULL;
   list->cap = 0;
   list->num = 0;
   list->isize = isize;
   list->cfg = cfg;
-  if (initial_cap > 0) {
-    ulist_expend(list, initial_cap);
+  if (init_size > 0) {
+    if (!ulist_expend(list, init_size)) {
+      list->data = NULL;
+      list->cap = 0;
+      return false;
+    }
+    list->num = init_size;
   }
+  return true;
 }
 
-ULIST ulist_create(ulist_size_t isize, ulist_size_t initial_cap, uint8_t cfg) {
+ULIST ulist_create(ulist_size_t isize, ulist_size_t init_size, uint8_t cfg) {
   ULIST list = (ULIST)_ulist_malloc(sizeof(ulist_t));
-  if (list == NULL) return NULL;
-  ulist_init(list, isize, initial_cap, cfg);
+  if (list == NULL) {
+    return NULL;
+  }
+  if (!ulist_init(list, isize, init_size, cfg)) {
+    _ulist_free(list);
+    return NULL;
+  }
   return list;
 }
 
-void* ulist_append(ULIST list, ulist_size_t num) {
+void* ulist_append_multi(ULIST list, ulist_size_t num) {
   if (!ulist_expend(list, list->num + num)) return NULL;
   uint8_t* ptr = (uint8_t*)list->data + list->num * list->isize;
   list->num += num;
   return (void*)ptr;
 }
 
-bool ulist_append_buf(ULIST list, ulist_size_t num, const void* buf) {
-  if (!ulist_expend(list, list->num + num)) return false;
-  uint8_t* ptr = (uint8_t*)list->data + list->num * list->isize;
-  _ulist_memcpy(ptr, buf, num * list->isize);
-  list->num += num;
+void* ulist_append(ULIST list) { return ulist_append_multi(list, 1); }
+
+bool ulist_append_from_ptr(ULIST list, const void* src) {
+  if (!src) return false;
+  void* ptr = ulist_append(list);
+  if (ptr == NULL) return false;
+  _ulist_memcpy(ptr, src, list->isize);
   return true;
 }
 
-bool ulist_extend(ULIST list, ULIST other) {
-  if (!ulist_expend(list, list->num + other->num)) return false;
-  uint8_t* ptr = (uint8_t*)list->data + list->num * list->isize;
-  _ulist_memcpy(ptr, other->data, other->num * list->isize);
-  list->num += other->num;
-  return true;
-}
-
-void* ulist_insert(ULIST list, ulist_offset_t index, ulist_size_t num) {
+void* ulist_insert_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
   ulist_offset_t i = convert_pylike_offset(list, index);
-  if (i == list->num) return ulist_append(list, num);  // append
+  if (i == list->num) return ulist_append_multi(list, num);  // append
   if (i == -1) return NULL;
   if (!ulist_expend(list, list->num + num)) return NULL;
   uint8_t* src = (uint8_t*)list->data + i * list->isize;
@@ -198,22 +209,34 @@ void* ulist_insert(ULIST list, ulist_offset_t index, ulist_size_t num) {
   return (void*)src;
 }
 
-bool ulist_insert_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
-                      const void* buf) {
-  ulist_offset_t i = convert_pylike_offset(list, index);
-  if (i == list->num) return ulist_append_buf(list, num, buf);  // append
-  if (i == -1) return false;
-  if (!ulist_expend(list, list->num + num)) return false;
-  uint8_t* src = (uint8_t*)list->data + i * list->isize;
-  ulist_size_t move_size = (list->num - i) * list->isize;
-  uint8_t* dst = (uint8_t*)list->data + (i + num) * list->isize;
-  _ulist_memmove(dst, src, move_size);
-  _ulist_memcpy(src, buf, num * list->isize);
-  list->num += num;
+void* ulist_insert(ULIST list, ulist_offset_t index) {
+  return ulist_insert_multi(list, index, 1);
+}
+
+bool ulist_insert_from_ptr(ULIST list, ulist_offset_t index, const void* src) {
+  if (!src) return false;
+  void* ptr = ulist_insert(list, index);
+  if (ptr == NULL) return false;
+  _ulist_memcpy(ptr, src, list->isize);
   return true;
 }
 
-bool ulist_delete(ULIST list, ulist_offset_t index, ulist_size_t num) {
+bool ulist_extend(ULIST list, ULIST other) {
+  if (!ulist_expend(list, list->num + other->num)) return false;
+  uint8_t* ptr = (uint8_t*)list->data + list->num * list->isize;
+  _ulist_memcpy(ptr, other->data, other->num * list->isize);
+  list->num += other->num;
+  return true;
+}
+
+bool ulist_insert_list(ULIST list, ulist_offset_t index, ULIST other) {
+  void* ptr = ulist_insert_multi(list, index, other->num);
+  if (ptr == NULL) return false;
+  _ulist_memcpy(ptr, other->data, other->num * list->isize);
+  return true;
+}
+
+bool ulist_delete_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
   ulist_offset_t i = convert_pylike_offset(list, index);
   if (i == -1) return false;
   if (list->num == 0) return false;
@@ -231,83 +254,86 @@ bool ulist_delete(ULIST list, ulist_offset_t index, ulist_size_t num) {
   return true;
 }
 
+bool ulist_delete(ULIST list, ulist_offset_t index) {
+  return ulist_delete_multi(list, index, 1);
+}
+
+bool ulist_delete_slice(ULIST list, ulist_offset_t start, ulist_offset_t end) {
+  start = convert_pylike_offset(list, start);
+  end = convert_pylike_offset(list, end);
+  if (start == -1 || end == -1) return false;
+  return ulist_delete_multi(list, start, end - start);
+}
+
 bool ulist_remove(ULIST list, const void* ptr) {
   ulist_offset_t i = ulist_index(list, ptr);
   if (i == -1) return false;
-  return ulist_delete(list, i, 1);
+  return ulist_delete(list, i);
 }
 
-void* ulist_copy(ULIST list, ulist_offset_t index, ulist_size_t num) {
-  ulist_offset_t i = convert_pylike_offset(list, index);
-  if (i == -1) return NULL;
-  if (list->num == 0) return NULL;
-  if (i + num > list->num) {
-    if (list->cfg & ULIST_CFG_IGNORE_NUM_ERROR) {
-      num = list->num - i;
-    } else {
-      return NULL;
-    }
-  }
+void* ulist_slice(ULIST list, ulist_offset_t start, ulist_offset_t end) {
+  if (list->num == 0) return false;
+  start = convert_pylike_offset(list, start);
+  end = convert_pylike_offset(list, end);
+  if (start == -1 || end == -1) return NULL;
+  ulist_size_t num = end - start;
   uint8_t* ptr = _ulist_malloc(num * list->isize);
   if (ptr == NULL) return NULL;
-  uint8_t* src = (uint8_t*)list->data + i * list->isize;
+  uint8_t* src = (uint8_t*)list->data + start * list->isize;
   _ulist_memcpy(ptr, src, num * list->isize);
   return (void*)ptr;
 }
 
-bool ulist_copy_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
-                    void* buf) {
-  ulist_offset_t i = convert_pylike_offset(list, index);
-  if (i == -1) return false;
+bool ulist_slice_to_buf(ULIST list, ulist_offset_t start, ulist_offset_t end,
+                        void* buf) {
   if (list->num == 0) return false;
-  if (i + num > list->num) {
-    if (list->cfg & ULIST_CFG_IGNORE_NUM_ERROR) {
-      num = list->num - i;
-    } else {
-      return false;
-    }
-  }
-  uint8_t* src = (uint8_t*)list->data + i * list->isize;
+  start = convert_pylike_offset(list, start);
+  end = convert_pylike_offset(list, end);
+  if (start == -1 || end == -1) return NULL;
+  ulist_size_t num = end - start;
+  uint8_t* src = (uint8_t*)list->data + start * list->isize;
   _ulist_memcpy(buf, src, num * list->isize);
   return true;
 }
 
-ULIST ulist_copy_list(ULIST list, ulist_offset_t index, ulist_size_t num) {
-  ulist_offset_t i = convert_pylike_offset(list, index);
-  if (i == -1) return NULL;
-  if (list->num == 0) return NULL;
-  if (i + num > list->num) {
-    if (list->cfg & ULIST_CFG_IGNORE_NUM_ERROR) {
-      num = list->num - i;
-    } else {
-      return NULL;
-    }
-  }
-  uint8_t* src = (uint8_t*)list->data + i * list->isize;
+ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
+                             ulist_offset_t end) {
+  if (list->num == 0) return false;
+  start = convert_pylike_offset(list, start);
+  end = convert_pylike_offset(list, end);
+  if (start == -1 || end == -1) return NULL;
+  ulist_size_t num = end - start;
+  uint8_t* src = (uint8_t*)list->data + start * list->isize;
   ULIST new_list = ulist_create(list->isize, num, list->cfg);
   if (new_list == NULL) return NULL;
-  ulist_append_buf(new_list, num, src);
+  _ulist_memcpy(new_list->data, src, num * list->isize);
   return new_list;
 }
 
-void* ulist_pop(ULIST list, ulist_offset_t index, ulist_size_t num) {
-  void* ptr = ulist_copy(list, index, num);
+void* ulist_pop(ULIST list, ulist_offset_t index) {
+  void* ptr = ulist_slice(list, index, index + 1);
   if (ptr == NULL) return NULL;
-  ulist_delete(list, index, num);
+  ulist_delete(list, index);
   return ptr;
 }
 
-ULIST ulist_pop_list(ULIST list, ulist_offset_t index, ulist_size_t num) {
-  ULIST new_list = ulist_copy_list(list, index, num);
-  if (new_list == NULL) return NULL;
-  ulist_delete(list, index, num);
-  return new_list;
+bool ulist_update(ULIST list, ulist_offset_t index, const void* src) {
+  ulist_offset_t i = convert_pylike_offset(list, index);
+  if (i == -1) return false;
+  _ulist_memcpy((uint8_t*)list->data + i * list->isize, src, list->isize);
+  return true;
 }
 
-bool ulist_pop_buf(ULIST list, ulist_offset_t index, ulist_size_t num,
-                   void* buf) {
-  if (!ulist_copy_buf(list, index, num, buf)) return false;
-  ulist_delete(list, index, num);
+void* ulist_get(ULIST list, ulist_offset_t index) {
+  ulist_offset_t i = convert_pylike_offset(list, index);
+  if (i == -1) return NULL;
+  return (void*)((uint8_t*)list->data + i * list->isize);
+}
+
+bool ulist_get_item(ULIST list, ulist_offset_t index, void* target) {
+  void* ptr = ulist_get(list, index);
+  if (ptr == NULL) return false;
+  _ulist_memcpy(target, ptr, list->isize);
   return true;
 }
 
@@ -324,12 +350,6 @@ bool ulist_swap(ULIST list, ulist_offset_t index1, ulist_offset_t index2) {
     ptr2[i] = tmp;
   }
   return true;
-}
-
-void* ulist_get(ULIST list, ulist_offset_t index) {
-  ulist_offset_t i = convert_pylike_offset(list, index);
-  if (i == -1) return NULL;
-  return (void*)((uint8_t*)list->data + i * list->isize);
 }
 
 bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),

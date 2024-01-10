@@ -15,21 +15,21 @@
 extern "C" {
 #endif
 
-#include <string.h>  // memcpy
+#include <string.h> // memcpy
 
 #include "modules.h"
 
 #ifndef FIFO_DISABLE_ATOMIC
-#define FIFO_DISABLE_ATOMIC 0  // 禁用原子操作
+#define FIFO_DISABLE_ATOMIC 0 // 禁用原子操作
 #endif
 
 #ifndef FIFO_MEMCPY
-#define FIFO_MEMCPY memcpy  // 内存拷贝函数
+#define FIFO_MEMCPY memcpy // 内存拷贝函数
 #endif
 
 #if FIFO_DISABLE_ATOMIC
-#define FIFO_INIT(var, val) (var) = (val)
-#define FIFO_LOAD(var, type) (var)
+#define FIFO_INIT(var, val)        (var) = (val)
+#define FIFO_LOAD(var, type)       (var)
 #define FIFO_STORE(var, val, type) (var) = (val)
 typedef uint16_t fifo_atomic_size_t;
 #else
@@ -41,17 +41,17 @@ typedef atomic_uint_fast16_t fifo_atomic_size_t;
 #else
 #include <atomic>
 typedef std::atomic_uint_fast16_t fifo_atomic_size_t;
-#endif  // __cplusplus
-#endif  // FIFO_DISABLE_ATOMIC
+#endif // __cplusplus
+#endif // FIFO_DISABLE_ATOMIC
 
 typedef uint16_t fifo_size_t;
 typedef int16_t fifo_offset_t;
 
-typedef struct {          // FIFO对象
-  fifo_atomic_size_t wr;  // 写指针
-  fifo_atomic_size_t rd;  // 读指针
-  fifo_size_t size;       // 缓冲区大小
-  uint8_t *buf;           // 缓冲区指针
+typedef struct {           // FIFO对象
+    fifo_atomic_size_t wr; // 写指针
+    fifo_atomic_size_t rd; // 读指针
+    fifo_size_t size;      // 缓冲区大小
+    uint8_t *buf;          // 缓冲区指针
 } lfifo_t;
 
 /**
@@ -246,4 +246,4 @@ extern void LFifo_ReleaseLinearRead(lfifo_t *fifo, fifo_size_t len);
 #ifdef __cplusplus
 }
 #endif
-#endif  // __LFIFO_H__
+#endif // __LFIFO_H__

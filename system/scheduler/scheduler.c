@@ -37,7 +37,7 @@ __weak void Scheduler_Idle_Callback(m_time_t idleTimeUs) {
 #endif
 }
 
-m_time_t _INLINE Scheduler_Run(const uint8_t block) {
+m_time_t _INLINE Scheduler_Run(const bool block) {
   m_time_t mslp, rslp;
   do {
     mslp = SCH_LARGE_TIME;
@@ -76,7 +76,7 @@ typedef struct {     // 用户任务结构
   sch_func_t task;   // 任务函数指针
   m_time_t period;   // 任务调度周期(Tick)
   m_time_t lastRun;  // 上次执行时间(Tick)
-  uint8_t enable;    // 是否使能
+  bool enable;       // 是否使能
   uint8_t priority;  // 优先级
   void *args;        // 任务参数
 #if _SCH_DEBUG_REPORT
@@ -121,6 +121,7 @@ _STATIC_INLINE m_time_t Task_Runner(void) {
   m_time_t sleep_tick = SCH_LARGE_TIME;
 #if _SCH_DEBUG_REPORT
   __IO const char *old_name;
+  __IO uint16_t p_idx;
 #endif  // _SCH_DEBUG_REPORT
   if (tasklist.num) {
     now = m_tick();
@@ -134,13 +135,12 @@ _STATIC_INLINE m_time_t Task_Runner(void) {
           task->lastRun = now;
 #if _SCH_DEBUG_REPORT
         old_name = task->name;
+        p_idx = task - (scheduler_task_t *)tasklist.data;
         m_time_t _sch_debug_task_tick = m_tick();
         task->task(task->args);
         _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
-        if (task->name != old_name) {  // 任务已被修改, 重新查找
-          task = get_task((const char *)old_name);
-          if (task == NULL) return 0;  // 任务已被删除
-        }
+        task = (scheduler_task_t *)tasklist.data + p_idx;
+        if (task->name != old_name) return 0;  // 任务已被删除
         if (task->max_cost < _sch_debug_task_tick)
           task->max_cost = _sch_debug_task_tick;
         if (latency > task->max_lat) task->max_lat = latency;
@@ -161,8 +161,8 @@ _STATIC_INLINE m_time_t Task_Runner(void) {
 }
 
 bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
-                    uint8_t enable, uint8_t priority, void *args) {
-  scheduler_task_t *p = (scheduler_task_t *)ulist_append(&tasklist, 1);
+                    bool enable, uint8_t priority, void *args) {
+  scheduler_task_t *p = (scheduler_task_t *)ulist_append(&tasklist);
   if (p == NULL) return false;
   p->task = func;
   p->enable = enable;
@@ -180,7 +180,7 @@ bool Sch_DeleteTask(const char *name) {
   if (tasklist.num == 0) return false;
   ulist_foreach(&tasklist, scheduler_task_t, task) {
     if (fast_strcmp(task->name, name)) {
-      ulist_delete(&tasklist, task - (scheduler_task_t *)tasklist.data, 1);
+      ulist_delete(&tasklist, task - (scheduler_task_t *)tasklist.data);
       return true;
     }
   }
@@ -188,6 +188,12 @@ bool Sch_DeleteTask(const char *name) {
 }
 
 bool Sch_IsTaskExist(const char *name) { return get_task(name) != NULL; }
+
+bool Sch_GetTaskState(const char *name) {
+  scheduler_task_t *p = get_task(name);
+  if (p == NULL) return false;
+  return p->enable;
+}
 
 bool Sch_SetTaskPriority(const char *name, uint8_t priority) {
   scheduler_task_t *p = get_task(name);
@@ -197,7 +203,7 @@ bool Sch_SetTaskPriority(const char *name, uint8_t priority) {
   return true;
 }
 
-bool Sch_DelayTask(const char *name, m_time_t delayUs, uint8_t fromNow) {
+bool Sch_DelayTask(const char *name, m_time_t delayUs, bool fromNow) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return false;
   if (fromNow)
@@ -209,13 +215,10 @@ bool Sch_DelayTask(const char *name, m_time_t delayUs, uint8_t fromNow) {
 
 uint16_t Sch_GetTaskNum(void) { return tasklist.num; }
 
-bool Sch_SetTaskState(const char *name, uint8_t enable) {
+bool Sch_SetTaskState(const char *name, bool enable) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return false;
-  if (enable == TOGGLE)
-    p->enable = !p->enable;
-  else
-    p->enable = enable;
+  p->enable = enable;
   if (p->enable) p->lastRun = m_tick() - p->period;
   return true;
 }
@@ -234,9 +237,10 @@ bool Sch_SetTaskFreq(const char *name, float freqHz) {
 #pragma pack(1)
 typedef struct {    // 事件任务结构
   sch_func_t task;  // 任务函数指针
-  uint8_t enable;   // 是否使能
-  uint8_t trigger;  // 是否已触发
+  bool enable;      // 是否使能
+  bool trigger;     // 是否已触发
   void *args;       // 任务参数
+  bool needFree;    // 是否需要释放参数内存
 #if _SCH_DEBUG_REPORT
   m_time_t trigger_time;  // 触发时间(Tick)
   m_time_t max_cost;      // 任务最大执行时间(Tick)
@@ -265,10 +269,14 @@ _STATIC_INLINE void Event_Runner(void) {
       event->trigger = 0;
 #if !_SCH_DEBUG_REPORT
       event->task(event->args);
+      if (event_modified) return;
+      if (event->args != NULL && event->needFree) m_free(event->args);
+      event->args = NULL;
 #else
       m_time_t _sch_debug_task_tick = m_tick();
       m_time_t _late = _sch_debug_task_tick - event->trigger_time;
       event->task(event->args);
+      if (event_modified) return;
       _sch_debug_task_tick = m_tick() - _sch_debug_task_tick;
       if (event->max_cost < _sch_debug_task_tick)
         event->max_cost = _sch_debug_task_tick;
@@ -277,24 +285,24 @@ _STATIC_INLINE void Event_Runner(void) {
       event->total_lat += _late;
       event->run_cnt++;
 #endif  // !_SCH_DEBUG_REPORT
-      if (event_modified) return;
     }
   }
 }
 
-bool Sch_CreateEvent(const char *name, sch_func_t callback, uint8_t enable) {
+bool Sch_CreateEvent(const char *name, sch_func_t callback, bool enable) {
 #if !_SCH_EVENT_ALLOW_DUPLICATE
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) return false;
   }
 #endif  // !_SCH_EVENT_ALLOW_DUPLICATE
-  scheduler_event_t *p = (scheduler_event_t *)ulist_append(&eventlist, 1);
+  scheduler_event_t *p = (scheduler_event_t *)ulist_append(&eventlist);
   if (p == NULL) return false;
   p->task = callback;
   p->enable = enable;
   p->trigger = 0;
   p->args = NULL;
   p->name = name;
+  p->needFree = 0;
   event_modified = 1;
   return true;
 }
@@ -304,7 +312,8 @@ bool Sch_DeleteEvent(const char *name) {
   bool ret = false;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) {
-      ulist_delete(&eventlist, event - (scheduler_event_t *)eventlist.data, 1);
+      if (event->args != NULL && event->needFree) m_free(event->args);
+      ulist_delete(&eventlist, event - (scheduler_event_t *)eventlist.data);
       event_end--;
       event--;
       ret = true;
@@ -318,15 +327,11 @@ bool Sch_DeleteEvent(const char *name) {
   return ret;
 }
 
-bool Sch_SetEventState(const char *name, uint8_t enable) {
+bool Sch_SetEventState(const char *name, bool enable) {
   bool ret = false;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) {
-      if (enable == TOGGLE) {
-        event->enable = !event->enable;
-      } else {
-        event->enable = enable;
-      }
+      event->enable = enable;
       event->trigger = 0;
       ret = true;
 #if !_SCH_EVENT_ALLOW_DUPLICATE
@@ -341,15 +346,42 @@ bool Sch_TriggerEvent(const char *name, void *args) {
   bool ret = false;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (event->enable && fast_strcmp(event->name, name)) {
-      event->trigger = 1;
+      event->trigger = 0;
+      if (event->args != NULL && event->needFree) m_free(event->args);
       event->args = args;
+      event->needFree = 0;
 #if _SCH_DEBUG_REPORT
       event->trigger_time = m_tick();
       event->trigger_cnt++;
 #endif
+      event->trigger = 1;
 #if !_SCH_EVENT_ALLOW_DUPLICATE
       break;
-#endif  // !_SCH_EVENT_ALLOW_DUPLICATE
+#endif
+    }
+  }
+  return ret;
+}
+
+bool Sch_TriggerEventEx(const char *name, const void *arg_ptr,
+                        uint16_t arg_size) {
+  bool ret = false;
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (event->enable && fast_strcmp(event->name, name)) {
+      event->trigger = 0;
+      if (event->args != NULL && event->needFree) m_free(event->args);
+      event->args = m_alloc(arg_size);
+      if (event->args == NULL) return false;
+      memcpy(event->args, arg_ptr, arg_size);
+      event->needFree = 1;
+#if _SCH_DEBUG_REPORT
+      event->trigger_time = m_tick();
+      event->trigger_cnt++;
+#endif
+      event->trigger = 1;
+#if !_SCH_EVENT_ALLOW_DUPLICATE
+      break;
+#endif
     }
   }
   return ret;
@@ -364,6 +396,15 @@ bool Sch_IsEventExist(const char *name) {
   return false;
 }
 
+bool Sch_GetEventState(const char *name) {
+  ulist_foreach(&eventlist, scheduler_event_t, event) {
+    if (fast_strcmp(event->name, name)) {
+      return event->enable;
+    }
+  }
+  return false;
+}
+
 uint16_t Sch_GetEventNum(void) { return eventlist.num; }
 #endif  // _SCH_ENABLE_EVENT
 
@@ -371,7 +412,7 @@ uint16_t Sch_GetEventNum(void) { return eventlist.num; }
 #pragma pack(1)
 typedef struct {        // 协程任务结构
   sch_func_t task;      // 任务函数指针
-  uint8_t enable;       // 是否使能
+  bool enable;          // 是否使能
   uint8_t mode;         // 模式
   void *args;           // 协程主函数参数
   __cortn_handle_t hd;  // 协程句柄
@@ -390,7 +431,8 @@ static ulist_t cortnlist = {.data = NULL,
                             .isize = sizeof(scheduler_cortn_t),
                             .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 
-__cortn_handle_t *__cortn_hp = {0};
+__cortn_handle_t *__chd = {0};
+uint16_t __chd_idx = 0;
 static uint8_t cr_modified = 0;
 
 _STATIC_INLINE m_time_t Cortn_Runner(void) {
@@ -400,8 +442,9 @@ _STATIC_INLINE m_time_t Cortn_Runner(void) {
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (!cortn->enable) continue;  // 跳过禁用协程
     if (cortn->hd.yieldUntil && now >= cortn->hd.yieldUntil) {
-      __cortn_hp = &cortn->hd;
-      __cortn_hp->depth = 0;
+      __chd = &cortn->hd;
+      __chd_idx = cortn - (scheduler_cortn_t *)cortnlist.data;
+      __chd->depth = 0;
 #if _SCH_DEBUG_REPORT
       m_time_t _sch_debug_task_tick = m_tick();
       cortn->task(cortn->args);
@@ -412,9 +455,9 @@ _STATIC_INLINE m_time_t Cortn_Runner(void) {
 #else
       cortn->task(cortn->args);
 #endif
-      __cortn_hp = NULL;
-      if (!cortn->hd.ptr[0]) {     // 最外层协程已结束
-        cortn->hd.yieldUntil = 1;  // 准备下一次执行
+      __chd = NULL;
+      if (!cortn->hd.data[0].ptr) {  // 最外层协程已结束
+        cortn->hd.yieldUntil = 1;    // 准备下一次执行
         if (cortn->mode == CR_MODE_AUTODEL) {
           Sch_DeleteCortn(cortn->name);
           return 0;  // 指针已被释放
@@ -434,17 +477,30 @@ _STATIC_INLINE m_time_t Cortn_Runner(void) {
   return sleep_us;
 }
 
-bool Sch_CreateCortn(const char *name, sch_func_t func, uint8_t enable,
+bool Sch_CreateCortn(const char *name, sch_func_t func, bool enable,
                      CR_MODE mode, void *args) {
-  scheduler_cortn_t *p = (scheduler_cortn_t *)ulist_append(&cortnlist, 1);
+  scheduler_cortn_t *p = (scheduler_cortn_t *)ulist_append(&cortnlist);
+  if (__chd != NULL) {  // 列表添加可能会导致旧指针失效
+    __chd = &ulist_get_ptr(&cortnlist, scheduler_cortn_t, __chd_idx)->hd;
+  }
   if (p == NULL) return false;
   p->task = func;
   p->enable = enable;
   p->mode = mode;
   p->args = args;
   p->name = name;
-  memset(&p->hd, 0, sizeof(__cortn_handle_t));
+  p->hd.dataList.cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND;
+  p->hd.dataList.isize = sizeof(__cortn_data_t);
+  p->hd.dataList.num = 0;
+  p->hd.dataList.cap = 0;
+  ulist_append(&p->hd.dataList);
+  p->hd.data = (__cortn_data_t *)p->hd.dataList.data;
+  p->hd.data[0].local = NULL;
+  p->hd.data[0].ptr = NULL;
   p->hd.yieldUntil = m_time_us();
+  p->hd.msg = NULL;
+  p->hd.maxDepth = 0;
+  p->hd.depth = 0;
   cr_modified = 1;
   return true;
 }
@@ -453,7 +509,10 @@ bool Sch_DeleteCortn(const char *name) {
   if (cortnlist.num == 0) return false;
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (fast_strcmp(cortn->name, name)) {
-      ulist_delete(&cortnlist, cortn - (scheduler_cortn_t *)cortnlist.data, 1);
+      ulist_foreach(&cortn->hd.dataList, __cortn_data_t, data) {
+        if (data->local != NULL) m_free(data->local);
+      }
+      ulist_delete(&cortnlist, cortn - (scheduler_cortn_t *)cortnlist.data);
       cr_modified = 1;
       return true;
     }
@@ -461,14 +520,10 @@ bool Sch_DeleteCortn(const char *name) {
   return false;
 }
 
-bool Sch_SetCortnState(const char *name, uint8_t enable, uint8_t clearState) {
+bool Sch_SetCortnState(const char *name, bool enable, bool clearState) {
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (fast_strcmp(cortn->name, name)) {
-      if (enable == TOGGLE) {
-        cortn->enable = !cortn->enable;
-      } else {
-        cortn->enable = enable;
-      }
+      cortn->enable = enable;
       if (clearState) {
         memset(&cortn->hd, 0, sizeof(__cortn_handle_t));
       }
@@ -489,6 +544,16 @@ bool Sch_IsCortnExist(const char *name) {
   }
   return false;
 }
+
+bool Sch_GetCortnState(const char *name) {
+  ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
+    if (fast_strcmp(cortn->name, name)) {
+      return cortn->enable;
+    }
+  }
+  return false;
+}
+
 bool Sch_IsCortnWaitForMsg(const char *name) {
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (fast_strcmp(cortn->name, name)) {
@@ -507,6 +572,51 @@ bool Sch_SendMsgToCortn(const char *name, void *msg) {
     }
   }
   return false;
+}
+
+_INLINE void *__Sch_CrInitLocal(uint16_t size) {
+  if (__chd->data[__chd->depth].local == NULL) {
+    __chd->data[__chd->depth].local = m_alloc(size);
+    memset(__chd->data[__chd->depth].local, 0, size);
+  }
+  return __chd->data[__chd->depth].local;
+}
+
+_INLINE void __Sch_CrFreeLocal(void) {
+  if (__chd->data[__chd->depth].local != NULL) {
+    m_free(__chd->data[__chd->depth].local);
+    __chd->data[__chd->depth].local = NULL;
+  }
+}
+
+_INLINE bool __Sch_CrAwaitEnter(void) {
+  __chd->depth++;
+  if (__chd->depth > __chd->maxDepth) {
+    if (!ulist_append(&__chd->dataList)) {
+      __chd->depth--;
+      return false;
+    }
+    __chd->data = __chd->dataList.data;
+    __chd->data[__chd->depth].local = NULL;
+    __chd->data[__chd->depth].ptr = NULL;
+    __chd->maxDepth++;
+  }
+  return true;
+}
+
+_INLINE bool __Sch_CrAwaitReturn(void) {
+  __chd->depth--;
+  if (__chd->data[__chd->depth + 1].ptr != NULL) {
+    return false;
+  }
+  if (__chd->data[__chd->depth + 1].local != NULL) {
+    m_free(__chd->data[__chd->depth + 1].local);
+    __chd->data[__chd->depth + 1].local = NULL;
+  }
+  ulist_delete(&__chd->dataList, -1);
+  __chd->data = __chd->dataList.data;
+  __chd->maxDepth--;
+  return true;
 }
 
 #endif  // _SCH_ENABLE_COROUTINE
@@ -531,8 +641,7 @@ _STATIC_INLINE m_time_t CallLater_Runner(void) {
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
     if (m_time_us() >= callLater_p->runTimeUs) {
       callLater_p->task(callLater_p->args);
-      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data,
-                   1);
+      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data);
       return 0;  // 有任务被执行，不确定
     }
     if (callLater_p->runTimeUs < sleep_us) {
@@ -543,7 +652,7 @@ _STATIC_INLINE m_time_t CallLater_Runner(void) {
 }
 
 bool Sch_CallLater(sch_func_t func, m_time_t delayUs, void *args) {
-  scheduler_call_later_t *p = (scheduler_call_later_t *)ulist_append(&clist, 1);
+  scheduler_call_later_t *p = (scheduler_call_later_t *)ulist_append(&clist);
   if (p == NULL) return false;
   p->task = func;
   p->runTimeUs = delayUs + m_time_us();
@@ -554,8 +663,7 @@ bool Sch_CallLater(sch_func_t func, m_time_t delayUs, void *args) {
 void Sch_CancelCallLater(sch_func_t func) {
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
     if (callLater_p->task == func) {
-      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data,
-                   1);
+      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data);
       return;
     }
   }

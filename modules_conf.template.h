@@ -29,9 +29,7 @@
 #define _SCH_ENABLE_CALLLATER 1  // 支持延时调用
 #define _SCH_ENABLE_SOFTINT 1    // 支持软中断
 
-#define _SCH_COMP_RANGE \
-  (1 * m_tick_per_ms(m_time_t))  // 任务调度自动补偿范围(TICK)
-#define _SCH_CR_MAX_DEPTH 5      // 宏协程最大嵌套深度
+#define _SCH_COMP_RANGE (m_tick_per_ms(m_time_t))  // 任务调度自动补偿范围(TICK)
 #define _SCH_EVENT_ALLOW_DUPLICATE 0  // 允许事件重复注册(单事件可触发多个回调)
 
 #define _SCH_DEBUG_REPORT 0  // 输出调度器统计信息(调试模式/低性能)

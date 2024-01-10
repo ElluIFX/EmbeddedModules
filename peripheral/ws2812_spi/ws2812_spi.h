@@ -45,7 +45,6 @@ extern void Strip_DeInit(LEDStrip_t* strip);
  * @param  RGBcolor    RGB颜色
  */
 extern void Strip_Set(LEDStrip_t* strip, uint16_t index, uint32_t RGBcolor);
-extern void Strip_Set_RGB(LEDStrip_t* strip, uint16_t index, uint32_t RGBcolor);
 
 /**
  * @brief 清空灯带
