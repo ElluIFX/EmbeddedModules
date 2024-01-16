@@ -33,6 +33,17 @@ typedef struct {
 
 typedef ulist_t* ULIST;
 
+typedef struct {
+  ULIST target;
+  ulist_offset_t step;
+  uint16_t start;
+  uint16_t end;
+  uint16_t now;
+  uint8_t started;
+} ulist_iter_t;
+
+typedef ulist_iter_t* ULIST_ITER;
+
 #define ULIST_DIRTY_REGION_FILL_DATA 0x00  // 区域填充值
 #define ULIST_DISABLE_ALL_LOG 0            // 禁用所有日志
 
@@ -309,6 +320,43 @@ extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
                        ulist_offset_t start, ulist_offset_t end);
 
 /**
+ * @brief 创建列表迭代器
+ * @param  list      列表结构体
+ * @param  start     迭代起始位置(Python-like)
+ * @param  end       迭代结束位置(Python-like, 不包括)
+ * @param  step      迭代步长
+ * @retval           返回迭代器结构体
+ * @note 返回NULL说明index越界
+ * @note 迭代器需由用户手动调用ulist_free_iter释放
+ * @note step为负数时, start应大于end
+ */
+extern ULIST_ITER ulist_create_iter(ULIST list, ulist_offset_t start,
+                                    ulist_offset_t end, ulist_offset_t step);
+
+/**
+ * @brief 释放列表迭代器
+ * @param  iter      迭代器结构体
+ */
+extern void ulist_free_iter(ULIST_ITER iter);
+
+/**
+ * @brief 迭代器下一元素
+ * @param  iter      迭代器结构体
+ * @retval           返回元素指针
+ * @note 返回NULL说明迭代结束
+ * @warning 返回NULL后的下一次next将自动重置迭代器, 从头开始迭代
+ */
+extern void* ulist_iter_next(ULIST_ITER iter);
+
+/**
+ * @brief 迭代器当前元素
+ * @param  iter      迭代器结构体
+ * @retval           返回元素指针
+ * @note 返回NULL说明迭代结束或迭代器未曾迭代过
+ */
+extern void* ulist_iter_next(ULIST_ITER iter);
+
+/**
  * @brief 清空列表
  * @param  list       列表结构体
  */
@@ -335,16 +383,6 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
 #define ulist_get_ptr(list, type, index) ((type*)ulist_get(list, index))
 
 /**
- * @brief 弹出并删除列表对应位置的元素指针
- * @param  list       列表结构体
- * @param  type       元素类型
- * @param  index      元素位置(Python-like)
- * @param  num        元素个数
- */
-#define ulist_pop_ptr(list, type, index, num) \
-  ((type*)ulist_pop(list, index, num))
-
-/**
  * @brief 循环遍历列表
  * @param  list       列表结构体
  * @param  type       元素类型
@@ -362,12 +400,12 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
  * @param  from_index 起始位置(Python-like)
- * @note 不要在循环中修改列表结构
+ * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from(list, type, var, from_index)         \
   for (type* var = ulist_get_ptr(list, type, from_index),       \
              *var##_end = ulist_get_ptr(list, type, SLICE_END); \
-       var < var##_end; var++)
+       var && var##_end && var < var##_end; var++)
 
 /**
  * @brief 循环遍历列表
@@ -375,12 +413,12 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
  * @param  to_index   结束位置(Python-like, 不包括)
- * @note 不要在循环中修改列表结构
+ * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_to(list, type, var, to_index)            \
   for (type* var = ulist_get_ptr(list, type, 0),               \
              *var##_end = ulist_get_ptr(list, type, to_index); \
-       var < var##_end; var++)
+       var && var##_end && var < var##_end; var++)
 
 /**
  * @brief 循环遍历列表
@@ -389,12 +427,12 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  var        循环变量名([var]->[var]_end)
  * @param  from_index 起始位置
  * @param  to_index   结束位置(Python-like, 不包括)
- * @note 不要在循环中修改列表结构
+ * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from_to(list, type, var, from_index, to_index) \
   for (type* var = ulist_get_ptr(list, type, from_index),            \
              *var##_end = ulist_get_ptr(list, type, to_index);       \
-       var < var##_end; var++)
+       var && var##_end && var < var##_end; var++)
 
 /**
  * @brief 循环遍历列表
@@ -405,13 +443,14 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  to_index   结束位置(Python-like, 不包括)
  * @param  step       步长
  * @note step为负数时, from_index应大于to_index
- * @note 不要在循环中修改列表结构
+ * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from_to_step(list, type, var, from_index, to_index, \
                                    step)                                  \
   for (type* var = ulist_get_ptr(list, type, from_index),                 \
              *var##_end = ulist_get_ptr(list, type, to_index);            \
-       (step > 0 && var < var##_end) || (step < 0 && var > var##_end);    \
+       var && var##_end &&                                                \
+       ((step > 0 && var < var##_end) || (step < 0 && var > var##_end));  \
        var += step)
 
 #ifdef __cplusplus

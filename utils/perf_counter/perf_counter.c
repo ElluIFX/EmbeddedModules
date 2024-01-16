@@ -239,7 +239,7 @@ void update_perf_counter(void)
 {
     s_nUSUnit = SystemCoreClock / 1000000ul;
     s_nMSUnit = SystemCoreClock / 1000ul;
-    
+
     __IRQ_SAFE {
         g_lLastTimeStamp = get_system_ticks();
         g_nOffset = get_system_ticks() - g_lLastTimeStamp;
@@ -255,7 +255,7 @@ void init_cycle_counter(bool bIsSysTickOccupied)
         }
         SCB->ICSR      = SCB_ICSR_PENDSTCLR_Msk;
     }
-    
+
     update_perf_counter();
     s_lSystemClockCounts = 0;                       // reset system cycle counter
     s_nSystemMS = 0;                                // reset system millisecond counter
@@ -332,7 +332,7 @@ void delay_us(int32_t nUs)
 {
     int64_t lUs = (int64_t)nUs * (int64_t)s_nUSUnit;
     int32_t iCompensate = g_nOffset > PERF_CNT_DELAY_US_COMPENSATION
-                        ? g_nOffset 
+                        ? g_nOffset
                         : PERF_CNT_DELAY_US_COMPENSATION;
 
     if (lUs <= iCompensate) {
@@ -350,7 +350,7 @@ void delay_ms(int32_t nMs)
 {
     int64_t lUs = (int64_t)nMs * (int64_t)s_nMSUnit;
     int32_t iCompensate = g_nOffset > PERF_CNT_DELAY_US_COMPENSATION
-                        ? g_nOffset 
+                        ? g_nOffset
                         : PERF_CNT_DELAY_US_COMPENSATION;
 
     if (lUs <= iCompensate) {
@@ -370,13 +370,13 @@ int64_t get_system_ticks(void)
 
     __IRQ_SAFE {
         lTemp = check_systick() + s_lSystemClockCounts;
-        
-        /* When calling get_system_ticks() in an exception handler that has a  
-         * higher priority than the SysTick_Handler, in some rare cases, the 
-         * lTemp might be temporarily smaller than the previous value (i.e. 
+
+        /* When calling get_system_ticks() in an exception handler that has a
+         * higher priority than the SysTick_Handler, in some rare cases, the
+         * lTemp might be temporarily smaller than the previous value (i.e.
          * s_lOldTimestamp), to mitigate the adverse effects of this problem,
          * we use the following code to avoid time-rolling-back issue.
-         * 
+         *
          * NOTE: the issue mentioned above doesn't accumulate or have long-lasting
          *       effects.
          */
@@ -470,14 +470,14 @@ bool __perfc_is_time_out(int64_t lPeriod, int64_t *plTimestamp, bool bAutoReload
     if (NULL == plTimestamp) {
         return false;
     }
-    
+
     int64_t lTimestamp = get_system_ticks();
 
 
     if (0 == *plTimestamp) {
         *plTimestamp = lPeriod;
         *plTimestamp += lTimestamp;
-        
+
         return false;
     }
 
@@ -545,13 +545,13 @@ bool perfc_check_task_stack_canary_safe(void)
         if (NULL == ptRootAgent) {
             break;
         }
-    
+
         if  (   (MAGIC_WORD_CANARY == ptRootAgent->wMagicWord)
             ||  (MAGIC_WORD_AGENT_LIST_VALID == ptRootAgent->wMagicWord)) {
             return true;
         }
     } while(0);
-    
+
     return false;
 }
 
@@ -775,4 +775,3 @@ int64_t __stop_task_cycle_counter(task_cycle_info_t *ptInfo)
 
     return lCycles;
 }
-

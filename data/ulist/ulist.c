@@ -391,3 +391,42 @@ void ulist_clear(ULIST list) {
   ulist_shrink(list, 0);
   list->num = 0;
 }
+
+ULIST_ITER ulist_create_iter(ULIST list, ulist_offset_t start,
+                             ulist_offset_t end, ulist_offset_t step) {
+  ulist_size_t start_s = convert_pylike_offset(list, start);
+  ulist_size_t end_s = convert_pylike_offset(list, end);
+  if (start == -1 || end == -1) return NULL;
+  ULIST_ITER iter = (ULIST_ITER)_ulist_malloc(sizeof(ulist_iter_t));
+  if (iter == NULL) return NULL;
+  iter->target = list;
+  iter->start = start_s;
+  iter->end = end_s;
+  iter->step = step;
+  iter->now = start;
+  iter->started = 0;
+  return iter;
+}
+
+void ulist_iter_free(ULIST_ITER iter) { _ulist_free(iter); }
+
+void* ulist_iter_next(ULIST_ITER iter) {
+  if (iter->started == 0) {
+    iter->now = iter->start;
+    iter->started = 1;
+  } else {
+    iter->now += iter->step;
+  }
+  if (iter->now >= iter->end || iter->now >= iter->target->num) {
+    iter->started = 0;
+    return NULL;
+  }
+  return (void*)((uint8_t*)iter->target->data +
+                 iter->now * iter->target->isize);
+}
+
+void* ulist_iter_now(ULIST_ITER iter) {
+  if (!iter->started) return NULL;
+  return (void*)((uint8_t*)iter->target->data +
+                 iter->now * iter->target->isize);
+}

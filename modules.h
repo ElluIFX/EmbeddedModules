@@ -26,6 +26,7 @@ extern "C" {
 
 #if _MOD_TIME_MATHOD == 0  // HAL
 typedef uint32_t m_time_t;
+#define m_time_t_max_value (UINT32_MAX)
 #define Init_Module_Timebase() ((void)0)
 #define m_time_ms() HAL_GetTick()
 #define m_time_us() (HAL_GetTick() * 1000)
@@ -38,6 +39,7 @@ typedef uint32_t m_time_t;
 #elif _MOD_TIME_MATHOD == 1  // perf_counter
 #include "perf_counter.h"
 typedef int64_t m_time_t;
+#define m_time_t_max_value (INT64_MAX)
 #define Init_Module_Timebase() init_cycle_counter(1);
 #define m_time_ms() get_system_ms()
 #define m_time_us() get_system_us()
@@ -128,11 +130,6 @@ typedef int64_t m_time_t;
   if (CoreDebug->DHCSR & 1) { \
     __breakpoint(0);          \
   }
-
-#define ENABLE 0x01
-#define DISABLE 0x00
-#define IGNORE 0x02
-#define TOGGLE 0xFF
 
 #ifndef __has_include
 #define __has_include(x) 1  // Compatibility with non-clang compilers.

@@ -43,9 +43,9 @@ _INTERNAL void tt_new_fmt(TT_FMT1 fmt1, TT_FMT2 fmt2) {
   if (fmt1 == lastFmt1 && fmt2 == lastFmt2) return;
   if (fmt1 == TT_FMT1_KEEP) return;
   if (fmt1 != TT_FMT1_NONE && fmt2 != TT_FMT2_NONE) {
-    tt_printf("\033[%d;%dm", fmt1, fmt2);
+    tt_printf("\033[0;%d;%dm", fmt1, fmt2);
   } else if (fmt1 != TT_FMT1_NONE) {
-    tt_printf("\033[%dm", fmt1);
+    tt_printf("\033[0;%dm", fmt1);
   } else {
     puts("\033[0m");
   }
@@ -88,8 +88,8 @@ _INTERNAL void tt_print_str(TT_STR str, int16_t minWidth) {
   tt_print_str_sep(str, minWidth, ' ');
 }
 
-_EXTERNAL TT_STR TermTable_StrConst(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
-                                    const char* str) {
+_EXTERNAL TT_STR TT_Str(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
+                        const char* str) {
   TT_STR ret = (TT_STR)tt_alloc(sizeof(term_table_str_t));
   ret->str = (char*)str;
   ret->allocated = false;
@@ -100,8 +100,8 @@ _EXTERNAL TT_STR TermTable_StrConst(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
   return ret;
 }
 
-_EXTERNAL TT_STR TermTable_StrPrintf(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
-                                     const char* fmt, ...) {
+_EXTERNAL TT_STR TT_FmtStr(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
+                           const char* fmt, ...) {
   TT_STR ret = (TT_STR)tt_alloc(sizeof(term_table_str_t));
   va_list args;
   va_start(args, fmt);
@@ -110,7 +110,7 @@ _EXTERNAL TT_STR TermTable_StrPrintf(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
   ret->str = (char*)tt_alloc(len);
   ret->allocated = true;
   va_start(args, fmt);
-  vsnprintf((char*)ret->str, len, fmt, args);
+  len = vsnprintf((char*)ret->str, len, fmt, args);
   va_end(args);
   ret->width = len;
   ret->align = align;
@@ -119,7 +119,7 @@ _EXTERNAL TT_STR TermTable_StrPrintf(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
   return ret;
 }
 
-_EXTERNAL void TermTable_StrPrintf_Update(TT_STR str, const char* fmt, ...) {
+_EXTERNAL void TT_FmtStr_Update(TT_STR str, const char* fmt, ...) {
   va_list args;
   va_start(args, fmt);
   int16_t len = vsnprintf(NULL, 0, fmt, args) + 1;
@@ -131,24 +131,25 @@ _EXTERNAL void TermTable_StrPrintf_Update(TT_STR str, const char* fmt, ...) {
     str->allocated = true;
   }
   va_start(args, fmt);
-  vsnprintf((char*)str->str, len, fmt, args);
+  len = vsnprintf((char*)str->str, len, fmt, args);
   va_end(args);
   str->width = len;
 }
 
 _INTERNAL void tt_free_str(TT_STR str) {
   if (str->allocated) tt_free(str->str);
+  str->allocated = false;
   tt_free(str);
 }
 
-_EXTERNAL TT TermTable_NewTable(int16_t tableMinWidth) {
+_EXTERNAL TT TT_NewTable(int16_t tableMinWidth) {
   TT ret = (TT)tt_alloc(sizeof(term_table_t));
   ret->items = ulist_create(sizeof(term_table_item_t), 0, NULL);
   ret->tableMinWidth = tableMinWidth > 0 ? tableMinWidth : WIDTH_DISABLED;
   return ret;
 }
 
-_EXTERNAL void TermTable_FreeTable(TT tt) {
+_EXTERNAL void TT_FreeTable(TT tt) {
   // 需要遍历删除所有的子项
   ulist_foreach(tt->items, term_table_item_t, item) {
     switch (item->type) {
@@ -212,7 +213,7 @@ _INTERNAL TT_ITEM tt_new_item(TT tt, TT_ITEM_TYPE type) {
   return ret;
 }
 
-_EXTERNAL TT_ITEM_TITLE TermTable_AddTitle(TT tt, TT_STR str, char separator) {
+_EXTERNAL TT_ITEM_TITLE TT_AddTitle(TT tt, TT_STR str, char separator) {
   TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_TITLE);
   TT_ITEM_TITLE content = (TT_ITEM_TITLE)item->content;
   content->str = str;
@@ -220,15 +221,15 @@ _EXTERNAL TT_ITEM_TITLE TermTable_AddTitle(TT tt, TT_STR str, char separator) {
   return content;
 }
 
-_EXTERNAL TT_ITEM_STRING TermTable_AddString(TT tt, TT_STR str, int16_t width) {
+_EXTERNAL TT_ITEM_STRING TT_AddString(TT tt, TT_STR str, int16_t width) {
   TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_STRING);
   TT_ITEM_STRING content = (TT_ITEM_STRING)item->content;
   content->str = str;
-  content->width = width > 0 ? width : WIDTH_DISABLED;
+  content->width = width >= 0 ? width : WIDTH_DISABLED;
   return content;
 }
 
-_EXTERNAL TT_ITEM_KVPAIR TermTable_AddKVPair(TT tt, int16_t keyMinWidth) {
+_EXTERNAL TT_ITEM_KVPAIR TT_AddKVPair(TT tt, int16_t keyMinWidth) {
   TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_KVPAIR);
   TT_ITEM_KVPAIR content = (TT_ITEM_KVPAIR)item->content;
   content->items = ulist_create(sizeof(term_table_item_kvpair_item_t), 0, NULL);
@@ -239,45 +240,46 @@ _EXTERNAL TT_ITEM_KVPAIR TermTable_AddKVPair(TT tt, int16_t keyMinWidth) {
   return content;
 }
 
-_EXTERNAL TT_ITEM_KVPAIR_ITEM TermTable_KVPair_AddItem(TT_ITEM_KVPAIR kvpair,
-                                                       TT_STR key, TT_STR value,
-                                                       TT_STR separator) {
+_EXTERNAL TT_ITEM_KVPAIR_ITEM TT_KVPair_AddItem(TT_ITEM_KVPAIR kvpair,
+                                                int16_t intent, TT_STR key,
+                                                TT_STR value,
+                                                TT_STR separator) {
   TT_ITEM_KVPAIR_ITEM item = (TT_ITEM_KVPAIR_ITEM)ulist_append(kvpair->items);
   item->key = key;
   item->value = value;
   item->separator = separator;
+  item->intent = intent >= 0 ? intent : 0;
   return item;
 }
 
-_EXTERNAL TT_ITEM_GRID TermTable_AddGrid(TT tt, bool extend) {
+_EXTERNAL TT_ITEM_GRID TT_AddGrid(TT tt, int16_t margin) {
   TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_GRID);
   TT_ITEM_GRID content = (TT_ITEM_GRID)item->content;
   content->lines = ulist_create(sizeof(term_table_item_grid_line_t), 0, NULL);
   content->widths = ulist_create(sizeof(int16_t), 0, NULL);
-  content->extend = extend;
+  content->margin = margin >= 0 ? margin : 0;
   content->separatorWidth = WIDTH_UNKNOWN;
   return content;
 }
 
-_EXTERNAL TT_ITEM_GRID_LINE TermTable_Grid_AddLine(TT_ITEM_GRID grid,
-                                                   TT_STR separator) {
+_EXTERNAL TT_ITEM_GRID_LINE TT_Grid_AddLine(TT_ITEM_GRID grid,
+                                            TT_STR separator) {
   TT_ITEM_GRID_LINE line = (TT_ITEM_GRID_LINE)ulist_append(grid->lines);
   line->items = ulist_create(sizeof(term_table_item_grid_item_t), 0, NULL);
   line->separator = separator;
   return line;
 }
 
-_EXTERNAL TT_ITEM_GRID_LINE_ITEM
-TermTable_GridLine_AddItem(TT_ITEM_GRID_LINE line, TT_STR str) {
+_EXTERNAL TT_ITEM_GRID_LINE_ITEM TT_GridLine_AddItem(TT_ITEM_GRID_LINE line,
+                                                     TT_STR str) {
   TT_ITEM_GRID_LINE_ITEM item =
       (TT_ITEM_GRID_LINE_ITEM)ulist_append(line->items);
   item->str = str;
   return item;
 }
 
-_EXTERNAL TT_ITEM_SEPARATOR TermTable_AddSeparator(TT tt, TT_FMT1 fmt1,
-                                                   TT_FMT2 fmt2,
-                                                   char separator) {
+_EXTERNAL TT_ITEM_SEPARATOR TT_AddSeparator(TT tt, TT_FMT1 fmt1, TT_FMT2 fmt2,
+                                            char separator) {
   TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_SEPARATOR);
   TT_ITEM_SEPARATOR content = (TT_ITEM_SEPARATOR)item->content;
   content->separator = separator;
@@ -291,10 +293,11 @@ _INTERNAL int16_t tt_calc_title_width(TT_ITEM_TITLE title) {
 }
 
 _INTERNAL int16_t tt_calc_string_width(TT_ITEM_STRING string) {
-  return string->width;
+  return string->width == 0 ? string->str->width : string->width;
 }
 
 _INTERNAL int16_t tt_calc_kvpair_width(TT_ITEM_KVPAIR kvpair) {
+  int16_t maxIntent = 0;
   ulist_foreach(kvpair->items, term_table_item_kvpair_item_t, kvpair_item) {
     if (kvpair_item->key->width > kvpair->keyWidth)
       kvpair->keyWidth = kvpair_item->key->width;
@@ -302,11 +305,13 @@ _INTERNAL int16_t tt_calc_kvpair_width(TT_ITEM_KVPAIR kvpair) {
       kvpair->valueWidth = kvpair_item->value->width;
     if (kvpair_item->separator->width > kvpair->separatorWidth)
       kvpair->separatorWidth = kvpair_item->separator->width;
+    if (kvpair_item->intent > maxIntent) maxIntent = kvpair_item->intent;
   }
   if (kvpair->keyMinWidth != WIDTH_DISABLED &&
       kvpair->keyWidth < kvpair->keyMinWidth)
     kvpair->keyWidth = kvpair->keyMinWidth;
-  return kvpair->keyWidth + kvpair->valueWidth + kvpair->separatorWidth;
+  return kvpair->keyWidth + kvpair->valueWidth + kvpair->separatorWidth +
+         maxIntent;
 }
 
 _INTERNAL int16_t tt_calc_grid_width(TT_ITEM_GRID grid, int16_t minWidth) {
@@ -332,19 +337,7 @@ _INTERNAL int16_t tt_calc_grid_width(TT_ITEM_GRID grid, int16_t minWidth) {
     sum += grid->separatorWidth;
   }
   sum -= grid->separatorWidth;
-  if (grid->extend && minWidth != WIDTH_DISABLED && sum < minWidth) {
-    int16_t diff = minWidth - sum;
-    int16_t add_for_each = diff / ulist_len(grid->widths);
-    ulist_foreach(grid->widths, int16_t, width) {
-      *width += add_for_each;
-      diff -= add_for_each;
-    }
-    if (diff > 0) {
-      int16_t* first = (int16_t*)ulist_get(grid->widths, 0);
-      *first += diff;
-    }
-    return minWidth;
-  }
+  sum += 2 * grid->margin;
   return sum;
 }
 
@@ -381,6 +374,7 @@ _INTERNAL void tt_print_separator(TT_ITEM_SEPARATOR separator, int16_t width) {
 
 _INTERNAL void tt_print_string(TT_ITEM_STRING string, int16_t minWidth) {
   // 遍历字符串，如果遇到换行符(\n)则换行，如果width不为WIDTH_DISABLED且当前行宽度超过width则前向查找空格，在空格处换行，并为每一行计算对齐
+  if (string->width < 0) minWidth += string->width;
   char* str_copy = tt_alloc(string->str->width + 1);
   memcpy(str_copy, string->str->str, string->str->width + 1);
   str_copy[string->str->width] = '\0';
@@ -429,7 +423,35 @@ _INTERNAL void tt_print_string(TT_ITEM_STRING string, int16_t minWidth) {
   tt_free(str_copy);
 }
 
-_EXTERNAL void TermTable_Print(TT tt) {
+_INTERNAL void tt_print_kvpair(TT_ITEM_KVPAIR kvpair, int16_t minWidth) {
+  ulist_foreach(kvpair->items, term_table_item_kvpair_item_t, kvpair_item) {
+    if (kvpair_item->intent) {
+      for (int16_t i = 0; i < kvpair_item->intent; i++) tt_putchar(' ');
+    }
+    tt_print_str(kvpair_item->key, kvpair->keyWidth);
+    tt_print_str(kvpair_item->separator, kvpair->separatorWidth);
+    tt_print_str(kvpair_item->value, kvpair->valueWidth);
+    tt_puts(line_break);
+  }
+}
+
+_INTERNAL void tt_print_grid(TT_ITEM_GRID grid, int16_t minWidth) {
+  ulist_foreach(grid->lines, term_table_item_grid_line_t, grid_line) {
+    if (grid->margin) {
+      for (int16_t i = 0; i < grid->margin; i++) tt_putchar(' ');
+    }
+    int16_t* width = (int16_t*)ulist_get(grid->widths, 0);
+    ulist_foreach(grid_line->items, term_table_item_grid_item_t, grid_item) {
+      tt_print_str(grid_item->str, *width++);
+      if (grid_item + 1 != grid_item_end)
+        tt_print_str(grid_line->separator, grid->separatorWidth);
+    }
+    tt_puts(line_break);
+  }
+}
+
+_EXTERNAL void TT_LineBreak(void) { tt_puts(line_break); }
+_EXTERNAL void TT_Print(TT tt) {
   int16_t maxWidth = tt_calc_max_width(tt);
   if (tt->tableMinWidth != WIDTH_DISABLED && maxWidth < tt->tableMinWidth)
     maxWidth = tt->tableMinWidth;
@@ -444,32 +466,12 @@ _EXTERNAL void TermTable_Print(TT tt) {
       case TT_ITEM_TYPE_STRING:
         tt_print_string((TT_ITEM_STRING)item->content, maxWidth);
         break;
-      case TT_ITEM_TYPE_KVPAIR: {
-        TT_ITEM_KVPAIR kvpair = (TT_ITEM_KVPAIR)item->content;
-        ulist_foreach(kvpair->items, term_table_item_kvpair_item_t,
-                      kvpair_item) {
-          tt_print_str(kvpair_item->key, kvpair->keyWidth);
-          tt_print_str(kvpair_item->separator, kvpair->separatorWidth);
-          tt_print_str(kvpair_item->value, kvpair->valueWidth);
-          tt_puts(line_break);
-        }
+      case TT_ITEM_TYPE_KVPAIR:
+        tt_print_kvpair((TT_ITEM_KVPAIR)item->content, maxWidth);
         break;
-      }
-      case TT_ITEM_TYPE_GRID: {
-        TT_ITEM_GRID grid = (TT_ITEM_GRID)item->content;
-        ulist_foreach(grid->lines, term_table_item_grid_line_t, grid_line) {
-          int16_t* width = (int16_t*)ulist_get(grid->widths, 0);
-          ulist_foreach(grid_line->items, term_table_item_grid_item_t,
-                        grid_item) {
-            tt_print_str(grid_item->str, *width);
-            width++;
-            if (grid_item + 1 != grid_item_end)
-              tt_print_str(grid_line->separator, grid->separatorWidth);
-          }
-          tt_puts(line_break);
-        }
+      case TT_ITEM_TYPE_GRID:
+        tt_print_grid((TT_ITEM_GRID)item->content, maxWidth);
         break;
-      }
       case TT_ITEM_TYPE_SEPARATOR:
         tt_print_separator((TT_ITEM_SEPARATOR)item->content, maxWidth);
         tt_puts(line_break);

@@ -15,22 +15,22 @@
 
 #if defined(LED_R_Pin) && defined(LED_G_Pin) && defined(LED_B_Pin)
 void LED(uint8_t R, uint8_t G, uint8_t B) {
-  if (R <= 1)
+  if (R < IGNORE)
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, LED_STATE(R));
   else if (R == TOGGLE)
     HAL_GPIO_TogglePin(LED_R_GPIO_Port, LED_R_Pin);
-  if (G <= 1)
+  if (G < IGNORE)
     HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, LED_STATE(G));
   else if (G == TOGGLE)
     HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
-  if (B <= 1)
+  if (B < IGNORE)
     HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, LED_STATE(B));
   else if (B == TOGGLE)
     HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
 }
 #elif defined(LED_Pin)
 void LED(uint8_t act) {
-  if (act <= 1)
+  if (act < IGNORE)
     HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_STATE(act));
   else if (act == TOGGLE)
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);

@@ -20,11 +20,11 @@ typedef void (*sch_func_t)(void *args);  // 任务函数指针类型
 /**
  * @brief 调度器主函数
  * @param  block            是否阻塞, 若不阻塞则应将此函数放在SuperLoop中
- * @retval m_time_t         返回时间: 距离下一次调度的时间(us)
+ * @retval uint64_t         返回时间: 距离下一次调度的时间(us)
  * @note block=0时. SuperLoop应保证在返回时间前交还CPU以最小化调度延迟
  * @note block=1时. 查看Scheduler_Idle_Callback函数说明
  **/
-extern m_time_t Scheduler_Run(const bool block);
+extern uint64_t Scheduler_Run(const uint8_t block);
 
 /**
  * @brief 调度器空闲回调函数, 由用户实现(block=1时调用)
@@ -32,7 +32,7 @@ extern m_time_t Scheduler_Run(const bool block);
  * @note  应保证在空闲时间前交还CPU以最小化调度延迟
  * @note  可在此函数内实现低功耗
  */
-extern void Scheduler_Idle_Callback(m_time_t idleTimeUs);
+extern void Scheduler_Idle_Callback(uint64_t idleTimeUs);
 
 #if _SCH_ENABLE_TASK
 
@@ -44,64 +44,65 @@ extern void Scheduler_Idle_Callback(m_time_t idleTimeUs);
  * @param  enable           初始化时是否使能
  * @param  priority         任务优先级(越大优先级越高)
  * @param  args             任务参数
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
-                           bool enable, uint8_t priority, void *args);
+extern uint8_t Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
+                              uint8_t enable, uint8_t priority, void *args);
 
 /**
  * @brief 切换任务使能状态
  * @param  name             任务名
  * @param  enable           使能状态(0xff:切换)
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_SetTaskState(const char *name, bool enable);
+extern uint8_t Sch_SetTaskState(const char *name, uint8_t enable);
 
 /**
  * @brief 删除一个调度任务
  * @param  name             任务名
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_DeleteTask(const char *name);
+extern uint8_t Sch_DeleteTask(const char *name);
 
 /**
  * @brief 设置任务调度频率
  * @param  name             任务名
  * @param  freq             调度频率
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_SetTaskFreq(const char *name, float freqHz);
+extern uint8_t Sch_SetTaskFreq(const char *name, float freqHz);
 
 /**
  * @brief 设置任务优先级
  * @param  name             任务名
  * @param  priority         任务优先级
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_SetTaskPriority(const char *name, uint8_t priority);
+extern uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority);
 
 /**
  * @brief 查询任务是否存在
  * @param  name             任务名
- * @retval bool             任务是否存在
+ * @retval uint8_t             任务是否存在
  */
-extern bool Sch_IsTaskExist(const char *name);
+extern uint8_t Sch_IsTaskExist(const char *name);
 
 /**
  * @brief 查询任务状态
  * @param  name             任务名
- * @retval bool             任务状态
+ * @retval uint8_t             任务状态
  */
-extern bool Sch_GetTaskState(const char *name);
+extern uint8_t Sch_GetTaskState(const char *name);
 
 /**
  * @brief 延迟(推后)指定任务下一次调度的时间
  * @param  name             任务名
  * @param  delayUs          延迟时间(us)
  * @param  fromNow          从当前时间/上一次调度时间计算延迟
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_DelayTask(const char *name, m_time_t delayUs, bool fromNow);
+extern uint8_t Sch_DelayTask(const char *name, uint64_t delayUs,
+                             uint8_t fromNow);
 
 /**
  * @brief 获取调度器内任务数量
@@ -117,52 +118,53 @@ extern uint16_t Sch_GetTaskNum(void);
  * @param  name             事件名
  * @param  callback         事件回调函数指针
  * @param  enable           初始化时是否使能
- * @retval bool             是否成功huidi
+ * @retval uint8_t          是否成功huidi
  * @warning 事件回调是异步执行的, 由调度器自动调用
  */
-extern bool Sch_CreateEvent(const char *name, sch_func_t callback, bool enable);
+extern uint8_t Sch_CreateEvent(const char *name, sch_func_t callback,
+                               uint8_t enable);
 
 /**
  * @brief 删除一个事件
  * @param  name             事件名
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_DeleteEvent(const char *name);
+extern uint8_t Sch_DeleteEvent(const char *name);
 
 /**
  * @brief 设置事件使能状态
  * @param  name             事件名
  * @param  enable           使能状态(0xff: 切换)
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_SetEventState(const char *name, bool enable);
+extern uint8_t Sch_SetEventState(const char *name, uint8_t enable);
 
 /**
  * @brief 查询指定事件使能状态
  * @param  name             事件名
- * @retval bool             事件使能状态
+ * @retval uint8_t             事件使能状态
  */
-extern bool Sch_GetEventState(const char *name);
+extern uint8_t Sch_GetEventState(const char *name);
 
 /**
  * @brief 触发一个事件
  * @param  name             事件名
  * @param  args             传递参数
- * @retval bool             是否成功(事件不存在或禁用)
+ * @retval uint8_t          是否成功(事件不存在或禁用)
  * @warning 事件回调是异步执行的, 需注意回调参数的生命周期
  * @note 对于短生命周期的参数, 可以考虑使用Sch_TriggerEventEx
  */
-extern bool Sch_TriggerEvent(const char *name, void *args);
+extern uint8_t Sch_TriggerEvent(const char *name, void *args);
 
 /**
  * @brief 触发一个事件, 并为参数创建副本内存(回调执行后自动释放)
  * @param  name             事件名
  * @param  arg_ptr          参数指针
  * @param  arg_size         参数大小
- * @retval bool             是否成功(事件不存在或禁用, 或alloc失败)
+ * @retval uint8_t          是否成功(事件不存在或禁用, 或alloc失败)
  */
-extern bool Sch_TriggerEventEx(const char *name, const void *arg_ptr,
-                               uint16_t arg_size);
+extern uint8_t Sch_TriggerEventEx(const char *name, const void *arg_ptr,
+                                  uint16_t arg_size);
 
 /**
  * @brief 获取调度器内事件数量
@@ -172,9 +174,9 @@ extern uint16_t Sch_GetEventNum(void);
 /**
  * @brief 查询指定事件是否存在
  * @param  name             事件名
- * @retval bool             事件是否存在
+ * @retval uint8_t             事件是否存在
  */
-extern bool Sch_IsEventExist(const char *name);
+extern uint8_t Sch_IsEventExist(const char *name);
 #endif  // _SCH_ENABLE_EVENT
 
 #if _SCH_ENABLE_COROUTINE
@@ -197,31 +199,35 @@ typedef struct {         // 协程句柄结构
   __cortn_data_t *data;  // 协程数据指针
   uint8_t depth;         // 协程当前嵌套深度
   uint8_t maxDepth;      // 协程最大嵌套深度
-  m_time_t yieldUntil;   // 等待态结束时间(us)
+  uint64_t yieldUntil;   // 等待态结束时间(us)
   void *msg;             // 协程消息指针
 } __cortn_handle_t;
 #pragma pack()
 extern __cortn_handle_t *__chd;
 
-// 内部函数
 extern void *__Sch_CrInitLocal(uint16_t size);
 extern void __Sch_CrFreeLocal(void);
-extern bool __Sch_CrAwaitEnter(void);
-extern bool __Sch_CrAwaitReturn(void);
+extern uint8_t __Sch_CrAwaitEnter(void);
+extern uint8_t __Sch_CrAwaitReturn(void);
 
 /**
- * @brief 初始化协程局部变量, 在协程函数最开头调用(以CR_LOCAL_END结束)
+ * @brief 初始化协程局部变量区, 在协程函数最开头调用(以CR_LOCAL_END结束)
  * @warning 不允许在初始化时赋初值, 全部填充0
- * @note  以l->xxx的形式访问局部变量
+ * @note  以CR_LOCAL(xxx)的形式访问局部变量
  */
 #define CR_LOCAL_START struct _cr_local {
 /**
- * @brief 结束协程局部变量初始化(CR_LOCAL后, CR_BEGIN前调用)
+ * @brief 结束协程局部变量区(CR_LOCAL后, CR_BEGIN前调用)
  */
-#define CR_LOCAL_END                                \
-  }                                                 \
-  *l = __Sch_CrInitLocal(sizeof(struct _cr_local)); \
-  if (l == NULL) return;
+#define CR_LOCAL_END                                          \
+  }                                                           \
+  *_cr_local_p = __Sch_CrInitLocal(sizeof(struct _cr_local)); \
+  if (_cr_local_p == NULL) return;
+
+/**
+ * @brief 局部变量
+ */
+#define CR_LOCAL(var) (_cr_local_p->var)
 
 /**
  * @brief 初始化协程, 在协程函数开头调用(CR_LOCAL_END后调用)
@@ -247,15 +253,17 @@ extern bool __Sch_CrAwaitReturn(void);
   } while (0)
 
 /**
- * @brief 执行其他协程函数，并处理跳转
+ * @brief 执行其他协程函数，并阻塞直至协程函数返回
+ * @warning 所执行函数不应通过返回值返回变量, 应使用指针传递
+ * @note 允许任意参数传递 如 CR_AWAIT(Abc(1, 2, 3));
  */
-#define CR_AWAIT(func)                           \
+#define CR_AWAIT(func_cmd)                       \
   do {                                           \
     __label__ l;                                 \
     (__chd->data[__chd->depth].ptr) = (long)&&l; \
   l:;                                            \
     if (__Sch_CrAwaitEnter()) {                  \
-      func;                                      \
+      func_cmd;                                  \
       if (!__Sch_CrAwaitReturn()) return;        \
       (__chd->data[__chd->depth].ptr) = 0;       \
     }                                            \
@@ -326,7 +334,7 @@ static inline void *CR_GET_MSG(void) {
   } while (!(cond))
 
 /**
- * @brief 运行一次协程, 执行完毕后自动删除
+ * @brief 异步执行其他协程
  */
 #define CR_RUN(name, func, args) \
   Sch_CreateCortn(name, func, 1, CR_MODE_AUTODEL, args)
@@ -343,33 +351,34 @@ static inline void *CR_GET_MSG(void) {
  * @param  enable           是否立即启动
  * @param  mode             模式(CR_MODE_xxx)
  * @param  args             任务参数
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_CreateCortn(const char *name, sch_func_t func, bool enable,
-                            CR_MODE mode, void *args);
+extern uint8_t Sch_CreateCortn(const char *name, sch_func_t func,
+                               uint8_t enable, CR_MODE mode, void *args);
 
 /**
  * @brief 设置协程使能状态
  * @param  name            协程名
  * @param  enable          使能状态(0xff: 切换)
  * @param  clearState      是否清除协程状态(从头开始执行)
- * @retval bool            是否成功
+ * @retval uint8_t         是否成功
  */
-extern bool Sch_SetCortnState(const char *name, bool enable, bool clearState);
+extern uint8_t Sch_SetCortnState(const char *name, uint8_t enable,
+                                 uint8_t clearState);
 
 /**
  * @brief 查询指定协程是否正在运行
  * @param  name             协程名
- * @retval bool             是否正在运行
+ * @retval uint8_t             是否正在运行
  */
-extern bool Sch_GetCortnState(const char *name);
+extern uint8_t Sch_GetCortnState(const char *name);
 
 /**
  * @brief 删除一个协程
  * @param  name            协程名
- * @retval bool            是否成功
+ * @retval uint8_t         是否成功
  */
-extern bool Sch_DeleteCortn(const char *name);
+extern uint8_t Sch_DeleteCortn(const char *name);
 
 /**
  * @brief 获取调度器内协程数量
@@ -379,24 +388,24 @@ extern uint16_t Sch_GetCortnNum(void);
 /**
  * @brief 查询指定协程是否存在
  * @param  name             协程名
- * @retval bool             协程是否存在
+ * @retval uint8_t             协程是否存在
  */
-extern bool Sch_IsCortnExist(const char *name);
+extern uint8_t Sch_IsCortnExist(const char *name);
 
 /**
  * @brief 查询指定协程是否处于等待消息状态
  * @param  name             协程名
- * @retval bool             协程是否处于等待消息状态
+ * @retval uint8_t             协程是否处于等待消息状态
  */
-extern bool Sch_IsCortnWaitForMsg(const char *name);
+extern uint8_t Sch_IsCortnWaitForMsg(const char *name);
 
 /**
  * @brief 发送消息给指定协程并唤醒
  * @param  name             协程名
  * @param  msg              消息指针
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_SendMsgToCortn(const char *name, void *msg);
+extern uint8_t Sch_SendMsgToCortn(const char *name, void *msg);
 
 #endif  // _SCH_ENABLE_COROUTINE
 
@@ -406,9 +415,9 @@ extern bool Sch_SendMsgToCortn(const char *name, void *msg);
  * @param  func             任务函数指针
  * @param  delayUs          延时启动时间(us)
  * @param  args             任务参数
- * @retval bool             是否成功
+ * @retval uint8_t          是否成功
  */
-extern bool Sch_CallLater(sch_func_t func, m_time_t delayUs, void *args);
+extern uint8_t Sch_CallLater(sch_func_t func, uint64_t delayUs, void *args);
 
 /**
  * @brief 取消所有对应函数的延时调用任务

@@ -106,6 +106,7 @@ typedef struct {
   TT_STR key;
   TT_STR value;
   TT_STR separator;
+  int16_t intent;
 } term_table_item_kvpair_item_t;
 
 typedef term_table_item_kvpair_item_t* TT_ITEM_KVPAIR_ITEM;
@@ -114,7 +115,7 @@ typedef struct {
   ULIST lines;
   ULIST widths;
   int16_t separatorWidth;
-  bool extend;
+  int16_t margin;
 } term_table_item_grid_t;
 
 typedef term_table_item_grid_t* TT_ITEM_GRID;
@@ -147,19 +148,24 @@ typedef term_table_item_separator_t* TT_ITEM_SEPARATOR;
  * @param  tableMinWidth  表格最小宽度
  * @retval TT             表格
  */
-extern TT TermTable_NewTable(int16_t tableMinWidth);
+extern TT TT_NewTable(int16_t tableMinWidth);
 
 /**
  * @brief  释放表格
  * @param  tt  表格
  */
-extern void TermTable_FreeTable(TT tt);
+extern void TT_FreeTable(TT tt);
 
 /**
  * @brief 打印表格
  * @param  tt 表格
  */
-extern void TermTable_Print(TT tt);
+extern void TT_Print(TT tt);
+
+/**
+ * @brief 换行
+ */
+extern void TT_LineBreak(void);
 
 /**
  * @brief  创建一个绑定到已有字符串的字段
@@ -169,8 +175,8 @@ extern void TermTable_Print(TT tt);
  * @param  str    字符串
  * @retval TT_STR 字符串字段
  */
-extern TT_STR TermTable_StrConst(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
-                                 const char* str);
+extern TT_STR TT_Str(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
+                     const char* str);
 
 /**
  * @brief  创建一个动态字段
@@ -181,8 +187,8 @@ extern TT_STR TermTable_StrConst(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
  * @param  ...    可变参数
  * @retval TT_STR 字符串字段
  */
-extern TT_STR TermTable_StrPrintf(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
-                                  const char* fmt, ...);
+extern TT_STR TT_FmtStr(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
+                        const char* fmt, ...);
 
 /**
  * @brief 更新字符串字段
@@ -190,7 +196,7 @@ extern TT_STR TermTable_StrPrintf(TT_ALIGN align, TT_FMT1 fmt1, TT_FMT2 fmt2,
  * @param  fmt   字符串格式
  * @param  ...   可变参数
  */
-extern void TermTable_StrPrintf_Update(TT_STR str, const char* fmt, ...);
+extern void TT_FmtStr_Update(TT_STR str, const char* fmt, ...);
 
 /**
  * @brief  添加一个标题组件
@@ -199,17 +205,17 @@ extern void TermTable_StrPrintf_Update(TT_STR str, const char* fmt, ...);
  * @param  separator  分隔符(单字符)
  * @retval TT_ITEM_TITLE 标题
  */
-extern TT_ITEM_TITLE TermTable_AddTitle(TT tt, TT_STR str, char separator);
+extern TT_ITEM_TITLE TT_AddTitle(TT tt, TT_STR str, char separator);
 
 /**
  * @brief  添加一个字符串组件
  * @param  tt     表格
  * @param  str    字符串字段
- * @param  width  字符串宽度(<=0:由表格宽度决定)
+ * @param  width  字符串宽度(<0:表格宽度+1+width, 0:字符串实际宽度)
  * @retval TT_ITEM_STRING 字符串
- * @note   允许使用\n换行
+ * @note 允许使用\n换行, 但包含换行时不可令width=0
  */
-extern TT_ITEM_STRING TermTable_AddString(TT tt, TT_STR str, int16_t width);
+extern TT_ITEM_STRING TT_AddString(TT tt, TT_STR str, int16_t width);
 
 /**
  * @brief  添加一个键值对组件
@@ -217,27 +223,28 @@ extern TT_ITEM_STRING TermTable_AddString(TT tt, TT_STR str, int16_t width);
  * @param  keyMinWidth 键最小宽度
  * @retval TT_ITEM_KVPAIR 键值对
  */
-extern TT_ITEM_KVPAIR TermTable_AddKVPair(TT tt, int16_t keyMinWidth);
+extern TT_ITEM_KVPAIR TT_AddKVPair(TT tt, int16_t keyMinWidth);
 
 /**
  * @brief  向键值对组件添加一个键值对项
  * @param  kvpair    键值对
+ * @param  intent    缩进
  * @param  key       键字段
  * @param  value     值字段
  * @param  separator 分隔符字段
  * @retval TT_ITEM_KVPAIR_ITEM 键值对项
  */
-extern TT_ITEM_KVPAIR_ITEM TermTable_KVPair_AddItem(TT_ITEM_KVPAIR kvpair,
-                                                    TT_STR key, TT_STR value,
-                                                    TT_STR separator);
+extern TT_ITEM_KVPAIR_ITEM TT_KVPair_AddItem(TT_ITEM_KVPAIR kvpair,
+                                             int16_t intent, TT_STR key,
+                                             TT_STR value, TT_STR separator);
 
 /**
  * @brief 添加一个对齐网格组件
- * @param  tt       表格
- * @param  extend   是否将网格宽度扩展到表格宽度
+ * @param  tt         表格
+ * @param  margin     网格左右边距
  * @retval TT_ITEM_GRID 对齐网格
  */
-extern TT_ITEM_GRID TermTable_AddGrid(TT tt, bool extend);
+extern TT_ITEM_GRID TT_AddGrid(TT tt, int16_t margin);
 
 /**
  * @brief  向对齐网格组件添加一行
@@ -245,8 +252,7 @@ extern TT_ITEM_GRID TermTable_AddGrid(TT tt, bool extend);
  * @param  separator  分隔符字段
  * @retval TT_ITEM_GRID_LINE 对齐网格行
  */
-extern TT_ITEM_GRID_LINE TermTable_Grid_AddLine(TT_ITEM_GRID grid,
-                                                TT_STR separator);
+extern TT_ITEM_GRID_LINE TT_Grid_AddLine(TT_ITEM_GRID grid, TT_STR separator);
 
 /**
  * @brief  向对齐网格行添加一个字段
@@ -254,8 +260,8 @@ extern TT_ITEM_GRID_LINE TermTable_Grid_AddLine(TT_ITEM_GRID grid,
  * @param  str       字符串字段
  * @retval TT_ITEM_GRID_LINE_ITEM 对齐网格行字段
  */
-extern TT_ITEM_GRID_LINE_ITEM TermTable_GridLine_AddItem(TT_ITEM_GRID_LINE line,
-                                                         TT_STR str);
+extern TT_ITEM_GRID_LINE_ITEM TT_GridLine_AddItem(TT_ITEM_GRID_LINE line,
+                                                  TT_STR str);
 
 /**
  * @brief 添加一个分割线组件
@@ -265,7 +271,7 @@ extern TT_ITEM_GRID_LINE_ITEM TermTable_GridLine_AddItem(TT_ITEM_GRID_LINE line,
  * @param  separator   分隔符(单字符)
  * @retval TT_ITEM_SEPARATOR 分割线
  */
-extern TT_ITEM_SEPARATOR TermTable_AddSeparator(TT tt, TT_FMT1 fmt1,
-                                                TT_FMT2 fmt2, char separator);
+extern TT_ITEM_SEPARATOR TT_AddSeparator(TT tt, TT_FMT1 fmt1, TT_FMT2 fmt2,
+                                         char separator);
 
 #endif  // __TERM_TABLE_H

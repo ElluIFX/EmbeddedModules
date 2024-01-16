@@ -19,6 +19,11 @@ extern "C" {
 #include "uart_pack.h"
 
 /****************************    日志格式设置     ***********************/
+// 调试日志格式
+#define _LOG_PRINTF printf  // 调试日志输出函数
+#define _LOG_TIMESTAMP ((float)((uint64_t)m_time_ms()) / 1000)  // 时间戳获取
+#define _LOG_TIMESTAMP_FMT "%.3f"  // 时间戳格式
+#define _LOG_ENDL "\r\n"            // 日志换行符
 // 调试日志颜色(BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE)
 #define _LOG_D_COLOR T_CYAN     // 调试日志
 #define _LOG_I_COLOR T_GREEN    // 信息日志

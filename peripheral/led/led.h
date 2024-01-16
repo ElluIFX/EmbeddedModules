@@ -15,6 +15,11 @@ extern "C" {
 #endif
 #include "modules.h"
 
+#define ENABLE 0x01
+#define DISABLE 0x00
+#define IGNORE 0x02
+#define TOGGLE 0xFF
+
 #if _LED_USE_PWM
 
 /**
