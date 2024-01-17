@@ -13,19 +13,16 @@
 #include "uart_pack.h"
 
 #define _INTERNAL static inline __attribute__((always_inline))
-// dummy
 #define _EXTERNAL
 
-_INTERNAL void tt_putchar(char c) { putchar(c); }
-_INTERNAL void tt_puts(const char* s) { puts(s); }
-_INTERNAL void* tt_alloc(size_t size) { return m_alloc(size); }
-_INTERNAL void* tt_realloc(void* ptr, size_t size) {
-  return m_realloc(ptr, size);
-}
-_INTERNAL void tt_free(void* ptr) { m_free(ptr); }
 #define tt_printf(...) printf(__VA_ARGS__)
+#define tt_putchar(c) putchar(c)
+#define tt_puts(s) puts(s)
+#define tt_alloc(size) m_alloc(size)
+#define tt_realloc(ptr, size) m_realloc(ptr, size)
+#define tt_free(ptr) m_free(ptr)
 
-const char* line_break = "\r\n";
+const char* line_break = "\r\n\033[K";  // 换行并清除本行剩余部分
 
 const int16_t WIDTH_UNKNOWN = -1;   // 未知宽度
 const int16_t WIDTH_DISABLED = -2;  // 禁用该宽度功能
@@ -146,6 +143,8 @@ _EXTERNAL TT TT_NewTable(int16_t tableMinWidth) {
   TT ret = (TT)tt_alloc(sizeof(term_table_t));
   ret->items = ulist_create(sizeof(term_table_item_t), 0, NULL);
   ret->tableMinWidth = tableMinWidth > 0 ? tableMinWidth : WIDTH_DISABLED;
+  ret->tablePrintedHeight = 0;
+  ret->tablePrintedWidth = 0;
   return ret;
 }
 
@@ -367,12 +366,15 @@ _INTERNAL int16_t tt_calc_max_width(TT tt) {
   return maxWidth;
 }
 
-_INTERNAL void tt_print_separator(TT_ITEM_SEPARATOR separator, int16_t width) {
+_INTERNAL void tt_print_separator(TT tt, TT_ITEM_SEPARATOR separator,
+                                  int16_t width) {
   tt_new_fmt(separator->fmt1, separator->fmt2);
   for (int16_t i = 0; i < width; i++) tt_putchar(separator->separator);
+  tt_puts(line_break);
+  tt->tablePrintedHeight++;
 }
 
-_INTERNAL void tt_print_string(TT_ITEM_STRING string, int16_t minWidth) {
+_INTERNAL void tt_print_string(TT tt, TT_ITEM_STRING string, int16_t minWidth) {
   // 遍历字符串，如果遇到换行符(\n)则换行，如果width不为WIDTH_DISABLED且当前行宽度超过width则前向查找空格，在空格处换行，并为每一行计算对齐
   if (string->width < 0) minWidth += string->width;
   char* str_copy = tt_alloc(string->str->width + 1);
@@ -393,6 +395,7 @@ _INTERNAL void tt_print_string(TT_ITEM_STRING string, int16_t minWidth) {
       temp.width = p - last_p;
       tt_print_str(&temp, minWidth);
       tt_puts(line_break);
+      tt->tablePrintedHeight++;
       last_p = p + 1;
       last_space = NULL;
       p++;
@@ -406,6 +409,7 @@ _INTERNAL void tt_print_string(TT_ITEM_STRING string, int16_t minWidth) {
       temp.width = last_space - last_p;
       tt_print_str(&temp, minWidth);
       tt_puts(line_break);
+      tt->tablePrintedHeight++;
       last_p = last_space + 1;
       p = last_p;
       last_space = NULL;
@@ -419,11 +423,12 @@ _INTERNAL void tt_print_string(TT_ITEM_STRING string, int16_t minWidth) {
     temp.width = p - last_p;
     tt_print_str(&temp, minWidth);
     tt_puts(line_break);
+    tt->tablePrintedHeight++;
   }
   tt_free(str_copy);
 }
 
-_INTERNAL void tt_print_kvpair(TT_ITEM_KVPAIR kvpair, int16_t minWidth) {
+_INTERNAL void tt_print_kvpair(TT tt, TT_ITEM_KVPAIR kvpair, int16_t minWidth) {
   ulist_foreach(kvpair->items, term_table_item_kvpair_item_t, kvpair_item) {
     if (kvpair_item->intent) {
       for (int16_t i = 0; i < kvpair_item->intent; i++) tt_putchar(' ');
@@ -432,10 +437,11 @@ _INTERNAL void tt_print_kvpair(TT_ITEM_KVPAIR kvpair, int16_t minWidth) {
     tt_print_str(kvpair_item->separator, kvpair->separatorWidth);
     tt_print_str(kvpair_item->value, kvpair->valueWidth);
     tt_puts(line_break);
+    tt->tablePrintedHeight++;
   }
 }
 
-_INTERNAL void tt_print_grid(TT_ITEM_GRID grid, int16_t minWidth) {
+_INTERNAL void tt_print_grid(TT tt, TT_ITEM_GRID grid, int16_t minWidth) {
   ulist_foreach(grid->lines, term_table_item_grid_line_t, grid_line) {
     if (grid->margin) {
       for (int16_t i = 0; i < grid->margin; i++) tt_putchar(' ');
@@ -443,15 +449,28 @@ _INTERNAL void tt_print_grid(TT_ITEM_GRID grid, int16_t minWidth) {
     int16_t* width = (int16_t*)ulist_get(grid->widths, 0);
     ulist_foreach(grid_line->items, term_table_item_grid_item_t, grid_item) {
       tt_print_str(grid_item->str, *width++);
-      if (grid_item + 1 != grid_item_end)
+      if (grid_item + 1 != grid_item_end) {
         tt_print_str(grid_line->separator, grid->separatorWidth);
+      }
     }
     tt_puts(line_break);
+    tt->tablePrintedHeight++;
   }
 }
 
-_EXTERNAL void TT_LineBreak(void) { tt_puts(line_break); }
+_EXTERNAL void TT_LineBreak(TT tt, uint16_t lineCount) {
+  for (uint16_t i = 0; i < lineCount; i++) tt_puts(line_break);
+  tt->tablePrintedHeight += lineCount;
+}
+_EXTERNAL void TT_CursorBack(TT tt) {
+  for (uint16_t i = 0; i < tt->tablePrintedHeight; i++) {
+    tt_puts("\033[F");
+  }
+  tt->tablePrintedHeight = 0;
+  tt->tablePrintedWidth = 0;
+}
 _EXTERNAL void TT_Print(TT tt) {
+  tt_puts("\033[1G\033[K");  // 清除本行
   int16_t maxWidth = tt_calc_max_width(tt);
   if (tt->tableMinWidth != WIDTH_DISABLED && maxWidth < tt->tableMinWidth)
     maxWidth = tt->tableMinWidth;
@@ -462,19 +481,19 @@ _EXTERNAL void TT_Print(TT tt) {
         tt_print_str_sep(((TT_ITEM_TITLE)item->content)->str, maxWidth,
                          ((TT_ITEM_TITLE)item->content)->separator);
         tt_puts(line_break);
+        tt->tablePrintedHeight++;
         break;
       case TT_ITEM_TYPE_STRING:
-        tt_print_string((TT_ITEM_STRING)item->content, maxWidth);
+        tt_print_string(tt, (TT_ITEM_STRING)item->content, maxWidth);
         break;
       case TT_ITEM_TYPE_KVPAIR:
-        tt_print_kvpair((TT_ITEM_KVPAIR)item->content, maxWidth);
+        tt_print_kvpair(tt, (TT_ITEM_KVPAIR)item->content, maxWidth);
         break;
       case TT_ITEM_TYPE_GRID:
-        tt_print_grid((TT_ITEM_GRID)item->content, maxWidth);
+        tt_print_grid(tt, (TT_ITEM_GRID)item->content, maxWidth);
         break;
       case TT_ITEM_TYPE_SEPARATOR:
-        tt_print_separator((TT_ITEM_SEPARATOR)item->content, maxWidth);
-        tt_puts(line_break);
+        tt_print_separator(tt, (TT_ITEM_SEPARATOR)item->content, maxWidth);
         break;
     }
   }

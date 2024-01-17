@@ -67,6 +67,8 @@ typedef term_table_str_t* TT_STR;
 typedef struct {
   ULIST items;
   int16_t tableMinWidth;
+  int16_t tablePrintedWidth;
+  int16_t tablePrintedHeight;
 } term_table_t;
 
 typedef term_table_t* TT;
@@ -164,8 +166,16 @@ extern void TT_Print(TT tt);
 
 /**
  * @brief 换行
+ * @param  tt 表格
+ * @param  lineCount 行数
  */
-extern void TT_LineBreak(void);
+extern void TT_LineBreak(TT tt, uint16_t lineCount);
+
+/**
+ * @brief 将光标移动到表格开始，用于刷新表格
+ * @param  tt 表格
+ */
+extern void TT_CursorBack(TT tt);
 
 /**
  * @brief  创建一个绑定到已有字符串的字段
