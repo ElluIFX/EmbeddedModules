@@ -58,7 +58,7 @@ extern "C" {
 /**
  * @brief 选择宏, 根据参数个数N调用对应的__FUMC_N
  */
-#define EVAL(__FUNC, ...) CONNECT2(__FUNC, VA_NUM_ARGS(__VA_ARGS__))
+#define EVAL(__FUNC_, ...) CONNECT2(__FUNC_, VA_NUM_ARGS(__VA_ARGS__))
 
 #define __using_1(__declare) \
   for (__declare, *SAFE_NAME(using_ptr) = NULL; SAFE_NAME(using_ptr)++ == NULL;)

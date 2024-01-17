@@ -1201,11 +1201,12 @@ static void clearCurrentLine(EmbeddedCli *cli) {
   PREPARE_IMPL(cli);
   size_t len = impl->inputLineLength + strlen(impl->invitation);
 
-  cli->writeChar(cli, '\r');
-  for (size_t i = 0; i < len; ++i) {
-    cli->writeChar(cli, ' ');
-  }
-  cli->writeChar(cli, '\r');
+  // cli->writeChar(cli, '\r');
+  // for (size_t i = 0; i < len; ++i) {
+  //   cli->writeChar(cli, ' ');
+  // }
+  // cli->writeChar(cli, '\r');
+  writeToOutput(cli, "\033[2K\r");
   impl->inputLineLength = 0;
 }
 

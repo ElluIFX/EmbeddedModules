@@ -23,7 +23,8 @@ extern "C" {
 #define _LOG_PRINTF printf  // 调试日志输出函数
 #define _LOG_TIMESTAMP ((float)((uint64_t)m_time_ms()) / 1000)  // 时间戳获取
 #define _LOG_TIMESTAMP_FMT "%.3f"  // 时间戳格式
-#define _LOG_ENDL "\r\n"            // 日志换行符
+#define _LOG_PREFIX "\r"           // 日志前缀 (移动光标到行首)
+#define _LOG_SUFFIX "\033[K\r\n"  // 日志后缀 (清空光标到行尾并换行)
 // 调试日志颜色(BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE)
 #define _LOG_D_COLOR T_CYAN     // 调试日志
 #define _LOG_I_COLOR T_GREEN    // 信息日志
@@ -89,66 +90,66 @@ extern "C" {
 
 #if _LOG_ENABLE
 #if _LOG_ENABLE_TIMESTAMP
-#define _DBG_LOG_TS(hd, level, ts, color, end, fmt, args...)         \
-  _LOG_PRINTF(hd T_FMT(color) "[" level "/" _LOG_TIMESTAMP_FMT "" ts \
-                              "] " fmt T_RST end,                    \
+#define _DBG_LOG_TS(pre, level, ts, color, suf, fmt, args...)         \
+  _LOG_PRINTF(pre T_FMT(color) "[" level "/" _LOG_TIMESTAMP_FMT "" ts \
+                               "] " fmt T_RST suf,                    \
               _LOG_TIMESTAMP, ##args)
 #elif !_LOG_ENABLE_TIMESTAMP
-#define _DBG_LOG_TS(hd, level, ts, color, end, fmt, args...) \
-  _LOG_PRINTF(hd T_FMT(color) "[" level "" ts "] " fmt T_RST end, ##args)
+#define _DBG_LOG_TS(pre, level, ts, color, suf, fmt, args...) \
+  _LOG_PRINTF(pre T_FMT(color) "[" level "" ts "] " fmt T_RST suf, ##args)
 #endif
 
 #if _LOG_ENABLE_FUNC_LINE
-#define _DBG_LOG_FL(hd, level, color, end, fmt, args...) \
-  _DBG_LOG_TS(hd, level, "/%s:%d", color, end, fmt, __func__, __LINE__, ##args)
+#define _DBG_LOG_FL(pre, level, color, suf, fmt, args...) \
+  _DBG_LOG_TS(pre, level, "/%s:%d", color, suf, fmt, __func__, __LINE__, ##args)
 #else
-#define _DBG_LOG_FL(hd, level, color, end, fmt, args...) \
-  _DBG_LOG_TS(hd, level, "", color, end, fmt, ##args)
+#define _DBG_LOG_FL(pre, level, color, suf, fmt, args...) \
+  _DBG_LOG_TS(pre, level, "", color, suf, fmt, ##args)
 #endif  // _LOG_ENABLE_FUNC_LINE
 #if _LOG_ENABLE_DEBUG
 
 #if _LOG_EF_TRIG_DEBUG_HALT
-#define _DBG_LOG_EF(hd, level, color, end, fmt, args...) \
-  _DBG_LOG_FL(hd, level, color, end, fmt, ##args);       \
+#define _DBG_LOG_EF(pre, level, color, suf, fmt, args...) \
+  _DBG_LOG_FL(pre, level, color, suf, fmt, ##args);       \
   MOD_TRIG_DEBUG_HALT()
 #else
-#define _DBG_LOG_EF(hd, level, color, end, fmt, args...) \
-  _DBG_LOG_FL(hd, level, color, end, fmt, ##args)
+#define _DBG_LOG_EF(pre, level, color, suf, fmt, args...) \
+  _DBG_LOG_FL(pre, level, color, suf, fmt, ##args)
 #endif  // _LOG_EF_TRIG_DEBUG_HALT
 
 /**
  * @brief 调试日志输出
  */
 #define LOG_D(fmt, args...) \
-  _DBG_LOG_FL("", "D", _LOG_D_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_FL(_LOG_PREFIX, "D", _LOG_D_COLOR, _LOG_SUFFIX, fmt, ##args)
 #endif
 #if _LOG_ENABLE_INFO
 /**
  * @brief 信息日志输出
  */
 #define LOG_I(fmt, args...) \
-  _DBG_LOG_FL("", "I", _LOG_I_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_FL(_LOG_PREFIX, "I", _LOG_I_COLOR, _LOG_SUFFIX, fmt, ##args)
 #endif
 #if _LOG_ENABLE_WARN
 /**
  * @brief 警告日志输出
  */
 #define LOG_W(fmt, args...) \
-  _DBG_LOG_FL("", "W", _LOG_W_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_FL(_LOG_PREFIX, "W", _LOG_W_COLOR, _LOG_SUFFIX, fmt, ##args)
 #endif
 #if _LOG_ENABLE_ERROR
 /**
  * @brief 错误日志输出
  */
 #define LOG_E(fmt, args...) \
-  _DBG_LOG_EF("", "E", _LOG_E_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_EF(_LOG_PREFIX, "E", _LOG_E_COLOR, _LOG_SUFFIX, fmt, ##args)
 #endif
 #if _LOG_ENABLE_FATAL
 /**
  * @brief 致命错误日志输出
  */
 #define LOG_F(fmt, args...) \
-  _DBG_LOG_EF("", "F", _LOG_F_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_EF(_LOG_PREFIX, "F", _LOG_F_COLOR, _LOG_SUFFIX, fmt, ##args)
 #endif
 /**
  * @brief 原始日志输出
@@ -157,11 +158,11 @@ extern "C" {
 /**
  * @brief 原始日志输出/换行
  */
-#define LOG_RAWLN(fmt, args...) _LOG_PRINTF(fmt _LOG_ENDL, ##args)
+#define LOG_RAWLN(fmt, args...) _LOG_PRINTF(fmt _LOG_SUFFIX, ##args)
 /**
  * @brief 输出换行
  */
-#define LOG_ENDL() LOG_RAW(_LOG_ENDL)
+#define LOG_ENDL() LOG_RAW(_LOG_SUFFIX)
 /**
  * @brief 在同一行刷新日志
  */
@@ -171,16 +172,16 @@ extern "C" {
  * @brief 限制日志输出频率
  * @param  limit_ms         输出周期(ms)
  */
-#define LOG_LIMIT(limit_ms, fmt, args...)                         \
-  {                                                               \
-    static m_time_t SAFE_NAME(limited_log_t) = 0;                 \
-    if (m_time_ms() > SAFE_NAME(limited_log_t) + limit_ms) {      \
-      SAFE_NAME(limited_log_t) = m_time_ms();                     \
-      _DBG_LOG_FL("", "L", _LOG_L_COLOR, _LOG_ENDL, fmt, ##args); \
-    }                                                             \
+#define LOG_LIMIT(limit_ms, fmt, args...)                           \
+  {                                                                 \
+    static m_time_t SAFE_NAME(limited_log_t) = 0;                   \
+    if (m_time_ms() > SAFE_NAME(limited_log_t) + limit_ms) {        \
+      SAFE_NAME(limited_log_t) = m_time_ms();                       \
+      _DBG_LOG_FL("", "L", _LOG_L_COLOR, _LOG_SUFFIX, fmt, ##args); \
+    }                                                               \
   }
 #define _LOG_TIMEIT(fmt, args...) \
-  _DBG_LOG_FL("", "T", _LOG_T_COLOR, _LOG_ENDL, fmt, ##args)
+  _DBG_LOG_FL("", "T", _LOG_T_COLOR, _LOG_SUFFIX, fmt, ##args)
 #endif  // _LOG_ENABLE
 
 #ifndef LOG_D
@@ -218,7 +219,8 @@ extern "C" {
 #define LOG_FATAL LOG_F
 
 #if _LOG_ENABLE_ASSERT
-#define __ASSERT_PRINT(text) _DBG_LOG_FL("", "A", _LOG_A_COLOR, _LOG_ENDL, text)
+#define __ASSERT_PRINT(text) \
+  _DBG_LOG_FL("", "A", _LOG_A_COLOR, _LOG_SUFFIX, text)
 #define __ASSERT_0(expr)                       \
   if (!(expr)) {                               \
     __ASSERT_PRINT("Failed expr: " #expr);     \
