@@ -107,6 +107,7 @@ extern void Uart_ErrorProcess(UART_HandleTypeDef *huart);
  */
 extern int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf,
                            uint16_t bufSize);
+extern void Uart_FifoTxDeInit(UART_HandleTypeDef *huart);
 #endif
 
 #if _UART_ENABLE_DMA_RX

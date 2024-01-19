@@ -83,6 +83,19 @@ int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf, uint16_t bufSize) {
   return 0;
 }
 
+void Uart_FifoTxDeInit(UART_HandleTypeDef *huart) {
+  ulist_foreach(&fifo_tx_list, uart_fifo_tx_t, ctrl) {
+    if (ctrl->huart == huart) {
+      HAL_UART_DMAStop(ctrl->huart);
+      HAL_UART_AbortTransmit_IT(ctrl->huart);
+      MOD_MUTEX_FREE(ctrl->mutex);
+      m_free(ctrl->lfbb.data);
+      ulist_remove(&fifo_tx_list, ctrl);
+      return;
+    }
+  }
+}
+
 static uart_fifo_tx_t *is_fifo_tx(UART_HandleTypeDef *huart) {
   if (!fifo_tx_list.num) return NULL;
   ulist_foreach(&fifo_tx_list, uart_fifo_tx_t, ctrl) {
@@ -136,7 +149,8 @@ static inline uint8_t *wait_fifo(uart_fifo_tx_t *ctrl, const bool is2,
 #endif  // _UART_FIFO_TIMEOUT
 }
 
-static inline int fifo_send(uart_fifo_tx_t *ctrl, const uint8_t *data, uint16_t len) {
+static inline int fifo_send(uart_fifo_tx_t *ctrl, const uint8_t *data,
+                            uint16_t len) {
   if (len > ctrl->lfbb.size - 1) return -1;
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
   uint8_t *buf = wait_fifo(ctrl, false, len, NULL);
@@ -151,7 +165,8 @@ static inline int fifo_send(uart_fifo_tx_t *ctrl, const uint8_t *data, uint16_t 
   return 0;
 }
 
-static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt, va_list ap) {
+static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt,
+                                  va_list ap) {
   size_t sendLen;
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
   uint8_t *buf = wait_fifo(ctrl, true, 0, &sendLen);
