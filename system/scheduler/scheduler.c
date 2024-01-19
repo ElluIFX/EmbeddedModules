@@ -4,15 +4,13 @@ __weak void Scheduler_Idle_Callback(uint64_t idleTimeUs) {
   if (idleTimeUs > 100000) idleTimeUs = 100000;  // 限幅
 #if _MOD_USE_OS > 0  // 如果使用操作系统, 则直接释放CPU
   m_delay_us(idleTimeUs);
-#else  // 简单的低功耗实现
-  uint64_t start = get_sys_us();
-  while (get_sys_us() - start < idleTimeUs) {
-    __WFI();  // 关闭CPU直到下一次systick中断
-  }
+#else
+  __wfi();  // 关闭CPU直到下一次systick中断
 #endif
 }
 
 _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us);
+
 
 uint64_t _INLINE Scheduler_Run(const uint8_t block) {
 // #define CHECK(rslp, name) LOG_LIMIT(1000, #name " rslp=%d", rslp)
@@ -130,7 +128,7 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   TT_STR sep = TT_Str(al, f1, f2, " : ");
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Core Clock"),
-      TT_FmtStr(al, f1, f2, "%.3f Mhz", (float)get_sys_clock() / 1000000), sep);
+      TT_FmtStr(al, f1, f2, "%.3f Mhz", (float)get_sys_freq() / 1000000), sep);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "After Boot"),
       TT_FmtStr(al, f1, f2, "%.2fs", (float)get_sys_us() / 1000000), sep);

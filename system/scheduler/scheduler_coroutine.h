@@ -32,17 +32,21 @@ typedef struct {         // 协程句柄结构
 } __cortn_handle_t;
 #pragma pack()
 extern __cortn_handle_t *__chd;
+extern const char *__cortn_name;
 
 extern void *__Sch_CrInitLocal(uint16_t size);
 extern uint8_t __Sch_CrAwaitEnter(void);
 extern uint8_t __Sch_CrAwaitReturn(void);
 extern void __Sch_CrDelay(uint64_t delayUs);
+extern uint8_t __Sch_CrAcquireMutex(const char *name);
+extern void __Sch_CrReleaseMutex(const char *name);
+extern void __Sch_CrWaitEvent(const char *name, void **msgPtr);
 
 /**
  * @brief 定义并初始化协程, 在协程函数开头调用(CR_LOCAL_END后调用)
  * @note 如果需要使用局部变量, 使用ASYNC_LOCAL_START代替本宏
  */
-#define ASYNC                                        \
+#define ASYNC_NOLOCAL                                \
   do {                                               \
   crap:;                                             \
     void *pcrap = &&crap;                            \
@@ -63,7 +67,7 @@ extern void __Sch_CrDelay(uint64_t delayUs);
   }                                                           \
   *_cr_local_p = __Sch_CrInitLocal(sizeof(struct _cr_local)); \
   if (_cr_local_p == NULL) return;                            \
-  ASYNC
+  ASYNC_NOLOCAL
 
 /**
  * @brief 局部变量
@@ -100,7 +104,7 @@ extern void __Sch_CrDelay(uint64_t delayUs);
   } while (0)
 
 static void __GET_CR_MSG(void **msgPtr) {
-  ASYNC
+  ASYNC_NOLOCAL
   if (__chd->msg == NULL) {
     __chd->yieldUntil = 0;
     YIELD();
@@ -110,9 +114,14 @@ static void __GET_CR_MSG(void **msgPtr) {
 }
 
 /**
+ * @brief 获取当前协程名
+ */
+#define ASYNC_GET_MY_NAME() (__cortn_name)
+
+/**
  * @brief 等待消息并将消息指针赋值给指定变量
  */
-#define AWAIT_RECV_MSG(to_buf) AWAIT(__GET_CR_MSG((void **)&(to_buf)))
+#define AWAIT_RECV_MSG(to_ptr) AWAIT(__GET_CR_MSG((void **)&(to_ptr)))
 
 /**
  * @brief 发送消息给指定协程, 立即返回
@@ -122,22 +131,35 @@ static void __GET_CR_MSG(void **msgPtr) {
 /**
  * @brief 获取互斥锁, 阻塞直至获取成功
  */
-#define AWAIT_ACQUIRE_MUTEX(mutex_name)
+#define AWAIT_ACQUIRE_MUTEX(mutex_name)      \
+  do {                                       \
+    if (!__Sch_CrAcquireMutex(mutex_name)) { \
+      __chd->yieldUntil = 0;                 \
+      YIELD();                               \
+    }                                        \
+  } while (0)
 
 /**
  * @brief 释放互斥锁, 立即返回
  */
-#define ASYNC_RELEASE_MUTEX(mutex_name)
+#define ASYNC_RELEASE_MUTEX(mutex_name) __Sch_CrReleaseMutex(mutex_name)
 
 /**
  * @brief 等待事件, 阻塞直至事件触发
  */
-#define AWAIT_EVENT(event_name)
+#define AWAIT_EVENT(event_name) AWAIT(__Sch_CrWaitEvent(event_name, NULL))
 
 /**
  * @brief 等待事件, 阻塞直至事件触发并获取事件广播信息
  */
-#define AWAIT_EVENT_MSG(event_name, msg)
+#define AWAIT_EVENT_MSG(event_name, to_ptr) \
+  AWAIT(__Sch_CrWaitEvent(event_name, (void **)&(to_ptr)))
+
+/**
+ * @brief 触发事件并唤醒所有等待该事件的协程, 立即返回
+ */
+#define ASYNC_TRIGGER_EVENT(event_name, msg) \
+  Sch_TriggerCortnEvent(event_name, (void *)(msg))
 
 /**
  * @brief 无阻塞延时, 单位us
@@ -174,7 +196,7 @@ static void __GET_CR_MSG(void **msgPtr) {
  * @brief 异步执行其他协程
  */
 #define ASYNC_RUN(name, func, args) \
-  Sch_CreateCortn(name, func, 1, CR_MODE_AUTODEL, args)
+  Sch_CreateCortn(name, func, 1, CR_MODE_AUTODEL, (void *)args)
 
 /**
  * @brief 等待直到指定协程完成
@@ -243,6 +265,21 @@ extern uint8_t Sch_IsCortnWaitForMsg(const char *name);
  * @retval uint8_t          是否成功
  */
 extern uint8_t Sch_SendMsgToCortn(const char *name, void *msg);
+
+/**
+ * @brief 触发指定协程事件并唤醒所有等待该事件的协程
+ * @param  name             协程名
+ * @param  msg              消息指针
+ * @retval uint8_t          是否成功
+ */
+extern uint8_t Sch_TriggerCortnEvent(const char *name, void *msg);
+
+/**
+ * @brief 获取等待指定协程事件的协程数量
+ * @param  name             协程名
+ * @retval uint16_t         协程数量
+ */
+extern uint16_t Sch_GetCortnEventWaitingNum(const char *name);
 
 #endif  // _SCH_ENABLE_COROUTINE
 

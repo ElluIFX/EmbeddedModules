@@ -108,7 +108,7 @@ uint8_t Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
   p->task = func;
   p->enable = enable;
   p->priority = priority;
-  p->period = (double)get_sys_clock() / (double)freqHz;
+  p->period = (double)get_sys_freq() / (double)freqHz;
   if (!p->period) p->period = 1;
   p->lastRun = get_sys_tick() - p->period;
   p->name = name;
@@ -167,7 +167,7 @@ uint8_t Sch_SetTaskState(const char *name, uint8_t enable) {
 uint8_t Sch_SetTaskFreq(const char *name, float freqHz) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return 0;
-  p->period = (double)get_sys_clock() / (double)freqHz;
+  p->period = (double)get_sys_freq() / (double)freqHz;
   if (!p->period) p->period = 1;
   p->lastRun = get_sys_tick() - p->period;
   return 1;
@@ -266,7 +266,7 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Tasks list:" T_FMT(T_RESET, T_GREEN));
     ulist_foreach(&tasklist, scheduler_task_t, task) {
       LOG_RAWLN("  %s: 0x%p pri:%d freq:%.1f en:%d", task->name, task->task,
-                task->priority, (float)get_sys_clock() / task->period,
+                task->priority, (float)get_sys_freq() / task->period,
                 task->enable);
     }
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d tasks" T_RST, tasklist.num);

@@ -152,6 +152,7 @@ extern void Motor_Run(motor_t *motor);
  */
 void Two_Wheel_Speed_Calc(float V, float angular_velocity,
                           float *target_rpm_left, float *target_rpm_right);
+
 #ifdef __cplusplus
 }
 #endif

@@ -17,7 +17,7 @@ __weak void Scheduler_SoftInt_Handler(uint8_t mainChannel, uint8_t subMask) {
   LOG_LIMIT(100, "SoftInt %d:%d", mainChannel, subMask);
 }
 
-_STATIC_INLINE void SoftInt_Runner(void) {
+_INLINE void SoftInt_Runner(void) {
   if (imm) {
     uint8_t _ism;
     for (uint8_t i = 0; i < 8; i++) {

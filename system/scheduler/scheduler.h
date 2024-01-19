@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #include "modules.h"
+#include "scheduler_conf.h"
 
 typedef void (*sch_func_t)(void *args);  // 任务函数指针类型
 

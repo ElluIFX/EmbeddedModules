@@ -4,6 +4,7 @@
 
 #if _SCH_ENABLE_COROUTINE
 
+#pragma pack(1)
 typedef struct {        // 协程任务结构
   const char *name;     // 协程名
   sch_func_t task;      // 任务函数指针
@@ -17,6 +18,18 @@ typedef struct {        // 协程任务结构
   float last_usage;     // 协程上次执行占用率
 #endif
 } scheduler_cortn_t;
+
+typedef struct {     // 协程互斥锁结构
+  const char *name;  // 锁名
+  uint8_t locked;    // 锁状态
+  ULIST waitlist;    // 等待的协程列表
+} scheduler_cortn_mutex_t;
+
+typedef struct {     // 协程事件结构
+  const char *name;  // 事件名
+  void *msg;         // 事件消息指针
+  ULIST waitlist;    // 等待的协程列表
+} scheduler_cortn_event_t;
 #pragma pack()
 
 static ulist_t cortnlist = {.data = NULL,
@@ -24,18 +37,6 @@ static ulist_t cortnlist = {.data = NULL,
                             .num = 0,
                             .isize = sizeof(scheduler_cortn_t),
                             .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
-
-#pragma pack(1)
-typedef struct {     // 协程互斥锁结构
-  const char *name;  // 锁名
-  uint8_t locked;    // 锁状态
-  ulist_t waitlist;  // 等待的协程列表
-} scheduler_cortn_mutex_t;
-
-typedef struct {     // 协程事件结构
-  const char *name;  // 事件名
-  ulist_t waitlist;  // 等待的协程列表
-} scheduler_cortn_event_t;
 
 static ulist_t mutexlist = {
     .data = NULL,
@@ -51,7 +52,9 @@ static ulist_t eventlist = {
     .isize = sizeof(scheduler_cortn_event_t),
     .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
 
-__cortn_handle_t *__chd = {0};
+__cortn_handle_t *__chd = NULL;
+static const char main_name[] = "__main__";
+const char *__cortn_name = main_name;
 static uint16_t __chd_idx = 0;
 static uint8_t cr_modified = 0;
 
@@ -65,6 +68,7 @@ _INLINE uint64_t Cortn_Runner(void) {
     if (now >= cortn->hd.yieldUntil) {
       __chd = &cortn->hd;
       __chd_idx = cortn - (scheduler_cortn_t *)cortnlist.data;
+      __cortn_name = cortn->name;
       __chd->depth = 0;
 #if _SCH_DEBUG_REPORT
       uint64_t _sch_debug_task_tick = get_sys_tick();
@@ -77,6 +81,7 @@ _INLINE uint64_t Cortn_Runner(void) {
       cortn->task(cortn->args);
 #endif
       __chd = NULL;
+      __cortn_name = main_name;
       __chd_idx = 0;
       if (!cortn->hd.data[0].ptr) {  // 最外层协程已结束
         cortn->hd.yieldUntil = 1;    // 准备下一次执行
@@ -196,13 +201,43 @@ uint8_t Sch_IsCortnWaitForMsg(const char *name) {
 uint8_t Sch_SendMsgToCortn(const char *name, void *msg) {
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (fast_strcmp(cortn->name, name)) {
-      cortn->hd.msg = msg;
+      if (msg != NULL) cortn->hd.msg = msg;
       cortn->hd.yieldUntil = get_sys_us();
       return 1;
     }
   }
   return 0;
 }
+
+uint8_t Sch_TriggerCortnEvent(const char *name, void *msg) {
+  scheduler_cortn_event_t *event;
+  ulist_foreach(&eventlist, scheduler_cortn_event_t, e) {
+    if (fast_strcmp(e->name, name)) {
+      event = e;
+      break;
+    }
+  }
+  if (event == NULL) return 0;
+  event->msg = msg;
+  ulist_foreach(event->waitlist, const char *, ptr) {
+    Sch_SendMsgToCortn(*ptr, NULL);
+  }
+  ulist_clear(event->waitlist);
+  return 1;
+}
+
+uint16_t Sch_GetCortnEventWaitingNum(const char *name) {
+  scheduler_cortn_event_t *event;
+  ulist_foreach(&eventlist, scheduler_cortn_event_t, e) {
+    if (fast_strcmp(e->name, name)) {
+      event = e;
+      break;
+    }
+  }
+  if (event == NULL) return 0;
+  return event->waitlist->num;
+}
+
 /**
  * @brief (内部函数)初始化协程本地变量存储区指针
  * @param  size 存储区大小
@@ -261,6 +296,90 @@ _INLINE uint8_t __Sch_CrAwaitReturn(void) {
  */
 _INLINE void __Sch_CrDelay(uint64_t delayUs) {
   __chd->yieldUntil = get_sys_us() + delayUs;
+}
+
+_STATIC_INLINE scheduler_cortn_mutex_t *get_mutex(const char *name) {
+  ulist_foreach(&mutexlist, scheduler_cortn_mutex_t, mutex) {
+    if (fast_strcmp(mutex->name, name)) {
+      return mutex;
+    }
+  }
+  scheduler_cortn_mutex_t *ret = ulist_append(&mutexlist);
+  if (ret == NULL) return NULL;
+  ret->name = name;
+  ret->locked = 0;
+  ret->waitlist = ulist_create(sizeof(char *), 0, ULIST_CFG_CLEAR_DIRTY_REGION);
+  if (ret->waitlist == NULL) {
+    ulist_delete(&mutexlist, -1);
+    return NULL;
+  }
+  return ret;
+}
+
+/**
+ * @brief (内部函数)协程互斥锁获取
+ * @param  name 锁名
+ * @return 1: 获取成功, 0: 需要等待
+ */
+uint8_t __Sch_CrAcquireMutex(const char *name) {
+  scheduler_cortn_mutex_t *mutex = get_mutex(name);
+  if (mutex == NULL) return 0;
+  if (mutex->locked) {  // 锁已被占用, 添加到等待队列
+    const char **ptr = ulist_append(mutex->waitlist);
+    if (ptr == NULL) return 0;
+    *ptr = __cortn_name;
+    return 0;
+  } else {  // 锁未被占用, 直接占用
+    mutex->locked = 1;
+    return 1;
+  }
+}
+
+/**
+ * @brief (内部函数)协程互斥锁释放
+ * @param  name 锁名
+ */
+void __Sch_CrReleaseMutex(const char *name) {
+  scheduler_cortn_mutex_t *mutex = get_mutex(name);
+  if (mutex == NULL) return;
+  if (mutex->waitlist->num) {  // 等待队列不为空, 唤醒第一个协程
+    const char **ptr = ulist_get(mutex->waitlist, 0);
+    Sch_SendMsgToCortn(*ptr, NULL);
+    ulist_delete(mutex->waitlist, 0);
+  } else {  // 等待队列为空, 释放锁
+    mutex->locked = 0;
+  }
+}
+
+_STATIC_INLINE scheduler_cortn_event_t *get_event(const char *name) {
+  ulist_foreach(&eventlist, scheduler_cortn_event_t, event) {
+    if (fast_strcmp(event->name, name)) {
+      return event;
+    }
+  }
+  scheduler_cortn_event_t *ret = ulist_append(&eventlist);
+  if (ret == NULL) return NULL;
+  ret->name = name;
+  ret->waitlist = ulist_create(sizeof(char *), 0, ULIST_CFG_CLEAR_DIRTY_REGION);
+  if (ret->waitlist == NULL) {
+    ulist_delete(&eventlist, -1);
+    return NULL;
+  }
+  return ret;
+}
+
+void __Sch_CrWaitEvent(const char *name, void **msgPtr) {
+  ASYNC_LOCAL_START
+  scheduler_cortn_event_t *event;
+  ASYNC_LOCAL_END
+  LOCAL(event) = get_event(name);
+  if (LOCAL(event) == NULL) return;
+  const char **ptr = ulist_append(LOCAL(event)->waitlist);
+  if (ptr == NULL) return;
+  *ptr = __cortn_name;
+  __chd->yieldUntil = 0;
+  YIELD();
+  if (msgPtr != NULL) *msgPtr = LOCAL(event)->msg;
 }
 
 #if _SCH_DEBUG_REPORT

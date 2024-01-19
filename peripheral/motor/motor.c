@@ -111,6 +111,7 @@ void Motor_Run(motor_t *motor) {
   }
   if (motor->mode != MOTOR_MODE_MANUAL) motor->pwmDuty = pwmDuty;
 }
+
 void Two_Wheel_Speed_Calc(float V, float angular_velocity,
                           float *target_rpm_left, float *target_rpm_right) {
   // 计算车辆线速度和角速度

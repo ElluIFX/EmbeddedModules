@@ -24,7 +24,7 @@ extern uint8_t Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
 /**
  * @brief 切换任务使能状态
  * @param  name             任务名
- * @param  enable           使能状态(0xff:切换)
+ * @param  enable           使能状态
  * @retval uint8_t          是否成功
  */
 extern uint8_t Sch_SetTaskState(const char *name, uint8_t enable);

@@ -387,38 +387,20 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  list       列表结构体
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
- * @note 不要在循环中修改列表结构
- */
-#define ulist_foreach(list, type, var)                          \
-  for (type* var = ulist_get_ptr(list, type, 0),                \
-             *var##_end = ulist_get_ptr(list, type, SLICE_END); \
-       var < var##_end; var++)
-
-/**
- * @brief 循环遍历列表
- * @param  list       列表结构体
- * @param  type       元素类型
- * @param  var        循环变量名([var]->[var]_end)
- * @param  from_index 起始位置(Python-like)
- * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
- */
-#define ulist_foreach_from(list, type, var, from_index)         \
-  for (type* var = ulist_get_ptr(list, type, from_index),       \
-             *var##_end = ulist_get_ptr(list, type, SLICE_END); \
-       var && var##_end && var < var##_end; var++)
-
-/**
- * @brief 循环遍历列表
- * @param  list       列表结构体
- * @param  type       元素类型
- * @param  var        循环变量名([var]->[var]_end)
+ * @param  from_index 起始位置
  * @param  to_index   结束位置(Python-like, 不包括)
+ * @param  step       步长
+ * @note step为负数时, from_index应大于to_index
  * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
-#define ulist_foreach_to(list, type, var, to_index)            \
-  for (type* var = ulist_get_ptr(list, type, 0),               \
-             *var##_end = ulist_get_ptr(list, type, to_index); \
-       var && var##_end && var < var##_end; var++)
+#define ulist_foreach_from_to_step(list, type, var, from_index, to_index,  \
+                                   step)                                   \
+  for (type* var##_end = ulist_get_ptr(list, type, to_index);              \
+       var##_end != NULL; var##_end = NULL)                                \
+    for (type* var = ulist_get_ptr(list, type, from_index);                \
+         var != NULL &&                                                    \
+         ((step > 0 && var < var##_end) || (step < 0 && var > var##_end)); \
+         var += step)
 
 /**
  * @brief 循环遍历列表
@@ -430,28 +412,42 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from_to(list, type, var, from_index, to_index) \
-  for (type* var = ulist_get_ptr(list, type, from_index),            \
-             *var##_end = ulist_get_ptr(list, type, to_index);       \
-       var && var##_end && var < var##_end; var++)
+  for (type* var##_end = ulist_get_ptr(list, type, to_index);        \
+       var##_end != NULL; var##_end = NULL)                          \
+    for (type* var = ulist_get_ptr(list, type, from_index);          \
+         var != NULL && var < var##_end; var++)
 
 /**
  * @brief 循环遍历列表
  * @param  list       列表结构体
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
- * @param  from_index 起始位置
- * @param  to_index   结束位置(Python-like, 不包括)
- * @param  step       步长
- * @note step为负数时, from_index应大于to_index
+ * @note 不要在循环中修改列表结构
+ */
+#define ulist_foreach(list, type, var) \
+  ulist_foreach_from_to(list, type, var, 0, SLICE_END)
+
+/**
+ * @brief 循环遍历列表
+ * @param  list       列表结构体
+ * @param  type       元素类型
+ * @param  var        循环变量名([var]->[var]_end)
+ * @param  from_index 起始位置(Python-like)
  * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
-#define ulist_foreach_from_to_step(list, type, var, from_index, to_index, \
-                                   step)                                  \
-  for (type* var = ulist_get_ptr(list, type, from_index),                 \
-             *var##_end = ulist_get_ptr(list, type, to_index);            \
-       var && var##_end &&                                                \
-       ((step > 0 && var < var##_end) || (step < 0 && var > var##_end));  \
-       var += step)
+#define ulist_foreach_from(list, type, var, from_index) \
+  ulist_foreach_from_to(list, type, var, from_index, SLICE_END)
+
+/**
+ * @brief 循环遍历列表
+ * @param  list       列表结构体
+ * @param  type       元素类型
+ * @param  var        循环变量名([var]->[var]_end)
+ * @param  to_index   结束位置(Python-like, 不包括)
+ * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
+ */
+#define ulist_foreach_to(list, type, var, to_index) \
+  ulist_foreach_from_to(list, type, var, 0, to_index)
 
 #ifdef __cplusplus
 }
