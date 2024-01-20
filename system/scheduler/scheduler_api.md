@@ -396,7 +396,7 @@ void Coroutine_MainFunc(void *args)
       - `cond`：条件表达式，为真时跳出阻塞。
       - `delayMs`：检查间隔(ms)。
 
-9. `ASYNC_GET_MY_NAME()`
+9. `ASYNC_SELF_NAME()`
 
     - 功能：获取当前协程的名字。
     - 彩蛋：协程外调用此宏会返回 `__main__`。

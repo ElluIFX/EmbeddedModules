@@ -116,7 +116,7 @@ static void __GET_CR_MSG(void **msgPtr) {
 /**
  * @brief 获取当前协程名
  */
-#define ASYNC_GET_MY_NAME() (__cortn_name)
+#define ASYNC_SELF_NAME() (__cortn_name)
 
 /**
  * @brief 等待消息并将消息指针赋值给指定变量
@@ -147,12 +147,12 @@ static void __GET_CR_MSG(void **msgPtr) {
 /**
  * @brief 等待屏障, 阻塞直至屏障解除
  */
-#define AWAIT_BARRIER(barr_name)          \
-  do {                                    \
+#define AWAIT_BARRIER(barr_name)           \
+  do {                                     \
     if (!__Sch_CrWaitBarrier(barr_name)) { \
-      __chd->yieldUntil = 0;              \
-      YIELD();                            \
-    }                                     \
+      __chd->yieldUntil = 0;               \
+      YIELD();                             \
+    }                                      \
   } while (0)
 
 /**

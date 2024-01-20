@@ -11,7 +11,6 @@ __weak void Scheduler_Idle_Callback(uint64_t idleTimeUs) {
 
 _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us);
 
-
 uint64_t _INLINE Scheduler_Run(const uint8_t block) {
 // #define CHECK(rslp, name) LOG_LIMIT(1000, #name " rslp=%d", rslp)
 #define CHECK(rslp, name) ((void)0)

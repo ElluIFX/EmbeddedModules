@@ -23,8 +23,10 @@ extern "C" {
 #define _LOG_PRINTF printf  // 调试日志输出函数
 #define _LOG_TIMESTAMP ((float)((uint64_t)m_time_ms()) / 1000)  // 时间戳获取
 #define _LOG_TIMESTAMP_FMT "%.3f"  // 时间戳格式
-#define _LOG_PREFIX "\r"           // 日志前缀 (移动光标到行首)
-#define _LOG_SUFFIX "\033[K\r\n"  // 日志后缀 (清空光标到行尾并换行)
+// #define _LOG_PREFIX "\r"           // 日志前缀 (移动光标到行首)
+// #define _LOG_SUFFIX "\033[K\r\n"  // 日志后缀 (清空光标到行尾并换行)
+#define _LOG_PREFIX ""      // 日志前缀
+#define _LOG_SUFFIX "\r\n"  // 日志后缀 (换行)
 // 调试日志颜色(BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE)
 #define _LOG_D_COLOR T_CYAN     // 调试日志
 #define _LOG_I_COLOR T_GREEN    // 信息日志
