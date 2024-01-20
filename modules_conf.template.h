@@ -31,8 +31,10 @@
 
 #define _SCH_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
 
-#define _SCH_DEBUG_REPORT 0  // 输出调度器统计信息(调试模式/低性能)
+#define _SCH_DEBUG_REPORT 1  // 输出调度器统计信息(调试模式/低性能)
 #define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
+#define _SCH_DEBUG_MAXLINE 5  // 调试报告最大行数
+
 #define _SCH_ENABLE_TERMINAL 1  // 是否启用终端命令集(依赖embedded-cli)
 
 /****************************** 日志设置 ******************************/

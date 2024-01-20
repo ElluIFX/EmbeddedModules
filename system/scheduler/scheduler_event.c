@@ -110,6 +110,11 @@ uint8_t Sch_TriggerEvent(const char *name, void *args) {
   if (event->args != NULL && event->needFree) m_free(event->args);
   event->args = args;
   event->needFree = 0;
+#if _SCH_DEBUG_REPORT
+  event->trigger_time = get_sys_tick();
+  event->trigger_cnt++;
+#endif
+  event->trigger = 1;
   return 1;
 }
 
@@ -207,6 +212,11 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
         event->last_usage = 0;
       }
       i++;
+      if (i >= _SCH_DEBUG_MAXLINE) {
+        TT_AddString(
+            tt, TT_Str(TT_ALIGN_CENTER, TT_FMT1_NONE, TT_FMT2_NONE, "..."), 0);
+        break;
+      }
     }
   }
 }

@@ -233,6 +233,11 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t *other) {
         task->last_usage = 0;
       }
       i++;
+      if (i >= _SCH_DEBUG_MAXLINE) {
+        TT_AddString(
+            tt, TT_Str(TT_ALIGN_CENTER, TT_FMT1_NONE, TT_FMT2_NONE, "..."), 0);
+        break;
+      }
     }
   }
 }
