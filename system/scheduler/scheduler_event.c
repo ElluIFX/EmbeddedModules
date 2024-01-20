@@ -165,6 +165,11 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head2[i]));
     int i = 0;
     ulist_foreach(&eventlist, scheduler_event_t, event) {
+      if (i >= _SCH_DEBUG_MAXLINE) {
+        TT_AddString(
+            tt, TT_Str(TT_ALIGN_CENTER, TT_FMT1_NONE, TT_FMT2_NONE, "..."), 0);
+        break;
+      }
       line = TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " "));
       if (event->enable && event->run_cnt) {
         float usage = (float)event->total_cost / period * 100;
@@ -212,11 +217,6 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
         event->last_usage = 0;
       }
       i++;
-      if (i >= _SCH_DEBUG_MAXLINE) {
-        TT_AddString(
-            tt, TT_Str(TT_ALIGN_CENTER, TT_FMT1_NONE, TT_FMT2_NONE, "..."), 0);
-        break;
-      }
     }
   }
 }
