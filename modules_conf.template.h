@@ -30,7 +30,6 @@
 #define _SCH_ENABLE_SOFTINT 1    // 支持软中断
 
 #define _SCH_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
-#define _SCH_EVENT_ALLOW_DUPLICATE 0  // 允许事件重复注册(单事件可触发多个回调)
 
 #define _SCH_DEBUG_REPORT 0  // 输出调度器统计信息(调试模式/低性能)
 #define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)

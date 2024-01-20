@@ -405,6 +405,13 @@ void ulist_free(ULIST list) {
   _ulist_free(list);
 }
 
+void ulist_manual_shrink(ULIST list) {
+  uint8_t cfg = list->cfg;
+  list->cfg = 0;
+  ulist_shrink(list, list->num);
+  list->cfg = cfg;
+}
+
 void ulist_clear(ULIST list) {
   if (list->elfree != NULL && list->num > 0) {
     for (ulist_size_t i = 0; i < list->num; i++) {

@@ -60,11 +60,9 @@ _INLINE void Event_Runner(void) {
 }
 
 uint8_t Sch_CreateEvent(const char *name, sch_func_t callback, uint8_t enable) {
-#if !_SCH_EVENT_ALLOW_DUPLICATE
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) return 0;
   }
-#endif  // !_SCH_EVENT_ALLOW_DUPLICATE
   scheduler_event_t *p = (scheduler_event_t *)ulist_append(&eventlist);
   if (p == NULL) return 0;
   p->task = callback;
@@ -77,102 +75,71 @@ uint8_t Sch_CreateEvent(const char *name, sch_func_t callback, uint8_t enable) {
   return 1;
 }
 
-uint8_t Sch_DeleteEvent(const char *name) {
-  if (eventlist.num == 0) return 0;
-  uint8_t ret = 0;
+__STATIC_INLINE scheduler_event_t *get_event(const char *name) {
+  if (eventlist.num == 0) return NULL;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) {
-      if (event->args != NULL && event->needFree) m_free(event->args);
-      ulist_delete(&eventlist, event - (scheduler_event_t *)eventlist.data);
-      event_end--;
-      event--;
-      ret = 1;
-      event_modified = 1;
-#if !_SCH_EVENT_ALLOW_DUPLICATE
-      break;
-#endif  // !_SCH_EVENT_ALLOW_DUPLICATE
-      continue;
+      return event;
     }
   }
-  return ret;
+  return NULL;
+}
+
+uint8_t Sch_DeleteEvent(const char *name) {
+  scheduler_event_t *event = get_event(name);
+  if (event == NULL) return 0;
+  if (event->args != NULL && event->needFree) m_free(event->args);
+  ulist_delete(&eventlist, ulist_index(&eventlist, event));
+  event_modified = 1;
+  return 1;
 }
 
 uint8_t Sch_SetEventState(const char *name, uint8_t enable) {
-  uint8_t ret = 0;
-  ulist_foreach(&eventlist, scheduler_event_t, event) {
-    if (fast_strcmp(event->name, name)) {
-      event->enable = enable;
-      event->trigger = 0;
-      ret = 1;
-#if !_SCH_EVENT_ALLOW_DUPLICATE
-      break;
-#endif  // !_SCH_EVENT_ALLOW_DUPLICATE
-    }
-  }
-  return ret;
+  scheduler_event_t *event = get_event(name);
+  if (event == NULL) return 0;
+  event->enable = enable;
+  event->trigger = 0;
+  return 1;
 }
 
 uint8_t Sch_TriggerEvent(const char *name, void *args) {
-  uint8_t ret = 0;
-  ulist_foreach(&eventlist, scheduler_event_t, event) {
-    if (event->enable && fast_strcmp(event->name, name)) {
-      event->trigger = 0;
-      if (event->args != NULL && event->needFree) m_free(event->args);
-      event->args = args;
-      event->needFree = 0;
-#if _SCH_DEBUG_REPORT
-      event->trigger_time = get_sys_tick();
-      event->trigger_cnt++;
-#endif
-      event->trigger = 1;
-#if !_SCH_EVENT_ALLOW_DUPLICATE
-      break;
-#endif
-    }
-  }
-  return ret;
+  scheduler_event_t *event = get_event(name);
+  if (event == NULL) return 0;
+  if (!event->enable) return 0;
+  event->trigger = 0;
+  if (event->args != NULL && event->needFree) m_free(event->args);
+  event->args = args;
+  event->needFree = 0;
+  return 1;
 }
 
 uint8_t Sch_TriggerEventEx(const char *name, const void *arg_ptr,
                            uint16_t arg_size) {
-  uint8_t ret = 0;
-  ulist_foreach(&eventlist, scheduler_event_t, event) {
-    if (event->enable && fast_strcmp(event->name, name)) {
-      event->trigger = 0;
-      if (event->args != NULL && event->needFree) m_free(event->args);
-      event->args = m_alloc(arg_size);
-      if (event->args == NULL) return 0;
-      memcpy(event->args, arg_ptr, arg_size);
-      event->needFree = 1;
+  scheduler_event_t *event = get_event(name);
+  if (event == NULL) return 0;
+  if (!event->enable) return 0;
+  event->trigger = 0;
+  if (event->args != NULL && event->needFree) m_free(event->args);
+  event->args = m_alloc(arg_size);
+  if (event->args == NULL) return 0;
+  memcpy(event->args, arg_ptr, arg_size);
+  event->needFree = 1;
 #if _SCH_DEBUG_REPORT
-      event->trigger_time = get_sys_tick();
-      event->trigger_cnt++;
+  event->trigger_time = get_sys_tick();
+  event->trigger_cnt++;
 #endif
-      event->trigger = 1;
-#if !_SCH_EVENT_ALLOW_DUPLICATE
-      break;
-#endif
-    }
-  }
-  return ret;
+  event->trigger = 1;
+  return 1;
 }
 
 uint8_t Sch_IsEventExist(const char *name) {
-  ulist_foreach(&eventlist, scheduler_event_t, event) {
-    if (fast_strcmp(event->name, name)) {
-      return 1;
-    }
-  }
-  return 0;
+  return get_event(name) == NULL ? 0 : 1;
 }
 
 uint8_t Sch_GetEventState(const char *name) {
-  ulist_foreach(&eventlist, scheduler_event_t, event) {
-    if (fast_strcmp(event->name, name)) {
-      return event->enable;
-    }
-  }
-  return 0;
+  scheduler_event_t *event = get_event(name);
+  if (event == NULL) return 0;
+  return event->enable;
 }
 
 uint16_t Sch_GetEventNum(void) { return eventlist.num; }

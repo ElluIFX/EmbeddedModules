@@ -30,7 +30,6 @@ Scheduler是一个多功能的时分调度器，它可以在裸机环境下实�
 #define _SCH_ENABLE_SOFTINT 1    // 支持软中断
 
 #define _SCH_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
-#define _SCH_EVENT_ALLOW_DUPLICATE 0  // 允许事件重复注册
 
 #define _SCH_DEBUG_REPORT 0  // 输出调度器统计信息(调试模式/低性能)
 #define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
@@ -40,7 +39,6 @@ Scheduler是一个多功能的时分调度器，它可以在裸机环境下实�
 - 说明:
   - `_SCH_ENABLE_*`：是否编译对应子模块
   - `_SCH_COMP_RANGE_US`：任务调度自动补偿范围，当任务调度的延时小于此值时，调度器会自动补偿延时，以保证调度频率符合设定值，大于此值说明任务耗时与设定频率不匹配，可以通过统计信息查看。
-  - `_SCH_EVENT_ALLOW_DUPLICATE`：是否允许事件重复注册，如果允许，那么同一个事件可以注册多个回调函数，事件触发时会依次调用所有回调函数，一定程度上增加性能开销。
   - `_SCH_DEBUG_*`：调试相关宏定义，启用时会每隔一段时间在串口终端上打印任务、事件、协程相关的统计信息，信息中时间相关的单位均为`us`，占用率单位为`%`，调试模式下会降低调度器性能，仅用于排查问题。
   - `_SCH_ENABLE_TERMINAL`：是否启用终端命令集，启用时可在`embedded-cli`中注册调度器相关控制命令，用于调试。
 
@@ -430,30 +428,23 @@ void Coroutine_MainFunc(void *args)
       - `mutex_name`：互斥锁名。
     - 警告：释放互斥锁时不会检查所有者，允许强制释放。
 
-14. `AWAIT_EVENT(event_name)`
+14. `AWAIT_BARRIER(barr_name)`
 
-    - 功能：阻塞等待事件。
+    - 功能：阻塞等待屏障。
     - 参数：
-      - `event_name`：事件名。
+      - `barr_name`：屏障名。
 
-    > 协程中的事件和调度器中的事件是两个独立的概念，协程中的事件是一种异步通信机制，而调度器中的事件是一种异步回调，二者没有任何关系。
+    > 屏障是一种同步机制，它可以让多个协程在某个点上同步，当所有协程都到达屏障点时，所有协程同时被唤醒。
+    >
+    > 屏障刚建立时目标值为0xffff，调用`Sch_SetCortnBarrierTarget`来修改目标值，当目标值为0时，屏障失效。
 
-15. `AWAIT_EVENT_MSG(event_name, to_ptr)`
+15. `ASYNC_RELEASE_BARRIER(barr_name)`
 
-    - 功能：阻塞等待事件，同时获取事件广播消息。
+    - 功能：手动释放屏障，立即返回。
     - 参数：
-      - `event_name`：事件名。
-      - `to_ptr`：广播消息指针，当函数返回时会被赋值。
-    - 等价: `Sch_TriggerCortnEvent`
+      - `barr_name`：屏障名。
 
-16. `ASYNC_TRIGGER_EVENT(event_name, msg)`
-
-    - 功能：触发事件并唤醒所有等待该事件的协程，立即返回。
-    - 参数：
-      - `event_name`：事件名。
-      - `msg`：广播消息指针。
-
-17. `ASYNC_RUN(name, func, args)`
+16. `ASYNC_RUN(name, func, args)`
 
     - 功能：创建并异步运行一个协程，立即返回。
     - 参数：
@@ -462,7 +453,7 @@ void Coroutine_MainFunc(void *args)
       - `args`：协程参数指针。
     - 等价：`Sch_CreateCortn` + `CR_MODE_AUTODEL`
 
-18. `AWAIT_JOIN(name)`
+17. `AWAIT_JOIN(name)`
 
     - 功能：阻塞等待一个协程结束（被删除）。
     - 参数：
@@ -544,22 +535,29 @@ uint8_t Sch_SendMsgToCortn(const char *name, void *msg)
 - 警告: 该函数是异步的，需要注意消息的生命周期，禁止传递局部缓冲区指针。
 
 ```C
-uint8_t Sch_TriggerCortnEvent(const char *name, void *msg)
+uint8_t Sch_CortnBarrierRelease(const char *name)
 ```
 
-- 功能：触发事件并唤醒所有等待该事件的协程，立即返回。
-- 返回：1：成功，0：失败（未找到事件）。
-- 参数：
-  - `name`：事件名。
-  - `msg`：消息指针。
-- 警告: 该函数是异步的，需要注意消息的生命周期，禁止传递局部缓冲区指针。
+- 功能：手动释放协程屏障。
+- 返回：1：成功，0：失败（屏障未建立）。
 
 ```C
-uint16_t Sch_GetCortnEventWaitingNum(const char *name)
+uint16_t Sch_GetCortnBarrierWaitingNum(const char *name)
 ```
 
-- 功能：获取等待指定事件的协程数量。
-- 返回：协程数量。
+- 功能：获取协程屏障等待数量。
+- 返回：等待数量。
+
+```C
+uint8_t Sch_SetCortnBarrierTarget(const char *name, uint16_t target)
+```
+
+- 功能：设置协程屏障目标值。
+- 返回：1：成功，0：失败。
+- 参数：
+  - `name`：协程名。
+  - `target`：目标值。
+- 注意：当目标值为0时，屏障失效。
 
 ### 5.5. 延时调用 ([`scheduler_calllater.h`](scheduler_calllater.h))
 

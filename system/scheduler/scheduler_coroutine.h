@@ -40,7 +40,7 @@ extern uint8_t __Sch_CrAwaitReturn(void);
 extern void __Sch_CrDelay(uint64_t delayUs);
 extern uint8_t __Sch_CrAcquireMutex(const char *name);
 extern void __Sch_CrReleaseMutex(const char *name);
-extern void __Sch_CrWaitEvent(const char *name, void **msgPtr);
+extern uint8_t __Sch_CrWaitBarrier(const char *name);
 
 /**
  * @brief 定义并初始化协程, 在协程函数开头调用(CR_LOCAL_END后调用)
@@ -145,21 +145,20 @@ static void __GET_CR_MSG(void **msgPtr) {
 #define ASYNC_RELEASE_MUTEX(mutex_name) __Sch_CrReleaseMutex(mutex_name)
 
 /**
- * @brief 等待事件, 阻塞直至事件触发
+ * @brief 等待屏障, 阻塞直至屏障解除
  */
-#define AWAIT_EVENT(event_name) AWAIT(__Sch_CrWaitEvent(event_name, NULL))
+#define AWAIT_BARRIER(barr_name)          \
+  do {                                    \
+    if (!__Sch_CrWaitBarrier(barr_name)) { \
+      __chd->yieldUntil = 0;              \
+      YIELD();                            \
+    }                                     \
+  } while (0)
 
 /**
- * @brief 等待事件, 阻塞直至事件触发并获取事件广播信息
+ * @brief 手动释放屏障, 立即返回
  */
-#define AWAIT_EVENT_MSG(event_name, to_ptr) \
-  AWAIT(__Sch_CrWaitEvent(event_name, (void **)&(to_ptr)))
-
-/**
- * @brief 触发事件并唤醒所有等待该事件的协程, 立即返回
- */
-#define ASYNC_TRIGGER_EVENT(event_name, msg) \
-  Sch_TriggerCortnEvent(event_name, (void *)(msg))
+#define ASYNC_RELEASE_BARRIER(barr_name) Sch_CortnBarrierRelease(barr_name)
 
 /**
  * @brief 无阻塞延时, 单位us
@@ -267,19 +266,25 @@ extern uint8_t Sch_IsCortnWaitForMsg(const char *name);
 extern uint8_t Sch_SendMsgToCortn(const char *name, void *msg);
 
 /**
- * @brief 触发指定协程事件并唤醒所有等待该事件的协程
- * @param  name             协程名
- * @param  msg              消息指针
- * @retval uint8_t          是否成功
+ * @brief 手动释放一个屏障
+ * @param  name            屏障名
+ * @retval uint8_t         是否成功
  */
-extern uint8_t Sch_TriggerCortnEvent(const char *name, void *msg);
+extern uint8_t Sch_CortnBarrierRelease(const char *name);
 
 /**
- * @brief 获取等待指定协程事件的协程数量
- * @param  name             协程名
- * @retval uint16_t         协程数量
+ * @brief 获取指定屏障等待协程数量
+ * @param  name            屏障名
+ * @retval uint16_t        等待数量
  */
-extern uint16_t Sch_GetCortnEventWaitingNum(const char *name);
+extern uint16_t Sch_GetCortnBarrierWaitingNum(const char *name);
+
+/**
+ * @brief 设置指定屏障目标协程数量
+ * @param  name            屏障名
+ * @param  target          目标数量
+ */
+extern uint8_t Sch_SetCortnBarrierTarget(const char *name, uint16_t target);
 
 #endif  // _SCH_ENABLE_COROUTINE
 

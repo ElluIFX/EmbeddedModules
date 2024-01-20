@@ -14,29 +14,24 @@ struct hashmap;
 typedef struct hashmap hashmap_t;
 
 /**
- * @brief Create and return a new hash map
+ * @brief 创建并返回一个新的哈希表
  *
- * @param elsize Size of each element in the tree. Every element that is
- * inserted, deleted, or retrieved will be this size.
- * @param cap Default lower capacity of the hashmap. If set to zero, it will
- * default to 16.
- * @param seed0 Optional seed value that is passed to the hash function. Can be
- * any value.
- * @param seed1 Optional second seed value that is passed to the hash function.
- * Can be any value.
- * @param hash A function that generates a hash value for an item. A good hash
- * function is crucial for good performance and security.
- * @param compare A function that compares items in the tree. See the qsort
- * stdlib function for an example of how this function works.
- * @param elfree A function that frees a specific item. This should be NULL
- * unless storing some kind of reference data in the hash.
- * @param udata A pointer to user data that is passed to the compare and elfree
+ * @param elsize
+ * 哈希表中每个元素的大小。插入、删除或检索的每个元素都将是这个大小。
+ * @param cap 哈希表的默认最低容量。如果设置为零，它将默认为16。
+ * @param seed0 可选的种子值，传递给哈希函数。可以是任何值。
+ * @param seed1 可选的第二个种子值，传递给哈希函数。可以是任何值。
+ * @param hash
+ * 一个为项目生成哈希值的函数。良好的哈希函数对于优良的性能和安全性至关重要。
+ * @param compare
+ * 一个比较哈希表中项目的函数。参见标准库函数qsort以了解此函数的工作方式。
+ * @param elfree
+ * 一个用于释放特定项目的函数。除非在哈希表中存储某种引用数据，否则这应该为NULL。
+ * @param udata 一个指向用户数据的指针，传递给compare和elfree
  *
- * @return A pointer to the newly created hashmap. This hashmap must be freed
- * using hashmap_free().
+ * @return 一个指针，指向新创建的哈希表。必须使用hashmap_free()来释放该哈希表。
  *
- * @note The hashmap comes with two helper functions for hashing: hashmap_sip()
- * and hashmap_murmur().
+ * @note 哈希表带有两个用于哈希的辅助函数：hashmap_sip() 和 hashmap_murmur()。
  */
 hashmap_t *hashmap_new(
     size_t elsize, size_t cap, uint64_t seed0, uint64_t seed1,
@@ -45,185 +40,167 @@ hashmap_t *hashmap_new(
     void (*elfree)(void *item), void *udata);
 
 /**
- * @brief Frees the hash map
+ * @brief 释放哈希表
  *
- * This function will call the element-freeing function provided in hashmap_new
- * on every item, if present. This is to free any data referenced in the
- * elements of the hashmap.
+ * 如果存在，此函数将在哈希表中的每个项目上调用在 hashmap_new
+ * 中提供的元素释放函数。这是为了释放哈希表元素中引用的任何数据。
  *
- * @note This function should be called when the hash map is no longer needed,
- * to free the allocated memory and prevent memory leaks.
+ * @note 当哈希表不再需要时，应调用此函数，以释放分配的内存并防止内存泄漏。
  */
 void hashmap_free(hashmap_t *map);
 
 /**
- * @brief Quickly clears the map
+ * @brief 快速清理哈希表
  *
- * Every item is called with the element-freeing function given in hashmap_new,
- * if present, to free any data referenced in the elements of the hashmap.
+ * 如果存在，每个元素都会调用在 hashmap_new
+ * 中给定的元素释放函数，以释放哈希表元素中引用的任何数据。
  *
- * @param update_cap If provided, the map's capacity will be updated to match
- * the currently number of allocated buckets. This is an optimization to ensure
- * that this operation does not perform any allocations.
+ * @param update_cap
+ * 如果提供，哈希表的容量将更新以匹配当前分配的桶的数量。这是确保此操作不执行任何内存分配的优化。
  *
- * @note This function is responsible for clearing the data in the map and
- * potentially updating the capacity to optimize performance.
+ * @note 此函数负责清除哈希表中的数据，并可能更新容量以优化性能。
  */
 void hashmap_clear(hashmap_t *map, bool update_cap);
 
 /**
- * @brief Returns the number of items in the hash map
+ * @brief 返回哈希表中的项数
  *
- * @return The number of items currently stored in the hash map
+ * @return 当前存储在哈希表中的项数
  *
- * @note This function can be used to check the size of the hash map at a given
- * point in time.
+ * @note 此函数可以用来检查给定时间点的哈希表的大小。
  */
 size_t hashmap_count(hashmap_t *map);
 
 /**
- * @brief Checks if the last hashmap_set() call failed due to out of memory
- * error
+ * @brief 检查最后一次 hashmap_set() 调用是否由于内存不足而失败
  *
- * @return Returns true if the last hashmap_set() call failed due to the system
- * being out of memory, otherwise returns false.
+ * @return 如果最后一次 hashmap_set() 调用由于系统内存不足而失败，则返回
+ * true，否则返回 false。
  *
- * @note This function is used to detect if there was an out of memory error in
- * the last hashmap set operation.
+ * @note 此函数用于检测最后一次 hashmap set 操作中是否存在内存不足的错误。
  */
 bool hashmap_oom(hashmap_t *map);
 
 /**
- * @brief Returns an item based on the provided key
+ * @brief 根据提供的键返回一项
  *
- * @param key The key associated with the item to retrieve
+ * @param key 与要检索的项关联的键
  *
- * @return The item associated with the key if found, otherwise returns NULL
+ * @return 如果找到则返回与键关联的项，否则返回 NULL
  *
- * @note This function is used to retrieve a specific item from the hash map
- * using a key.  If the item is not found, NULL is returned.
+ * @note 该函数用于使用键从哈希表中检索特定项。如果未找到该项，则返回 NULL。
  */
 const void *hashmap_get(hashmap_t *map, const void *item);
 
 /**
- * @brief Inserts or replaces an item in the hash map
+ * @brief 在哈希表中插入或替换一项
  *
- * If an item is replaced, it is returned. If a new item is inserted, NULL is
- * returned. This operation may require additional memory allocation. If the
- * system is unable to allocate additional memory, NULL is returned and
- * hashmap_oom() will return true.
+ * 如果一项被替换，则返回该项。如果插入了新项目，则返回
+ * NULL。此操作可能需要额外的内存分配。如果系统无法分配额外的内存，返回 NULL
+ * 并且 hashmap_oom() 将返回 true。
  *
- * @return The replaced item if an item is replaced, otherwise returns NULL.
+ * @return 如果替换了一项，则返回被替换的项，否则返回 NULL。
  *
- * @note This function is used to insert a new item or replace an existing item
- * in the hash map. It may require memory allocation to expand the hash map if
- * necessary.
+ * @note
+ * 此函数用于在哈希表中插入新项或替换现有项。可能需要内存分配以在必要时扩展哈希表。
  */
 const void *hashmap_set(hashmap_t *map, const void *item);
 
 /**
- * @brief Removes an item from the hash map and returns it
+ * @brief 从哈希表中删除一项并返回它
  *
- * @return The removed item if found, otherwise returns NULL
+ * @return 如果找到则返回已删除的项，否则返回 NULL
  *
- * @note The function is used to find a specific item in the hash map and remove
- * it. If the item is not found, it will return NULL.
+ * @note 该函数用于在哈希表中找到特定项并删除它。如果找不到该项，它将返回 NULL。
  */
 const void *hashmap_delete(hashmap_t *map, const void *item);
 
 /**
- * @brief Returns the item in the bucket at a certain position or NULL if the
- * bucket is empty
+ * @brief 返回位于特定位置的桶中的项，或者如果桶为空，则返回 NULL
  *
- * @param position The position of the bucket in the hash map. The position is
- * 'moduloed' by the number of buckets in the hash map.
+ * @param position 哈希表中桶的位置。位置由哈希表中的桶数进行“取模”。
  *
- * @return The item in the specified bucket if it exists, otherwise returns NULL
+ * @return 如果存在，则返回指定桶中的项，否则返回 NULL
  *
- * @note This function can be used to directly index into the hash map without
- * searching. It can be used for efficient direct access if you know the bucket
- * position.
+ * @note
+ * 此函数可以用于直接索引哈希表而无需搜索。如果您知道桶的位置，可以用于有效的直接访问。
  */
 const void *hashmap_probe(hashmap_t *map, uint64_t position);
 
 /**
- * @brief Iterates over all items in the hash map.
+ * @brief 遍历哈希表中的所有项目
  *
- * @param iter Function that can return false to stop iteration early.
+ * @param iter 可以返回 false 以提前停止迭代的函数
  *
- * @return Returns false if the iteration has been stopped early.
+ * @return 如果迭代提前停止，返回 false
  *
- * @note This function is used to perform an operation on all items in the hash
- * map, and provides the ability to stop iteration early if needed.
+ * @note
+ * 该函数用于在哈希表中的所有项目上执行操作，并在需要时提供提前停止迭代的功能。
  */
 bool hashmap_scan(hashmap_t *map, bool (*iter)(const void *item, void *udata),
                   void *udata);
 
 /**
- * @brief Iterates over the hashmap one key at a time, yielding a reference to
- * an entry at each iteration
+ * @brief 一次遍历哈希表中的一个键，每次迭代都会产生一个条目引用
  *
- * This function is useful for writing simple loops and avoiding the need to
- * write dedicated callbacks and user data structures, as you might do with
- * hashmap_scan.
+ * 此函数对于编写简单的循环很有用，可以避免需要编写专用的回调和用户数据结构，就像在
+ * hashmap_scan 中可能会执行的操作那样。
  *
- * @param map Pointer to the hashmap handle.
- * @param i Pointer to a size_t cursor that should be initialized to 0 at the
- * beginning of the loop.
- * @param item Void double pointer that is populated with the retrieved item.
- * This is NOT a copy of the item stored in the hash map and can be directly
- * modified.
+ * @param map 指向哈希表句柄的指针。
+ * @param i 指向 size_t 游标的指针，应该在循环开始时初始化为 0。
+ * @param item  用检索到的项填充的 void
+ * 双指针。这不是存储在哈希表中的项的副本，可以直接修改。
  *
- * @return Returns true if an item was retrieved; false if the end of the
- * iteration has been reached.
+ * @return 如果检索到一个项目，则返回 true；如果已经到达迭代的结尾，则返回
+ * false。
  *
- * @note If hashmap_delete() is called on the hashmap being iterated, the
- * buckets are rearranged and the iterator must be reset to 0, otherwise
- * unexpected results may be returned after deletion.
+ * @note 如果在迭代的哈希表上调用
+ * hashmap_delete()，则桶将被重新排列，迭代器必须重置为
+ * 0，否则可能会在删除后返回意外的结果。
  *
- * @warning This function has not been tested for thread safety.
+ * @warning 该函数未经线程安全测试。
  */
 bool hashmap_iter(hashmap_t *map, size_t *i, void **item);
 
 /**
- * @brief Returns an item based on the provided key and hash
+ * @brief 根据提供的键和哈希返回一项
  *
- * This function works similarly to hashmap_get, but it requires the user to
- * provide their own hash. The 'hash' callback provided to the hashmap_new
- * function will not be called.
+ * 此函数的工作方式类似于
+ * hashmap_get，但它要求用户提供自己的哈希。将不会调用提供给 hashmap_new 函数的
+ * 'hash' 回调。
  *
- * @param key The key associated with the item to retrieve
- * @param hash The user provided hash function
+ * @param key 与要检索的项关联的键
+ * @param hash 用户提供的哈希函数
  *
- * @return The item associated with the key if found, otherwise returns NULL
+ * @return 如果找到，则返回与键关联的项，否则返回 NULL
  *
- * @note This is a specialized version of hashmap_get that allows user-defined
- * hash functions.
+ * @note 这是 hashmap_get 的一个专门版本，允许用户定义哈希函数。
  */
 const void *hashmap_get_with_hash(hashmap_t *map, const void *key,
                                   uint64_t hash);
 
 /**
- * @brief Removes an item from the hash map using a provided hash and returns it
+ * @brief 使用提供的哈希从哈希表中删除一项并返回它
  *
- * This function works similarly to hashmap_delete, but it requires the user to
- * provide their own hash. The 'hash' callback provided to the hashmap_new
- * function will not be called.
+ * 此函数的工作方式类似于
+ * hashmap_delete，但它要求用户提供自己的哈希。将不会调用提供给 hashmap_new
+ * 函数的 'hash' 回调。
  *
- * @return The removed item if found, otherwise returns NULL
+ * @return 如果找到，则返回已删除的项，否则返回 NULL
  *
- * @note This is a specialized version of hashmap_delete that allows
- * user-defined hash functions.
+ * @note 这是 hashmap_delete 的一个专门版本，允许用户定义哈希函数。
  */
 const void *hashmap_delete_with_hash(hashmap_t *map, const void *key,
                                      uint64_t hash);
 
 /**
- * @brief Sets a value into the hashmap using a provided hash
+ * @brief 使用提供的哈希向哈希表中设置值
  *
- * This function works similarly to hashmap_set, but it requires the user to
- * provide their own hash. The 'hash' callback provided to the hashmap_new
- * function will not be called.
+ * 此函数的工作方式类似于
+ * hashmap_set，但它要求用户提供自己的哈希。将不会调用提供给 hashmap_new 函数的
+ * 'hash' 回调。
+ *
+ * @note 这是 hashmap_set 的一个专门版本，允许用户定义哈希函数。
  */
 const void *hashmap_set_with_hash(hashmap_t *map, const void *item,
                                   uint64_t hash);

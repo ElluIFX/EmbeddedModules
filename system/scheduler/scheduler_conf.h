@@ -29,10 +29,6 @@ extern "C" {
 #define _SCH_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
 #endif
 
-#ifndef _SCH_EVENT_ALLOW_DUPLICATE
-#define _SCH_EVENT_ALLOW_DUPLICATE 0  // 允许事件重复注册
-#endif
-
 #ifndef _SCH_DEBUG_REPORT
 #define _SCH_DEBUG_REPORT 0  // 输出调度器统计信息(调试模式/低性能)
 #endif

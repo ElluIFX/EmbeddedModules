@@ -6,16 +6,6 @@
 #include "modules.h"
 #include "stdarg.h"
 
-#if CSTRING_DEBUG
-#include "log.h"
-#define CS_LOG(fn, txt) cstring_log(fn, txt)
-void cstring_log(const char *function, const char *text) {
-  CS_LOG_E("[CSTRING] %s -> %s", function, text);
-}
-#else
-#define CS_LOG(fn, txt) ((void)0)
-#endif
-
 #define cstring_alloc m_alloc
 #define cstring_free m_free
 
@@ -62,8 +52,6 @@ const char *string_c_str(const string this) { return this->data; }
 
 size_t string_size(const string this) {
   if (this->data == NULL) {
-    CS_LOG("string_size",
-           "Tried to get the size of a NULL string (returned 0)");
     return 0;
   }
   return strlen(this->data);
@@ -71,8 +59,6 @@ size_t string_size(const string this) {
 
 size_t string_length(const string this) {
   if (this->data == NULL) {
-    CS_LOG("string_length",
-           "Tried to get the length of a NULL string (returned 0)");
     return 0;
   }
   return strlen(this->data);
@@ -80,14 +66,9 @@ size_t string_length(const string this) {
 
 int string_compare_c_str(const string this, const char *other) {
   if (this->data == NULL && other == NULL) {
-    CS_LOG("string_compare, string_compare_c_str",
-           "Tried to compare two strings with NULL content (returned 0)");
     return 0;
   }
   if (this->data == NULL || other == NULL) {
-    CS_LOG(
-        "string_compare, string_compare_c_str",
-        "Tried to compare a standard string with a NULL string (returned -1)");
     return -1;
   }
   return strcmp(this->data, other);
@@ -99,12 +80,9 @@ int string_compare(const string this, const string other) {
 
 char string_at(const string this, size_t pos) {
   if (this->data == NULL) {
-    CS_LOG("string_at",
-           "Tried to reach the text on a NULL string (returned 0)");
     return 0;
   }
   if (pos >= string_length(this)) {
-    CS_LOG("string_at", "Tried to reach a position out of bounds (returned 0)");
     return 0;
   }
   return this->data[pos];
@@ -127,7 +105,6 @@ void string_push_back(string this, char insertion) {
 void string_pop_back(string this) {
   size_t len = string_length(this);
   if (len == 0) {
-    CS_LOG("string_pop_back", "Tried to pop back an empty string (no changes)");
     return;
   }
   this->data[len - 1] = '\0';
@@ -135,7 +112,6 @@ void string_pop_back(string this) {
 
 void string_reverse(string this) {
   if (this->data == NULL) {
-    CS_LOG("string_reverse", "Tried to reverse a NULL string (no changes)");
     return;
   }
   size_t i;
@@ -162,18 +138,12 @@ void string_swap(string this, string other) {
 
 void string_cat(string this, const char *other) {
   if (other == NULL) {
-    CS_LOG("string_cat, string_append",
-           "Tried to concatenate a string with a NULL string (no changes)");
     return;
   }
   char *tmp =
       cstring_alloc(sizeof(char) * (string_length(this) + strlen(other) + 1));
   if (this->data == NULL) {
     string_assign(this, "");
-    CS_LOG(
-        "string_cat, string_append",
-        "Tried to concatenate a NULL string with another string (this became "
-        "other)");
   }
   strcpy(tmp, this->data);
   strcat(tmp, other);
@@ -187,13 +157,9 @@ void string_append(string this, const string other) {
 
 void string_insert_c_str(string this, const char *insertion, size_t pos) {
   if (insertion == NULL) {
-    CS_LOG("string_insert, string_insert_c_str",
-           "Tried to insert a NULL string (no changes)");
     return;
   }
   if (pos > string_length(this)) {
-    CS_LOG("string_insert, string_insert_c_str",
-           "Tried to insert a string at a position out of bounds (no changes)");
     return;
   }
   if (pos == string_length(this)) {

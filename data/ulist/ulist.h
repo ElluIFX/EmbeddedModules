@@ -23,6 +23,7 @@ typedef int16_t ulist_offset_t;
 #define SLICE_START 0x7FFF  // like list[:index] in Python
 #define SLICE_END 0x7FFE    // like list[index:] in Python
 
+#pragma pack(1)
 typedef struct {
   void* data;             // 数据缓冲区
   ulist_size_t num;       // 列表内元素个数
@@ -32,7 +33,6 @@ typedef struct {
   uint8_t cfg;            // 配置
   void (*elfree)(void*);  // 元素释放函数
 } ulist_t;
-
 typedef ulist_t* ULIST;
 
 typedef struct {
@@ -43,8 +43,8 @@ typedef struct {
   ulist_size_t now;
   uint8_t started;
 } ulist_iter_t;
-
 typedef ulist_iter_t* ULIST_ITER;
+#pragma pack()
 
 #define ULIST_DIRTY_REGION_FILL_DATA 0x00  // 区域填充值
 #define ULIST_DISABLE_ALL_LOG 0            // 禁用所有日志
@@ -122,11 +122,11 @@ extern bool ulist_extend(ULIST list, ULIST other);
 /**
  * @brief 将num个元素插入到列表中index位置(第index个元素之前)
  * @param  list    列表结构体
- * @param  index   插入位置(Python-like)
+ * @param  index   插入位置(`Python-like`)
  * @param  num     插入元素个数
  * @return         返回插入部分的头指针
  * @note 返回NULL说明内存操作失败或者index越界
- * @note index==SLICE_END时, 等价于append
+ * @note index==`SLICE_END`时, 等价于append
  */
 extern void* ulist_insert_multi(ULIST list, ulist_offset_t index,
                                 ulist_size_t num);
@@ -134,21 +134,21 @@ extern void* ulist_insert_multi(ULIST list, ulist_offset_t index,
 /**
  * @brief 将1个元素插入到列表中index位置(第index个元素之前)
  * @param  list    列表结构体
- * @param  index   插入位置(Python-like)
+ * @param  index   插入位置(`Python-like`)
  * @return         返回插入部分的头指针
  * @note 返回NULL说明内存操作失败或者index越界
- * @note index==SLICE_END时, 等价于append
+ * @note index==`SLICE_END`时, 等价于append
  */
 extern void* ulist_insert(ULIST list, ulist_offset_t index);
 
 /**
  * @brief 将1个外部元素插入到列表中index位置(第index个元素之前)
  * @param  list    列表结构体
- * @param  index   插入位置(Python-like)
+ * @param  index   插入位置(`Python-like`)
  * @param  src     插入元素指针
  * @return         是否插入成功
  * @note 返回false说明内存操作失败或者index越界
- * @note index==SLICE_END时, 等价于append_buf
+ * @note index==`SLICE_END`时, 等价于append_buf
  * @note 缓冲区数据需具有和列表元素相同的大小
  */
 extern bool ulist_insert_from_ptr(ULIST list, ulist_offset_t index,
@@ -157,7 +157,7 @@ extern bool ulist_insert_from_ptr(ULIST list, ulist_offset_t index,
 /**
  * @brief 将另一个列表插入到列表中index位置(第index个元素之前)
  * @param  list    列表结构体
- * @param  index   插入位置(Python-like)
+ * @param  index   插入位置(`Python-like`)
  * @param  other   另一个列表结构体
  * @retval         是否插入成功
  */
@@ -166,7 +166,7 @@ extern bool ulist_insert_list(ULIST list, ulist_offset_t index, ULIST other);
 /**
  * @brief 删除列表中给定位置的元素
  * @param  list       列表结构体
- * @param  index      删除位置(Python-like)
+ * @param  index      删除位置(`Python-like`)
  * @param  num        删除元素个数
  * @return            是否删除成功
  * @note 超出列表范围的num会被截断, 不会导致删除失败
@@ -178,7 +178,7 @@ extern bool ulist_delete_multi(ULIST list, ulist_offset_t index,
 /**
  * @brief 删除列表中给定位置的元素
  * @param  list       列表结构体
- * @param  index      删除位置(Python-like)
+ * @param  index      删除位置(`Python-like`)
  * @return            是否删除成功
  * @note 返回false说明index越界
  */
@@ -187,8 +187,8 @@ extern bool ulist_delete(ULIST list, ulist_offset_t index);
 /**
  * @brief 删除列表中的给定元素
  * @param  list       列表结构体
- * @param  start      删除起始位置(Python-like)
- * @param  end        删除结束位置(Python-like, 不包括)
+ * @param  start      删除起始位置(`Python-like`)
+ * @param  end        删除结束位置(`Python-like`, 不包括)
  * @return            是否删除成功
  * @note 返回false说明index越界
  */
@@ -207,8 +207,8 @@ extern bool ulist_remove(ULIST list, const void* ptr);
 /**
  * @brief 返回列表元素的切片(浅拷贝), 创建新数据块
  * @param  list       列表结构体
- * @param  start      切片起始位置(Python-like)
- * @param  end        切片结束位置(Python-like, 不包括)
+ * @param  start      切片起始位置(`Python-like`)
+ * @param  end        切片结束位置(`Python-like`, 不包括)
  * @retval            返回切片后的数据块头指针
  * @note 切片的元素需由用户手动调用free释放
  * @note 返回NULL说明index越界
@@ -219,8 +219,8 @@ extern void* ulist_slice(ULIST list, ulist_offset_t start, ulist_offset_t end);
 /**
  * @brief 返回列表元素的切片(浅拷贝), 写入缓冲区
  * @param  list       列表结构体
- * @param  start      切片起始位置(Python-like)
- * @param  end        切片结束位置(Python-like, 不包括)
+ * @param  start      切片起始位置(`Python-like`)
+ * @param  end        切片结束位置(`Python-like`, 不包括)
  * @param  buf        切片元素缓冲区
  * @return            是否切片成功
  * @note 超出列表范围的num会导致拷贝失败
@@ -232,8 +232,8 @@ extern bool ulist_slice_to_buf(ULIST list, ulist_offset_t start,
 /**
  * @brief 返回列表元素的切片(浅拷贝), 创建新列表
  * @param  list      列表结构体
- * @param  start      切片起始位置(Python-like)
- * @param  end        切片结束位置(Python-like, 不包括)
+ * @param  start      切片起始位置(`Python-like`)
+ * @param  end        切片结束位置(`Python-like`, 不包括)
  * @retval           返回切片后的列表结构体
  * @note 切片后的列表需由用户手动调用ulist_free释放
  * @note 返回NULL说明内存操作失败
@@ -244,7 +244,7 @@ extern ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
 /**
  * @brief 弹出并删除列表中的元素, 创建新数据块
  * @param  list       列表结构体
- * @param  index      弹出位置(Python-like)
+ * @param  index      弹出位置(`Python-like`)
  * @return            返回弹出部分的头指针
  * @note 弹出的元素需由用户手动调用free释放
  * @note 返回NULL说明index越界
@@ -255,7 +255,7 @@ extern void* ulist_pop(ULIST list, ulist_offset_t index);
 /**
  * @brief 用外部元素更新列表中index位置的元素
  * @param  list       列表结构体
- * @param  index      元素位置(Python-like)
+ * @param  index      元素位置(`Python-like`)
  * @param  src        元素指针
  * @return            是否更新成功
  * @note 返回false说明index越界
@@ -265,7 +265,7 @@ extern bool ulist_update(ULIST list, ulist_offset_t index, const void* src);
 /**
  * @brief 获取列表中index位置的元素
  * @param  list       列表结构体
- * @param  index      元素位置(Python-like)
+ * @param  index      元素位置(`Python-like`)
  * @return            返回元素指针
  * @note 返回NULL说明index越界
  */
@@ -274,7 +274,7 @@ extern void* ulist_get(ULIST list, ulist_offset_t index);
 /**
  * @brief 获取列表中index位置的元素, 写入给定副本中
  * @param  list       列表结构体
- * @param  index      元素位置(Python-like)
+ * @param  index      元素位置(`Python-like`)
  * @param  target     元素副本指针
  * @return            是否获取成功
  * @note 返回NULL说明index越界
@@ -303,8 +303,8 @@ extern ulist_offset_t ulist_find(ULIST list, const void* ptr);
 /**
  * @brief 交换列表中两个元素的位置
  * @param  list       列表结构体
- * @param  index1     元素1位置(Python-like)
- * @param  index2     元素2位置(Python-like)
+ * @param  index1     元素1位置(`Python-like`)
+ * @param  index2     元素2位置(`Python-like`)
  * @return            是否交换成功
  */
 extern bool ulist_swap(ULIST list, ulist_offset_t index1,
@@ -314,11 +314,11 @@ extern bool ulist_swap(ULIST list, ulist_offset_t index1,
  * @brief 列表排序(qsort)
  * @param  list      列表结构体
  * @param  cmp       比较函数(与qsort相同,cmp(p1,p2))
- * @param  start     排序起始位置(Python-like)
- * @param  end       排序结束位置(Python-like, 不包括)
+ * @param  start     排序起始位置(`Python-like`)
+ * @param  end       排序结束位置(`Python-like`, 不包括)
  * @retval           是否排序成功
- * @note 全列表排序: start=SLICE_START, end=SLICE_END
- * @note <0:p1,p2  =0:p?,p?  >0:p2,p1
+ * @note 全列表排序: start=`SLICE_START`, end=`SLICE_END`
+ * @note `<0:p1,p2`  `=0:p?,p?`  `>0:p2,p1`
  */
 extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
                        ulist_offset_t start, ulist_offset_t end);
@@ -327,8 +327,8 @@ extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
  * @brief 迭代列表
  * @param  list     列表结构体
  * @param  ptrptr   将要指向当前元素指针的指针
- * @param  start    迭代起始位置(Python-like)
- * @param  end      迭代结束位置(Python-like, 不包括)
+ * @param  start    迭代起始位置(`Python-like`)
+ * @param  end      迭代结束位置(`Python-like`, 不包括)
  * @param  step     迭代步长
  * @retval          是否继续迭代
  * @note    返回false后的下一次iter将自动重置迭代器, 从头开始迭代
@@ -341,12 +341,12 @@ extern bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
 /**
  * @brief 创建列表迭代器
  * @param  list      列表结构体
- * @param  start     迭代起始位置(Python-like)
- * @param  end       迭代结束位置(Python-like, 不包括)
+ * @param  start     迭代起始位置(`Python-like`)
+ * @param  end       迭代结束位置(`Python-like`, 不包括)
  * @param  step      迭代步长
  * @retval           返回迭代器结构体
  * @note 返回NULL说明index越界
- * @note 迭代器需由用户手动调用ulist_free_iter释放
+ * @note 迭代器需由用户手动调用`ulist_free_iter`释放
  * @note step为负数时, start应大于end
  */
 extern ULIST_ITER ulist_create_iter(ULIST list, ulist_offset_t start,
@@ -388,6 +388,14 @@ extern void ulist_clear(ULIST list);
 extern void ulist_free(ULIST list);
 
 /**
+ * @brief 手动缩减列表储存区
+ * @param  list       列表结构体
+ * @note
+ * 这是为启用了`ULIST_CFG_NO_SHRINK`或`ULIST_CFG_NO_AUTO_FREE`的列表提供的手动缩减函数
+ */
+extern void ulist_manual_shrink(ULIST list);
+
+/**
  * @brief 获取列表长度
  * @param  list       列表结构体
  */
@@ -397,7 +405,7 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @brief 获取列表对应位置的元素指针
  * @param  list       列表结构体
  * @param  type       元素类型
- * @param  index      元素位置(Python-like)
+ * @param  index      元素位置(`Python-like`)
  */
 #define ulist_get_ptr(list, type, index) ((type*)ulist_get(list, index))
 
@@ -407,7 +415,7 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
  * @param  from_index 起始位置
- * @param  to_index   结束位置(Python-like, 不包括)
+ * @param  to_index   结束位置(`Python-like`, 不包括)
  * @param  step       步长
  * @note step为负数时, from_index应大于to_index
  * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
@@ -427,7 +435,7 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
  * @param  from_index 起始位置
- * @param  to_index   结束位置(Python-like, 不包括)
+ * @param  to_index   结束位置(`Python-like`, 不包括)
  * @note 无运行时越界检查,
  * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
@@ -453,7 +461,7 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  list       列表结构体
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
- * @param  from_index 起始位置(Python-like)
+ * @param  from_index 起始位置(`Python-like`)
  * @note 无运行时越界检查,
  * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
@@ -465,7 +473,7 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  list       列表结构体
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
- * @param  to_index   结束位置(Python-like, 不包括)
+ * @param  to_index   结束位置(`Python-like`, 不包括)
  * @note 无运行时越界检查,
  * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
