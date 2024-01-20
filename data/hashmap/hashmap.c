@@ -82,7 +82,7 @@ static uint64_t get_hash(hashmap_t *map, const void *key) {
   return clip_hash(map->hash(key, map->seed0, map->seed1));
 }
 
-hashmap_t *hashmap_new_internal(
+hashmap_t *hashmap_new(
     size_t elsize, size_t cap, uint64_t seed0, uint64_t seed1,
     uint64_t (*hash)(const void *item, uint64_t seed0, uint64_t seed1),
     int (*compare)(const void *a, const void *b, void *udata),
@@ -133,15 +133,6 @@ hashmap_t *hashmap_new_internal(
   return map;
 }
 
-hashmap_t *hashmap_new(
-    size_t elsize, size_t cap, uint64_t seed0, uint64_t seed1,
-    uint64_t (*hash)(const void *item, uint64_t seed0, uint64_t seed1),
-    int (*compare)(const void *a, const void *b, void *udata),
-    void (*elfree)(void *item), void *udata) {
-  return hashmap_new_internal(elsize, cap, seed0, seed1, hash, compare, elfree,
-                              udata);
-}
-
 static void free_elements(hashmap_t *map) {
   if (map->elfree) {
     for (size_t i = 0; i < map->nbuckets; i++) {
@@ -172,8 +163,8 @@ void hashmap_clear(hashmap_t *map, bool update_cap) {
 
 static bool resize0(hashmap_t *map, size_t new_cap) {
   hashmap_t *map2 =
-      hashmap_new_internal(map->elsize, new_cap, map->seed0, map->seed1,
-                           map->hash, map->compare, map->elfree, map->udata);
+      hashmap_new(map->elsize, new_cap, map->seed0, map->seed1, map->hash,
+                  map->compare, map->elfree, map->udata);
   if (!map2) return false;
   for (size_t i = 0; i < map->nbuckets; i++) {
     struct bucket *entry = bucket_at(map, i);
