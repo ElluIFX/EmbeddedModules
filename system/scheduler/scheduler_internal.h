@@ -11,7 +11,9 @@ extern "C" {
 
 #define _INLINE __attribute__((always_inline)) inline
 #define _STATIC_INLINE static _INLINE
-_STATIC_INLINE uint64_t get_sys_tick(void) { return (uint64_t)get_sys_tick(); }
+_STATIC_INLINE uint64_t get_sys_tick(void) {
+  return (uint64_t)get_system_ticks();
+}
 _STATIC_INLINE uint64_t get_sys_freq(void) { return SystemCoreClock; }
 
 _STATIC_INLINE float tick_to_us(uint64_t tick) {
@@ -31,6 +33,7 @@ _STATIC_INLINE uint64_t get_sys_us(void) {
 }
 
 _STATIC_INLINE uint8_t fast_strcmp(const char *str1, const char *str2) {
+  if (str1 == str2) return 1;
   while ((*str1) && (*str2)) {
     if ((*str1++) != (*str2++)) return 0;
   }

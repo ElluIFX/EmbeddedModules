@@ -50,6 +50,7 @@ struct tcb_node {
 
 struct tcb {
   void *stack;
+  uint32_t stack_size;
   void (*entry)(void *);
   uint32_t prio;
   uint32_t time;

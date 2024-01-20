@@ -36,7 +36,7 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size) {
   struct tcb *tcb;
   uint8_t *stack_base;
   stack_size = stack_size ? stack_size : 1024;
-  tcb = heap_alloc( sizeof(struct tcb) + stack_size);
+  tcb = heap_alloc(sizeof(struct tcb) + stack_size);
   if (tcb == NULL) {
     return NULL;
   }
@@ -46,6 +46,7 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size) {
   tcb->prio = THREAD_PRIORITY_NORMAL;
   tcb->stack = cpu_contex_init(stack_base, stack_base + stack_size,
                                (void *)entry, arg, (void *)thread_exit);
+  tcb->stack_size = stack_size;
   tcb->entry = entry;
   tcb->node_wait.tcb = tcb;
   tcb->node_sched.tcb = tcb;
@@ -59,7 +60,7 @@ void thread_delete(thread_t thread) {
   cpu_enter_critical();
   sched_tcb_remove(thread);
   cpu_leave_critical();
-  heap_free( thread);
+  heap_free(thread);
 }
 
 void thread_yield(void) {
@@ -103,6 +104,6 @@ void thread_clean_up(void) {
     node = m_list_dead.head;
     list_remove(&m_list_dead, node);
     cpu_leave_critical();
-    heap_free( node->tcb);
+    heap_free(node->tcb);
   }
 }

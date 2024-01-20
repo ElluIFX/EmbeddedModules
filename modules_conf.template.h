@@ -49,8 +49,6 @@
 #define _LOG_ENABLE_WARN 1   // 是否输出WARN日志
 #define _LOG_ENABLE_ERROR 1  // 是否输出ERROR日志
 #define _LOG_ENABLE_FATAL 1  // 是否输出FATAL日志
-// 特殊
-#define _LOG_EF_TRIG_DEBUG_HALT 1  // 调试时ERROR/FATAL日志是否触发调试断点
 
 /****************************** 串口设置 ******************************/
 // 组件设置

@@ -35,6 +35,7 @@ typedef struct {     // 协程事件结构
 static ulist_t cortnlist = {.data = NULL,
                             .cap = 0,
                             .num = 0,
+                            .elfree = NULL,
                             .isize = sizeof(scheduler_cortn_t),
                             .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 
@@ -42,6 +43,7 @@ static ulist_t mutexlist = {
     .data = NULL,
     .cap = 0,
     .num = 0,
+    .elfree = NULL,
     .isize = sizeof(scheduler_cortn_mutex_t),
     .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
 
@@ -49,6 +51,7 @@ static ulist_t eventlist = {
     .data = NULL,
     .cap = 0,
     .num = 0,
+    .elfree = NULL,
     .isize = sizeof(scheduler_cortn_event_t),
     .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
 
@@ -308,7 +311,8 @@ _STATIC_INLINE scheduler_cortn_mutex_t *get_mutex(const char *name) {
   if (ret == NULL) return NULL;
   ret->name = name;
   ret->locked = 0;
-  ret->waitlist = ulist_create(sizeof(char *), 0, ULIST_CFG_CLEAR_DIRTY_REGION);
+  ret->waitlist =
+      ulist_create(sizeof(char *), 0, ULIST_CFG_CLEAR_DIRTY_REGION, NULL);
   if (ret->waitlist == NULL) {
     ulist_delete(&mutexlist, -1);
     return NULL;
@@ -360,7 +364,8 @@ _STATIC_INLINE scheduler_cortn_event_t *get_event(const char *name) {
   scheduler_cortn_event_t *ret = ulist_append(&eventlist);
   if (ret == NULL) return NULL;
   ret->name = name;
-  ret->waitlist = ulist_create(sizeof(char *), 0, ULIST_CFG_CLEAR_DIRTY_REGION);
+  ret->waitlist =
+      ulist_create(sizeof(char *), 0, ULIST_CFG_CLEAR_DIRTY_REGION, NULL);
   if (ret->waitlist == NULL) {
     ulist_delete(&eventlist, -1);
     return NULL;

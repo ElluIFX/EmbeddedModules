@@ -141,7 +141,7 @@ _INTERNAL void tt_free_str(TT_STR str) {
 
 _EXTERNAL TT TT_NewTable(int16_t tableMinWidth) {
   TT ret = (TT)tt_alloc(sizeof(term_table_t));
-  ret->items = ulist_create(sizeof(term_table_item_t), 0, NULL);
+  ret->items = ulist_create(sizeof(term_table_item_t), 0, NULL, NULL);
   ret->tableMinWidth = tableMinWidth > 0 ? tableMinWidth : WIDTH_DISABLED;
   ret->tablePrintedHeight = 0;
   ret->tablePrintedWidth = 0;
@@ -231,7 +231,8 @@ _EXTERNAL TT_ITEM_STRING TT_AddString(TT tt, TT_STR str, int16_t width) {
 _EXTERNAL TT_ITEM_KVPAIR TT_AddKVPair(TT tt, int16_t keyMinWidth) {
   TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_KVPAIR);
   TT_ITEM_KVPAIR content = (TT_ITEM_KVPAIR)item->content;
-  content->items = ulist_create(sizeof(term_table_item_kvpair_item_t), 0, NULL);
+  content->items =
+      ulist_create(sizeof(term_table_item_kvpair_item_t), 0, NULL, NULL);
   content->keyMinWidth = keyMinWidth > 0 ? keyMinWidth : WIDTH_DISABLED;
   content->keyWidth = WIDTH_UNKNOWN;
   content->valueWidth = WIDTH_UNKNOWN;
@@ -254,8 +255,9 @@ _EXTERNAL TT_ITEM_KVPAIR_ITEM TT_KVPair_AddItem(TT_ITEM_KVPAIR kvpair,
 _EXTERNAL TT_ITEM_GRID TT_AddGrid(TT tt, int16_t margin) {
   TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_GRID);
   TT_ITEM_GRID content = (TT_ITEM_GRID)item->content;
-  content->lines = ulist_create(sizeof(term_table_item_grid_line_t), 0, NULL);
-  content->widths = ulist_create(sizeof(int16_t), 0, NULL);
+  content->lines =
+      ulist_create(sizeof(term_table_item_grid_line_t), 0, NULL, NULL);
+  content->widths = ulist_create(sizeof(int16_t), 0, NULL, NULL);
   content->margin = margin >= 0 ? margin : 0;
   content->separatorWidth = WIDTH_UNKNOWN;
   return content;
@@ -264,7 +266,8 @@ _EXTERNAL TT_ITEM_GRID TT_AddGrid(TT tt, int16_t margin) {
 _EXTERNAL TT_ITEM_GRID_LINE TT_Grid_AddLine(TT_ITEM_GRID grid,
                                             TT_STR separator) {
   TT_ITEM_GRID_LINE line = (TT_ITEM_GRID_LINE)ulist_append(grid->lines);
-  line->items = ulist_create(sizeof(term_table_item_grid_item_t), 0, NULL);
+  line->items =
+      ulist_create(sizeof(term_table_item_grid_item_t), 0, NULL, NULL);
   line->separator = separator;
   return line;
 }

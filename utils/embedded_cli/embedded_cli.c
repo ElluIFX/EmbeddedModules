@@ -1,5 +1,6 @@
 #include "embedded_cli.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -111,6 +112,16 @@ const static char *CLI_ERROR_COLOR = FMT2(BOLD, RED);
  */
 #define CLI_FLAG_COLOR_OUTPUT_ENABLED 0x40u
 
+/**
+ * Indicates that cursor direction should be forward
+ */
+#define CURSOR_DIRECTION_FORWARD true
+
+/**
+ * Indicates that cursor direction should be backward
+ */
+#define CURSOR_DIRECTION_BACKWARD false
+
 typedef struct EmbeddedCliImpl EmbeddedCliImpl;
 typedef struct AutocompletedCommand AutocompletedCommand;
 typedef struct FifoBuf FifoBuf;
@@ -215,6 +226,12 @@ struct EmbeddedCliImpl {
    * Flags are defined as CLI_FLAG_*
    */
   uint8_t flags;
+
+  /**
+   * Cursor position for current command from right to left
+   * 0 = end of command
+   */
+  uint16_t cursorPos;
 };
 
 struct AutocompletedCommand {
@@ -249,6 +266,29 @@ static EmbeddedCliConfig defaultConfig;
 static const uint16_t cliInternalBindingCount = 3;
 
 static const char *lineBreak = "\r\n";
+
+/* References for VT100 escape sequences:
+ * https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
+ * https://ecma-international.org/publications-and-standards/standards/ecma-48/
+ */
+
+/** Escape sequence - Cursor forward (right) */
+static const char *escSeqCursorRight = "\x1B[C";
+
+/** Escape sequence - Cursor backward (left) */
+static const char *escSeqCursorLeft = "\x1B[D";
+
+/** Escape sequence - Cursor save position */
+static const char *escSeqCursorSave = "\x1B[s";
+
+/** Escape sequence - Cursor restore position */
+static const char *escSeqCursorRestore = "\x1B[u";
+
+/** Escape sequence - Cursor insert character (ICH) */
+static const char *escSeqInsertChar = "\x1B[@";
+
+/** Escape sequence - Cursor delete character (DCH) */
+static const char *escSeqDeleteChar = "\x1B[P";
 
 /**
  * Navigate through command history back and forth. If navigateUp is true,
@@ -361,8 +401,9 @@ static void printLiveAutocompletion(EmbeddedCli *cli);
  * command with autocompleted command. When multiple commands satisfy entered
  * prefix, they are printed to output.
  * @param cli
+ * @param printCandidates - if true, all candidates are printed to output
  */
-static void onAutocompleteRequest(EmbeddedCli *cli);
+static void onAutocompleteRequest(EmbeddedCli *cli, bool printCandidates);
 
 /**
  * Removes all input from current line (replaces it with whitespaces)
@@ -385,6 +426,14 @@ static void writeToOutput(EmbeddedCli *cli, const char *str);
  */
 static void writeToOutputColor(EmbeddedCli *cli, const char *str,
                                const char *fmt_string);
+
+/**
+ * Move cursor forward (right) by given number of positions
+ * @param cli
+ * @param count
+ * @param direction: true = forward (right), false = backward (left)
+ */
+static void moveCursor(EmbeddedCli *cli, uint16_t count, bool direction);
 
 /**
  * Returns true if provided char is a supported control char:
@@ -554,6 +603,7 @@ EmbeddedCli *embeddedCliNew(EmbeddedCliConfig *config) {
       (uint16_t)(config->maxBindingCount + cliInternalBindingCount);
   impl->lastChar = '\0';
   impl->invitation = config->invitation;
+  impl->cursorPos = 0;
 
   initInternalBindings(cli);
 
@@ -646,9 +696,12 @@ void embeddedCliPrint(EmbeddedCli *cli, const char *string) {
 
   PREPARE_IMPL(cli);
 
+  // Save cursor position
+  uint16_t cursorPosSave = impl->cursorPos;
   // remove chars for autocompletion and live command
   if (!IS_FLAG_SET(impl->flags, CLI_FLAG_DIRECT_PRINT)) clearCurrentLine(cli);
-
+  // Restore cursor position
+  impl->cursorPos = cursorPosSave;
   // print provided string
   writeToOutput(cli, string);
   writeToOutput(cli, lineBreak);
@@ -658,6 +711,7 @@ void embeddedCliPrint(EmbeddedCli *cli, const char *string) {
     writeToOutput(cli, impl->invitation);
     writeToOutput(cli, impl->cmdBuffer);
     impl->inputLineLength = impl->cmdSize;
+    moveCursor(cli, impl->cursorPos, CURSOR_DIRECTION_BACKWARD);
 
     printLiveAutocompletion(cli);
   }
@@ -797,6 +851,7 @@ static void navigateHistory(EmbeddedCli *cli, bool navigateUp) {
 
   writeToOutput(cli, impl->cmdBuffer);
   impl->inputLineLength = impl->cmdSize;
+  impl->cursorPos = 0;
 
   printLiveAutocompletion(cli);
 }
@@ -812,8 +867,12 @@ static void onEscapedInput(EmbeddedCli *cli, char c) {
       // treat \e[..A as cursor up and \e[..B as cursor down
       // there might be extra chars between [ and A/B, just ignore them
       navigateHistory(cli, c == 'A');
-    } else if (c == 'C' || c == 'D') {
-      // treat \e[..C as cursor right and \e[..D as cursor left
+    } else if (c == 'C' && impl->cursorPos > 0) {
+      impl->cursorPos--;
+      writeToOutput(cli, escSeqCursorRight);
+    } else if (c == 'D' && impl->cursorPos < strlen(impl->cmdBuffer)) {
+      impl->cursorPos++;
+      writeToOutput(cli, escSeqCursorLeft);
     }
   }
 }
@@ -824,9 +883,15 @@ static void onCharInput(EmbeddedCli *cli, char c) {
   // have to reserve two extra chars for command ending (used in tokenization)
   if (impl->cmdSize + 2 >= impl->cmdMaxSize) return;
 
-  impl->cmdBuffer[impl->cmdSize] = c;
+  size_t insertPos = strlen(impl->cmdBuffer) - impl->cursorPos;
+
+  memmove(&impl->cmdBuffer[insertPos + 1], &impl->cmdBuffer[insertPos],
+          impl->cursorPos + 1);
   ++impl->cmdSize;
-  impl->cmdBuffer[impl->cmdSize] = '\0';
+  ++impl->inputLineLength;
+  impl->cmdBuffer[insertPos] = c;
+  if (impl->cursorPos > 0)
+    writeToOutput(cli, escSeqInsertChar);  // Insert Character
 
   cli->writeChar(cli, c);
 }
@@ -841,7 +906,7 @@ static void onControlInput(EmbeddedCli *cli, char c) {
 
   if (c == '\r' || c == '\n') {
     // try to autocomplete command and then process it
-    onAutocompleteRequest(cli);
+    onAutocompleteRequest(cli, false);
 
     writeToOutput(cli, lineBreak);
 
@@ -850,18 +915,21 @@ static void onControlInput(EmbeddedCli *cli, char c) {
     impl->cmdBuffer[impl->cmdSize] = '\0';
     impl->inputLineLength = 0;
     impl->history.current = 0;
+    impl->cursorPos = 0;
 
     writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
-  } else if ((c == '\b' || c == 0x7F) && impl->cmdSize > 0) {
+  } else if ((c == '\b' || c == 0x7F) &&
+             ((impl->cmdSize - impl->cursorPos) > 0)) {
     // remove char from screen
-    cli->writeChar(cli, '\b');
-    cli->writeChar(cli, ' ');
-    cli->writeChar(cli, '\b');
+    writeToOutput(cli, escSeqCursorLeft);  // Move cursor to left
+    writeToOutput(cli, escSeqDeleteChar);  // And remove character
     // and from buffer
+    size_t insertPos = strlen(impl->cmdBuffer) - impl->cursorPos;
+    memmove(&impl->cmdBuffer[insertPos - 1], &impl->cmdBuffer[insertPos],
+            impl->cursorPos + 1);
     --impl->cmdSize;
-    impl->cmdBuffer[impl->cmdSize] = '\0';
   } else if (c == '\t') {
-    onAutocompleteRequest(cli);
+    onAutocompleteRequest(cli, true);
   }
 }
 
@@ -1132,6 +1200,11 @@ static void printLiveAutocompletion(EmbeddedCli *cli) {
     cmd.autocompletedLen = impl->cmdSize;
   }
 
+  // save cursor location
+  writeToOutput(cli, escSeqCursorSave);
+
+  moveCursor(cli, impl->cursorPos, CURSOR_DIRECTION_FORWARD);
+
   if (IS_FLAG_SET(impl->flags, CLI_FLAG_COLOR_OUTPUT_ENABLED)) {
     writeToOutput(cli, CLI_AUTOCOMPLETE_COLOR);
   }
@@ -1147,13 +1220,12 @@ static void printLiveAutocompletion(EmbeddedCli *cli) {
     cli->writeChar(cli, ' ');
   }
   impl->inputLineLength = cmd.autocompletedLen;
-  cli->writeChar(cli, '\r');
-  // print current command again so cursor is moved to initial place
-  writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
-  writeToOutput(cli, impl->cmdBuffer);
+
+  // restore cursor
+  writeToOutput(cli, escSeqCursorRestore);
 }
 
-static void onAutocompleteRequest(EmbeddedCli *cli) {
+static void onAutocompleteRequest(EmbeddedCli *cli, bool printCandidates) {
   PREPARE_IMPL(cli);
 
   AutocompletedCommand cmd = getAutocompletedCommand(cli, impl->cmdBuffer);
@@ -1169,12 +1241,13 @@ static void onAutocompleteRequest(EmbeddedCli *cli) {
     }
     impl->cmdBuffer[cmd.autocompletedLen] = '\0';
 
-    writeToOutput(cli, &impl->cmdBuffer[impl->cmdSize]);
+    writeToOutput(cli, &impl->cmdBuffer[impl->cmdSize - impl->cursorPos]);
     impl->cmdSize = cmd.autocompletedLen;
     impl->inputLineLength = impl->cmdSize;
+    impl->cursorPos = 0;  // Cursor has been moved to the end
     return;
   }
-
+  if (!printCandidates) return;
   // with multiple candidates when we already completed to common prefix
   // we show all candidates and print input again
   // we need to completely clear current line since it begins with invitation
@@ -1208,6 +1281,7 @@ static void clearCurrentLine(EmbeddedCli *cli) {
   // cli->writeChar(cli, '\r');
   writeToOutput(cli, "\033[2K\r");
   impl->inputLineLength = 0;
+  impl->cursorPos = 0;
 }
 
 static void writeToOutput(EmbeddedCli *cli, const char *str) {
@@ -1229,6 +1303,17 @@ static void writeToOutputColor(EmbeddedCli *cli, const char *str,
   } else {
     writeToOutput(cli, str);
   }
+}
+
+static void moveCursor(EmbeddedCli *cli, uint16_t count, bool direction) {
+  // Check if we need to send any command
+  if (count == 0) return;
+
+  // 5 = uint16_t max, 3 = escape sequence, 1 = string termination
+  char escBuffer[5 + 3 + 1] = {0};
+  char dirChar = direction ? escSeqCursorRight[2] : escSeqCursorLeft[2];
+  sprintf(escBuffer, "\x1B[%u%c", count, dirChar);
+  writeToOutput(cli, escBuffer);
 }
 
 static bool isControlChar(char c) {

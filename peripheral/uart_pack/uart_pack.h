@@ -30,8 +30,9 @@ extern __IO uint8_t uart_error_state;
  * @param  fmt              类似printf的格式化字符串
  * @retval 发送的字节数
  */
-extern int printft(UART_HandleTypeDef *huart, const char *fmt, ...);
-extern uint8_t disable_printft;
+extern int printft(UART_HandleTypeDef *huart, const char *fmt, ...),
+    printft_block(UART_HandleTypeDef *huart, const char *fmt, ...);
+extern uint8_t disable_printft;  // 禁止printf输出
 
 /**
  * @brief 等待串口发送完成
@@ -244,16 +245,16 @@ extern void Vofa_SendCDC(void);
 #undef printf
 #define printf(...) printft(&_PRINTF_UART_PORT, __VA_ARGS__)
 #define printf_flush() printft_flush(&_PRINTF_UART_PORT)
-#undef println
+#define printf_block(...) printft_block(&_PRINTF_UART_PORT, __VA_ARGS__)
 #define println(fmt, ...) printf(fmt "\r\n", ##__VA_ARGS__)
 #if _PRINTF_REDIRECT_FUNC
 #undef putchar
-#define putchar(c) Uart_Putchar(&_PRINTF_UART_PORT, c)
 #undef getchar
-#define getchar() Uart_Getchar(&_PRINTF_UART_PORT)
 #undef puts
-#define puts(s) Uart_Puts(&_PRINTF_UART_PORT, s)
 #undef gets
+#define putchar(c) Uart_Putchar(&_PRINTF_UART_PORT, c)
+#define getchar() Uart_Getchar(&_PRINTF_UART_PORT)
+#define puts(s) Uart_Puts(&_PRINTF_UART_PORT, s)
 #define gets(s) Uart_Gets(&_PRINTF_UART_PORT, s)
 #endif  // _PRINTF_REDIRECT_FUNC
 #endif  // _PRINTF_USE_CDC && _UART_ENABLE_CDC

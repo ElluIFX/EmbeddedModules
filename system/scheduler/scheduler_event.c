@@ -26,6 +26,7 @@ typedef struct {     // 事件任务结构
 static ulist_t eventlist = {.data = NULL,
                             .cap = 0,
                             .num = 0,
+                            .elfree = NULL,
                             .isize = sizeof(scheduler_event_t),
                             .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 static uint8_t event_modified = 0;

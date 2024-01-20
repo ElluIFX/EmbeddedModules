@@ -147,12 +147,14 @@ check_dirty_region:
 }
 
 bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
-                uint8_t cfg) {
+                uint8_t cfg, void (*elfree)(void* item)) {
   list->data = NULL;
   list->cap = 0;
   list->num = 0;
   list->isize = isize;
   list->cfg = cfg;
+  list->elfree = elfree;
+  list->iter = -1;
   if (init_size > 0) {
     if (!ulist_expend(list, init_size)) {
       list->data = NULL;
@@ -164,12 +166,13 @@ bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
   return true;
 }
 
-ULIST ulist_create(ulist_size_t isize, ulist_size_t init_size, uint8_t cfg) {
+ULIST ulist_create(ulist_size_t isize, ulist_size_t init_size, uint8_t cfg,
+                   void (*elfree)(void* item)) {
   ULIST list = (ULIST)_ulist_malloc(sizeof(ulist_t));
   if (list == NULL) {
     return NULL;
   }
-  if (!ulist_init(list, isize, init_size, cfg)) {
+  if (!ulist_init(list, isize, init_size, cfg, elfree)) {
     _ulist_free(list);
     return NULL;
   }
@@ -206,6 +209,7 @@ void* ulist_insert_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
     _ulist_memset(src, ULIST_DIRTY_REGION_FILL_DATA, num * list->isize);
   }
   list->num += num;
+  list->iter = -1;
   return (void*)src;
 }
 
@@ -241,6 +245,11 @@ bool ulist_delete_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
   if (i == -1) return false;
   if (list->num == 0) return false;
   if (i + num > list->num) num = list->num - i;
+  if (list->elfree != NULL) {
+    for (ulist_size_t j = 0; j < num; j++) {
+      list->elfree((uint8_t*)(list->data + (i + j) * list->isize));
+    }
+  }
   if (i + num == list->num) {  // directly delete from tail
     list->num -= num;
   } else {  // delete from middle, need to move data
@@ -251,6 +260,7 @@ bool ulist_delete_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
     list->num -= num;
   }
   ulist_shrink(list, list->num);
+  list->iter = -1;
   return true;
 }
 
@@ -304,7 +314,7 @@ ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
   if (start == -1 || end == -1) return NULL;
   ulist_size_t num = end - start;
   uint8_t* src = (uint8_t*)list->data + start * list->isize;
-  ULIST new_list = ulist_create(list->isize, num, list->cfg);
+  ULIST new_list = ulist_create(list->isize, num, list->cfg, list->elfree);
   if (new_list == NULL) return NULL;
   _ulist_memcpy(new_list->data, src, num * list->isize);
   return new_list;
@@ -320,6 +330,9 @@ void* ulist_pop(ULIST list, ulist_offset_t index) {
 bool ulist_update(ULIST list, ulist_offset_t index, const void* src) {
   ulist_offset_t i = convert_pylike_offset(list, index);
   if (i == -1) return false;
+  if (list->elfree != NULL) {
+    list->elfree((uint8_t*)(list->data + i * list->isize));
+  }
   _ulist_memcpy((uint8_t*)list->data + i * list->isize, src, list->isize);
   return true;
 }
@@ -381,6 +394,11 @@ ulist_offset_t ulist_find(ULIST list, const void* ptr) {
 }
 
 void ulist_free(ULIST list) {
+  if (list->elfree != NULL && list->num > 0) {
+    for (ulist_size_t i = 0; i < list->num; i++) {
+      list->elfree((uint8_t*)(list->data + i * list->isize));
+    }
+  }
   if (list->data != NULL) {
     _ulist_free(list->data);
   }
@@ -388,8 +406,38 @@ void ulist_free(ULIST list) {
 }
 
 void ulist_clear(ULIST list) {
+  if (list->elfree != NULL && list->num > 0) {
+    for (ulist_size_t i = 0; i < list->num; i++) {
+      list->elfree((uint8_t*)(list->data + i * list->isize));
+    }
+  }
   ulist_shrink(list, 0);
   list->num = 0;
+  list->iter = -1;
+}
+
+bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
+                ulist_offset_t end, ulist_offset_t step) {
+  start = convert_pylike_offset(list, start);
+  end = convert_pylike_offset(list, end);
+  if (start == -1 || end == -1) return false;
+  if (step == 0) return false;
+  if (step < 0) {
+    if (start < end) return false;
+  } else {
+    if (start > end) return false;
+  }
+  if (list->iter < 0) {
+    list->iter = start;
+  } else {
+    list->iter += step;
+  }
+  if (list->iter >= end || list->iter >= list->num) {
+    list->iter = -1;
+    return false;
+  }
+  *ptrptr = (void*)((uint8_t*)list->data + list->iter * list->isize);
+  return true;
 }
 
 ULIST_ITER ulist_create_iter(ULIST list, ulist_offset_t start,

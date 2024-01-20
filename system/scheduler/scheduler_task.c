@@ -26,6 +26,7 @@ typedef struct {     // 用户任务结构
 static ulist_t tasklist = {.data = NULL,
                            .cap = 0,
                            .num = 0,
+                           .elfree = NULL,
                            .isize = sizeof(scheduler_task_t),
                            .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 

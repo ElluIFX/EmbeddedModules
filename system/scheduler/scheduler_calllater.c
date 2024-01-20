@@ -14,6 +14,7 @@ typedef struct {       // 延时调用任务结构
 static ulist_t clist = {.data = NULL,
                         .cap = 0,
                         .num = 0,
+                        .elfree = NULL,
                         .isize = sizeof(scheduler_call_later_t),
                         .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 

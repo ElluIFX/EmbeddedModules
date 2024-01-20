@@ -195,6 +195,26 @@ static int pub_lwprintf_fn(int ch, lwprintf_t *lwobj) {
 
 uint8_t disable_printft = 0;  // 关闭printf输出
 
+int printft_block_ap(UART_HandleTypeDef *huart, const char *fmt, va_list ap) {
+  lwprintf_t lwp_pub;
+  lwp_pub.out_fn = pub_lwprintf_fn;
+  lwp_pub.arg = (void *)huart;
+  return lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
+}
+
+int printft_block(UART_HandleTypeDef *huart, const char *fmt, ...) {
+  if (unlikely(disable_printft)) return 0;
+  if (_UART_NOT_READY) {
+    HAL_UART_DMAStop(huart);
+    HAL_UART_AbortTransmit_IT(huart);
+  }
+  va_list ap;
+  va_start(ap, fmt);
+  int sendLen = printft_block_ap(huart, fmt, ap);
+  va_end(ap);
+  return sendLen;
+}
+
 int printft(UART_HandleTypeDef *huart, const char *fmt, ...) {
   if (unlikely(disable_printft)) return 0;
   int sendLen;
@@ -208,11 +228,8 @@ int printft(UART_HandleTypeDef *huart, const char *fmt, ...) {
     return sendLen;
   }
 #endif
-  lwprintf_t lwp_pub;
-  lwp_pub.out_fn = pub_lwprintf_fn;
-  lwp_pub.arg = (void *)huart;
   va_start(ap, fmt);
-  sendLen = lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
+  sendLen = printft_block_ap(huart, fmt, ap);
   va_end(ap);
   return sendLen;
 }

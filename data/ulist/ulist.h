@@ -24,11 +24,13 @@ typedef int16_t ulist_offset_t;
 #define SLICE_END 0x7FFE    // like list[index:] in Python
 
 typedef struct {
-  void* data;          // 数据缓冲区
-  ulist_size_t num;    // 列表内元素个数
-  ulist_size_t cap;    // 缓冲区容量(元素个数)
-  ulist_size_t isize;  // 元素大小(字节)
-  uint8_t cfg;         // 配置
+  void* data;             // 数据缓冲区
+  ulist_size_t num;       // 列表内元素个数
+  ulist_size_t cap;       // 缓冲区容量(元素个数)
+  ulist_size_t isize;     // 元素大小(字节)
+  ulist_offset_t iter;    // 迭代器位置(<0:未初始化)
+  uint8_t cfg;            // 配置
+  void (*elfree)(void*);  // 元素释放函数
 } ulist_t;
 
 typedef ulist_t* ULIST;
@@ -36,9 +38,9 @@ typedef ulist_t* ULIST;
 typedef struct {
   ULIST target;
   ulist_offset_t step;
-  uint16_t start;
-  uint16_t end;
-  uint16_t now;
+  ulist_size_t start;
+  ulist_size_t end;
+  ulist_size_t now;
   uint8_t started;
 } ulist_iter_t;
 
@@ -60,12 +62,13 @@ typedef ulist_iter_t* ULIST_ITER;
  * @param  isize        列表元素大小(使用sizeof计算)
  * @param  init_size    列表初始大小
  * @param  cfg          配置
+ * @param  elfree       元素释放函数,当数组元素需要额外的释放操作时使用,可为NULL
  * @retval              是否初始化成功
  * @note 需手动调用ulist_clear释放列表
  * @note 对于静态分配的ulist_t, 可手动设置isize代替本函数
  */
 extern bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
-                       uint8_t cfg);
+                       uint8_t cfg, void (*elfree)(void* item));
 
 /**
  * @brief 创建列表
@@ -73,12 +76,13 @@ extern bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
  * @param  isize        列表元素大小(使用sizeof计算)
  * @param  init_size    列表初始大小
  * @param  cfg          配置
+ * @param  elfree       元素释放函数,当数组元素需要额外的释放操作时使用,可为NULL
  * @retval              返回列表结构体
  * @note 需手动调用ulist_free释放列表
  * @note 返回NULL说明内存操作失败
  */
 extern ULIST ulist_create(ulist_size_t isize, ulist_size_t init_size,
-                          uint8_t cfg);
+                          uint8_t cfg, void (*elfree)(void* item));
 
 /**
  * @brief 将num个元素追加到列表末尾
@@ -320,6 +324,21 @@ extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
                        ulist_offset_t start, ulist_offset_t end);
 
 /**
+ * @brief 迭代列表
+ * @param  list     列表结构体
+ * @param  ptrptr   将要指向当前元素指针的指针
+ * @param  start    迭代起始位置(Python-like)
+ * @param  end      迭代结束位置(Python-like, 不包括)
+ * @param  step     迭代步长
+ * @retval          是否继续迭代
+ * @note    返回false后的下一次iter将自动重置迭代器, 从头开始迭代
+ * @warning 该函数线程不安全
+ * @warning 在迭代过程中增删元素会重置迭代器为0
+ */
+extern bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
+                       ulist_offset_t end, ulist_offset_t step);
+
+/**
  * @brief 创建列表迭代器
  * @param  list      列表结构体
  * @param  start     迭代起始位置(Python-like)
@@ -354,7 +373,7 @@ extern void* ulist_iter_next(ULIST_ITER iter);
  * @retval           返回元素指针
  * @note 返回NULL说明迭代结束或迭代器未曾迭代过
  */
-extern void* ulist_iter_next(ULIST_ITER iter);
+extern void* ulist_iter_now(ULIST_ITER iter);
 
 /**
  * @brief 清空列表
@@ -409,7 +428,8 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  var        循环变量名([var]->[var]_end)
  * @param  from_index 起始位置
  * @param  to_index   结束位置(Python-like, 不包括)
- * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
+ * @note 无运行时越界检查,
+ * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from_to(list, type, var, from_index, to_index) \
   for (type* var##_end = ulist_get_ptr(list, type, to_index);        \
@@ -422,7 +442,8 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  list       列表结构体
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
- * @note 不要在循环中修改列表结构
+ * @note 无运行时越界检查,
+ * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach(list, type, var) \
   ulist_foreach_from_to(list, type, var, 0, SLICE_END)
@@ -433,7 +454,8 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
  * @param  from_index 起始位置(Python-like)
- * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
+ * @note 无运行时越界检查,
+ * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from(list, type, var, from_index) \
   ulist_foreach_from_to(list, type, var, from_index, SLICE_END)
@@ -444,7 +466,8 @@ static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
  * @param  type       元素类型
  * @param  var        循环变量名([var]->[var]_end)
  * @param  to_index   结束位置(Python-like, 不包括)
- * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
+ * @note 无运行时越界检查,
+ * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_to(list, type, var, to_index) \
   ulist_foreach_from_to(list, type, var, 0, to_index)
