@@ -176,9 +176,15 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
         f1 = TT_FMT1_GREEN;
         f2 = TT_FMT2_NONE;
         TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", i));
+        if (event->trigger_cnt != event->run_cnt) {
+          f1 = TT_FMT1_RED;
+          f2 = TT_FMT2_BOLD;
+        }
         TT_GridLine_AddItem(line,
                             TT_FmtStr(al, f1, f2, "%d", event->trigger_cnt));
         TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", event->run_cnt));
+        f1 = TT_FMT1_GREEN;
+        f2 = TT_FMT2_NONE;
         TT_GridLine_AddItem(
             line, TT_FmtStr(al, f1, f2, "%.2f", tick_to_us(event->max_cost)));
         if ((event->last_usage != 0 && usage / event->last_usage > 2) ||
