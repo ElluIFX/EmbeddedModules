@@ -11,6 +11,7 @@
 
 #include "modules.h"
 struct btree;
+typedef struct btree btree_t;
 
 /**
  * @brief 返回一个新的B树
