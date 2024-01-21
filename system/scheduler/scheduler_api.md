@@ -436,7 +436,7 @@ void Coroutine_MainFunc(void *args)
     - 参数：
       - `barr_name`：屏障名。
 
-    > 屏障是一种同步机制，它可以让多个协程在某个点上同步，当所有协程都到达屏障点时，所有协程同时被唤醒。
+    > 屏障是一种同步机制，它可以让多个协程在某个点上同步，当到达屏障点的协程个数达到目标时，所有协程同时被唤醒。
     >
     > 屏障刚建立时目标值为0xffff，调用`Sch_SetCortnBarrierTarget`来修改目标值，当目标值为0时，屏障失效。
 
@@ -445,6 +445,7 @@ void Coroutine_MainFunc(void *args)
     - 功能：手动释放屏障，立即返回。
     - 参数：
       - `barr_name`：屏障名。
+    - 等价：`Sch_CortnBarrierRelease`
 
 16. `ASYNC_RUN(name, func, args)`
 
