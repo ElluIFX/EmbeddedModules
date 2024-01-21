@@ -21,7 +21,7 @@ static void SysTick_Sleep(uint32_t us) {
 
 __weak void Scheduler_Idle_Callback(uint64_t idleTimeUs) {
   if (idleTimeUs > 1000) idleTimeUs = 1000;  // 最多休眠1ms以保证事件的及时响应
-#if 0 && _MOD_USE_OS > 0
+#if _MOD_USE_OS > 0
   m_delay_us(idleTimeUs);
 #else  // 关闭CPU
   SysTick_Sleep(idleTimeUs);

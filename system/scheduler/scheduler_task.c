@@ -35,7 +35,7 @@ static uint8_t task_changed = 0;
 static int taskcmp(const void *a, const void *b) {
   uint8_t priority1 = ((scheduler_task_t *)a)->priority;
   uint8_t priority2 = ((scheduler_task_t *)b)->priority;
-  return priority1 > priority2 ? 1 : -1;
+  return priority1 > priority2 ? -1 : 1;  // 高优先级在前
 }
 
 static scheduler_task_t *get_task(const char *name) {
