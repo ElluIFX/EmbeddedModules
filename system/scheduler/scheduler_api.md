@@ -309,7 +309,7 @@ void Coroutine_MainFunc(void *args)
 >
 > 其他的宏，以`ASYNC_`开头的宏在协程和正常函数中都可调用，他们是**非阻塞**的，而以`AWAIT_`开头的宏只能在协程函数中调用，是**阻塞**的。
 
-#### 5.4.2. 宏API
+#### 5.4.2. 宏API （一般在协程函数中调用）
 
 下面介绍每个宏的作用（除非注明无分号结尾，否则按照正常写法调用）
 
@@ -462,7 +462,7 @@ void Coroutine_MainFunc(void *args)
     - 参数：
       - `name`：协程名。
 
-#### 5.4.3. 函数API
+#### 5.4.3. 函数API （一般在正常函数中调用）
 
 ```C
 uint8_t Sch_CreateCortn(const char *name, sch_func_t func,uint8_t enable, CR_MODE mode, void *args)
