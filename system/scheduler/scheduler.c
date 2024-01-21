@@ -175,7 +175,7 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
                 (float)(stats.mem_available_bytes) /
                     (float)stats.mem_size_bytes * 100),
       sep);
-  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Used"),
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Min Avail"),
                     TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)",
                               stats.minimum_ever_mem_available_bytes,
                               (float)(stats.minimum_ever_mem_available_bytes) /
