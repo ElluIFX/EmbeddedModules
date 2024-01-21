@@ -322,7 +322,7 @@ extern void Assert_Failed_Handler(char *file, uint32_t line);
   double SAFE_NAME(timeit_avg) = N;                                     \
   __cycleof__("", {                                                     \
     _LOG_TIMEIT(                                                        \
-        "timeit_avg(" NAME ", %d)=%fus", SAFE_NAME(timeit_avg),         \
+        "timeit_avg(" NAME " / %d)=%fus", N,                             \
         (double)_ * 1000000 / SystemCoreClock / SAFE_NAME(timeit_avg)); \
   })
 #endif
