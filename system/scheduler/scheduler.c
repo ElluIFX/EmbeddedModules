@@ -59,7 +59,7 @@ uint64_t _INLINE Scheduler_Run(const uint8_t block) {
 #endif
     if (mslp == UINT64_MAX) mslp = 1000;  // 没有任何任务
 #if _SCH_DEBUG_REPORT
-    if (DebugInfo_Runner(mslp)) continue;
+    if (mslp && DebugInfo_Runner(mslp)) continue;
 #endif
     if (block && mslp) {
       Scheduler_Idle_Callback(mslp);
@@ -97,7 +97,7 @@ _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
 #endif  // _SCH_ENABLE_COROUTINE
     TT_AddTitle(
         tt,
-        TT_Str(TT_ALIGN_LEFT, TT_FMT1_BLUE, TT_FMT2_BOLD, "[ System Info ]"),
+        TT_Str(TT_ALIGN_LEFT, TT_FMT1_BLUE, TT_FMT2_BOLD, "[ Scheduler Info ]"),
         '-');
     TT_AddString(
         tt,
