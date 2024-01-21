@@ -60,6 +60,7 @@ _INLINE void Event_Runner(void) {
 }
 
 uint8_t Sch_CreateEvent(const char *name, sch_func_t callback, uint8_t enable) {
+  if (!name || !callback) return 0;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) return 0;
   }
