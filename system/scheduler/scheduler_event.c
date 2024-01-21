@@ -40,8 +40,6 @@ _INLINE void Event_Runner(void) {
 #if !_SCH_DEBUG_REPORT
       event->task(event->args);
       if (event_modified) return;
-      if (event->args != NULL && event->needFree) m_free(event->args);
-      event->args = NULL;
 #else
       uint64_t _sch_debug_task_tick = get_sys_tick();
       uint64_t _late = _sch_debug_task_tick - event->trigger_time;
@@ -55,6 +53,8 @@ _INLINE void Event_Runner(void) {
       event->total_lat += _late;
       event->run_cnt++;
 #endif  // !_SCH_DEBUG_REPORT
+      if (event->args != NULL && event->needFree) m_free(event->args);
+      event->args = NULL;
     }
   }
 }
@@ -72,7 +72,6 @@ uint8_t Sch_CreateEvent(const char *name, sch_func_t callback, uint8_t enable) {
   p->args = NULL;
   p->name = name;
   p->needFree = 0;
-  event_modified = 1;
   return 1;
 }
 
