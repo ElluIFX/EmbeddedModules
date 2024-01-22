@@ -36,8 +36,7 @@
  * @brief 将Python风格的负索引转换为C风格的正索引
  * @note  如果索引越界, 返回-1
  */
-static inline ulist_offset_t convert_pylike_offset(ULIST list,
-                                                   ulist_offset_t index) {
+static ulist_offset_t convert_pylike_offset(ULIST list, ulist_offset_t index) {
   if (index == 0) return 0;
   if (index == SLICE_START) return 0;
   if (index == SLICE_END) return list->num;
@@ -65,7 +64,7 @@ static inline ulist_offset_t convert_pylike_offset(ULIST list,
  * @brief 计算满足num个元素的最小容量
  * @note  当前实现为2的幂次, 降低内存操作次数
  */
-static inline ulist_size_t calc_min_req_size(ulist_size_t num) {
+static ulist_size_t calc_min_req_size(ulist_size_t num) {
   ulist_size_t min_req_size = 2;
   while (min_req_size < num) min_req_size *= 2;
   return min_req_size;
