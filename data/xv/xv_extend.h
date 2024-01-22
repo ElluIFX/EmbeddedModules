@@ -1,0 +1,9 @@
+#ifndef XV_EXTEND_H
+#define XV_EXTEND_H
+
+#include "embedded_cli.h"
+#include "xv.h"
+
+void XVExtend_AddToCli(EmbeddedCli *cli);
+
+#endif
