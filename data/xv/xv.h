@@ -38,6 +38,7 @@ struct xv_env {
 //
 // 如果 xv_eval 的结果出现错误，例如语法错误或系统内存耗尽，
 // 则可以使用 xv_is_err() 来检查结果。
+struct xv xv_eval(const char *expr, struct xv_env *env);
 struct xv xv_evaln(const char *expr, size_t len, struct xv_env *env);
 
 // xv_cleanup 函数用于重置环境并释放可能在 xv_eval 过程中分配的任何内存。
