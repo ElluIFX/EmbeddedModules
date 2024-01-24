@@ -135,6 +135,12 @@ _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
 #include "term_table.h"
 
 static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+#define SHOWLWMEM \
+  (_MOD_HEAP_MATHOD == 1 || (_MOD_HEAP_MATHOD == 2 && HEAP_USE_LWMEM))
+#if SHOWLWMEM
+  lwmem_stats_t stats;
+  lwmem_get_stats(&stats);
+#endif
   TT tt = TT_NewTable(-1);
   TT_AddTitle(
       tt, TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ System Info ]"),
@@ -178,13 +184,11 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Coroutine Num"),
                     TT_FmtStr(al, f1, f2, "%d", Sch_GetCortnNum()), sep);
 #endif  // _SCH_ENABLE_COROUTINE
-#if _MOD_HEAP_MATHOD == 1 || (_MOD_HEAP_MATHOD == 2 && HEAP_USE_LWMEM)
+#if SHOWLWMEM
   TT_AddTitle(
       tt, TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ LwMem Info ]"),
       '-');
   kv = TT_AddKVPair(tt, 0);
-  lwmem_stats_t stats;
-  lwmem_get_stats(&stats);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Total"),
                     TT_FmtStr(al, f1, f2, "%d Bytes", stats.mem_size_bytes),
                     sep);
