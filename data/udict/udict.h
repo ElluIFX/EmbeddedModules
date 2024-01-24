@@ -68,7 +68,7 @@ extern void udict_free(UDICT dict);
  *
  * @return 字典大小
  */
-static inline udict_size_t udict_size(UDICT dict) { return dict->size; }
+static inline udict_size_t udict_len(UDICT dict) { return dict->size; }
 
 /**
  * @brief 检查字典是否包含某个键
@@ -148,6 +148,13 @@ extern void* udict_pop(UDICT dict, const char* key);
  * @warning 该函数不是线程安全的
  */
 extern bool udict_iter(UDICT dict, const char** key, void** value);
+
+/**
+ * @brief 停止迭代字典
+ * @param  dict         字典
+ * @warning 该函数不是线程安全的
+ */
+extern void udict_iter_stop(UDICT dict);
 
 /**
  * @brief 打印字典

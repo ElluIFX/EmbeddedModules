@@ -212,6 +212,10 @@ bool udict_iter(UDICT dict, const char** key, void** value) {
   return true;
 }
 
+void udict_iter_stop(UDICT dict) {
+  dict->iter = 0;
+}
+
 void udict_print(UDICT dict) {
   if (!dict || !dict->size) {
     return;
