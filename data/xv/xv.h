@@ -15,12 +15,15 @@ struct xv {
 
 // 枚举 xv_type 是从 xv_type() 函数返回的。
 enum xv_type {
+  XV_ERROR,
   XV_UNDEFINED,
   XV_NULL,
   XV_STRING,
   XV_NUMBER,
   XV_BOOLEAN,
   XV_FUNCTION,
+  XV_ARRAY,
+  XV_JSON,
   XV_OBJECT,
 };
 

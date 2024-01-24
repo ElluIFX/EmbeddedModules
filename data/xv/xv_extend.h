@@ -4,6 +4,6 @@
 #include "embedded_cli.h"
 #include "xv.h"
 
-void XVExtend_AddToCli(EmbeddedCli *cli);
+void XVExtend_AddCmdToCli(EmbeddedCli *cli);
 
 #endif

@@ -57,6 +57,8 @@
 
 const static char *CLI_INVITATION_COLOR = FMT2(BOLD, BLUE);
 
+const static char *CLI_SUB_INTERPRETER_INVITATION_COLOR = FMT2(BOLD, MAGENTA);
+
 const static char *CLI_AUTOCOMPLETE_COLOR = FMT1(GRAY);
 
 const static char *CLI_HELP_HEADER_COLOR = FMT2(BOLD, GREEN);
@@ -111,6 +113,11 @@ const static char *CLI_ERROR_COLOR = FMT2(BOLD, RED);
  * Indicates that color output is enabled
  */
 #define CLI_FLAG_COLOR_OUTPUT_ENABLED 0x40u
+
+/**
+ * Indicates that sub interpreter mode is enabled
+ */
+#define CLI_FLAG_SUB_INTERPRETER_ENABLED 0x80u
 
 /**
  * Indicates that cursor direction should be forward
@@ -232,6 +239,19 @@ struct EmbeddedCliImpl {
    * 0 = end of command
    */
   uint16_t cursorPos;
+
+  /**
+   * Pointer to a sub interpreter function. If set, this function will
+   * handle all commands inputted to cli.
+   */
+  void (*subInterpreterOnCmd)(EmbeddedCli *cli, CliCommand *command);
+  void (*subInterpreterOnExit)(EmbeddedCli *cli);
+
+  /**
+   * Invitation string for sub interpreter. Is printed at the beginning of
+   * each line with user input
+   */
+  const char *subInterpreterInvitation;
 };
 
 struct AutocompletedCommand {
@@ -328,6 +348,12 @@ static void onControlInput(EmbeddedCli *cli, char c);
  * @param cli
  */
 static void parseCommand(EmbeddedCli *cli);
+
+/**
+ * Print invitation to cli output
+ * @param cli
+ */
+static void printInvitation(EmbeddedCli *cli);
 
 /**
  * Print help for given binding (if it is set)
@@ -604,6 +630,8 @@ EmbeddedCli *embeddedCliNew(EmbeddedCliConfig *config) {
   impl->lastChar = '\0';
   impl->invitation = config->invitation;
   impl->cursorPos = 0;
+  impl->subInterpreterOnCmd = NULL;
+  impl->subInterpreterInvitation = NULL;
 
   initInternalBindings(cli);
 
@@ -628,6 +656,45 @@ void embeddedCliReceiveChar(EmbeddedCli *cli, char c) {
   }
 }
 
+static void printInvitation(EmbeddedCli *cli) {
+  PREPARE_IMPL(cli);
+  if (!IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)) {
+    writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
+  } else {
+    if (impl->subInterpreterInvitation != NULL) {
+      writeToOutputColor(cli, impl->subInterpreterInvitation,
+                         CLI_SUB_INTERPRETER_INVITATION_COLOR);
+    } else {
+      writeToOutputColor(cli, "> ", CLI_SUB_INTERPRETER_INVITATION_COLOR);
+    }
+  }
+}
+
+void embeddedCliEnterSubInterpreter(
+    EmbeddedCli *cli, void (*onCommand)(EmbeddedCli *cli, CliCommand *command),
+    void (*onExit)(EmbeddedCli *cli), const char *invitation) {
+  PREPARE_IMPL(cli);
+  impl->subInterpreterOnCmd = onCommand;
+  impl->subInterpreterOnExit = onExit;
+  impl->subInterpreterInvitation = invitation;
+  SET_FLAG(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED);
+  // clear history
+  impl->history.current = 0;
+  impl->history.itemsCount = 0;
+}
+
+void embeddedCliExitSubInterpreter(EmbeddedCli *cli) {
+  PREPARE_IMPL(cli);
+  if (impl->subInterpreterOnExit != NULL) impl->subInterpreterOnExit(cli);
+  impl->subInterpreterOnCmd = NULL;
+  impl->subInterpreterInvitation = NULL;
+  impl->subInterpreterOnExit = NULL;
+  UNSET_U8FLAG(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED);
+  // clear history
+  impl->history.current = 0;
+  impl->history.itemsCount = 0;
+}
+
 void embeddedCliProcess(EmbeddedCli *cli) {
   if (cli->writeChar == NULL) return;
 
@@ -635,7 +702,7 @@ void embeddedCliProcess(EmbeddedCli *cli) {
 
   if (!IS_FLAG_SET(impl->flags, CLI_FLAG_INIT_COMPLETE)) {
     SET_FLAG(impl->flags, CLI_FLAG_INIT_COMPLETE);
-    writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
+    printInvitation(cli);
   }
 
   while (fifoBufAvailable(&impl->rxBuffer)) {
@@ -708,7 +775,7 @@ void embeddedCliPrint(EmbeddedCli *cli, const char *string) {
 
   // print current command back to screen
   if (!IS_FLAG_SET(impl->flags, CLI_FLAG_DIRECT_PRINT)) {
-    writeToOutput(cli, impl->invitation);
+    printInvitation(cli);
     writeToOutput(cli, impl->cmdBuffer);
     impl->inputLineLength = impl->cmdSize;
     moveCursor(cli, impl->cursorPos, CURSOR_DIRECTION_BACKWARD);
@@ -834,7 +901,7 @@ static void navigateHistory(EmbeddedCli *cli, bool navigateUp) {
 
   clearCurrentLine(cli);
 
-  writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
+  printInvitation(cli);
 
   if (navigateUp)
     ++impl->history.current;
@@ -917,7 +984,7 @@ static void onControlInput(EmbeddedCli *cli, char c) {
     impl->history.current = 0;
     impl->cursorPos = 0;
 
-    writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
+    printInvitation(cli);
   } else if ((c == '\b' || c == 0x7F) &&
              ((impl->cmdSize - impl->cursorPos) > 0)) {
     // remove char from screen
@@ -930,6 +997,12 @@ static void onControlInput(EmbeddedCli *cli, char c) {
     --impl->cmdSize;
   } else if (c == '\t') {
     onAutocompleteRequest(cli, true);
+  } else if (c == 0x04 &&
+             IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)) {
+    // Ctrl+D in sub interpreter mode exits sub interpreter
+    writeToOutput(cli, lineBreak);  // print new line
+    embeddedCliExitSubInterpreter(cli);
+    UNSET_U8FLAG(impl->flags, CLI_FLAG_INIT_COMPLETE);  // print invitation
   }
 }
 
@@ -975,6 +1048,16 @@ static void parseCommand(EmbeddedCli *cli) {
   impl->cmdBuffer[impl->cmdSize + 1] = '\0';
 
   if (cmdName == NULL) return;
+
+  // if sub interpreter is set, use it to process command
+  if (IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)) {
+    CliCommand command;
+    command.name = cmdName;
+    command.args = cmdArgs;
+
+    impl->subInterpreterOnCmd(cli, &command);
+    return;
+  }
 
   // try to find command in bindings
   for (int i = 0; i < impl->bindingsCount; ++i) {
@@ -1192,6 +1275,7 @@ static AutocompletedCommand getAutocompletedCommand(EmbeddedCli *cli,
 static void printLiveAutocompletion(EmbeddedCli *cli) {
   PREPARE_IMPL(cli);
 
+  if (IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)) return;
   if (!IS_FLAG_SET(impl->flags, CLI_FLAG_AUTOCOMPLETE_ENABLED)) return;
 
   AutocompletedCommand cmd = getAutocompletedCommand(cli, impl->cmdBuffer);
@@ -1227,7 +1311,7 @@ static void printLiveAutocompletion(EmbeddedCli *cli) {
 
 static void onAutocompleteRequest(EmbeddedCli *cli, bool printCandidates) {
   PREPARE_IMPL(cli);
-
+  if (IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)) return;
   AutocompletedCommand cmd = getAutocompletedCommand(cli, impl->cmdBuffer);
 
   if (cmd.candidateCount == 0) return;
@@ -1264,7 +1348,7 @@ static void onAutocompleteRequest(EmbeddedCli *cli, bool printCandidates) {
     writeToOutput(cli, lineBreak);
   }
 
-  writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
+  printInvitation(cli);
   writeToOutput(cli, impl->cmdBuffer);
 
   impl->inputLineLength = impl->cmdSize;
@@ -1272,7 +1356,10 @@ static void onAutocompleteRequest(EmbeddedCli *cli, bool printCandidates) {
 
 static void clearCurrentLine(EmbeddedCli *cli) {
   PREPARE_IMPL(cli);
-  size_t len = impl->inputLineLength + strlen(impl->invitation);
+  size_t len = IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)
+                   ? strlen(impl->subInterpreterInvitation)
+                   : strlen(impl->invitation);
+  len += impl->inputLineLength;
 
   // cli->writeChar(cli, '\r');
   // for (size_t i = 0; i < len; ++i) {
@@ -1317,7 +1404,8 @@ static void moveCursor(EmbeddedCli *cli, uint16_t count, bool direction) {
 }
 
 static bool isControlChar(char c) {
-  return c == '\r' || c == '\n' || c == '\b' || c == '\t' || c == 0x7F;
+  return c == '\r' || c == '\n' || c == '\b' || c == '\t' || c == 0x7F ||
+         c == 0x04;
 }
 
 static bool isDisplayableChar(char c) { return (c >= 32 && c <= 126); }

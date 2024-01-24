@@ -32,7 +32,6 @@ typedef struct udict {
   udict_size_t size;
   udict_size_t iter;
 } udict_t;
-
 typedef udict_t* UDICT;
 #pragma pack()
 
@@ -133,13 +132,28 @@ extern void* udict_set_alloc(UDICT dict, const char* key, size_t size);
 extern bool udict_delete(UDICT dict, const char* key);
 
 /**
- * @brief 弹出字典中的项目
+ * @brief 弹出字典中的项目(不支持弹出动态分配内存的项目)
  * @param  dict         字典
  * @param  key          键
- * @param  should_free  该值域是否需要手动释放
  * @retval value        值，如果不存在则为NULL
  */
-extern void* udict_pop(UDICT dict, const char* key, uint8_t* should_free);
+extern void* udict_pop(UDICT dict, const char* key);
+
+/**
+ * @brief 循环迭代字典
+ * @param  dict         字典
+ * @param  key          键
+ * @param  value        值
+ * @retval true         继续迭代
+ * @warning 该函数不是线程安全的
+ */
+extern bool udict_iter(UDICT dict, const char** key, void** value);
+
+/**
+ * @brief 打印字典
+ * @param  dict         字典
+ */
+extern void udict_print(UDICT dict);
 
 #ifdef __cplusplus
 }

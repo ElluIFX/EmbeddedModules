@@ -332,6 +332,22 @@ uint16_t embeddedCliGetTokenCount(const char *tokenizedStr);
  */
 void embeddedCliPrintCurrentHelp(EmbeddedCli *cli);
 
+/**
+ * @brief Enter Sub-Interpreter mode
+ * @param  cli
+ * @param  onCommand
+ * @param  onExit called when Ctrl+D or manual exit is called
+ * @param  invitation
+ */
+void embeddedCliEnterSubInterpreter(
+    EmbeddedCli *cli, void (*onCommand)(EmbeddedCli *cli, CliCommand *command),
+    void (*onExit)(EmbeddedCli *cli), const char *invitation);
+
+/**
+ * @brief Exit Sub-Interpreter mode
+ */
+void embeddedCliExitSubInterpreter(EmbeddedCli *cli);
+
 #ifdef __cplusplus
 }
 #endif

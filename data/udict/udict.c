@@ -12,6 +12,8 @@
 
 #include <string.h>
 
+#include "log.h"
+
 #define _udict_memmove memmove
 #define _udict_memcpy memcpy
 #define _udict_memset memset
@@ -25,6 +27,33 @@ static void udict_elfree(void* ptr) {
   if (node->dynamic_value) {
     _udict_free(node->value);
   }
+  _udict_free((void*)node->key);
+}
+
+static inline uint8_t fast_strcmp(const char* str1, const char* str2) {
+  if (str1 == str2) return 1;
+  while ((*str1) && (*str2)) {
+    if ((*str1++) != (*str2++)) return 0;
+  }
+  return (!*str1) && (!*str2);
+}
+
+static inline const char* make_key(const char* key) {
+  char* k = _udict_malloc(strlen(key) + 1);
+  strcpy(k, key);
+  return (const char*)k;
+}
+
+static udict_node_t* udict_find_node(UDICT dict, const char* key) {
+  if (!dict || !key || !dict->size) {
+    return NULL;
+  }
+  ulist_foreach(&dict->nodes, udict_node_t, node) {
+    if (fast_strcmp(node->key, key)) {
+      return node;
+    }
+  }
+  return NULL;
 }
 
 bool udict_init(UDICT dict) {
@@ -56,26 +85,6 @@ void udict_clear(UDICT dict) {
 void udict_free(UDICT dict) {
   udict_clear(dict);
   _udict_free(dict);
-}
-
-static inline uint8_t fast_strcmp(const char* str1, const char* str2) {
-  if (str1 == str2) return 1;
-  while ((*str1) && (*str2)) {
-    if ((*str1++) != (*str2++)) return 0;
-  }
-  return (!*str1) && (!*str2);
-}
-
-static udict_node_t* udict_find_node(UDICT dict, const char* key) {
-  if (!dict || !key || !dict->size) {
-    return NULL;
-  }
-  ulist_foreach(&dict->nodes, udict_node_t, node) {
-    if (fast_strcmp(node->key, key)) {
-      return node;
-    }
-  }
-  return NULL;
 }
 
 bool udict_has_key(UDICT dict, const char* key) {
@@ -114,7 +123,7 @@ bool udict_set(UDICT dict, const char* key, void* value) {
   } else {
     udict_node_t* node = (udict_node_t*)ulist_append(&dict->nodes);
     if (!node) return false;
-    node->key = key;
+    node->key = make_key(key);
     node->value = value;
     node->dynamic_value = 0;
     dict->size++;
@@ -136,7 +145,7 @@ bool udict_set_copy(UDICT dict, const char* key, void* value, size_t size) {
       _udict_free(buf);
       return false;
     }
-    node->key = key;
+    node->key = make_key(key);
     node->value = buf;
     node->dynamic_value = 1;
     dict->size++;
@@ -157,7 +166,7 @@ void* udict_set_alloc(UDICT dict, const char* key, size_t size) {
       _udict_free(buf);
       return false;
     }
-    node->key = key;
+    node->key = make_key(key);
     node->value = buf;
     node->dynamic_value = 1;
     dict->size++;
@@ -176,14 +185,11 @@ bool udict_delete(UDICT dict, const char* key) {
   return true;
 }
 
-void* udict_pop(UDICT dict, const char* key, uint8_t* should_free) {
+void* udict_pop(UDICT dict, const char* key) {
   udict_node_t* node = udict_find_node(dict, key);
-  if (!node) {
-    if (should_free) *should_free = 0;
-    return NULL;
-  }
+  if (!node) return NULL;
+  if (node->dynamic_value) return NULL;
   void* value = node->value;
-  if (should_free) *should_free = node->dynamic_value;
   ulist_remove(&dict->nodes, node);
   dict->size--;
   return value;
@@ -204,4 +210,15 @@ bool udict_iter(UDICT dict, const char** key, void** value) {
   if (value) *value = node->value;
   dict->iter++;
   return true;
+}
+
+void udict_print(UDICT dict) {
+  if (!dict || !dict->size) {
+    return;
+  }
+  LOG_RAWLN("dict = {");
+  ulist_foreach(&dict->nodes, udict_node_t, node) {
+    LOG_RAWLN("  %s: 0x%p", node->key, node->value);
+  }
+  LOG_RAWLN("}");
 }

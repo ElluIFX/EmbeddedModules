@@ -2,7 +2,6 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#include <assert.h>
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
@@ -514,12 +513,15 @@ static void write_value(struct writer *wr, struct value value) {
       write_cstr(wr, "[Object]");
       break;
     case ARRAY_KIND:
+      write_char(wr, '[');
       for (size_t i = 0; i < value.len; i++) {
         if (i > 0) {
           write_char(wr, ',');
+          write_char(wr, ' ');
         }
         write_value(wr, value.arr[i]);
       }
+      write_char(wr, ']');
       break;
   }
 }
@@ -2482,7 +2484,6 @@ struct xv xv_eval(const char *expr, struct xv_env *env) {
 }
 
 struct xv xv_evaln(const char *expr, size_t len, struct xv_env *env) {
-  assert(sizeof(struct value) == sizeof(struct xv));  // static_assert?
   struct value value = eval((uint8_t *)expr, len, env, 0);
   struct xv fvalue;
   memcpy(&fvalue, &value, sizeof(struct xv));
@@ -2542,6 +2543,8 @@ bool xv_bool(struct xv value) { return to_bool(to_value(value)); }
 
 enum xv_type xv_type(struct xv value) {
   switch (to_value(value).kind) {
+    case ERR_KIND:
+      return XV_ERROR;
     case UNDEF_KIND:
       return XV_UNDEFINED;
     case BOOL_KIND:
@@ -2554,6 +2557,10 @@ enum xv_type xv_type(struct xv value) {
       return XV_FUNCTION;
     case STR_KIND:
       return XV_STRING;
+    case ARRAY_KIND:
+      return XV_ARRAY;
+    case JSON_KIND:
+      return XV_JSON;
     default:
       return XV_OBJECT;
   }
