@@ -324,7 +324,7 @@ extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
                        ulist_offset_t start, ulist_offset_t end);
 
 /**
- * @brief 迭代列表
+ * @brief 内部迭代列表
  * @param  list     列表结构体
  * @param  ptrptr   将要指向当前元素指针的指针
  * @param  start    迭代起始位置(`Python-like`)
@@ -339,6 +339,13 @@ extern bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
                        ulist_offset_t end, ulist_offset_t step);
 
 /**
+ * @brief 提前停止内部迭代
+ * @param  list     列表结构体
+ * @warning 该函数线程不安全
+ */
+extern void ulist_iter_stop(ULIST list);
+
+/**
  * @brief 创建列表迭代器
  * @param  list      列表结构体
  * @param  start     迭代起始位置(`Python-like`)
@@ -346,17 +353,18 @@ extern bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
  * @param  step      迭代步长
  * @retval           返回迭代器结构体
  * @note 返回NULL说明index越界
- * @note 迭代器需由用户手动调用`ulist_free_iter`释放
+ * @note 迭代器需由用户手动调用`ulist_free_iterator`释放
  * @note step为负数时, start应大于end
  */
-extern ULIST_ITER ulist_create_iter(ULIST list, ulist_offset_t start,
-                                    ulist_offset_t end, ulist_offset_t step);
+extern ULIST_ITER ulist_create_iterator(ULIST list, ulist_offset_t start,
+                                        ulist_offset_t end,
+                                        ulist_offset_t step);
 
 /**
  * @brief 释放列表迭代器
  * @param  iter      迭代器结构体
  */
-extern void ulist_free_iter(ULIST_ITER iter);
+extern void ulist_free_iterator(ULIST_ITER iter);
 
 /**
  * @brief 迭代器下一元素
@@ -365,7 +373,7 @@ extern void ulist_free_iter(ULIST_ITER iter);
  * @note 返回NULL说明迭代结束
  * @warning 返回NULL后的下一次next将自动重置迭代器, 从头开始迭代
  */
-extern void* ulist_iter_next(ULIST_ITER iter);
+extern void* ulist_iterator_next(ULIST_ITER iter);
 
 /**
  * @brief 迭代器当前元素
@@ -373,13 +381,20 @@ extern void* ulist_iter_next(ULIST_ITER iter);
  * @retval           返回元素指针
  * @note 返回NULL说明迭代结束或迭代器未曾迭代过
  */
-extern void* ulist_iter_now(ULIST_ITER iter);
+extern void* ulist_iterator_now(ULIST_ITER iter);
 
 /**
- * @brief 清空列表
- * @param  list       列表结构体
+ * @brief 重置迭代器
+ * @param  iter      迭代器结构体
  */
-extern void ulist_clear(ULIST list);
+extern void ulist_iterator_reset(ULIST_ITER iter);
+
+    /**
+     * @brief 清空列表
+     * @param  list       列表结构体
+     */
+    extern void
+    ulist_clear(ULIST list);
 
 /**
  * @brief 释放列表

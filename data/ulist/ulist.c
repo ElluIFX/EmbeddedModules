@@ -446,8 +446,10 @@ bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
   return true;
 }
 
-ULIST_ITER ulist_create_iter(ULIST list, ulist_offset_t start,
-                             ulist_offset_t end, ulist_offset_t step) {
+void ulist_iter_stop(ULIST list) { list->iter = -1; }
+
+ULIST_ITER ulist_create_iterator(ULIST list, ulist_offset_t start,
+                                 ulist_offset_t end, ulist_offset_t step) {
   ulist_size_t start_s = convert_pylike_offset(list, start);
   ulist_size_t end_s = convert_pylike_offset(list, end);
   if (start == -1 || end == -1) return NULL;
@@ -464,7 +466,7 @@ ULIST_ITER ulist_create_iter(ULIST list, ulist_offset_t start,
 
 void ulist_iter_free(ULIST_ITER iter) { _ulist_free(iter); }
 
-void* ulist_iter_next(ULIST_ITER iter) {
+void* ulist_iterator_next(ULIST_ITER iter) {
   if (iter->started == 0) {
     iter->now = iter->start;
     iter->started = 1;
@@ -479,8 +481,10 @@ void* ulist_iter_next(ULIST_ITER iter) {
                  iter->now * iter->target->isize);
 }
 
-void* ulist_iter_now(ULIST_ITER iter) {
+void* ulist_iterator_now(ULIST_ITER iter) {
   if (!iter->started) return NULL;
   return (void*)((uint8_t*)iter->target->data +
                  iter->now * iter->target->isize);
 }
+
+void ulist_iterator_reset(ULIST_ITER iter) { iter->started = 0; }
