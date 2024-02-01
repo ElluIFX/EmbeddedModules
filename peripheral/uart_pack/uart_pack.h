@@ -14,9 +14,14 @@ extern "C" {
 #include <stdio.h>
 
 #include "modules.h"
+
 #if __has_include("usart.h")
 #include "usart.h"
 #endif
+
+#include "lfbb.h"
+#include "lfifo.h"
+
 /**
  * @brief 串口错误状态
  * @note 1:奇偶校验错误 2:帧错误 3:噪声错误 4:接收溢出
@@ -61,19 +66,17 @@ extern void Uart_Puts(UART_HandleTypeDef *huart, const char *str);
 extern int Uart_Getchar(UART_HandleTypeDef *huart);
 extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
 
-#include "lfifo.h"
-
 /**
  * @brief 串口中断FIFO接收初始化
  * @param  huart            目标串口
- * @param  rxCallback       接收完成回调函数
  * @param  buf              接收缓冲区(NULL则尝试动态分配)
  * @param  bufSize          缓冲区大小
+ * @param  rxCallback       接收完成回调函数
  * @retval lfifo_t          LFIFO句柄, NULL:失败
  */
-extern lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart,
-                                void (*rxCallback)(lfifo_t *fifo), uint8_t *buf,
-                                uint16_t bufSize);
+extern lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart, uint8_t *buf,
+                                uint16_t bufSize,
+                                void (*rxCallback)(lfifo_t *fifo));
 /**
  * @brief 轮询以在主循环中响应串口接收完成回调
  * @note FIFO接收需要该函数, DMA接收在cbkInIRQ=0时也需要该函数
@@ -112,20 +115,19 @@ extern void Uart_FifoTxDeInit(UART_HandleTypeDef *huart);
 #endif
 
 #if _UART_ENABLE_DMA_RX
-#include "lfbb.h"
 
 /**
  * @brief 串口DMA接收初始化
  * @param  huart            目标串口
- * @param  rxCallback       接收完成回调函数
- * @param  cbkInIRQ         回调函数是否在中断中执行
  * @param  buf              接收缓冲区(NULL则尝试动态分配)
  * @param  bufSize          缓冲区大小
+ * @param  rxCallback       接收完成回调函数(NULL则需要手动使用LFBB句柄获取数据)
+ * @param  cbkInIRQ         回调函数是否在中断中执行(极不推荐)
  * @retval LFBB_Inst_Type*  LFBB句柄, NULL:失败
  */
 extern LFBB_Inst_Type *Uart_DmaRxInit(
-    UART_HandleTypeDef *huart, void (*rxCallback)(uint8_t *data, uint16_t len),
-    uint8_t cbkInIRQ, uint8_t *buf, uint16_t bufSize);
+    UART_HandleTypeDef *huart, uint8_t *buf, uint16_t bufSize,
+    void (*rxCallback)(uint8_t *data, uint16_t len), uint8_t cbkInIRQ);
 
 /**
  * @brief 串口DMA接收处理，在函数HAL_UARTEx_RxEventCallback中调用
@@ -136,39 +138,38 @@ extern void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size);
 
 #if _UART_ENABLE_CDC
 #include "usbd_cdc_if.h"
-typedef struct {                         // CDC型UART控制结构体
-  uint8_t buffer[APP_RX_DATA_SIZE];      // 接收保存缓冲区
-  __IO uint8_t finished;                 // 接收完成标志位
-  __IO uint16_t len;                     // 接收保存区计数器
-  void (*rxCallback)(char *, uint16_t);  // 接收完成回调函数
-  uint8_t cbkInIRQ;                      // 回调函数是否在中断中执行
-} usb_cdc_ctrl_t;
 
-// USB CDC 串口接收结构体
-extern usb_cdc_ctrl_t usb_cdc;
+/**
+ * @brief  USB CDC FIFO发送/接收初始化
+ * @param  txBuf           发送缓冲区（NULL则尝试动态分配）
+ * @param  txBufSize       发送缓冲区大小
+ * @param  rxBuf           接收缓冲区（NULL则尝试动态分配）
+ * @param  rxBufSize       接收缓冲区大小
+ * @param  rxCallback      接收完成回调函数
+ * @param  cbkInIRQ        回调函数是否在中断中执行
+ * @retval lfifo_t         接收LFIFO句柄, NULL:失败
+ */
+lfifo_t *CDC_FifoTxRxInit(uint8_t *txBuf, uint16_t txBufSize, uint8_t *rxBuf,
+                          uint16_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
+                          uint8_t cbkInIRQ);
 
 /**
  * @brief USB CDC 发送格式化字符串
  */
-extern int printfcdc(char *fmt, ...);
-
-/**
- * @brief USB CDC 等待发送完成
- */
-extern void printfcdc_flush(void);
+extern int CDC_Printf(char *fmt, ...);
 
 /**
  * @brief USB CDC 发送数据
  * @param  buf              数据指针
  * @param  len              数据长度
  */
-extern int CDC_Send(uint8_t *buf, uint16_t len);
+extern void CDC_Send(uint8_t *buf, uint16_t len);
 
 /**
  * @brief USB是否已连接
  * @retval uint8_t          1:已连接 0:未连接
  */
-extern uint8_t USB_Connected(void);
+extern uint8_t CDC_Connected(void);
 
 /**
  * @brief USB CDC 阻塞等待连接
@@ -177,16 +178,9 @@ extern uint8_t USB_Connected(void);
 extern void CDC_WaitConnect(int timeout_ms);
 
 /**
- * @brief 注册USB CDC接收回调函数
- * @param callback 回调函数
- * @param cbkInIRQ 回调函数是否在中断中执行
+ * @brief USB CDC 等待发送完成
  */
-extern void CDC_RegisterCallback(void (*callback)(char *buf, uint16_t len),
-                                 uint8_t cbkInIRQ);
-
-// 适配标准C输入输出函数
-extern void CDC_Putchar(uint8_t data);
-extern void CDC_Puts(char *data);
+extern void CDC_WaitTxFinish(void);
 
 #endif  // _UART_ENABLE_CDC
 

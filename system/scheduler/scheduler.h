@@ -16,8 +16,6 @@ extern "C" {
 #include "modules.h"
 #include "scheduler_conf.h"
 
-typedef void (*sch_func_t)(void *args);  // 任务函数指针类型
-
 #include "scheduler_calllater.h"
 #include "scheduler_coroutine.h"
 #include "scheduler_event.h"

@@ -5,7 +5,7 @@
 #if _SCH_ENABLE_CALLLATER
 #pragma pack(1)
 typedef struct {       // 延时调用任务结构
-  sch_func_t task;     // 任务函数指针
+  cl_func_t task;      // 任务函数指针
   uint64_t runTimeUs;  // 执行时间(us)
   void *args;          // 任务参数
 } scheduler_call_later_t;
@@ -16,16 +16,24 @@ static ulist_t clist = {.data = NULL,
                         .num = 0,
                         .elfree = NULL,
                         .isize = sizeof(scheduler_call_later_t),
-                        .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
+                        .cfg = ULIST_CFG_NO_SHRINK | ULIST_CFG_NO_AUTO_FREE};
 
 _INLINE uint64_t CallLater_Runner(void) {
-  if (!clist.num) return UINT64_MAX;
+  static uint64_t last_active_us = 0;
+  if (!clist.num) {
+    if (clist.cap &&
+        get_sys_us() - last_active_us > 10000000) {  // 10s无触发，释放内存
+      ulist_mem_shrink(&clist);
+    }
+    return UINT64_MAX;
+  }
   uint64_t sleep_us = UINT64_MAX;
   uint64_t now = get_sys_us();
+  last_active_us = now;
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
     if (now >= callLater_p->runTimeUs) {
       callLater_p->task(callLater_p->args);
-      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data);
+      ulist_delete(&clist, ulist_index(&clist, callLater_p));
       return 0;  // 有任务被执行，不确定
     }
     if (callLater_p->runTimeUs - now < sleep_us) {
@@ -35,20 +43,18 @@ _INLINE uint64_t CallLater_Runner(void) {
   return sleep_us;
 }
 
-uint8_t Sch_CallLater(sch_func_t func, uint64_t delayUs, void *args) {
-  scheduler_call_later_t *p = (scheduler_call_later_t *)ulist_append(&clist);
-  if (p == NULL) return 0;
-  p->task = func;
-  p->runTimeUs = delayUs + get_sys_us();
-  p->args = args;
-  return 1;
+uint8_t Sch_CallLater(cl_func_t func, uint64_t delayUs, void *args) {
+  scheduler_call_later_t task = {
+      .task = func, .runTimeUs = get_sys_us() + delayUs, .args = args};
+  return ulist_append_copy(&clist, &task);
 }
 
-void Sch_CancelCallLater(sch_func_t func) {
+void Sch_CancelCallLater(cl_func_t func) {
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
     if (callLater_p->task == func) {
-      ulist_delete(&clist, callLater_p - (scheduler_call_later_t *)clist.data);
-      return;
+      ulist_delete(&clist, ulist_index(&clist, callLater_p));
+      callLater_p--;
+      callLater_p_end--;
     }
   }
 }

@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if !HEAP_USE_LWMEM
+#if KERNEL_HEAP_MATHOD == 1
 #include "log.h"
 
 #define MEM_ALIGN_BYTE (4)

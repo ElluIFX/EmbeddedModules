@@ -102,7 +102,7 @@ _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
     TT_AddString(
         tt,
         TT_FmtStr(TT_ALIGN_CENTER, TT_FMT1_GREEN, TT_FMT2_NONE,
-                  "Run: %.3fs / Idle: %.2f%% / AvgSleep: %.3fus",
+                  "Dur: %.3fs / Idle: %.2f%% / AvgSleep: %.3fus",
                   tick_to_us(now - last_print) / 1000000.0,
                   (float)other / period * 100, (float)sleep_sum / sleep_cnt),
         -1);
@@ -131,15 +131,21 @@ _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
 #endif  // _SCH_DEBUG_REPORT
 
 #if _SCH_ENABLE_TERMINAL
+#define SHOWLWMEM \
+  (_MOD_HEAP_MATHOD == 1 || (_MOD_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 2))
+#define SHOWHEAP4 \
+  (_MOD_HEAP_MATHOD == 4 || (_MOD_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 3))
+#include "heap_4.h"
 #include "lwmem.h"
 #include "term_table.h"
 
 static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
-#define SHOWLWMEM \
-  (_MOD_HEAP_MATHOD == 1 || (_MOD_HEAP_MATHOD == 2 && HEAP_USE_LWMEM))
 #if SHOWLWMEM
   lwmem_stats_t stats;
   lwmem_get_stats(&stats);
+#elif SHOWHEAP4
+  HeapStats_t stats;
+  vPortGetHeapStats(&stats);
 #endif
   TT tt = TT_NewTable(-1);
   TT_AddTitle(
@@ -150,6 +156,8 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   TT_FMT2 f2 = TT_FMT2_NONE;
   TT_ALIGN al = TT_ALIGN_LEFT;
   TT_STR sep = TT_Str(al, f1, f2, " : ");
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Build Time"),
+                    TT_Str(al, f1, f2, __DATE__ " " __TIME__), sep);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Core Clock"),
       TT_FmtStr(al, f1, f2, "%.3f Mhz", (float)get_sys_freq() / 1000000), sep);
@@ -189,9 +197,11 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       tt, TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ LwMem Info ]"),
       '-');
   kv = TT_AddKVPair(tt, 0);
-  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Total"),
-                    TT_FmtStr(al, f1, f2, "%d Bytes", stats.mem_size_bytes),
-                    sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Total"),
+      TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)", stats.mem_size_bytes,
+                (float)stats.mem_size_bytes / 1024),
+      sep);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Avail"),
       TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)", stats.mem_available_bytes,
@@ -204,27 +214,84 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
                               (float)(stats.minimum_ever_mem_available_bytes) /
                                   (float)stats.mem_size_bytes * 100),
                     sep);
-  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Allocated"),
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Allocation"),
                     TT_FmtStr(al, f1, f2, "%d blocks", stats.nr_alloc), sep);
-  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Freed"),
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Free"),
                     TT_FmtStr(al, f1, f2, "%d blocks", stats.nr_free), sep);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Alive"),
       TT_FmtStr(al, f1, f2, "%d blocks", stats.nr_alloc - stats.nr_free), sep);
+#elif SHOWHEAP4
+  TT_AddTitle(
+      tt, TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ Heap Info ]"),
+      '-');
+  kv = TT_AddKVPair(tt, 0);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Total"),
+      TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)", xPortGetTotalHeapSize(),
+                (float)xPortGetTotalHeapSize() / 1024),
+      sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Avail"),
+                    TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)",
+                              stats.xAvailableHeapSpaceInBytes,
+                              (float)(stats.xAvailableHeapSpaceInBytes) /
+                                  (float)xPortGetTotalHeapSize() * 100),
+                    sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Min Avail"),
+                    TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)",
+                              stats.xMinimumEverFreeBytesRemaining,
+                              (float)(stats.xMinimumEverFreeBytesRemaining) /
+                                  (float)xPortGetTotalHeapSize() * 100),
+                    sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Free Block"),
+      TT_FmtStr(al, f1, f2, "%d blocks", stats.xNumberOfFreeBlocks), sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "- Largest"),
+      TT_FmtStr(al, f1, f2, "%d Bytes", stats.xSizeOfLargestFreeBlockInBytes),
+      sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "- Smallest"),
+      TT_FmtStr(al, f1, f2, "%d Bytes", stats.xSizeOfSmallestFreeBlockInBytes),
+      sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Allocation"),
+      TT_FmtStr(al, f1, f2, "%d blocks", stats.xNumberOfSuccessfulAllocations),
+      sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Free"),
+      TT_FmtStr(al, f1, f2, "%d blocks", stats.xNumberOfSuccessfulFrees), sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Alive"),
+                    TT_FmtStr(al, f1, f2, "%d blocks",
+                              stats.xNumberOfSuccessfulAllocations -
+                                  stats.xNumberOfSuccessfulFrees),
+                    sep);
 #endif
   TT_AddSeparator(tt, TT_FMT1_GREEN, TT_FMT2_BOLD, '-');
   TT_Print(tt);
   TT_FreeTable(tt);
 }
+#undef SHOWLWMEM
+#undef SHOWHEAP4
 
 void Sch_AddCmdToCli(EmbeddedCli *cli) {
+  static CliCommandBinding sysinfo_cmd = {
+      .name = "sysinfo",
+      .usage = "sysinfo",
+      .help = "Show system info",
+      .context = NULL,
+      .autoTokenizeArgs = 0,
+      .func = sysinfo_cmd_func,
+  };
+
+  embeddedCliAddBinding(cli, sysinfo_cmd);
 #if _SCH_ENABLE_TASK
   static CliCommandBinding sch_cmd = {
       .name = "task",
       .usage =
-          "task [list|enable|disable|delete|setfreq|setpri|excute] "
-          "[name] "
-          "[freq|pri]",
+          "task [-l list | -e enable | -d disable | -r delete | -f "
+          "setfreq | -p setpri | -E excute] "
+          "[taskname] [freq|pri]",
       .help = "Task control command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -237,7 +304,10 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
 #if _SCH_ENABLE_EVENT
   static CliCommandBinding event_cmd = {
       .name = "event",
-      .usage = "event [list|enable|disable|delete|trigger] [name]",
+      .usage =
+          "event [-l list | -e enable | -d disable | -r delete | -t trigger] "
+          "[eventname] [type] "
+          "[content]",
       .help = "Event control command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -250,7 +320,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
 #if _SCH_ENABLE_COROUTINE
   static CliCommandBinding cortn_cmd = {
       .name = "cortn",
-      .usage = "cortn [list|enable|disable|delete] [name]",
+      .usage = "cortn [-l list| -s stop] [name]",
       .help = "Coroutine control command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -272,16 +342,5 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
 
   embeddedCliAddBinding(cli, softint_cmd);
 #endif  // _SCH_ENABLE_SOFTINT
-
-  static CliCommandBinding sysinfo_cmd = {
-      .name = "sysinfo",
-      .usage = "sysinfo",
-      .help = "Show system info (Scheduler)",
-      .context = NULL,
-      .autoTokenizeArgs = 0,
-      .func = sysinfo_cmd_func,
-  };
-
-  embeddedCliAddBinding(cli, sysinfo_cmd);
 }
 #endif  // _SCH_ENABLE_TERMINAL

@@ -4,7 +4,7 @@
 #if _SCH_ENABLE_TASK
 #pragma pack(1)
 typedef struct {     // 用户任务结构
-  sch_func_t task;   // 任务函数指针
+  task_func_t task;  // 任务函数指针
   uint64_t period;   // 任务调度周期(Tick)
   uint64_t lastRun;  // 上次执行时间(Tick)
   uint8_t enable;    // 是否使能
@@ -35,7 +35,7 @@ static uint8_t task_changed = 0;
 static int taskcmp(const void *a, const void *b) {
   uint8_t priority1 = ((scheduler_task_t *)a)->priority;
   uint8_t priority2 = ((scheduler_task_t *)b)->priority;
-  return priority1 > priority2 ? -1 : 1;  // 高优先级在前
+  return priority2 - priority1;  // 高优先级在前
 }
 
 static scheduler_task_t *get_task(const char *name) {
@@ -96,18 +96,20 @@ _INLINE uint64_t Task_Runner(void) {
   return sleep_us;
 }
 
-uint8_t Sch_CreateTask(const char *name, sch_func_t func, float freqHz,
+uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
                        uint8_t enable, uint8_t priority, void *args) {
-  scheduler_task_t *p = (scheduler_task_t *)ulist_append(&tasklist);
-  if (p == NULL) return 0;
-  p->task = func;
-  p->enable = enable;
-  p->priority = priority;
-  p->period = (double)get_sys_freq() / (double)freqHz;
-  if (!p->period) p->period = 1;
-  p->lastRun = get_sys_tick() - p->period;
-  p->name = name;
-  p->args = args;
+  scheduler_task_t task = {
+      .task = func,
+      .enable = enable,
+      .priority = priority,
+      .period = (double)get_sys_freq() / (double)freqHz,
+      .lastRun = get_sys_tick(),
+      .name = name,
+      .args = args,
+  };
+  if (!task.period) task.period = 1;
+  task.lastRun -= task.period;
+  if (!ulist_append_copy(&tasklist, &task)) return 0;
   task_changed = 1;
   resort_task();
   return 1;
@@ -127,7 +129,7 @@ uint8_t Sch_DeleteTask(const char *name) {
 
 uint8_t Sch_IsTaskExist(const char *name) { return get_task(name) != NULL; }
 
-uint8_t Sch_GetTaskState(const char *name) {
+uint8_t Sch_GetTaskEnabled(const char *name) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return 0;
   return p->enable;
@@ -138,6 +140,13 @@ uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority) {
   if (p == NULL) return 0;
   p->priority = priority;
   resort_task();
+  return 1;
+}
+
+uint8_t Sch_SetTaskArgs(const char *name, void *args) {
+  scheduler_task_t *p = get_task(name);
+  if (p == NULL) return 0;
+  p->args = args;
   return 1;
 }
 
@@ -153,7 +162,7 @@ uint8_t Sch_DelayTask(const char *name, uint64_t delayUs, uint8_t fromNow) {
 
 uint16_t Sch_GetTaskNum(void) { return tasklist.num; }
 
-uint8_t Sch_SetTaskState(const char *name, uint8_t enable) {
+uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return 0;
   p->enable = enable;
@@ -176,7 +185,9 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t *other) {
     TT_FMT1 f1 = TT_FMT1_BLUE;
     TT_FMT2 f2 = TT_FMT2_BOLD;
     TT_ALIGN al = TT_ALIGN_LEFT;
-    TT_AddTitle(tt, TT_Str(al, f1, f2, "[ Task Report ]"), '-');
+    TT_AddTitle(tt,
+                TT_FmtStr(al, f1, f2, "[ Task Report / %d ]", Sch_GetTaskNum()),
+                '-');
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
         TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
@@ -264,10 +275,10 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     embeddedCliPrintCurrentHelp(cli);
     return;
   }
-  if (embeddedCliCheckToken(args, "list", 1)) {
+  if (embeddedCliCheckToken(args, "-l", 1)) {
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Tasks list:" T_FMT(T_RESET, T_GREEN));
     ulist_foreach(&tasklist, scheduler_task_t, task) {
-      LOG_RAWLN("  %s: 0x%p pri:%d freq:%.1f en:%d", task->name, task->task,
+      LOG_RAWLN("  %s: %p pri:%d freq:%.1f en:%d", task->name, task->task,
                 task->priority, (float)get_sys_freq() / task->period,
                 task->enable);
     }
@@ -284,16 +295,16 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task: %s not found" T_RST, name);
     return;
   }
-  if (embeddedCliCheckToken(args, "enable", 1)) {
-    Sch_SetTaskState(name, ENABLE);
+  if (embeddedCliCheckToken(args, "-e", 1)) {
+    Sch_SetTaskEnabled(name, ENABLE);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task: %s enabled" T_RST, name);
-  } else if (embeddedCliCheckToken(args, "disable", 1)) {
-    Sch_SetTaskState(name, DISABLE);
+  } else if (embeddedCliCheckToken(args, "-d", 1)) {
+    Sch_SetTaskEnabled(name, DISABLE);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task: %s disabled" T_RST, name);
-  } else if (embeddedCliCheckToken(args, "delete", 1)) {
+  } else if (embeddedCliCheckToken(args, "-r", 1)) {
     Sch_DeleteTask(name);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task: %s deleted" T_RST, name);
-  } else if (embeddedCliCheckToken(args, "setfreq", 1)) {
+  } else if (embeddedCliCheckToken(args, "-f", 1)) {
     if (argc < 3) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Frequency is required" T_RST);
       return;
@@ -302,7 +313,7 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     Sch_SetTaskFreq(name, freq);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task: %s frequency set to %.2fHz" T_RST,
               name, freq);
-  } else if (embeddedCliCheckToken(args, "setpri", 1)) {
+  } else if (embeddedCliCheckToken(args, "-p", 1)) {
     if (argc < 3) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
       return;
@@ -311,7 +322,7 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     Sch_SetTaskPriority(name, pri);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task: %s priority set to %d" T_RST, name,
               pri);
-  } else if (embeddedCliCheckToken(args, "excute", 1)) {
+  } else if (embeddedCliCheckToken(args, "-E", 1)) {
     LOG_RAWLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting Task: %s" T_RST, name);
     p->task(p->args);
   } else {

@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if HEAP_USE_LWMEM
+#if KERNEL_HEAP_MATHOD == 2
 #include "log.h"
 #include "lwmem.h"
 
@@ -68,7 +68,7 @@ void heap_create(void *addr, uint32_t size) {
 __weak void heap_fault_handler(void) {
   LOG_ERROR("heap fault");
   ((void *(*)(void))0x0)();  // make a fault for tracing
-  MOD_TRIG_DEBUG_HALT();
+  // MOD_TRIG_DEBUG_HALT();
 }
 
 void *heap_alloc(uint32_t size) {
@@ -109,4 +109,4 @@ float heap_usage_percent(void) {
          (float)stats.mem_size_bytes;
 }
 
-#endif  // HEAP_USE_LWMEM
+#endif

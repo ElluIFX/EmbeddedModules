@@ -93,7 +93,6 @@ static uint32_t try_wait_bits(event_flags_t flags, uint32_t bits,
 uint32_t event_flags_wait(event_flags_t flags, uint32_t bits, uint32_t ops) {
   uint32_t ret;
   mutex_lock(flags->mutex);
-  ret = try_wait_bits(flags, bits, ops);
   while (1) {
     ret = try_wait_bits(flags, bits, ops);
     if (ret != 0) {

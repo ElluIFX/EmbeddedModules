@@ -35,14 +35,14 @@ struct mutex {
 
 mutex_t mutex_create(void) {
   struct mutex *mutex;
-  mutex = heap_alloc( sizeof(struct mutex));
+  mutex = heap_alloc(sizeof(struct mutex));
   if (mutex != NULL) {
     memset(mutex, 0, sizeof(struct mutex));
   }
   return (mutex_t)mutex;
 }
 
-void mutex_delete(mutex_t mutex) { heap_free( mutex); }
+void mutex_delete(mutex_t mutex) { heap_free(mutex); }
 
 bool mutex_try_lock(mutex_t mutex) {
   cpu_enter_critical();

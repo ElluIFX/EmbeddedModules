@@ -51,7 +51,7 @@ void Stepper_Init(step_ctrl_t *step, TIM_HandleTypeDef *timMaster,
  * @param  speed            速度(单位:度/秒)
  */
 void Stepper_Set_Speed(step_ctrl_t *step, double speed) {
-  ASSERT(speed < -0.01 || speed > 0.01, "[STEP] setspeed=0", return);
+  LOG_ASSERT_CMD(speed < -0.01 || speed > 0.01, return, "[STEP] setspeed=0");
   speed = fabs(speed);
   double pulsePerSec = speed / 360 * STEPPER_PULSE_PER_ROUND;  // 等价于pwm频率
   if (pulsePerSec > STEPPER_PWM_MAX_FREQ) {
@@ -113,7 +113,7 @@ void Stepper_IT_Handler(step_ctrl_t *step, TIM_HandleTypeDef *htim) {
  * @param  angle            旋转角度(单位:度)(正数:顺时针, 负数:逆时针)
  */
 void Stepper_Rotate(step_ctrl_t *step, double angle) {
-  ASSERT(!step->rotating, "[STEP] In busy", return);
+  LOG_ASSERT_CMD(!step->rotating, return, "[STEP] In busy");
   step->dir = angle > 0 ? 1 : 0;
   if (!step->dirLogic)
     HAL_GPIO_WritePin(step->dirPort, step->dirPin,
@@ -123,7 +123,7 @@ void Stepper_Rotate(step_ctrl_t *step, double angle) {
                       step->dir ? GPIO_PIN_SET : GPIO_PIN_RESET);
   angle = fabs(angle);
   uint32_t targetPulse = angle * STEPPER_PULSE_PER_ROUND / 360;
-  ASSERT(targetPulse > 1, "[STEP] targetPulse<2", return);
+  LOG_ASSERT_CMD(targetPulse > 1, return, "[STEP] targetPulse<2");
   // step->angleTarget = step->angle + angle; // 存在累加误差
   step->angleTarget = (double)targetPulse * 360 / STEPPER_PULSE_PER_ROUND;
   step->angleTarget = step->dir ? step->angle + step->angleTarget
@@ -153,7 +153,7 @@ void Stepper_Rotate(step_ctrl_t *step, double angle) {
  * @param  angle            角度(单位:度)
  */
 void Stepper_Set_Angle(step_ctrl_t *step, double angle) {
-  ASSERT(!step->rotating, "[STEP] In busy", return);
+  LOG_ASSERT_CMD(!step->rotating, return, "[STEP] In busy");
   step->angle = angle;
   step->angleTarget = angle;
 }

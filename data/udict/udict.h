@@ -22,21 +22,24 @@ typedef uint16_t udict_size_t;
 
 #pragma pack(1)
 typedef struct udict_node {
-  const char* key;
+  char* key;
   void* value;
   uint8_t dynamic_value;
 } udict_node_t;
-
 typedef struct udict {
   ulist_t nodes;
   udict_size_t size;
   udict_size_t iter;
+#if _MOD_USE_OS
+  MOD_MUTEX_HANDLE mutex;  // 互斥锁
+#endif
+  bool dyn;
 } udict_t;
 typedef udict_t* UDICT;
 #pragma pack()
 
 /**
- * @brief 初始化一个字典
+ * @brief 初始化一个已创建的字典
  * @param dict 字典
  *
  * @return 是否成功
@@ -44,11 +47,11 @@ typedef udict_t* UDICT;
 extern bool udict_init(UDICT dict);
 
 /**
- * @brief 创建一个字典
+ * @brief 创建一个字典并初始化
  *
  * @return 字典，如果失败则为NULL
  */
-extern UDICT udict_create(void);
+extern UDICT udict_new(void);
 
 /**
  * @brief 清空字典
@@ -159,8 +162,9 @@ extern void udict_iter_stop(UDICT dict);
 /**
  * @brief 打印字典
  * @param  dict         字典
+ * @param  name         名称
  */
-extern void udict_print(UDICT dict);
+extern void udict_print(UDICT dict, const char* name);
 
 #ifdef __cplusplus
 }
