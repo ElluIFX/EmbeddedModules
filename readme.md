@@ -100,4 +100,4 @@
 
 ## LICENSE
 
-我自己写的遵循MIT协议，其他代码见原repo
+MIT (For self-written modules only)
