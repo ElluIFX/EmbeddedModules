@@ -4,37 +4,37 @@
 
 ## Table of content
 
-  - [Features](#features)
-  - [Examples](#examples)
-    - [Example 1 - simple task creation](#example-1---simple-task-creation)
-    - [Example 2 - asynchronized http client without callback function.](#example-2---asynchronized-http-client-without-callback-function)
-    - [Example 3 - control LED with multitasking on ardinuo](#example-3---control-led-with-multitasking-on-ardinuo)
-  - [Compatibility list](#compatibility-list)
-  - [Build](#build)
-    - [Posix - Linux / FreeBSD / MacOS / MingW(MSYS2)](#posix---linux--freebsd--macos--mingwmsys2)
-    - [Others - Windows / STM8 / Cortex-M / Arduino, and more ...](#others---windows--stm8--cortex-m--arduino-and-more-)
-  - [How to use in your project?](#how-to-use-in-your-project)
-  - [API](#api)
-    - [Task](#task)
-    - [Chan](#chan)
-    - [Mutex](#mutex)
-    - [Event](#event)
-  - [Specials on embedded platform](#specials-on-embedded-platform)
-  - [How to make port?](#how-to-make-port)
-  - [Contact](#contact)
-  - [VS.](#vs)
-  - [Thanks](#thanks)
+- [Features](#features)
+- [Examples](#examples)
+  - [Example 1 - simple task creation](#example-1---simple-task-creation)
+  - [Example 2 - asynchronized http client without callback function.](#example-2---asynchronized-http-client-without-callback-function)
+  - [Example 3 - control LED with multitasking on ardinuo](#example-3---control-led-with-multitasking-on-ardinuo)
+- [Compatibility list](#compatibility-list)
+- [Build](#build)
+  - [Posix - Linux / FreeBSD / MacOS / MingW(MSYS2)](#posix---linux--freebsd--macos--mingwmsys2)
+  - [Others - Windows / STM8 / Cortex-M / Arduino, and more ...](#others---windows--stm8--cortex-m--arduino-and-more-)
+- [How to use in your project?](#how-to-use-in-your-project)
+- [API](#api)
+  - [Task](#task)
+  - [Chan](#chan)
+  - [Mutex](#mutex)
+  - [Event](#event)
+- [Specials on embedded platform](#specials-on-embedded-platform)
+- [How to make port?](#how-to-make-port)
+- [Contact](#contact)
+- [VS.](#vs)
+- [Thanks](#thanks)
 
 ## Features
 
- + "s_task" is a coroutine library written in pure C and asm (from boost library), **without** **C++** required.
- + supports various platforms, such as windows, linux, android, macos, stm32, stm8, arduino, etc.
- + supports keywords **\_\_await\_\_** and **\_\_async\_\_** . :triangular_flag_on_post: For functions that may switch to other tasks, call it with 1st parameter \_\_await\_\_, for the caller function of which, define the 1st parameter as \_\_async\_\_, which make it is clear to know about context switching.
- + works with libuv for network programming.
- + "chan", "mutex" and "event" for communication between tasks.
- + on embedded platfrom (stm32/stm8/m051/arduino,etc), "s_task" is a special RTOS --
-   - no dynamical memory allocation
-   - very small memory footprint ( increased by ROM<1.5K, RAM<128 bytes + task stack size)
+- "s_task" is a coroutine library written in pure C and asm (from boost library), **without** **C++** required.
+- supports various platforms, such as windows, linux, android, macos, stm32, stm8, arduino, etc.
+- supports keywords **\_\_await\_\_** and **\_\_async\_\_** . :triangular_flag_on_post: For functions that may switch to other tasks, call it with 1st parameter \_\_await\_\_, for the caller function of which, define the 1st parameter as \_\_async\_\_, which make it is clear to know about context switching.
+- works with libuv for network programming.
+- "chan", "mutex" and "event" for communication between tasks.
+- on embedded platfrom (stm32/stm8/m051/arduino,etc), "s_task" is a special RTOS --
+  - no dynamical memory allocation
+  - very small memory footprint ( increased by ROM<1.5K, RAM<128 bytes + task stack size)
 
 ## Examples
 
@@ -82,7 +82,7 @@ int main(int argc, char* argv) {
 }
 ```
 
-### [Example 2](examples/ex3_http_client.c) - asynchronized http client without callback function.
+### [Example 2](examples/ex3_http_client.c) - asynchronized http client without callback function
 
 ```c
 void main_task(__async__, void *arg) {
@@ -152,8 +152,8 @@ out0:;
 #include "src/s_task/s_task.h"
 
 //This program demonstrates three tasks:
-// 1) main_task - 
-//    Wait 10 seconds and set flag g_exit. 
+// 1) main_task -
+//    Wait 10 seconds and set flag g_exit.
 //    After all tasks finished, set LED on always.
 // 2) sub_task_fast_blinking -
 //    Set led blinking fast
@@ -180,7 +180,7 @@ void sub_task_fast_blinking(__async__, void* arg) {
         s_task_msleep(__await__, 50);        // wait for 50 milliseconds
         digitalWrite(LED_BUILTIN, LOW);      // turn the LED off
         s_task_msleep(__await__, 50);        // wait for 50 milliseconds
-    }    
+    }
 }
 
 void sub_task_set_low(__async__, void* arg) {
@@ -190,7 +190,7 @@ void sub_task_set_low(__async__, void* arg) {
         s_task_sleep(__await__, 1);          // wait for 1 second
         g_is_low = false;                    // start fast blinking
         s_task_sleep(__await__, 3);          // wait for 3 seconds
-    }    
+    }
 }
 
 void main_task(__async__, void* arg) {
@@ -208,7 +208,7 @@ void main_task(__async__, void* arg) {
 }
 
 void loop() {
-    
+
     s_task_init_system();
     main_task(__await__, NULL);
 
@@ -229,7 +229,7 @@ void loop() {
 | MacOS                             | :heavy_check_mark: | :heavy_check_mark: |
 | FreeBSD (12.1, x64)               | :heavy_check_mark: | :heavy_check_mark: |
 | Android                           | :heavy_check_mark: | :heavy_check_mark: |
-| MingW (https://www.msys2.org/)    | :heavy_check_mark: | :heavy_check_mark: |
+| MingW (<https://www.msys2.org/>)    | :heavy_check_mark: | :heavy_check_mark: |
 | ARMv6-M (M051, Raspberry Pi Pico) | :heavy_check_mark: | :x:                |
 | ARMv7-M (STM32F103, STM32F302)    | :heavy_check_mark: | :x:                |
 | STM8 (STM8S103, STM8L051F3)       | :heavy_check_mark: | :x:                |
@@ -237,15 +237,16 @@ void loop() {
 | Arduino UNO (AVR MEGA328P)        | :heavy_check_mark: | :x:                |
 | Arduino DUE (ATSAM3X8E)           | :heavy_check_mark: | :x:                |
 
-   linux tested on 
-   * i686 (ubuntu-16.04)
-   * x86_64 (centos-8.1)
-   * arm (raspiberry 32bit)
-   * aarch64 (① raspiberry 64bit, ② ubuntu 14.04 / centos7.6 on huawei Kunpeng920)
-   * mipsel (openwrt ucLinux 3.10.14 for MT7628)
-   * mips64 (fedora for loongson 3A-4000)
-   * ppc64 / ppc64le (centos-7.8.2003 altarch)
-   * riscv64 ([jslinux](https://bellard.org/jslinux/vm.html?cpu=riscv64&url=buildroot-riscv64.cfg&mem=256))
+   linux tested on
+
+- i686 (ubuntu-16.04)
+- x86_64 (centos-8.1)
+- arm (raspiberry 32bit)
+- aarch64 (① raspiberry 64bit, ② ubuntu 14.04 / centos7.6 on huawei Kunpeng920)
+- mipsel (openwrt ucLinux 3.10.14 for MT7628)
+- mips64 (fedora for loongson 3A-4000)
+- ppc64 / ppc64le (centos-7.8.2003 altarch)
+- riscv64 ([jslinux](https://bellard.org/jslinux/vm.html?cpu=riscv64&url=buildroot-riscv64.cfg&mem=256))
 
 ## Build
 
@@ -260,7 +261,7 @@ If need cross compiler, please set argument CMAKE_C_COMPILER when calling "cmake
 
     cmake . -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
 
-### Others - Windows / STM8 / Cortex-M / Arduino, and more ...
+### Others - Windows / STM8 / Cortex-M / Arduino, and more
 
 | Platform                   | Project                               | Tool chain                                          |
 |----------------------------|---------------------------------------|-----------------------------------------------------|
@@ -281,11 +282,11 @@ If need cross compiler, please set argument CMAKE_C_COMPILER when calling "cmake
 
 On linux/unix like system, after cmake build, you may get the libraries for your project
 
-* add libs_task.a to your project
-* #include "[s_task.h](include/s_task.h)"
-* build with predefined macro USE_LIBUV
+- add libs_task.a to your project
+- #include "[s_task.h](include/s_task.h)"
+- build with predefined macro USE_LIBUV
 
-On arduino, copy all source files (*.h, *.c) in folder "[include](include)" and "[src](src)" into your arduino project's subfolder src/s_task/. Please take a look at the folder structure of "[build/arduino/](build/arduino/)".
+On arduino, copy all source files (*.h,*.c) in folder "[include](include)" and "[src](src)" into your arduino project's subfolder src/s_task/. Please take a look at the folder structure of "[build/arduino/](build/arduino/)".
 
 On windows or other system, please find the project in folder "build" as the project template.
 
@@ -295,7 +296,7 @@ On windows or other system, please find the project in folder "build" as the pro
 
 ```c
 /*
- * Return values -- 
+ * Return values --
  * For all functions marked by __async__ and hava an int return value, will
  *     return 0 on waiting successfully,
  *     return -1 on waiting cancalled by s_task_cancel_wait() called by other task.
@@ -332,7 +333,7 @@ void s_task_cancel_wait(void* stack);
 ### Chan
 
 ```c
-/* 
+/*
  * macro: Declare the chan variable
  *    name: name of the chan
  *    TYPE: type of element in the chan
@@ -340,34 +341,34 @@ void s_task_cancel_wait(void* stack);
  */
 s_chan_declare(name,TYPE,count);
 
-/* 
+/*
  * macro: Initialize the chan (parameters same as what's in s_declare_chan).
  * To make a chan, we need to use "s_chan_declare" and then call "s_chan_init".
  */
 s_chan_init(name,TYPE,count);
 
-/* 
+/*
  * Put element into chan
  *  return 0 on chan put successfully
  *  return -1 on chan cancelled
  */
 int s_chan_put(__async__, s_chan_t *chan, const void *in_object);
 
-/* 
+/*
  * Put number of elements into chan
  *  return 0 on chan put successfully
  *  return -1 on chan cancelled
  */
 int s_chan_put_n(__async__, s_chan_t *chan, const void *in_object, uint16_t number);
 
-/* 
+/*
  * Get element from chan
  *  return 0 on chan get successfully
  *  return -1 on chan cancelled
  */
 int s_chan_get(__async__, s_chan_t *chan, void *out_object);
 
-/* 
+/*
  * Get number of elements from chan
  *  return 0 on chan get successfully
  *  return -1 on chan cancelled
@@ -408,6 +409,7 @@ int s_event_wait_sec(__async__, s_event_t *event, uint32_t sec);
 ```
 
 ## Specials on embedded platform
+
 <details>
   <summary>API on embedded platform</summary>
 
@@ -463,7 +465,7 @@ uint16_t s_chan_get_n__in_irq(s_chan_t *chan, void *out_object, uint16_t number)
 #### event api called in tasks
 
 ```c
-/* 
+/*
  * Wait event from irq, disable irq before call this function!
  *   S_IRQ_DISABLE()
  *   ...
@@ -473,7 +475,7 @@ uint16_t s_chan_get_n__in_irq(s_chan_t *chan, void *out_object, uint16_t number)
  */
 int s_event_wait__from_irq(__async__, s_event_t *event);
 
-/* 
+/*
  * Wait event from irq, disable irq before call this function!
  *   S_IRQ_DISABLE()
  *   ...
@@ -483,7 +485,7 @@ int s_event_wait__from_irq(__async__, s_event_t *event);
  */
 int s_event_wait_msec__from_irq(__async__, s_event_t *event, uint32_t msec);
 
-/* 
+/*
  * Wait event from irq, disable irq before call this function!
  *   S_IRQ_DISABLE()
  *   ...
@@ -520,6 +522,7 @@ void my_on_idle(uint64_t max_idle_ms) {
        the maximum sleeping time is "max_idle_ms" milliseconds. */
 }
 ```
+
 </details>
 
 ## How to make port?
@@ -532,27 +535,27 @@ void my_on_idle(uint64_t max_idle_ms) {
 
 ![s_task交流群](qq.png)
 
-## VS.
+## VS
 
-+ coro: http://www.goron.de/~froese/coro/
-+ coroutine(a asymmetric coroutine library for C): https://github.com/cloudwu/coroutine
-+ coroutine(a asymmetric coroutine (lua like) with fixed-size stack): https://github.com/xphh/coroutine
-+ coroutine(coroutine library with pthread-like interface in pure C): https://github.com/Marcus366/coroutine
-+ coroutines(A lightweight coroutine library written in C and assembler): https://github.com/xya/coroutines
-+ fcontext: https://github.com/reginaldl/fcontext
-+ hev-task-system: https://github.com/heiher/hev-task-system
-+ libaco: https://github.com/hnes/libaco
-+ libconcurrency: http://code.google.com/p/libconcurrency/
-+ libconcurrent: https://github.com/sharow/libconcurrent
-+ libcoro: http://software.schmorp.de/pkg/libcoro.html
-+ libcoroutine: https://github.com/stevedekorte/coroutine
-+ libfiber: http://www.rkeene.org/projects/info/wiki/22
-+ libtask: https://code.google.com/p/libtask/
-+ libwire: https://github.com/baruch/libwire
-+ micro: https://github.com/mikewei/micoro
-+ mill: https://github.com/sustrik/mill
-+ Portable Coroutine Library (PCL): http://xmailserver.org/libpcl.html
+- coro: <http://www.goron.de/~froese/coro/>
+- coroutine(a asymmetric coroutine library for C): <https://github.com/cloudwu/coroutine>
+- coroutine(a asymmetric coroutine (lua like) with fixed-size stack): <https://github.com/xphh/coroutine>
+- coroutine(coroutine library with pthread-like interface in pure C): <https://github.com/Marcus366/coroutine>
+- coroutines(A lightweight coroutine library written in C and assembler): <https://github.com/xya/coroutines>
+- fcontext: <https://github.com/reginaldl/fcontext>
+- hev-task-system: <https://github.com/heiher/hev-task-system>
+- libaco: <https://github.com/hnes/libaco>
+- libconcurrency: <http://code.google.com/p/libconcurrency/>
+- libconcurrent: <https://github.com/sharow/libconcurrent>
+- libcoro: <http://software.schmorp.de/pkg/libcoro.html>
+- libcoroutine: <https://github.com/stevedekorte/coroutine>
+- libfiber: <http://www.rkeene.org/projects/info/wiki/22>
+- libtask: <https://code.google.com/p/libtask/>
+- libwire: <https://github.com/baruch/libwire>
+- micro: <https://github.com/mikewei/micoro>
+- mill: <https://github.com/sustrik/mill>
+- Portable Coroutine Library (PCL): <http://xmailserver.org/libpcl.html>
 
 ## Thanks
 
-+ [wooley](https://github.com/wooley) cmake + vc building.
+- [wooley](https://github.com/wooley) cmake + vc building.
