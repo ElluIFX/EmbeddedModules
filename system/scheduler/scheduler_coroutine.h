@@ -205,6 +205,12 @@ static void __Internal_AwaitMsg(__async__, void **msgPtr);
 #define ASYNC_RELEASE_BARRIER(barr_name) Sch_CortnBarrierRelease(barr_name)
 
 /**
+ * @brief 设置屏障目标协程数量
+ */
+#define ASYNC_SET_BARRIER_TARGET(barr_name, target) \
+  Sch_SetCortnBarrierTarget(barr_name, target)
+
+/**
  * @brief 运行一个协程
  * @param  name             协程名
  * @param  func             任务函数指针

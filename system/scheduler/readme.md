@@ -250,7 +250,7 @@ uint8_t Sch_TriggerEvent(const char *name, void *args)
 - 参数：
   - `name`：事件名。
   - `args`：事件参数，会传递给事件回调函数。
-- 注意：事件是异步执行，必须注意所传递的参数的生命周期，禁止传递局部缓冲区指针。
+- 注意：事件是异步执行，必须注意所传递的参数的生命周期，禁止传递临时数据指针。
 
 ```C
 uint8_t Sch_TriggerEventEx(const char *name, const void *arg_ptr, uint16_t arg_size)
@@ -413,7 +413,7 @@ void Coroutine_MainFunc(__async__, void *args)
 9. `ASYNC_SELF_NAME()`
 
     - 功能：获取当前`主协程`的名字。
-    - 注意：在子协程中调用返回的是调用该子协程的最上层`主协程`的名字。
+    - 注意：在子协程中调用返回的是调用该子协程的最上层`主协程`的名字，`子协程`对象不存在名字。
     - 彩蛋：协程外调用此宏会返回 `__main__`。
 
 10. `AWAIT_RECV_MSG(to_ptr)`
@@ -421,6 +421,7 @@ void Coroutine_MainFunc(__async__, void *args)
     - 功能：阻塞等待消息。
     - 参数：
       - `to_ptr`：消息指针，当函数返回时，消息指针会被赋值。
+    - 注意：调用时，参数的指针不需要写取址符。
 
 11. `ASYNC_SEND_MSG(name, msg)`
 
@@ -436,14 +437,14 @@ void Coroutine_MainFunc(__async__, void *args)
     - 参数：
       - `mutex_name`：互斥锁名。
 
-    > 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含等待，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
+    > 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含AWAIT/YIELD，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
 
 13. `ASYNC_RELEASE_MUTEX(mutex_name)`
 
     - 功能：释放互斥锁，立即返回。
     - 参数：
       - `mutex_name`：互斥锁名。
-    - 警告：释放互斥锁时不会检查所有者，允许强制释放。
+    - 警告：释放互斥锁时不会检查操作者是否是锁的所有者，允许强制释放。
 
 14. `AWAIT_BARRIER(barr_name)`
 
@@ -462,25 +463,33 @@ void Coroutine_MainFunc(__async__, void *args)
       - `barr_name`：屏障名。
     - 等价：`Sch_CortnBarrierRelease`
 
-16. `ASYNC_RUN(name, func, args)`
+16. `ASYNC_SET_BARRIER_TARGET(barr_name, target)`
+
+    - 功能：设置屏障目标值。
+    - 参数：
+      - `barr_name`：屏障名。
+      - `target`：目标值。
+    - 等价：`Sch_SetCortnBarrierTarget`
+
+17. `ASYNC_RUN(name, func, args)`
 
     - 功能：创建并异步运行一个协程，立即返回。
     - 参数：
       - `name`：协程名, **不可重复**。
       - `func`：协程函数指针，必须是`协程主函数`。
       - `args`：协程参数指针。
-    - 等价：`Sch_RunCortn` + `CR_MODE_AUTODEL`
+    - 等价：`Sch_RunCortn`
 
-17. `AWAIT_JOIN(name)`
+18. `AWAIT_JOIN(name)`
 
-    - 功能：阻塞等待一个协程结束（被删除）。
+    - 功能：阻塞等待一个协程结束。
     - 参数：
       - `name`：协程名。
 
 #### 5.4.3. 函数API （一般在正常函数中调用）
 
 ```C
-uint8_t Sch_RunCortn(const char *name, cortn_func_t func, uint8_t enable, CR_MODE mode, void *args)
+uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args)
 ```
 
 - 功能：运行一个协程。
@@ -528,7 +537,7 @@ uint8_t Sch_SendMsgToCortn(const char *name, void *msg)
 - 参数：
   - `name`：协程名。
   - `msg`：消息指针。
-- 警告: 该函数是异步的，需要注意消息的生命周期，禁止传递局部缓冲区指针。
+- 警告: 该函数是异步的，需要注意消息的生命周期，禁止传递临时数据指针。
 
 ```C
 uint8_t Sch_CortnBarrierRelease(const char *name)
@@ -569,7 +578,7 @@ uint8_t Sch_CallLater(sch_func_t func, uint64_t delayUs, void *args)
   - `func`：函数指针，返回为`void`，参数为`void*`。
   - `delayUs`：延时时间(us)。
   - `args`：函数参数，会传递给函数。
-- 注意：该函数是异步的，需要注意参数的生命周期，禁止传递局部缓冲区指针。
+- 注意：该函数是异步的，需要注意参数的生命周期，禁止传递临时数据指针。
 
 ```C
 void Sch_CancelCallLater(sch_func_t func)
@@ -598,4 +607,4 @@ weak void Scheduler_SoftInt_Handler(uint8_t mainChannel, uint8_t subMask)
 - 参数：
   - `mainChannel`：主通道号，0~7。
   - `subMask`：子通道掩码，每一位代表一个子通道(1 << subChannel)，1：触发，0：未触发。
-- 注意：弱函数，用户必须在自己的代码中重写此函数并实现软中断处理逻辑。
+- 注意：弱函数，用户根据需要自行定义此函数。

@@ -4,7 +4,7 @@
 
 **标*的为自己写的模块，其他为开源社区的模块。**
 
-| [Algorithm](./algorithm) 算法 ||
+| [Algorithm](./algorithm) | 算法 |
 |-------|-------|
 | [cmsis_dsp](./algorithm/cmsis_dsp) | CMSIS-DSP |
 | [libcrc](./algorithm/libcrc) | CRC计算库 |
@@ -12,14 +12,14 @@
 | [Quaternions](./algorithm/quaternion) | 四元数和IMU姿态估计 |
 | [tiny_regex](./algorithm/tiny_regex)|  简易正则解析器 |
 
-| [Communication](./communication) 通信 ||
+| [Communication](./communication) | 通信 |
 |-------|-------|
 | [CherryUSB](./communication/cherryusb) | Cherry USB |
 | [lwpkt](./communication/lwpkt) | 轻量级数据包 |
 | [modbus](./communication/modbus) | Modbus协议 |
 | [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 |
 
-| [DataStruct](./datastruct) 数据结构 ||
+| [DataStruct](./datastruct) | 数据结构 |
 |-------|-------|
 | [btree](./datastruct/btree) | B树 |
 | [cstring](./datastruct/cstring) | C字符串 |
@@ -32,14 +32,14 @@
 | [*udict](./datastruct/udict) | 通用字典 |
 | [*ulist](./datastruct/ulist) | 通用内存连续列表 |
 
-| [Debug](./debug) 调试 ||
+| [Debug](./debug) | 调试 |
 |-------|-------|
 | [benchmark](./debug/benchmark) | 基准测试 |
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯 |
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 |
 | [*log.h](./debug/log.h) | 轻量级日志 |
 
-| [Graphics](./graphics) 图形 ||
+| [Graphics](./graphics) | 图形 |
 |-------|-------|
 | [lvgl](./graphics/lvgl) | LittlevGL图形库 |
 | [lvgl/manager/lvgl-pm](./graphics/lvgl/manager/lvgl-pm) | LVGL通用页面管理器 |
@@ -47,7 +47,7 @@
 | [hagl](./graphics/hagl) | HAL图形库 |
 | [*virtual_lcd](./graphics/virtual_lcd) | 虚拟LCD |
 
-| [Peripheral](./peripheral) 外设 ||
+| [Peripheral](./peripheral) | 外设 |
 |-------|-------|
 | [*board_i2c](./peripheral/board_i2c) | 通用I2C包装层 |
 | [*i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |
@@ -61,12 +61,12 @@
 | [*uart_pack](./peripheral/uart_pack) | 串口操作功能包 |
 | [*ws2812_spi](./peripheral/ws2812_spi) | WS2812灯带DMA-SPI驱动 |
 
-| [Storage](./storage) 存储 ||
+| [Storage](./storage) | 存储 |
 |-------|-------|
 | [littlefs](./storage/littlefs) | LittleFS |
 | [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 |
 
-| [System](./system) 系统 ||
+| [System](./system) | 系统 |
 |-------|-------|
 | [dalloc](./system/dalloc) | 动态指针管理内存分配器 |
 | [heap_4](./system/heap_4) | FreeRTOS堆4 |
@@ -76,7 +76,7 @@
 | [*scheduler](./system/scheduler) | 多功能任务调度器 |
 | [*scheduler_lite](./system/scheduler_lite) | 轻量级任务调度器 |
 
-| [Utility](./utility) 工具 ||
+| [Utility](./utility) | 工具 |
 |-------|-------|
 | [embedded_cli](./utility/embedded_cli) | 嵌入式命令行 |
 | [lwprintf](./utility/lwprintf) | 轻量级无缓冲区printf |
