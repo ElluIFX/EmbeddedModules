@@ -97,3 +97,7 @@
 [modules.h](./modules.h) 模块统一头文件
 
 [modules.kconfig](./modules.kconfig) `[TODO]`模块统一Kconfig文件
+
+## LICENSE
+
+我自己写的遵循MIT协议，其他代码见原repo
