@@ -1,0 +1,7 @@
+PySide6-Addons==6.5.3
+PySide6-Essentials==6.5.3
+PySide6==6.5.3
+loguru==0.5.3
+numpy==1.26.2
+pyqtdarktheme==2.1.0
+pyserial==3.5

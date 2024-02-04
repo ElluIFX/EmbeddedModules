@@ -53,11 +53,14 @@
 
 /****************************** 串口设置 ******************************/
 // 组件设置
-#define _UART_ENABLE_CDC 0         // 是否开启USB CDC虚拟串口支持
 #define _UART_ENABLE_DMA_RX 1      // 是否开启串口DMA接收功能
 #define _UART_ENABLE_FIFO_TX 1     // 是否开启串口FIFO发送功能
 #define _UART_DCACHE_COMPATIBLE 0  // (H7/F7) DCache兼容模式
 #define _UART_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数
+// CDC设置
+#define _UART_ENABLE_CDC 0      // 是否开启USB CDC虚拟串口支持
+#define _UART_CDC_USE_CUBEMX 1  // 是否使用CUBEMX生成的CDC代码
+#define _UART_CDC_USE_CHERRY 0  // 是否使用CherryUSB的CDC代码
 // 收发设置
 #define _UART_RX_BUF_SIZE 256  // 串口接收缓冲区大小
 #define _UART_TX_USE_DMA 1     // 对于支持的串口是否使用DMA发送

@@ -23,9 +23,11 @@ C_FILE_TEMP = """/**
 
 // Private Typedefs -------------------------
 
-// Public Variables -------------------------
+// Private Macros ---------------------------
 
 // Private Variables ------------------------
+
+// Public Variables -------------------------
 
 // Private Functions ------------------------
 
@@ -56,9 +58,9 @@ extern "C" {
 
 // Public Typedefs --------------------------
 
-// Exported Variables -----------------------
+// Public Macros ----------------------------
 
-// Exported Macros --------------------------
+// Exported Variables -----------------------
 
 // Exported Functions -----------------------
 
@@ -84,13 +86,15 @@ README_TEMP = """# Module: &&&MODULE_NAME&&&
 
 
 AVAILABLE_TYPES = [
-    "none",
     "algorithm",
-    "data",
+    "datastruct",
+    "communication",
+    "debug",
     "graphics",
     "peripheral",
+    "storage",
     "system",
-    "test",
+    "unittest",
     "utility",
 ]
 
@@ -102,7 +106,6 @@ con.print(f"[blue]Module root: [green]{module_root}")
 module_type = Prompt.ask(
     "[yellow]Please select module type",
     choices=AVAILABLE_TYPES,
-    default="none",
 )
 
 module_name = Prompt.ask("[yellow]Please input module name")
@@ -117,8 +120,6 @@ module_email = (
 )
 module_version = "1.0.0" if os.getenv("VERSION") is None else str(os.getenv("VERSION"))
 
-create_readme_conf = Confirm.ask("[yellow]Create README.md?", default=True)
-
 module_date = datetime.datetime.now().strftime("%Y-%m-%d")
 module_file_name = module_name.replace(" ", "_").lower()
 
@@ -128,7 +129,7 @@ table.add_row("[blue]Module name", ":", f"[green]{module_name}")
 table.add_row("[blue]Module brief", ":", f"[green]{module_brief}")
 table.add_row("[blue]Module type", ":", f"[green]{module_type}")
 table.add_row("[blue]Module date", ":", f"[green]{module_date}")
-table.add_row("[blue]Module filename", ":", f"[green]{module_file_name}")
+table.add_row("[blue]Module filename", ":", f"[green]{module_file_name}.\\[ch]")
 table.add_row("[blue]Module author", ":", f"[green]{module_author}")
 table.add_row("[blue]Module email", ":", f"[green]{module_email}")
 table.add_row("[blue]Module version", ":", f"[green]{module_version}")
@@ -139,17 +140,17 @@ conf = Confirm.ask("[yellow]Confirm to create module?", default=True)
 if not conf:
     sys.exit(0)
 
+create_readme_conf = Confirm.ask("[yellow]Create README.md?", default=True)
+
 # Create module folder
-if module_type != "none":
-    module_path = os.path.join(module_root, module_type, module_file_name)
-else:
-    module_path = os.path.join(module_root, module_file_name)
+module_path = os.path.join(module_root, module_type, module_file_name)
 if os.path.exists(module_path):
     con.print(f"[red]Module dir already exists: [yellow]{module_path}")
     conf_del = Confirm.ask(
         "[red]Purge existing module? [yellow](DANGER) ", default=False
     )
     if not conf_del:
+        con.print("[red]Abort.")
         sys.exit(0)
     shutil.rmtree(module_path)
 os.makedirs(module_path)

@@ -18,9 +18,9 @@ extern "C" {
 #if __has_include("usart.h")
 #include "usart.h"
 #endif
-
 #include "lfbb.h"
 #include "lfifo.h"
+#include "uart_pack_cdc.h"
 
 /**
  * @brief 串口错误状态
@@ -51,14 +51,13 @@ extern void printft_flush(UART_HandleTypeDef *huart);
  * @param  len              数据长度
  */
 extern int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data,
-                     uint16_t len);
+                     size_t len);
 
 /**
  * @brief 串口发送数据，阻塞时不等待
  * @note  不支持FIFO发送，直接将数据写入外设
  */
-extern int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data,
-                         uint16_t len);
+extern int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, size_t len);
 
 // 适配标准C输入输出函数
 extern void Uart_Putchar(UART_HandleTypeDef *huart, uint8_t data);
@@ -75,7 +74,7 @@ extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
  * @retval lfifo_t          LFIFO句柄, NULL:失败
  */
 extern lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart, uint8_t *buf,
-                                uint16_t bufSize,
+                                size_t bufSize,
                                 void (*rxCallback)(lfifo_t *fifo));
 /**
  * @brief 轮询以在主循环中响应串口接收完成回调
@@ -110,7 +109,7 @@ extern void Uart_ErrorProcess(UART_HandleTypeDef *huart);
  * @retval int           0:成功 -1:失败
  */
 extern int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf,
-                           uint16_t bufSize);
+                           size_t bufSize);
 extern void Uart_FifoTxDeInit(UART_HandleTypeDef *huart);
 #endif
 
@@ -126,63 +125,15 @@ extern void Uart_FifoTxDeInit(UART_HandleTypeDef *huart);
  * @retval LFBB_Inst_Type*  LFBB句柄, NULL:失败
  */
 extern LFBB_Inst_Type *Uart_DmaRxInit(
-    UART_HandleTypeDef *huart, uint8_t *buf, uint16_t bufSize,
-    void (*rxCallback)(uint8_t *data, uint16_t len), uint8_t cbkInIRQ);
+    UART_HandleTypeDef *huart, uint8_t *buf, size_t bufSize,
+    void (*rxCallback)(uint8_t *data, size_t len), uint8_t cbkInIRQ);
 
 /**
  * @brief 串口DMA接收处理，在函数HAL_UARTEx_RxEventCallback中调用
  * @note DMA接收需要该函数
  */
-extern void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size);
+extern void Uart_DmaRxProcess(UART_HandleTypeDef *huart, size_t Size);
 #endif  // _UART_ENABLE_DMA_RX
-
-#if _UART_ENABLE_CDC
-#include "usbd_cdc_if.h"
-
-/**
- * @brief  USB CDC FIFO发送/接收初始化
- * @param  txBuf           发送缓冲区（NULL则尝试动态分配）
- * @param  txBufSize       发送缓冲区大小
- * @param  rxBuf           接收缓冲区（NULL则尝试动态分配）
- * @param  rxBufSize       接收缓冲区大小
- * @param  rxCallback      接收完成回调函数
- * @param  cbkInIRQ        回调函数是否在中断中执行
- * @retval lfifo_t         接收LFIFO句柄, NULL:失败
- */
-lfifo_t *CDC_FifoTxRxInit(uint8_t *txBuf, uint16_t txBufSize, uint8_t *rxBuf,
-                          uint16_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
-                          uint8_t cbkInIRQ);
-
-/**
- * @brief USB CDC 发送格式化字符串
- */
-extern int CDC_Printf(char *fmt, ...);
-
-/**
- * @brief USB CDC 发送数据
- * @param  buf              数据指针
- * @param  len              数据长度
- */
-extern void CDC_Send(uint8_t *buf, uint16_t len);
-
-/**
- * @brief USB是否已连接
- * @retval uint8_t          1:已连接 0:未连接
- */
-extern uint8_t CDC_Connected(void);
-
-/**
- * @brief USB CDC 阻塞等待连接
- * @param  timeout_ms       超时时间(ms)
- */
-extern void CDC_WaitConnect(int timeout_ms);
-
-/**
- * @brief USB CDC 等待发送完成
- */
-extern void CDC_WaitTxFinish(void);
-
-#endif  // _UART_ENABLE_CDC
 
 #if _VOFA_ENABLE
 /**
@@ -209,12 +160,14 @@ extern void Vofa_Send(UART_HandleTypeDef *huart);
  * @brief 向指定串口发送VOFA数据(如串口未就绪则丢弃)
  */
 extern void Vofa_SendFast(UART_HandleTypeDef *huart);
+
 #if _UART_ENABLE_CDC
 /**
  * @brief 向CDC发送VOFA数据
  */
 extern void Vofa_SendCDC(void);
 #endif  // _UART_ENABLE_CDC
+
 #endif  // _VOFA_ENABLE
 
 // 重定向printf

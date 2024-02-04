@@ -12,3 +12,9 @@
 # eide template
 *.ept
 *.eide-template
+
+# python
+*.pyc
+*.pyo
+*.pyd
+__pycache__

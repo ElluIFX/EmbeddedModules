@@ -8,7 +8,7 @@
 #include "ulist.h"
 
 #if 0  // memcpy 实现
-static inline void uart_memcpy(void *dst, const void *src, uint16_t len) {
+static inline void uart_memcpy(void *dst, const void *src, size_t len) {
   uint8_t *dst8 = (uint8_t *)dst;
   uint8_t *src8 = (uint8_t *)src;
   while (len--) {
@@ -28,7 +28,7 @@ static inline void uart_memcpy(void *dst, const void *src, uint16_t len) {
 #endif
 
 static inline void _send_func(UART_HandleTypeDef *huart, const uint8_t *data,
-                              uint16_t len) {
+                              size_t len) {
 #if _UART_TX_USE_DMA
   if (huart->hdmatx) {
 #if _UART_DCACHE_COMPATIBLE
@@ -62,7 +62,7 @@ static ulist_t fifo_tx_list = {
     .cfg = ULIST_CFG_NO_ALLOC_EXTEND | ULIST_CFG_CLEAR_DIRTY_REGION,
 };
 
-int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf, uint16_t bufSize) {
+int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf, size_t bufSize) {
   if (!bufSize) return -1;
   uart_fifo_tx_t *ctrl = (uart_fifo_tx_t *)ulist_append(&fifo_tx_list);
   if (!ctrl) return -1;
@@ -119,7 +119,7 @@ static void fifo_exchange(uart_fifo_tx_t *ctrl, uint8_t force) {
   }
 }
 
-static inline uint8_t *wait_fifo(uart_fifo_tx_t *ctrl, uint16_t len) {
+static inline uint8_t *wait_fifo(uart_fifo_tx_t *ctrl, size_t len) {
   if (len > ctrl->lfbb.size - 1) return NULL;
 #if _UART_FIFO_TIMEOUT < 0
   return LFBB_WriteAcquire(&ctrl->lfbb, len);
@@ -142,7 +142,7 @@ static inline uint8_t *wait_fifo(uart_fifo_tx_t *ctrl, uint16_t len) {
 }
 
 static inline int fifo_send(uart_fifo_tx_t *ctrl, const uint8_t *data,
-                            uint16_t len) {
+                            size_t len) {
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
   uint8_t *buf = wait_fifo(ctrl, len);
   if (!buf) {
@@ -255,7 +255,7 @@ void printft_flush(UART_HandleTypeDef *huart) {
   }
 }
 
-int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, uint16_t len) {
+int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, size_t len) {
   if (!len) return 0;
 #if _UART_ENABLE_FIFO_TX
   uart_fifo_tx_t *ctrl = is_fifo_tx(huart);
@@ -310,7 +310,7 @@ char *Uart_Gets(UART_HandleTypeDef *huart, char *str) {
   return str;
 }
 
-int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, uint16_t len) {
+int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, size_t len) {
   if (!len) return 0;
   if (_UART_NOT_READY) return -1;
   _send_func(huart, data, len);
@@ -333,7 +333,7 @@ static ulist_t fifo_rx_list = {
 };
 
 lfifo_t *Uart_FifoRxInit(UART_HandleTypeDef *huart, uint8_t *buf,
-                         uint16_t bufSize, void (*rxCallback)(lfifo_t *fifo)) {
+                         size_t bufSize, void (*rxCallback)(lfifo_t *fifo)) {
   if (!bufSize) return NULL;
   uart_fifo_rx_t *ctrl = (uart_fifo_rx_t *)ulist_append(&fifo_rx_list);
   if (!ctrl) return NULL;
@@ -370,12 +370,12 @@ inline void Uart_TxProcess(UART_HandleTypeDef *huart) {
 #if _UART_ENABLE_DMA_RX
 static uint8_t dma_tmp;  // DMA垃圾箱
 
-typedef struct {                            // DMA串口接收控制结构体
-  LFBB_Inst_Type lfbb;                      // 环形数据缓冲区
-  uint8_t *pBuffer;                         // 接收缓冲区指针
-  size_t pSize;                             // 接收缓冲区大小
-  UART_HandleTypeDef *huart;                // 串口句柄
-  void (*rxCallback)(uint8_t *, uint16_t);  // 接收完成回调函数
+typedef struct {                          // DMA串口接收控制结构体
+  LFBB_Inst_Type lfbb;                    // 环形数据缓冲区
+  uint8_t *pBuffer;                       // 接收缓冲区指针
+  size_t pSize;                           // 接收缓冲区大小
+  UART_HandleTypeDef *huart;              // 串口句柄
+  void (*rxCallback)(uint8_t *, size_t);  // 接收完成回调函数
   uint8_t cbkInIRQ;  // 回调函数是否在中断中执行
 } uart_dma_rx_t;
 
@@ -388,8 +388,8 @@ static ulist_t dma_rx_list = {
 };
 
 LFBB_Inst_Type *Uart_DmaRxInit(UART_HandleTypeDef *huart, uint8_t *buf,
-                               uint16_t bufSize,
-                               void (*rxCallback)(uint8_t *data, uint16_t len),
+                               size_t bufSize,
+                               void (*rxCallback)(uint8_t *data, size_t len),
                                uint8_t cbkInIRQ) {
   if (!bufSize) return NULL;
   uart_dma_rx_t *ctrl = (uart_dma_rx_t *)ulist_append(&dma_rx_list);
@@ -416,7 +416,7 @@ LFBB_Inst_Type *Uart_DmaRxInit(UART_HandleTypeDef *huart, uint8_t *buf,
   return &ctrl->lfbb;
 }
 
-inline void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size) {
+inline void Uart_DmaRxProcess(UART_HandleTypeDef *huart, size_t Size) {
   size_t len;
   uint8_t *data;
   ulist_foreach(&dma_rx_list, uart_dma_rx_t, ctrl) {
@@ -446,10 +446,6 @@ inline void Uart_DmaRxProcess(UART_HandleTypeDef *huart, uint16_t Size) {
 }
 #endif  // _UART_ENABLE_DMA_RX
 
-#if _UART_ENABLE_CDC
-static void cdc_check_callback(void);
-#endif  // _UART_ENABLE_CDC
-
 void Uart_CallbackCheck(void) {
   ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
     if (ctrl->rxCallback == NULL) continue;
@@ -469,6 +465,7 @@ void Uart_CallbackCheck(void) {
   }
 #endif  // _UART_ENABLE_DMA_RX
 #if _UART_ENABLE_CDC
+  extern void cdc_check_callback(void);
   cdc_check_callback();
 #endif  // _UART_ENABLE_CDC
 }
@@ -540,150 +537,6 @@ void HAL_UARTEx_TxEventCallback(UART_HandleTypeDef *huart) {
 }
 #endif  // _UART_ENABLE_DMA_RX
 #endif  // _UART_REWRITE_HANLDER
-
-#if _UART_ENABLE_CDC
-extern USBD_HandleTypeDef hUsbDeviceFS;
-extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
-extern uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
-__IO static USBD_CDC_HandleTypeDef *hcdc = NULL;
-static struct {                       // CDC型UART控制结构体
-  lfifo_t txFifo;                     // 发送缓冲区
-  lfifo_t rxFifo;                     // 接收缓冲区
-  void (*rxCallback)(lfifo_t *fifo);  // 接收完成回调函数
-  uint8_t cbkInIRQ;                   // 回调函数是否在中断中执行
-} usb_cdc;
-
-static int8_t Hook_CDC_Init_FS(void) {
-  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
-  hcdc = (USBD_CDC_HandleTypeDef *)hUsbDeviceFS.pClassData;
-  return (USBD_OK);
-}
-
-static int8_t Hook_CDC_DeInit_FS(void) { return (USBD_OK); }
-
-static int8_t Hook_CDC_Control_FS(uint8_t cmd, uint8_t *pbuf, uint16_t length) {
-#if 0
-  // detect baudrate change
-#define MAGIC_BAUDRATE 123456
-  extern void reset_to_dfu(void);
-  if (cmd == CDC_SET_LINE_CODING) {
-    uint32_t baudrate = (uint32_t)(pbuf[0] | (pbuf[1] << 8) | (pbuf[2] << 16) |
-                                   (pbuf[3] << 24));
-    if (baudrate == MAGIC_BAUDRATE) {
-      reset_to_dfu();
-    }
-  }
-#endif
-  return (USBD_OK);
-}
-
-static int8_t Hook_CDC_Receive_FS(uint8_t *Buf, uint32_t *Len) {
-  LFifo_Write(&usb_cdc.rxFifo, Buf, *Len);
-  if (usb_cdc.cbkInIRQ && usb_cdc.rxCallback != NULL) {
-    usb_cdc.rxCallback(&usb_cdc.rxFifo);
-  }
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  return (USBD_OK);
-}
-
-static void start_next_cdc_transfer(uint8_t force) {
-  if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) return;
-  if (!force && hcdc->TxState != 0) return;
-  if (LFifo_IsEmpty(&usb_cdc.txFifo)) return;
-  size_t rd = LFifo_Read(&usb_cdc.txFifo, UserTxBufferFS, APP_TX_DATA_SIZE);
-  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, rd);
-  USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-}
-
-static int8_t Hook_CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len,
-                                       uint8_t epnum) {
-  start_next_cdc_transfer(1);
-  return USBD_OK;
-}
-
-__attribute__((constructor(255)))  // 自动Hook
-  void
-  Hook_CDC_Init(void) {
-  // hook USBD_Interface_fops_FS
-  USBD_Interface_fops_FS.Init = Hook_CDC_Init_FS;
-  USBD_Interface_fops_FS.DeInit = Hook_CDC_DeInit_FS;
-  USBD_Interface_fops_FS.Control = Hook_CDC_Control_FS;
-  USBD_Interface_fops_FS.Receive = Hook_CDC_Receive_FS;
-  // TransmitCplt 只在部分MCU上支持
-  USBD_Interface_fops_FS.TransmitCplt = Hook_CDC_TransmitCplt_FS;
-}
-
-lfifo_t *CDC_FifoTxRxInit(uint8_t *txBuf, uint16_t txBufSize, uint8_t *rxBuf,
-                          uint16_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
-                          uint8_t cbkInIRQ) {
-  if (!txBuf) {
-    if (LFifo_Init(&usb_cdc.txFifo, txBufSize) != 0) return NULL;
-  } else {
-    LFifo_AssignBuf(&usb_cdc.txFifo, txBuf, txBufSize);
-  }
-  if (!rxBuf) {
-    if (LFifo_Init(&usb_cdc.rxFifo, rxBufSize) != 0) return NULL;
-  } else {
-    LFifo_AssignBuf(&usb_cdc.rxFifo, rxBuf, rxBufSize);
-  }
-  usb_cdc.rxCallback = rxCallback;
-  usb_cdc.cbkInIRQ = cbkInIRQ;
-  return &usb_cdc.rxFifo;
-}
-
-static void cdc_check_callback(void) {
-  if (usb_cdc.rxCallback == NULL) return;
-  if (!LFifo_IsEmpty(&usb_cdc.rxFifo)) {
-    usb_cdc.rxCallback(&usb_cdc.rxFifo);
-  }
-}
-
-static int cdc_lwprintf_fn(int ch, lwprintf_t *lwobj) {
-  if (ch == '\0') {
-    start_next_cdc_transfer(0);
-    return 0;
-  }
-  if (!LFifo_WriteByte(&usb_cdc.txFifo, ch)) return ch;
-  return -1;
-}
-
-int CDC_Printf(char *fmt, ...) {
-  static lwprintf_t lw_cdc = {.out_fn = cdc_lwprintf_fn, .arg = NULL};
-  va_list ap;
-  va_start(ap, fmt);
-  int sendLen = lwprintf_vprintf_ex(&lw_cdc, fmt, ap);
-  va_end(ap);
-  return sendLen;
-}
-
-void CDC_WaitTxFinish(void) {
-  m_time_t _cdc_start_time = m_time_ms();
-  while (hcdc->TxState != 0) {
-    if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) return;
-    m_delay_ms(1);
-    if (m_time_ms() - _cdc_start_time > _UART_CDC_TIMEOUT) return;
-  }
-}
-
-void CDC_Send(uint8_t *buf, uint16_t len) {
-  LFifo_Write(&usb_cdc.txFifo, buf, len);
-  start_next_cdc_transfer(0);
-}
-
-void CDC_WaitConnect(int timeout_ms) {
-  m_time_t _cdc_start_time = m_time_ms();
-  while (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED) {
-    if (timeout_ms > 0 && m_time_ms() - _cdc_start_time > timeout_ms) return;
-    m_delay_ms(1);
-  }
-}
-
-uint8_t CDC_Connected(void) {
-  return hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED;
-}
-#endif  // _UART_ENABLE_CDC
 
 #if _VOFA_ENABLE
 

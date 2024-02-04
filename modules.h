@@ -63,9 +63,9 @@ typedef int64_t m_time_t;
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif _MOD_DELAY_MATHOD == 2  // klite
 #include "kernel.h"
-#define m_delay_us(x) thread_sleep((x) * KERNEL_FREQ / 1000000)
-#define m_delay_ms(x) thread_sleep((x) * KERNEL_FREQ / 1000)
-#define m_delay_s(x) thread_sleep((x) * KERNEL_FREQ)
+#define m_delay_us(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ / 1000000)
+#define m_delay_ms(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ / 1000)
+#define m_delay_s(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ)
 #elif _MOD_DELAY_MATHOD == 3  // freertos
 #include "FreeRTOS.h"         // period = 1ms
 #include "task.h"
