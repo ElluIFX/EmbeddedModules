@@ -246,7 +246,7 @@ uint8_t Sch_TriggerEvent(const char *name, void *args)
 ```
 
 - 功能：触发事件。
-- 返回：1：成功，0：失败（未找到事件或事件禁用2。
+- 返回：1：成功，0：失败（未找到事件或事件禁用）。
 - 参数：
   - `name`：事件名。
   - `args`：事件参数，会传递给事件回调函数。
@@ -257,7 +257,7 @@ uint8_t Sch_TriggerEventEx(const char *name, const void *arg_ptr, uint16_t arg_s
 ```
 
 - 功能：触发事件并为参数创建临时拷贝。
-- 返回：1：成功，0：失败（未找到事件或事件禁用2。
+- 返回：1：成功，0：失败（未找到事件或事件禁用）。
 - 参数：
   - `name`：事件名。
   - `arg_ptr`：事件参数指针，会被拷贝到临时缓冲区。
@@ -273,9 +273,9 @@ uint8_t Sch_TriggerEventEx(const char *name, const void *arg_ptr, uint16_t arg_s
 首先，介绍如何定义一个协程：
 
 ```C
-// 声明一个无局部变量协程
 void Coroutine_MainFunc(__async__, void *args) // __async__宏必须在函数声明中第一个参数的位置
 {
+    // 声明一个无局部变量协程
     ASYNC_NOLOCAL // 此宏必须在函数内部第一行
 
     // 协程的代码
@@ -289,9 +289,9 @@ void Coroutine_MainFunc(__async__, void *args) // __async__宏必须在函数声
 上述代码创建了一个协程的`主函数`，协程的`主函数`返回值必须是`void`类型，参数为`__async__`和`void*`，该协程未用到局部变量，下面介绍如何使用局部变量：
 
 ```C
-// 声明为有局部变量协程
 void Coroutine_MainFunc(__async__, void *args)
 {
+    // 声明为有局部变量协程
     ASYNC_LOCAL_START // 此宏必须在函数内部第一行
     // 声明局部变量（不允许赋值，一律初始化为0）
     uint8_t i;
@@ -302,7 +302,7 @@ void Coroutine_MainFunc(__async__, void *args)
     // 局部变量声明结束
     ASYNC_LOCAL_END // 此宏在声明结束完毕的下一行
 
-    i = 23; // 可以在这里赋初始值
+    LOCAL(i) = 23; // 可以在这里赋初始值
     uint8_t temp = 0; // 此变量不会被维护，每次函数重入时的值是未定义的
 
     // 协程的代码
@@ -314,7 +314,7 @@ void Coroutine_MainFunc(__async__, void *args)
 }
 ```
 
-该协程用到了局部变量，则使用`ASYNC_LOCAL_START`和`ASYNC_LOCAL_END`宏将局部变量的定义包裹起来，所有的局部变量**必须在这两个宏之间定义**，且使用`LOCAL()`宏来访问局部变量，除此以外定义的变量都是`临时变量`，他们会在任意一次`AWAIT_*`宏调用后被释放，下一次函数重入时的值是**未定义的**。
+该协程用到了局部变量，则使用`ASYNC_LOCAL_START`和`ASYNC_LOCAL_END`宏将局部变量的定义包裹起来，**所有的局部变量必须在这两个宏之间定义，且使用`LOCAL(var)`宏来访问局部变量**，除此以外定义的变量都是`临时变量`，他们会在任意一次`AWAIT_*`宏调用后被释放，下一次函数重入时的值是**未定义的**。
 
 >Tips: 除了 `ASYNC_NOLOCAL` 和 `ASYNC_LOCAL_START` / `ASYNC_LOCAL_END` 是定义协程的专有宏外
 >
