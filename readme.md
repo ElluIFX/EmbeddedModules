@@ -80,6 +80,7 @@
 
 | [Utility](./utility) | 工具 |
 |-------|-------|
+| [cot_menu](./utility/cot_menu) | 轻量级菜单框架 [repo](https://gitee.com/cot_package/cot_menu) |
 | [embedded_cli](./utility/embedded_cli) | 嵌入式命令行 [repo](https://github.com/funbiscuit/embedded-cli) |
 | [lwprintf](./utility/lwprintf) | 轻量级无缓冲区printf [repo](https://github.com/MaJerle/lwprintf) |
 | [minmea](./utility/minmea) | NMEA解析器 [repo](https://github.com/ata4/minema) |
