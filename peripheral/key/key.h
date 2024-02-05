@@ -16,15 +16,15 @@ extern "C" {
 #define KEY_READ_UP 0x00
 #define KEY_READ_DOWN 0x01
 
-#define KEY_EVENT_NULL 0x0000             // 无事件
-#define KEY_EVENT_DOWN 0x0001             // 按下事件
-#define KEY_EVENT_UP 0x0002               // 松开事件
-#define KEY_EVENT_SHORT 0x0003            // 短按事件
-#define KEY_EVENT_LONG 0x0004             // 长按事件
-#define KEY_EVENT_DOUBLE 0x0005           // 双击事件
-#define KEY_EVENT_DOUBLE_CONTINUE 0x0006  // 双击按住连发事件
-#define KEY_EVENT_HOLD 0x0007             // 按住事件
-#define KEY_EVENT_HOLD_CONTINUE 0x0008    // 按住连发事件
+#define KEY_EVENT_NULL 0x0000           // 无事件
+#define KEY_EVENT_DOWN 0x0001           // 按下事件
+#define KEY_EVENT_UP 0x0002             // 松开事件
+#define KEY_EVENT_SHORT 0x0003          // 短按事件
+#define KEY_EVENT_LONG 0x0004           // 长按事件
+#define KEY_EVENT_DOUBLE 0x0005         // 双击事件
+#define KEY_EVENT_DOUBLE_REPEAT 0x0006  // 双击按住连发事件
+#define KEY_EVENT_HOLD 0x0007           // 按住事件
+#define KEY_EVENT_HOLD_REPEAT 0x0008    // 按住连发事件
 
 #define KEY_DOWN(N) (KEY_EVENT_DOWN | N << 8)      // 按键N按下
 #define KEY_UP(N) (KEY_EVENT_UP | N << 8)          // 按键N松开
@@ -33,9 +33,9 @@ extern "C" {
 #define KEY_DOUBLE(N) (KEY_EVENT_DOUBLE | N << 8)  // 按键N双击
 #define KEY_HOLD(N) (KEY_EVENT_HOLD | N << 8)      // 按键N按住
 // 按键N按住连发
-#define KEY_HOLD_CONTINUE(N) (KEY_EVENT_HOLD_CONTINUE | N << 8)
+#define KEY_HOLD_REPEAT(N) (KEY_EVENT_HOLD_REPEAT | N << 8)
 // 按键N双击按住连发
-#define KEY_DOUBLE_CONTINUE(N) (KEY_EVENT_DOUBLE_CONTINUE | N << 8)
+#define KEY_DOUBLE_REPEAT(N) (KEY_EVENT_DOUBLE_REPEAT | N << 8)
 
 /******************************************************************************
                            User Interface [END]

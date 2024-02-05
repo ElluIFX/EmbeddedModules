@@ -255,7 +255,7 @@ static void key_status_double_continue_wait_check(key_dev_t *key_dev,
     return;
   }
 
-  key_push_event(key_idx << 8 | KEY_EVENT_DOUBLE_CONTINUE);
+  key_push_event(key_idx << 8 | KEY_EVENT_DOUBLE_REPEAT);
   key_dev->status = key_status_double_continue_check;
   key_dev->count_ms = 0;
   key_dev->count_temp = key_setting.continue_send_ms;
@@ -279,7 +279,7 @@ static void key_status_double_continue_check(key_dev_t *key_dev,
     return;
   }
 
-  key_push_event(key_idx << 8 | KEY_EVENT_DOUBLE_CONTINUE);
+  key_push_event(key_idx << 8 | KEY_EVENT_DOUBLE_REPEAT);
   key_dev->count_ms = 0;
   key_dev->count_temp -= key_setting.continue_send_speedup;
 }
@@ -318,7 +318,7 @@ static void key_status_hold_continue_wait_check(key_dev_t *key_dev,
     return;
   }
 
-  key_push_event(key_idx << 8 | KEY_EVENT_HOLD_CONTINUE);
+  key_push_event(key_idx << 8 | KEY_EVENT_HOLD_REPEAT);
   key_dev->status = key_status_hold_continue_check;
   key_dev->count_ms = 0;
   key_dev->count_temp = key_setting.continue_send_ms;
@@ -341,7 +341,7 @@ static void key_status_hold_continue_check(key_dev_t *key_dev, uint8_t key_idx,
     return;
   }
 
-  key_push_event(key_idx << 8 | KEY_EVENT_HOLD_CONTINUE);
+  key_push_event(key_idx << 8 | KEY_EVENT_HOLD_REPEAT);
   key_dev->count_ms = 0;
   key_dev->count_temp -= key_setting.continue_send_speedup;
 }
@@ -427,9 +427,9 @@ char *Key_GetEventName(uint8_t event) {
       return "DOUBLE";
     case KEY_EVENT_HOLD:
       return "HOLD";
-    case KEY_EVENT_HOLD_CONTINUE:
+    case KEY_EVENT_HOLD_REPEAT:
       return "HOLD_CON";
-    case KEY_EVENT_DOUBLE_CONTINUE:
+    case KEY_EVENT_DOUBLE_REPEAT:
       return "DOUBLE_CON";
     default:
       return "NULL";

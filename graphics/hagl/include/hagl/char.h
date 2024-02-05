@@ -79,9 +79,12 @@ uint8_t hagl_put_char(void const *surface, wchar_t code, int16_t x0, int16_t y0,
  * @param font pointer to a FONTX font
  * @return width of the drawn string
  */
-uint16_t hagl_put_text(void const *surface, const wchar_t *str, int16_t x0,
-                       int16_t y0, hagl_color_t color,
-                       const unsigned char *font);
+uint16_t hagl_put_text_wide(void const *surface, const wchar_t *str, int16_t x0,
+                            int16_t y0, hagl_color_t color,
+                            const unsigned char *font),
+    hagl_put_text(void const *surface, const char *str, int16_t x0,
+                  int16_t y0, hagl_color_t color,
+                  const unsigned char *font);
 
 /**
  * Extract a glyph into a bitmap
