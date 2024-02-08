@@ -62,11 +62,6 @@ extern "C" {
 
 #define ABS(x) ((x) > 0 ? (x) : -(x))
 
-/* If you want to use bigger fonts than 6x9 you need to define this. */
-#ifndef HAGL_CHAR_BUFFER_SIZE
-#define HAGL_CHAR_BUFFER_SIZE (6 * 9 * 2)
-#endif
-
 #define HAGL_OK (0)
 #define HAGL_ERR_GENERAL (1)
 #define HAGL_ERR_FILE_IO (2)

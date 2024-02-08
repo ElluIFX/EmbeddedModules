@@ -106,6 +106,79 @@ static void inline hagl_blit_xyxy(void const *surface, uint16_t x0, uint16_t y0,
   hagl_blit_xywh(surface, x0, y0, abs(x1 - x0) + 1, abs(y1 - y0) + 1, source);
 };
 
+/**
+ * Blit a bitmap to a surface, support mask color (ignore pixel equal to this
+ * color)
+ *
+ * Output will be clipped to the current clip window.
+ *
+ * @param surface
+ * @param x0
+ * @param y0
+ * @param source pointer to a bitmap
+ * @param mask_color
+ */
+void hagl_blit_mask_xy(void const *surface, int16_t x0, int16_t y0,
+                       hagl_bitmap_t *source, hagl_color_t mask_color);
+
+/**
+ * Blit a bitmap to a surface, support mask color (ignore pixel equal to this
+ * color)
+ *
+ * Output will be clipped to the current clip window.
+ *
+ * @param surface
+ * @param x0
+ * @param y0
+ * @param source pointer to a bitmap
+ * @param mask_color
+ */
+static void inline hagl_blit_mask(void const *surface, int16_t x0, int16_t y0,
+                                  hagl_bitmap_t *source,
+                                  hagl_color_t mask_color) {
+  hagl_blit_mask_xy(surface, x0, y0, source, mask_color);
+};
+
+/**
+ * Blit and scale a bitmap to a surface, support mask color (ignore pixel equal
+ * to this color)
+ *
+ * Output will be clipped to the current clip window.
+ *
+ * @param surface
+ * @param x0
+ * @param y0
+ * @param w target width
+ * @param h target height
+ * @param source pointer to a bitmap
+ * @param mask_color
+ */
+void hagl_blit_mask_xywh(void const *surface, uint16_t x0, uint16_t y0,
+                         uint16_t w, uint16_t h, hagl_bitmap_t *source,
+                         hagl_color_t mask_color);
+
+/**
+ * Blit and scale a bitmap to a surface, support mask color (ignore pixel equal
+ * to this color)
+ *
+ * Output will be clipped to the current clip window.
+ *
+ * @param surface
+ * @param x0
+ * @param y0
+ * @param x1
+ * @param y1
+ * @param source pointer to a bitmap
+ * @param mask_color
+ */
+static void inline hagl_blit_mask_xyxy(void const *surface, uint16_t x0,
+                                       uint16_t y0, uint16_t x1, uint16_t y1,
+                                       hagl_bitmap_t *source,
+                                       hagl_color_t mask_color) {
+  hagl_blit_mask_xywh(surface, x0, y0, abs(x1 - x0) + 1, abs(y1 - y0) + 1,
+                      source, mask_color);
+};
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

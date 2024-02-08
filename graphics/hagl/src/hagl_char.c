@@ -65,7 +65,7 @@ uint8_t hagl_get_glyph(void const *_surface, wchar_t code, hagl_color_t color,
       if (set) {
         *(ptr++) = color;
       } else {
-        *(ptr++) = 0x0000;
+        *(ptr++) = 0x00;
       }
     }
     glyph.buffer += glyph.pitch;
@@ -74,9 +74,11 @@ uint8_t hagl_get_glyph(void const *_surface, wchar_t code, hagl_color_t color,
   return 0;
 }
 
-uint8_t hagl_put_char(void const *_surface, wchar_t code, int16_t x0,
-                      int16_t y0, hagl_color_t color, const uint8_t *font) {
+uint8_t hagl_put_char_bitmap(void const *_surface, wchar_t code, int16_t x0,
+                             int16_t y0, hagl_color_t color,
+                             const uint8_t *font) {
   static uint8_t *buffer = NULL;
+  static size_t buffer_size = 0;
   const hagl_surface_t *surface = _surface;
   uint8_t set, status;
   hagl_bitmap_t bitmap;
@@ -90,7 +92,15 @@ uint8_t hagl_put_char(void const *_surface, wchar_t code, int16_t x0,
 
   /* Initialize character buffer when first called. */
   if (NULL == buffer) {
-    buffer = calloc(HAGL_CHAR_BUFFER_SIZE, sizeof(uint8_t));
+    buffer_size = glyph.width * glyph.height * 2;
+    buffer = malloc(buffer_size);
+  } else if (buffer_size < glyph.width * glyph.height * 2) {
+    buffer_size = glyph.width * glyph.height * 2;
+    buffer = realloc(buffer, buffer_size);
+  }
+
+  if (NULL == buffer) {
+    return 0;
   }
 
   hagl_bitmap_init(&bitmap, glyph.width, glyph.height, surface->depth,
@@ -104,15 +114,40 @@ uint8_t hagl_put_char(void const *_surface, wchar_t code, int16_t x0,
       if (set) {
         *(ptr++) = color;
       } else {
-        *(ptr++) = 0x0000;
+        *(ptr++) = ~color;
       }
     }
     glyph.buffer += glyph.pitch;
   }
 
-  hagl_blit(surface, x0, y0, &bitmap);
+  hagl_blit_mask(surface, x0, y0, &bitmap, ~color);
 
   return bitmap.width;
+}
+
+uint8_t hagl_put_char(void const *_surface, wchar_t code, int16_t x0,
+                      int16_t y0, hagl_color_t color, const uint8_t *font) {
+  const hagl_surface_t *surface = _surface;
+  uint8_t set, status;
+  fontx_glyph_t glyph;
+
+  status = fontx_glyph(&glyph, code, font);
+
+  if (0 != status) {
+    return 0;
+  }
+
+  for (uint8_t y = 0; y < glyph.height; y++) {
+    for (uint8_t x = 0; x < glyph.width; x++) {
+      set = *(glyph.buffer + x / 8) & (0x80 >> (x % 8));
+      if (set) {
+        hagl_put_pixel(surface, x0 + x, y0 + y, color);
+      }
+    }
+    glyph.buffer += glyph.pitch;
+  }
+
+  return glyph.width;
 }
 
 /*
@@ -130,6 +165,7 @@ uint16_t hagl_put_text_wide(void const *surface, const wchar_t *str, int16_t x0,
 
   status = fontx_meta(&meta, font);
   if (0 != status) {
+    //
     return 0;
   }
 

@@ -97,3 +97,40 @@ void hagl_blit_xywh(void const *_surface, uint16_t x0, uint16_t y0, uint16_t w,
     }
   }
 };
+
+void hagl_blit_mask_xy(void const *_surface, int16_t x0, int16_t y0,
+                       hagl_bitmap_t *source, hagl_color_t mask_color) {
+  const hagl_surface_t *surface = _surface;
+  hagl_color_t color;
+  hagl_color_t *ptr = (hagl_color_t *)source->buffer;
+
+  for (uint16_t y = 0; y < source->height; y++) {
+    for (uint16_t x = 0; x < source->width; x++) {
+      color = *(ptr++);
+      if (color != mask_color) {
+        hagl_put_pixel(surface, x0 + x, y0 + y, color);
+      }
+    }
+  }
+};
+
+void hagl_blit_mask_xywh(void const *_surface, uint16_t x0, uint16_t y0,
+                         uint16_t w, uint16_t h, hagl_bitmap_t *source,
+                         hagl_color_t mask_color) {
+  const hagl_surface_t *surface = _surface;
+
+  hagl_color_t color;
+  hagl_color_t *ptr = (hagl_color_t *)source->buffer;
+  uint32_t x_ratio = (uint32_t)((source->width << 16) / w);
+  uint32_t y_ratio = (uint32_t)((source->height << 16) / h);
+  for (uint16_t y = 0; y < h; y++) {
+    for (uint16_t x = 0; x < w; x++) {
+      uint16_t px = ((x * x_ratio) >> 16);
+      uint16_t py = ((y * y_ratio) >> 16);
+      color = *(ptr + (py * source->width) + px);
+      if (color != mask_color) {
+        hagl_put_pixel(surface, x0 + x, y0 + y, color);
+      }
+    }
+  }
+};
