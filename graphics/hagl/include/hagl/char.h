@@ -72,7 +72,7 @@ uint8_t hagl_put_char(void const *surface, wchar_t code, int16_t x0, int16_t y0,
  * https://github.com/tuupola/embedded-fonts
  *
  * @param surface
- * @param str pointer to an wide char string
+ * @param str pointer to an (wide) char string
  * @param x0
  * @param y0
  * @param color
@@ -82,9 +82,8 @@ uint8_t hagl_put_char(void const *surface, wchar_t code, int16_t x0, int16_t y0,
 uint16_t hagl_put_text_wide(void const *surface, const wchar_t *str, int16_t x0,
                             int16_t y0, hagl_color_t color,
                             const unsigned char *font),
-    hagl_put_text(void const *surface, const char *str, int16_t x0,
-                  int16_t y0, hagl_color_t color,
-                  const unsigned char *font);
+    hagl_put_text(void const *surface, const char *str, int16_t x0, int16_t y0,
+                  hagl_color_t color, const unsigned char *font);
 
 /**
  * Extract a glyph into a bitmap
