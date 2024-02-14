@@ -116,6 +116,12 @@ void hagl_fill_rectangle_xyxy(void const *_surface, int16_t x0, int16_t y0,
   uint16_t width = x1 - x0 + 1;
   uint16_t height = y1 - y0 + 1;
 
+  if (surface->fill) {
+    /* Already clipped so can call HAL directly. */
+    surface->fill(&surface, x0, y0, width, height, color);
+    return;
+  }
+
   for (uint16_t i = 0; i < height; i++) {
     if (surface->hline) {
       /* Already clipped so can call HAL directly. */

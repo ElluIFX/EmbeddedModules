@@ -33,7 +33,7 @@ _INLINE uint64_t CallLater_Runner(void) {
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
     if (now >= callLater_p->runTimeUs) {
       callLater_p->task(callLater_p->args);
-      ulist_delete(&clist, ulist_index(&clist, callLater_p));
+      ulist_remove(&clist, callLater_p);
       return 0;  // 有任务被执行，不确定
     }
     if (callLater_p->runTimeUs - now < sleep_us) {
@@ -52,7 +52,7 @@ uint8_t Sch_CallLater(cl_func_t func, uint64_t delayUs, void *args) {
 void Sch_CancelCallLater(cl_func_t func) {
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
     if (callLater_p->task == func) {
-      ulist_delete(&clist, ulist_index(&clist, callLater_p));
+      ulist_remove(&clist, callLater_p);
       callLater_p--;
       callLater_p_end--;
     }

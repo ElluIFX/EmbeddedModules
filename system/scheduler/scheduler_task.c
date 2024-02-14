@@ -30,8 +30,6 @@ static ulist_t tasklist = {.data = NULL,
                            .isize = sizeof(scheduler_task_t),
                            .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 
-static uint8_t task_changed = 0;
-
 static int taskcmp(const void *a, const void *b) {
   uint8_t priority1 = ((scheduler_task_t *)a)->priority;
   uint8_t priority2 = ((scheduler_task_t *)b)->priority;
@@ -48,7 +46,6 @@ static scheduler_task_t *get_task(const char *name) {
 static void resort_task(void) {
   if (tasklist.num <= 1) return;
   ulist_sort(&tasklist, taskcmp, SLICE_START, SLICE_END);
-  task_changed = 1;
 }
 
 _INLINE uint64_t Task_Runner(void) {
@@ -71,11 +68,9 @@ _INLINE uint64_t Task_Runner(void) {
 #endif
         }
 #if _SCH_DEBUG_REPORT
-        task_changed = 0;
         uint64_t _sch_debug_task_tick = get_sys_tick();
         task->task(task->args);
         _sch_debug_task_tick = get_sys_tick() - _sch_debug_task_tick;
-        if (task_changed) return 0;  // 列表已改变
         if (task->max_cost < _sch_debug_task_tick)
           task->max_cost = _sch_debug_task_tick;
         if (latency > task->max_lat) task->max_lat = latency;
@@ -110,21 +105,15 @@ uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
   if (!task.period) task.period = 1;
   task.lastRun -= task.period;
   if (!ulist_append_copy(&tasklist, &task)) return 0;
-  task_changed = 1;
   resort_task();
   return 1;
 }
 
 uint8_t Sch_DeleteTask(const char *name) {
-  if (tasklist.num == 0) return 0;
-  ulist_foreach(&tasklist, scheduler_task_t, task) {
-    if (fast_strcmp(task->name, name)) {
-      ulist_delete(&tasklist, task - (scheduler_task_t *)tasklist.data);
-      task_changed = 1;
-      return 1;
-    }
-  }
-  return 0;
+  scheduler_task_t *p = get_task(name);
+  if (p == NULL) return 0;
+  ulist_remove(&tasklist, p);
+  return 1;
 }
 
 uint8_t Sch_IsTaskExist(const char *name) { return get_task(name) != NULL; }

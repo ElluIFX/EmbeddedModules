@@ -56,8 +56,9 @@ static void _EasyUI_drawCircle(uint16_t x, uint16_t y, uint16_t r,
 }
 
 static void _EasyUI_clearBuffer(void) {
-  hagl_fill_rectangle(_easyui_hagl, 0, 0, _easyui_hagl->width - 1,
-                      _easyui_hagl->height - 1, backcolor);
+  // hagl_fill_rectangle(_easyui_hagl, 0, 0, _easyui_hagl->width - 1,
+  //                     _easyui_hagl->height - 1, backcolor);
+  hagl_clear(_easyui_hagl);
 }
 
 static void _EasyUI_sendBuffer(void) { hagl_flush(_easyui_hagl); }

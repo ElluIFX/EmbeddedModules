@@ -51,6 +51,12 @@ SPDX-License-Identifier: MIT
 
 void hagl_clear(void *_surface) {
   hagl_surface_t *surface = _surface;
+  hagl_backend_t *backend = _surface;
+
+  if (backend->clear) {
+    backend->clear(backend);
+    return;
+  }
 
   uint16_t x0 = surface->clip.x0;
   uint16_t y0 = surface->clip.y0;

@@ -61,10 +61,13 @@ typedef struct {
                 hagl_color_t color);
   void (*vline)(void *self, int16_t x0, int16_t y0, uint16_t height,
                 hagl_color_t color);
+  void (*fill)(void *self, int16_t x0, int16_t y0, uint16_t width,
+               uint16_t height, hagl_color_t color);
 
   /* Specific to backend. */
   size_t (*flush)(void *self);
   void (*close)(void *self);
+  void (*clear)(void *self);
   uint8_t *buffer;
   uint8_t *buffer2;
 } hagl_backend_t;

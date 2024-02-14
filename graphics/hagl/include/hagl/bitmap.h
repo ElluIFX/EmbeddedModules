@@ -67,6 +67,7 @@ typedef struct {
 
   uint16_t pitch;
   uint32_t size;
+  hagl_color_t mask;
   uint8_t *buffer;
 } hagl_bitmap_t;
 

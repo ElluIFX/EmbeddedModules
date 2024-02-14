@@ -141,7 +141,7 @@ uint8_t hagl_put_char(void const *_surface, wchar_t code, int16_t x0,
     for (uint8_t x = 0; x < glyph.width; x++) {
       set = *(glyph.buffer + x / 8) & (0x80 >> (x % 8));
       if (set) {
-        hagl_put_pixel(surface, x0 + x, y0 + y, color);
+        surface->put_pixel(&surface, x0 + x, y0 + y, color);
       }
     }
     glyph.buffer += glyph.pitch;

@@ -57,31 +57,30 @@
 #define _UART_ENABLE_FIFO_TX 1     // 是否开启串口FIFO发送功能
 #define _UART_DCACHE_COMPATIBLE 0  // (H7/F7) DCache兼容模式
 #define _UART_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数
-// CDC设置
-#define _UART_ENABLE_CDC 0      // 是否开启USB CDC虚拟串口支持
+// USB CDC设置
+#define _UART_ENABLE_CDC 0      // 是否开启CDC虚拟串口支持
 #define _UART_CDC_USE_CUBEMX 1  // 是否使用CUBEMX生成的CDC代码
 #define _UART_CDC_USE_CHERRY 0  // 是否使用CherryUSB的CDC代码
-// 收发设置
-#define _UART_RX_BUF_SIZE 256  // 串口接收缓冲区大小
-#define _UART_TX_USE_DMA 1     // 对于支持的串口是否使用DMA发送
-#define _UART_TX_USE_IT 1      // 不支持DMA的串口是否使用中断发送
+// 串口收发设置
+#define _UART_TX_USE_DMA 1  // 对于支持DMA的串口是否使用DMA发送
+#define _UART_TX_USE_IT 1   // 对不支持DMA的串口是否使用中断发送
 #define _UART_TX_TIMEOUT 5  // 串口发送等待超时时间(ms)/0阻塞/<0放弃发送
-#define _UART_CDC_TIMEOUT 5  // USB CDC发送等待超时时间(ms)/<=0放弃发送
-#define _UART_FIFO_TIMEOUT 0  // FIFO发送等待超时时间(ms)/0阻塞/<0放弃发送
+#define _UART_CDC_TIMEOUT 5  // CDC发送等待超时时间(ms)/<=0放弃发送
+#define _UART_FIFO_TIMEOUT 5  // FIFO发送等待超时时间(ms)/0阻塞/<0放弃发送
 // printf重定向设置
 #define _PRINTF_BLOCK 0           // 是否屏蔽所有printf
 #define _PRINTF_REDIRECT 1        // 是否重定向printf
-#define _PRINTF_REDIRECT_FUNC 1   // 是否重定向fputc等函数
-#define _PRINTF_UART_PORT huart1  // printf重定向串口
-#define _PRINTF_USE_RTT 0         // 是否使用RTT发送
+#define _PRINTF_REDIRECT_PUTX 1   // 是否重定向putchar/puts
+#define _PRINTF_UART_PORT huart1  // printf重定向到串口
+#define _PRINTF_USE_RTT 0         // printf重定向到RTT
 #define _PRINTF_USE_CDC 0         // printf重定向到CDC
+#define _PRINTF_USE_ITM 0         // printf重定向到ITM
 // VOFA+
 #define _VOFA_ENABLE 1        // 是否开启VOFA相关函数
 #define _VOFA_BUFFER_SIZE 32  // VOFA缓冲区大小
 
 /****************************** LED设置 ******************************/
-#define _LED_USE_PWM 0  // 是否使用PWM控制RGB灯
-#if _LED_USE_PWM
+#define _LED_USE_PWM 0                // 是否使用PWM控制RGB灯
 #define _LED_R_HTIM htim8             // 红灯PWM定时器
 #define _LED_G_HTIM htim8             // 绿灯PWM定时器
 #define _LED_B_HTIM htim8             // 蓝灯PWM定时器
@@ -92,7 +91,6 @@
 #define _LED_G_PULSE 650              // 绿灯最大比较值
 #define _LED_B_PULSE 800              // 蓝灯最大比较值
 #define _LED_PWMN_OUTPUT 1            // 互补输出
-#endif
 
 /****************************** IIC设置 ******************************/
 #define _BOARD_I2C_USE_SW_IIC 0       // 是否使用软件IIC

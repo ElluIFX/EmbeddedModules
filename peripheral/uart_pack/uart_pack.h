@@ -40,6 +40,13 @@ extern int printft(UART_HandleTypeDef *huart, const char *fmt, ...),
 extern uint8_t disable_printft;  // 禁止printf输出
 
 /**
+ * @brief 向ITM(SWO)发送格式化字符串
+ * @param  fmt              类似printf的格式化字符串
+ * @retval 发送的字节数
+ */
+extern int ITM_Printf(const char *fmt, ...);
+
+/**
  * @brief 等待串口发送完成
  */
 extern void printft_flush(UART_HandleTypeDef *huart);
@@ -58,12 +65,6 @@ extern int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data,
  * @note  不支持FIFO发送，直接将数据写入外设
  */
 extern int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, size_t len);
-
-// 适配标准C输入输出函数
-extern void Uart_Putchar(UART_HandleTypeDef *huart, uint8_t data);
-extern void Uart_Puts(UART_HandleTypeDef *huart, const char *str);
-extern int Uart_Getchar(UART_HandleTypeDef *huart);
-extern char *Uart_Gets(UART_HandleTypeDef *huart, char *str);
 
 /**
  * @brief 串口中断FIFO接收初始化
@@ -176,38 +177,58 @@ extern void Vofa_SendCDC(void);
 #define printf_flush() ((void)0)
 #else  // _PRINTF_BLOCK
 #if _PRINTF_REDIRECT
+#undef printf
 #if _PRINTF_USE_RTT
 #include "SEGGER_RTT.h"
 #define printf(...) SEGGER_RTT_printf(0, __VA_ARGS__)
 #define printf_flush() ((void)0)
-#else  // _PRINTF_USE_RTT
-#if _PRINTF_USE_CDC && _UART_ENABLE_CDC
+#elif _PRINTF_USE_CDC && _UART_ENABLE_CDC
 #define printf(...) printfcdc(__VA_ARGS__)
 #define printf_flush() printfcdc_flush()
-#undef putchar
-#define putchar(c) CDC_Putchar(c)
-#undef puts
-#define puts(s) CDC_Puts(s)
+#elif _PRINTF_USE_ITM
+#define printf(...) ITM_Printf(__VA_ARGS__)
+#define printf_flush() ((void)0)
 #else
-#undef printf
 #define printf(...) printft(&_PRINTF_UART_PORT, __VA_ARGS__)
 #define printf_flush() printft_flush(&_PRINTF_UART_PORT)
 #define printf_block(...) printft_block(&_PRINTF_UART_PORT, __VA_ARGS__)
 #define println(fmt, ...) printf(fmt "\r\n", ##__VA_ARGS__)
-#if _PRINTF_REDIRECT_FUNC
-#undef putchar
-#undef getchar
-#undef puts
-#undef gets
-#define putchar(c) Uart_Putchar(&_PRINTF_UART_PORT, c)
-#define getchar() Uart_Getchar(&_PRINTF_UART_PORT)
-#define puts(s) Uart_Puts(&_PRINTF_UART_PORT, s)
-#define gets(s) Uart_Gets(&_PRINTF_UART_PORT, s)
-#endif  // _PRINTF_REDIRECT_FUNC
-#endif  // _PRINTF_USE_CDC && _UART_ENABLE_CDC
-#endif  // _PRINTF_USE_RTT
+#endif  // _PRINTF_USE_*
 #endif  // _PRINTF_REDIRECT
 #endif  // _PRINTF_BLOCK
+
+#if _PRINTF_REDIRECT_PUTX
+static inline int __putchar(int ch) {
+#if _PRINTF_USE_RTT
+  SEGGER_RTT_Write(0, &ch, 1);
+#elif _PRINTF_USE_CDC && _UART_ENABLE_CDC
+  CDC_Send(&ch, 1);
+#elif _PRINTF_USE_ITM
+  ITM_SendChar(ch);
+#else
+  Uart_Send(&_PRINTF_UART_PORT, (uint8_t *)&ch, 1);
+#endif  // _PRINTF_USE_*
+  return ch;
+}
+static inline int __puts(const char *s) {
+#if _PRINTF_USE_RTT
+  SEGGER_RTT_Write(0, s, strlen(s));
+#elif _PRINTF_USE_CDC && _UART_ENABLE_CDC
+  CDC_Send((uint8_t *)s, strlen(s));
+#elif _PRINTF_USE_ITM
+  while (*s) {
+    ITM_SendChar(*s++);
+  }
+#else
+  Uart_Send(&_PRINTF_UART_PORT, (uint8_t *)s, strlen(s));
+#endif  // _PRINTF_USE_*
+  return 0;
+}
+#undef putchar
+#undef puts
+#define putchar __putchar
+#define puts __puts
+#endif  // _PRINTF_REDIRECT_PUTX
 
 #ifdef __cplusplus
 }

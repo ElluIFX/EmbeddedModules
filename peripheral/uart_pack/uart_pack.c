@@ -255,6 +255,22 @@ void printft_flush(UART_HandleTypeDef *huart) {
   }
 }
 
+static int itm_lwprintf_fn(int ch, lwprintf_t *lwobj) {
+  if (ch == '\0') return 0;
+  ITM_SendChar(ch);
+  return ch;
+}
+
+int ITM_Printf(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  lwprintf_t lwp_pub;
+  lwp_pub.out_fn = itm_lwprintf_fn;
+  int sendLen = lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
+  va_end(ap);
+  return sendLen;
+}
+
 int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, size_t len) {
   if (!len) return 0;
 #if _UART_ENABLE_FIFO_TX
@@ -276,38 +292,6 @@ int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, size_t len) {
 #endif
   _send_func(huart, data, len);
   return 0;
-}
-
-void Uart_Putchar(UART_HandleTypeDef *huart, uint8_t data) {
-  Uart_Send(huart, &data, 1);
-}
-
-void Uart_Puts(UART_HandleTypeDef *huart, const char *str) {
-  Uart_Send(huart, (uint8_t *)str, strlen(str));
-}
-
-int Uart_Getchar(UART_HandleTypeDef *huart) {
-  uint8_t data;
-  if (HAL_UART_Receive(huart, &data, 1, 0xFFFF) != HAL_OK) {
-    return EOF;
-  }
-  return data;
-}
-
-char *Uart_Gets(UART_HandleTypeDef *huart, char *str) {
-  char *p = str;
-  while (1) {
-    int c = Uart_Getchar(huart);
-    if (c == EOF) {
-      return NULL;
-    }
-    *p++ = c;
-    if (c == '\n') {
-      break;
-    }
-  }
-  *p = '\0';
-  return str;
 }
 
 int Uart_SendFast(UART_HandleTypeDef *huart, uint8_t *data, size_t len) {

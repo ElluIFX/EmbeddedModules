@@ -18,35 +18,40 @@ extern "C" {
 #include "modules.h"
 #include "uart_pack.h"
 
-/****************************    日志格式设置     ***********************/
-// 调试日志格式
-#define _LOG_PRINTF printf  // 调试日志输出函数
+/****************************    日志设置     ***********************/
+// 日志输出
+#define _LOG_PRINTF printf  // 日志输出函数 (必须为类printf函数)
 #define _LOG_TIMESTAMP ((float)((uint64_t)m_time_ms()) / 1000)  // 时间戳获取
-#define _LOG_TIMESTAMP_FMT "%.3fs"  // 时间戳格式
-// #define _LOG_PREFIX "\r"           // 日志前缀 (移动光标到行首)
-// #define _LOG_SUFFIX "\033[K\r\n"  // 日志后缀 (清空光标到行尾并换行)
+#define _LOG_TIMESTAMP_FMT "%.4fs"  // 时间戳格式
+
+#if 0
+#define _LOG_PREFIX "\r"          // 日志前缀 (移动光标到行首)
+#define _LOG_SUFFIX "\033[K\r\n"  // 日志后缀 (清空光标到行尾并换行)
+#else
 #define _LOG_PREFIX ""      // 日志前缀
-#define _LOG_SUFFIX "\r\n"  // 日志后缀 (换行)
-// 调试日志颜色(BLACK/RED/GREEN/YELLOW/BLUE/MAGENTA/CYAN/WHITE)
+#define _LOG_SUFFIX "\r\n"  // 日志后缀 (仅换行)
+#endif
+
+// 日志等级颜色
 #define _LOG_D_COLOR T_CYAN     // 调试日志
 #define _LOG_I_COLOR T_GREEN    // 信息日志
 #define _LOG_W_COLOR T_YELLOW   // 警告日志
 #define _LOG_E_COLOR T_RED      // 错误日志
 #define _LOG_F_COLOR T_MAGENTA  // 致命错误日志
-#define _LOG_L_COLOR T_BLUE     // LIMIT日志
-#define _LOG_R_COLOR T_BLUE     // REFRESH日志
-#define _LOG_A_COLOR T_RED      // ASSERT日志
-#define _LOG_T_COLOR T_YELLOW   // TIMEIT日志
-// 日志名称
+#define _LOG_L_COLOR T_BLUE     // 限频日志
+#define _LOG_R_COLOR T_BLUE     // 单行刷新日志
+#define _LOG_A_COLOR T_RED      // 断言日志
+#define _LOG_T_COLOR T_YELLOW   // 计时日志
+// 日志等级名称
 #define _LOG_D_STR "DEBUG"    // 调试日志
 #define _LOG_I_STR "INFO"     // 信息日志
-#define _LOG_W_STR "WARNING"  // 警告日志
+#define _LOG_W_STR "WARN"     // 警告日志
 #define _LOG_E_STR "ERROR"    // 错误日志
 #define _LOG_F_STR "FATAL"    // 致命错误日志
-#define _LOG_L_STR "LIMIT"    // LIMIT日志
-#define _LOG_R_STR "REFRESH"  // REFRESH日志
-#define _LOG_A_STR "ASSERT"   // ASSERT日志
-#define _LOG_T_STR "TIMEIT"   // TIMEIT日志
+#define _LOG_L_STR "LIMIT"    // 限频日志
+#define _LOG_R_STR "REFRESH"  // 单行刷新日志
+#define _LOG_A_STR "ASSERT"   // 断言日志
+#define _LOG_T_STR "TIMEIT"   // 计时日志
 /*********************************************************************/
 
 // 终端颜色代码
@@ -106,7 +111,9 @@ extern "C" {
  * @note 背景: 在颜色后加 _BK
  * @note 格式: T_RESET/T_BOLD/T_UNDERLINE/T_BLINK/T_REVERSE/T_HIDE
  */
-#define T_FMT(...) EVAL(__T_FMT, __VA_ARGS__)(__VA_ARGS__)
+#define T_FMT(...)           \
+  EVAL(__T_FMT, __VA_ARGS__) \
+  (__VA_ARGS__)
 #define T_RST T_FMT(T_RESET)
 
 #ifndef __FUNCTION__
@@ -143,7 +150,7 @@ extern "C" {
 
 #if _LOG_ENABLE_DEBUG
 /**
- * @brief 调试日志输出
+ * @brief 调试日志
  */
 #define LOG_DEBUG(fmt, args...)                                            \
   _DBG_LOG_OUTPUT(_LOG_PREFIX, _LOG_D_STR, _LOG_D_COLOR, _LOG_SUFFIX, fmt, \
@@ -151,7 +158,7 @@ extern "C" {
 #endif
 #if _LOG_ENABLE_INFO
 /**
- * @brief 信息日志输出
+ * @brief 信息日志
  */
 #define LOG_INFO(fmt, args...)                                             \
   _DBG_LOG_OUTPUT(_LOG_PREFIX, _LOG_I_STR, _LOG_I_COLOR, _LOG_SUFFIX, fmt, \
@@ -159,15 +166,15 @@ extern "C" {
 #endif
 #if _LOG_ENABLE_WARN
 /**
- * @brief 警告日志输出
+ * @brief 警告日志
  */
-#define LOG_WARNING(fmt, args...)                                          \
+#define LOG_WARN(fmt, args...)                                             \
   _DBG_LOG_OUTPUT(_LOG_PREFIX, _LOG_W_STR, _LOG_W_COLOR, _LOG_SUFFIX, fmt, \
                   ##args)
 #endif
 #if _LOG_ENABLE_ERROR
 /**
- * @brief 错误日志输出
+ * @brief 错误日志
  */
 #define LOG_ERROR(fmt, args...)                                            \
   _DBG_LOG_OUTPUT(_LOG_PREFIX, _LOG_E_STR, _LOG_E_COLOR, _LOG_SUFFIX, fmt, \
@@ -175,7 +182,7 @@ extern "C" {
 #endif
 #if _LOG_ENABLE_FATAL
 /**
- * @brief 致命错误日志输出
+ * @brief 致命错误日志
  */
 #define LOG_FATAL(fmt, args...)                                            \
   _DBG_LOG_OUTPUT(_LOG_PREFIX, _LOG_F_STR, _LOG_F_COLOR, _LOG_SUFFIX, fmt, \
@@ -183,26 +190,25 @@ extern "C" {
 #endif
 
 #ifndef LOG_DEBUG
+// 该日志等级已禁用
 #define LOG_DEBUG(...) ((void)0)
 #endif
 #ifndef LOG_INFO
+// 该日志等级已禁用
 #define LOG_INFO(...) ((void)0)
 #endif
-#ifndef LOG_WARNING
-#define LOG_WARNING(...) ((void)0)
+#ifndef LOG_WARN
+// 该日志等级已禁用
+#define LOG_WARN(...) ((void)0)
 #endif
 #ifndef LOG_ERROR
+// 该日志等级已禁用
 #define LOG_ERROR(...) ((void)0)
 #endif
 #ifndef LOG_FATAL
+// 该日志等级已禁用
 #define LOG_FATAL(...) ((void)0)
 #endif
-
-#define LOG_D LOG_DEBUG
-#define LOG_I LOG_INFO
-#define LOG_W LOG_WARNING
-#define LOG_E LOG_ERROR
-#define LOG_F LOG_FATAL
 
 /**
  * @brief 自定义日志输出
@@ -217,7 +223,7 @@ extern "C" {
  */
 #define LOG_RAW(fmt, args...) _LOG_PRINTF(fmt, ##args)
 /**
- * @brief 原始日志输出/换行
+ * @brief 原始日志输出并换行
  */
 #define LOG_RAWLN(fmt, args...) _LOG_PRINTF(fmt _LOG_SUFFIX, ##args)
 /**
@@ -230,7 +236,7 @@ extern "C" {
 #define LOG_REFRESH(fmt, args...) \
   _DBG_LOG_OUTPUT("\r", "R", _LOG_R_COLOR, "", fmt, ##args)
 /**
- * @brief 限制日志输出频率
+ * @brief 限频日志
  * @param  limit_ms         输出周期(ms)
  */
 #define LOG_LIMIT(limit_ms, fmt, args...)                                      \
@@ -311,20 +317,34 @@ extern "C" {
 #define __ASSERT_CMD_9 __ASSERT_CMD_MORE
 
 /**
- * @brief 断言宏
+ * @brief 断言日志
  * @param  expr             断言表达式
  * @param  text             断言失败时输出的文本(可选)
  */
-#define LOG_ASSERT(expr, ...) EVAL(__ASSERT_, __VA_ARGS__)(expr, ##__VA_ARGS__)
+#define LOG_ASSERT(expr, ...)  \
+  EVAL(__ASSERT_, __VA_ARGS__) \
+  (expr, ##__VA_ARGS__)
 
 /**
- * @brief 断言宏
+ * @brief 断言日志，断言失败时执行命令
  * @param  expr             断言表达式
  * @param  cmd              断言失败时执行的命令
  * @param  text             断言失败时输出的文本(可选)
  */
 #define LOG_ASSERT_CMD(expr, cmd, ...) \
-  EVAL(__ASSERT_CMD_, __VA_ARGS__)(expr, cmd, ##__VA_ARGS__)
+  EVAL(__ASSERT_CMD_, __VA_ARGS__)     \
+  (expr, cmd, ##__VA_ARGS__)
+
+// 别名
+
+#define LOG_D LOG_DEBUG
+#define LOG_I LOG_INFO
+#define LOG_W LOG_WARN
+#define LOG_E LOG_ERROR
+#define LOG_F LOG_FATAL
+#define LOG_A LOG_ASSERT
+#define LOG_AC LOG_ASSERT_CMD
+#define LOG_L LOG_LIMIT
 
 #if _MOD_TIME_MATHOD == 1  // perf_counter
 /**

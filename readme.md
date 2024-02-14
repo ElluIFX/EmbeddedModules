@@ -32,6 +32,7 @@
 | [lfifo](./datastruct/lfifo) | 通用环形缓冲区 |*|
 | [lwrb](./datastruct/lwrb) | 轻量级环形缓冲区 | [link](https://github.com/MaJerle/lwrb) |
 | [pqueue](./datastruct/pqueue) | 优先队列 | [link](https://github.com/tidwall/pqueue.c) |
+| [sds](./datastruct/sds) | 简单动态字符串 | [link](https://github.com/antirez/sds) |
 | [udict](./datastruct/udict) | 通用字典 |*|
 | [ulist](./datastruct/ulist) | 通用内存连续列表 |*|
 
@@ -40,7 +41,7 @@
 | [benchmark](./debug/benchmark) | CoreMark基准测试 | [link](https://github.com/eembc/coremark) |
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯 | [link](https://github.com/armink/CmBacktrace) |
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 | [link](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/) |
-| [log.h](./debug/log.h) | 轻量级日志 |*|
+| [log.h](./debug/log.h) | 轻量级宏函数日志 |*|
 
 | [Graphics](./graphics) | 图形 | repo |
 |-|-|:-:|
@@ -72,7 +73,7 @@
 | [System](./system) | 系统 | repo |
 |-|-|:-:|
 | [dalloc](./system/dalloc) | 动态指针管理内存分配器 | [link](https://github.com/SkyEng1neering/dalloc) |
-| [heap_4](./system/heap_4) | FreeRTOS堆4 [freeRTOS](https://www.freertos.org/a00111.html) |*|
+| [heap_4](./system/heap_4) | FreeRTOS堆4 | [link](https://www.freertos.org/a00111.html) |
 | [klite](./system/klite) | 基础实时内核 | [link](https://gitee.com/kerndev/klite) |
 | [lwmem](./system/lwmem) | 轻量级内存管理 | [link](https://github.com/MaJerle/lwmem) |
 | [s_task](./system/s_task) | 精简的协程实现 | [link](https://github.com/xhawk18/s_task) |

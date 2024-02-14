@@ -59,7 +59,7 @@ uint64_t _INLINE Scheduler_Run(const uint8_t block) {
 #endif
     if (mslp == UINT64_MAX) mslp = 1000;  // 没有任何任务
 #if _SCH_DEBUG_REPORT
-    if (mslp && DebugInfo_Runner(mslp)) continue;
+    if (DebugInfo_Runner(mslp)) continue;
 #endif
     if (block && mslp) {
       Scheduler_Idle_Callback(mslp);
@@ -69,7 +69,6 @@ uint64_t _INLINE Scheduler_Run(const uint8_t block) {
 }
 
 #if _SCH_DEBUG_REPORT
-#warning Scheduler Debug-Report is on, expect performance degradation and increased memory usage of task handles
 
 _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
   static uint8_t first_print = 1;

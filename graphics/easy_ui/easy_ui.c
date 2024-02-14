@@ -482,7 +482,7 @@ void EasyUIGetItemPos(EasyUIPage_t *page, EasyUIItem_t *item, uint8_t index,
 
   // Calculate current position
   if (time == 0 || index != lastIndex) {
-    item->step = ((float)target - (float)item->position) / (float)speed;
+    item->step = ((float)target - (float)item->position) / speed;
   }
   if (time >= ANIM_TIME) {
     item->posForCal = target;
@@ -617,7 +617,7 @@ void EasyUIDrawIndicator(EasyUIPage_t *page, uint8_t index, uint8_t timer,
   static uint8_t lastIndex = 0;
   static uint16_t lengthTarget = 0, yTarget = 0;
   static float stepLength = 0, stepY = 0, length = 0, y = 10000000;
-  uint8_t speed = ANIM_TIME / timer;
+  float speed = ANIM_TIME / timer;
   if (y > 1000000) y = driver.height;
   if (status) y = driver.height;
 
@@ -652,8 +652,8 @@ void EasyUIDrawIndicator(EasyUIPage_t *page, uint8_t index, uint8_t timer,
 
   // Calculate current position
   if (time == 0 || index != lastIndex) {
-    stepLength = ((float)lengthTarget - (float)length) / (float)speed;
-    stepY = ((float)yTarget - (float)y) / (float)speed;
+    stepLength = ((float)lengthTarget - (float)length) / speed;
+    stepY = ((float)yTarget - (float)y) / speed;
   }
   if (time >= ANIM_TIME) {
     length = lengthTarget;
