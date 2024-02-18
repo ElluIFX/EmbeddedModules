@@ -3,13 +3,13 @@
 #include "scheduler_internal.h"
 #if _SCH_ENABLE_TASK
 #pragma pack(1)
-typedef struct {     // 用户任务结构
-  task_func_t task;  // 任务函数指针
-  uint64_t period;   // 任务调度周期(Tick)
-  uint64_t lastRun;  // 上次执行时间(Tick)
-  uint8_t enable;    // 是否使能
-  uint8_t priority;  // 优先级
-  void *args;        // 任务参数
+typedef struct {      // 用户任务结构
+  task_func_t task;   // 任务函数指针
+  uint64_t period;    // 任务调度周期(Tick)
+  uint64_t pendTime;  // 下次执行时间(Tick)
+  uint8_t enable;     // 是否使能
+  uint8_t priority;   // 优先级
+  void *args;         // 任务参数
 #if _SCH_DEBUG_REPORT
   uint64_t max_cost;    // 任务最大执行时间(Tick)
   uint64_t total_cost;  // 任务总执行时间(Tick)
@@ -30,6 +30,8 @@ static ulist_t tasklist = {.data = NULL,
                            .isize = sizeof(scheduler_task_t),
                            .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
 
+static scheduler_task_t *pending_task = NULL;
+
 static int taskcmp(const void *a, const void *b) {
   uint8_t priority1 = ((scheduler_task_t *)a)->priority;
   uint8_t priority2 = ((scheduler_task_t *)b)->priority;
@@ -48,47 +50,49 @@ static void resort_task(void) {
   ulist_sort(&tasklist, taskcmp, SLICE_START, SLICE_END);
 }
 
-_INLINE uint64_t Task_Runner(void) {
-  if (!tasklist.num) return UINT64_MAX;
-  uint64_t latency;
-  uint64_t now;
-  uint64_t sleep_us = UINT64_MAX;
-  if (tasklist.num) {
-    now = get_sys_tick();
-    ulist_foreach(&tasklist, scheduler_task_t, task) {
-      if (!task->enable) continue;  // 跳过禁用任务
-      if (now >= task->lastRun + task->period) {
-        latency = now - (task->lastRun + task->period);
-        if (latency <= us_to_tick(_SCH_COMP_RANGE_US)) {
-          task->lastRun += task->period;
-        } else {
-          task->lastRun = now;
-#if _SCH_DEBUG_REPORT
-          task->unsync = 1;
-#endif
-        }
-#if _SCH_DEBUG_REPORT
-        uint64_t _sch_debug_task_tick = get_sys_tick();
-        task->task(task->args);
-        _sch_debug_task_tick = get_sys_tick() - _sch_debug_task_tick;
-        if (task->max_cost < _sch_debug_task_tick)
-          task->max_cost = _sch_debug_task_tick;
-        if (latency > task->max_lat) task->max_lat = latency;
-        task->total_cost += _sch_debug_task_tick;
-        task->total_lat += latency;
-        task->run_cnt++;
-#else
-        task->task(task->args);
-#endif             // _SCH_DEBUG_REPORT
-        return 0;  // 有任务被执行，直接返回
-      } else {
-        // 计算最小休眠时间
-        latency = tick_to_us(task->lastRun + task->period - now);
-        if (latency < sleep_us) sleep_us = latency;
-      }
-    }
+static inline scheduler_task_t *get_next_task(void) {
+  if (!tasklist.num) return NULL;
+  uint64_t now = get_sys_tick();
+  scheduler_task_t *next = NULL;
+  ulist_foreach(&tasklist, scheduler_task_t, task) {
+    if (!task->enable) continue;             // 跳过禁用任务
+    if (now >= task->pendTime) return task;  // 高优先级在前
+    if (task->pendTime < next->pendTime) next = task;
   }
-  return sleep_us;
+  return next;
+}
+
+_INLINE uint64_t Task_Runner(void) {
+  if (!pending_task) return UINT64_MAX;
+  uint64_t now = get_sys_tick();
+  if (now < pending_task->pendTime) {
+    return tick_to_us(pending_task->pendTime - now);
+  }
+  scheduler_task_t *task = pending_task;
+  uint64_t latency = now - task->pendTime;
+  if (latency <= us_to_tick(_SCH_COMP_RANGE_US)) {
+    task->pendTime += task->period;
+  } else {
+    task->pendTime = now + task->period;
+#if _SCH_DEBUG_REPORT
+    task->unsync = 1;
+#endif
+  }
+#if _SCH_DEBUG_REPORT
+  uint64_t _sch_debug_task_tick = get_sys_tick();
+  task->task(task->args);
+  _sch_debug_task_tick = get_sys_tick() - _sch_debug_task_tick;
+  if (task->max_cost < _sch_debug_task_tick)
+    task->max_cost = _sch_debug_task_tick;
+  if (latency > task->max_lat) task->max_lat = latency;
+  task->total_cost += _sch_debug_task_tick;
+  task->total_lat += latency;
+  task->run_cnt++;
+#else
+  task->task(task->args);
+#endif  // _SCH_DEBUG_REPORT
+  pending_task = get_next_task();
+  return 0;
 }
 
 uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
@@ -98,14 +102,14 @@ uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
       .enable = enable,
       .priority = priority,
       .period = (double)get_sys_freq() / (double)freqHz,
-      .lastRun = get_sys_tick(),
+      .pendTime = get_sys_tick(),
       .name = name,
       .args = args,
   };
   if (!task.period) task.period = 1;
-  task.lastRun -= task.period;
   if (!ulist_append_copy(&tasklist, &task)) return 0;
   resort_task();
+  pending_task = get_next_task();
   return 1;
 }
 
@@ -113,6 +117,7 @@ uint8_t Sch_DeleteTask(const char *name) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return 0;
   ulist_remove(&tasklist, p);
+  pending_task = get_next_task();
   return 1;
 }
 
@@ -129,6 +134,7 @@ uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority) {
   if (p == NULL) return 0;
   p->priority = priority;
   resort_task();
+  pending_task = get_next_task();
   return 1;
 }
 
@@ -143,9 +149,10 @@ uint8_t Sch_DelayTask(const char *name, uint64_t delayUs, uint8_t fromNow) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return 0;
   if (fromNow)
-    p->lastRun = us_to_tick(delayUs) + get_sys_tick();
+    p->pendTime = us_to_tick(delayUs) + get_sys_tick();
   else
-    p->lastRun += us_to_tick(delayUs);
+    p->pendTime += us_to_tick(delayUs);
+  pending_task = get_next_task();
   return 1;
 }
 
@@ -155,7 +162,8 @@ uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable) {
   scheduler_task_t *p = get_task(name);
   if (p == NULL) return 0;
   p->enable = enable;
-  if (p->enable) p->lastRun = get_sys_tick() - p->period;
+  if (p->enable) p->pendTime = get_sys_tick();
+  pending_task = get_next_task();
   return 1;
 }
 
@@ -164,7 +172,8 @@ uint8_t Sch_SetTaskFreq(const char *name, float freqHz) {
   if (p == NULL) return 0;
   p->period = (double)get_sys_freq() / (double)freqHz;
   if (!p->period) p->period = 1;
-  p->lastRun = get_sys_tick() - p->period;
+  p->pendTime = get_sys_tick();
+  pending_task = get_next_task();
   return 1;
 }
 
@@ -244,9 +253,9 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t *other) {
 void sch_task_finish_debug(uint8_t first_print, uint64_t offset) {
   ulist_foreach(&tasklist, scheduler_task_t, task) {
     if (first_print)
-      task->lastRun = get_sys_tick();
+      task->pendTime = get_sys_tick();
     else
-      task->lastRun += offset;
+      task->pendTime += offset;
     task->max_cost = 0;
     task->total_cost = 0;
     task->run_cnt = 0;
@@ -254,6 +263,7 @@ void sch_task_finish_debug(uint8_t first_print, uint64_t offset) {
     task->total_lat = 0;
     task->unsync = 0;
   }
+  pending_task = get_next_task();
 }
 #endif  // _SCH_DEBUG_REPORT
 
