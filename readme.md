@@ -45,10 +45,11 @@
 
 | [Graphics](./graphics) | 图形 | repo |
 |-|-|:-:|
+| [easy_ui](./graphics/easy_ui) | 单色屏UI库 | [link](https://github.com/ErBWs/Easy-UI/tree/main) |
+| [hagl](./graphics/hagl) | HAL图形库 | [link](https://github.com/tuupola/hagl) |
 | [lvgl](./graphics/lvgl) | LittlevGL图形库 | [link](https://github.com/lvgl/lvgl) |
 | [lvgl/manager/lvgl-pm](./graphics/lvgl/manager/lvgl-pm) | LVGL通用页面管理器 | [link](https://github.com/LanFly/lvgl-pm) |
 | [lvgl/manager/page_manager](./graphics/lvgl/manager/page_manager) | 基于X-TRACK项目移植的页面管理器 | [link](https://github.com/geekheart/page_manager) |
-| [hagl](./graphics/hagl) | HAL图形库 | [link](https://github.com/tuupola/hagl) |
 | [virtual_lcd](./graphics/virtual_lcd) | 虚拟LCD |*|
 
 | [Peripheral](./peripheral) | 外设 | repo |
