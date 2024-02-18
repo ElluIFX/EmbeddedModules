@@ -8,7 +8,7 @@
 
 | [Algorithm](./algorithm) | 算法 | repo |
 |-|-|:-:|
-| [cmsis_dsp](./algorithm/cmsis_dsp) | CMSIS-DSP | [link](https://github.com/ARM-software/CMSIS-DSP) |
+| [cmsis_dsp](./algorithm/cmsis_dsp) | CMSIS-DSP(Src) | [link](https://github.com/ARM-software/CMSIS-DSP) |
 | [libcrc](./algorithm/libcrc) | CRC计算库 | [link](https://github.com/whik/crc-lib-c) |
 | [pid](./algorithm/pid) | 通用PID控制器 |*|
 | [Quaternions](./algorithm/quaternion) | 四元数和IMU姿态估计 | [link](https://github.com/rbv188/IMU-algorithm) |

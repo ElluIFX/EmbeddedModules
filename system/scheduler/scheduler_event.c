@@ -3,23 +3,23 @@
 #include "scheduler_internal.h"
 #if _SCH_ENABLE_EVENT
 #pragma pack(1)
-typedef struct {      // 事件任务结构
+typedef struct {      // 事件结构
   const char *name;   // 事件名
-  event_func_t task;  // 任务回调函数指针
+  event_func_t task;  // 事件回调函数指针
   uint8_t enable;     // 是否使能
 #if _SCH_DEBUG_REPORT
-  uint64_t max_cost;     // 任务最大执行时间(Tick)
-  uint64_t total_cost;   // 任务总执行时间(Tick)
-  uint64_t max_lat;      // 任务调度延迟(Tick)
-  uint64_t total_lat;    // 任务调度延迟总和(Tick)
-  uint32_t run_cnt;      // 任务执行次数
+  uint64_t max_cost;     // 事件最大执行时间(Tick)
+  uint64_t total_cost;   // 事件总执行时间(Tick)
+  uint64_t max_lat;      // 事件调度延迟(Tick)
+  uint64_t total_lat;    // 事件调度延迟总和(Tick)
+  uint32_t run_cnt;      // 事件执行次数
   uint32_t trigger_cnt;  // 触发次数
-  float last_usage;      // 任务上次执行占用率
+  float last_usage;      // 事件上次执行占用率
 #endif
 } scheduler_event_t;
 typedef struct {              // 事件触发结构
-  event_func_t task;          // 任务回调函数指针
-  scheduler_event_arg_t arg;  // 任务参数
+  event_func_t task;          // 事件回调函数指针
+  scheduler_event_arg_t arg;  // 事件参数
   uint8_t allocated;          // 动态分配的参数内存
 #if _SCH_DEBUG_REPORT
   uint64_t trigger_time;     // 触发时间(Tick)
@@ -210,7 +210,7 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
         TT_GridLine_AddItem(
             line, TT_FmtStr(al, f1, f2, "%.2f", tick_to_us(event->max_cost)));
         if ((event->last_usage != 0 && usage / event->last_usage > 2) ||
-            usage > 20) {  // 任务占用率大幅度增加或者超过20%
+            usage > 20) {  // 事件占用率大幅度增加或者超过20%
           f1 = TT_FMT1_YELLOW;
           f2 = TT_FMT2_BOLD;
         }

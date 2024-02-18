@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+#include "modules.h"
+
 #ifndef _SCH_ENABLE_TASK
 #define _SCH_ENABLE_TASK 1  // 支持任务
 #endif

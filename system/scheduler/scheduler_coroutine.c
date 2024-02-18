@@ -60,19 +60,19 @@ _INLINE uint64_t Cortn_Runner(void) {
   uint64_t sleep_us = UINT64_MAX;
   uint64_t now = get_sys_us();
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
-    if (cortn->hd.state == CR_STATE_STOPPED) {
+    if (cortn->hd.state == _CR_STATE_STOPPED) {
       Sch_StopCortn(cortn->name);
       return 0;  // 指针已被释放
-    } else if (cortn->hd.state == CR_STATE_READY) {
-      cortn->hd.state = CR_STATE_RUNNING;  // 就绪态转运行态
+    } else if (cortn->hd.state == _CR_STATE_READY) {
+      cortn->hd.state = _CR_STATE_RUNNING;  // 就绪态转运行态
       cortn->hd.sleepUntil = 0;
-    } else if (cortn->hd.state == CR_STATE_AWAITING) {
+    } else if (cortn->hd.state == _CR_STATE_AWAITING) {
       continue;  // 跳过等待态协程
     }
     cortn_handle_now = &cortn->hd;
     // 检查睡眠态协程或者运行态协程
-    if (cortn_handle_now->state == CR_STATE_RUNNING ||
-        (cortn_handle_now->state == CR_STATE_SLEEPING &&
+    if (cortn_handle_now->state == _CR_STATE_RUNNING ||
+        (cortn_handle_now->state == _CR_STATE_SLEEPING &&
          now >= cortn_handle_now->sleepUntil)) {
       cortn_handle_now->depth = 0;
       cortn_handle_now->sleepUntil = 0;
@@ -87,7 +87,7 @@ _INLINE uint64_t Cortn_Runner(void) {
       cortn->task(cortn_handle_now, cortn->args);
 #endif
       if (cortn_handle_now->data[0].ptr == NULL) {
-        cortn_handle_now->state = CR_STATE_STOPPED;
+        cortn_handle_now->state = _CR_STATE_STOPPED;
         cortn_handle_now = NULL;
         sleep_us = 0;
         continue;  // 协程已结束
@@ -111,7 +111,7 @@ uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args) {
       .args = args,
       .hd =
           {
-              .state = CR_STATE_READY,
+              .state = _CR_STATE_READY,
               .depth = 0,
               .callDepth = 0,
               .sleepUntil = 0,
@@ -173,16 +173,16 @@ uint8_t Sch_IsCortnRunning(const char *name) { return get_cortn(name) != NULL; }
 uint8_t Sch_IsCortnWaitingMsg(const char *name) {
   scheduler_cortn_t *cortn = get_cortn(name);
   if (cortn == NULL) return 0;
-  if (cortn->hd.state == CR_STATE_STOPPED) return 0;
-  return cortn->hd.state == CR_STATE_AWAITING;
+  if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
+  return cortn->hd.state == _CR_STATE_AWAITING;
 }
 
 uint8_t Sch_SendMsgToCortn(const char *name, void *msg) {
   scheduler_cortn_t *cortn = get_cortn(name);
   if (cortn == NULL) return 0;
-  if (cortn->hd.state == CR_STATE_STOPPED) return 0;
+  if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
   if (msg != NULL) cortn->hd.msg = msg;
-  cortn->hd.state = CR_STATE_READY;
+  cortn->hd.state = _CR_STATE_READY;
   return 1;
 }
 
@@ -262,7 +262,7 @@ _INLINE uint8_t __Internal_AwaitReturn(void) {
  */
 _INLINE void __Internal_Delay(uint64_t delayUs) {
   cortn_handle_now->sleepUntil = get_sys_us() + delayUs;
-  cortn_handle_now->state = CR_STATE_SLEEPING;
+  cortn_handle_now->state = _CR_STATE_SLEEPING;
 }
 
 /**
@@ -272,7 +272,7 @@ _INLINE void __Internal_Delay(uint64_t delayUs) {
 _INLINE void __Internal_AwaitMsg(__async__, void **msgPtr) {
   ASYNC_NOLOCAL
   if (__chd__->msg == NULL) {
-    __chd__->state = CR_STATE_AWAITING;
+    __chd__->state = _CR_STATE_AWAITING;
     YIELD();
   }
   if (msgPtr != NULL) *msgPtr = __chd__->msg;
@@ -324,7 +324,7 @@ _INLINE void __Internal_ReleaseMutex(const char *name) {
     if (mutex->waitlist.num) {  // 等待队列不为空, 唤醒第一个协程
       const char **ptr = ulist_get(&mutex->waitlist, 0);
       cortn = get_cortn(*ptr);
-      if (cortn != NULL) cortn->hd.state = CR_STATE_READY;
+      if (cortn != NULL) cortn->hd.state = _CR_STATE_READY;
       ulist_delete(&mutex->waitlist, 0);
     } else {  // 等待队列为空, 释放锁
       mutex->locked = 0;
@@ -355,7 +355,7 @@ _STATIC_INLINE void release_barrier(scheduler_cortn_barrier_t *barrier) {
     ulist_foreach(&barrier->waitlist, const char *, ptr) {
       cortn = get_cortn(*ptr);
       if (cortn == NULL) continue;
-      cortn->hd.state = CR_STATE_READY;
+      cortn->hd.state = _CR_STATE_READY;
     }
     ulist_clear(&barrier->waitlist);
   }
@@ -404,15 +404,15 @@ uint8_t __Internal_WaitBarrier(const char *name) {
 
 static const char *get_cortn_state_str(uint8_t state) {
   switch (state) {
-    case CR_STATE_STOPPED:
+    case _CR_STATE_STOPPED:
       return "stopped";
-    case CR_STATE_READY:
+    case _CR_STATE_READY:
       return "ready";
-    case CR_STATE_RUNNING:
+    case _CR_STATE_RUNNING:
       return "running";
-    case CR_STATE_AWAITING:
+    case _CR_STATE_AWAITING:
       return "await";
-    case CR_STATE_SLEEPING:
+    case _CR_STATE_SLEEPING:
       return "sleep";
     default:
       return "unknown";
