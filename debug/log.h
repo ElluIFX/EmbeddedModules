@@ -34,6 +34,7 @@ extern "C" {
 
 // 日志等级颜色
 #define _LOG_D_COLOR T_CYAN     // 调试日志
+#define _LOG_P_COLOR T_LGREEN   // 通过日志
 #define _LOG_I_COLOR T_GREEN    // 信息日志
 #define _LOG_W_COLOR T_YELLOW   // 警告日志
 #define _LOG_E_COLOR T_RED      // 错误日志
@@ -44,6 +45,7 @@ extern "C" {
 #define _LOG_T_COLOR T_YELLOW   // 计时日志
 // 日志等级名称
 #define _LOG_D_STR "DEBUG"    // 调试日志
+#define _LOG_P_STR "PASS"     // 通过日志
 #define _LOG_I_STR "INFO"     // 信息日志
 #define _LOG_W_STR "WARN"     // 警告日志
 #define _LOG_E_STR "ERROR"    // 错误日志
@@ -156,6 +158,14 @@ extern "C" {
   _DBG_LOG_OUTPUT(_LOG_PREFIX, _LOG_D_STR, _LOG_D_COLOR, _LOG_SUFFIX, fmt, \
                   ##args)
 #endif
+#if _LOG_ENABLE_PASS
+/**
+ * @brief 通过日志
+ */
+#define LOG_PASS(fmt, args...)                                             \
+  _DBG_LOG_OUTPUT(_LOG_PREFIX, _LOG_P_STR, _LOG_P_COLOR, _LOG_SUFFIX, fmt, \
+                  ##args)
+#endif
 #if _LOG_ENABLE_INFO
 /**
  * @brief 信息日志
@@ -192,6 +202,10 @@ extern "C" {
 #ifndef LOG_DEBUG
 // 该日志等级已禁用
 #define LOG_DEBUG(...) ((void)0)
+#endif
+#ifndef LOG_PASS
+// 该日志等级已禁用
+#define LOG_PASS(...) ((void)0)
 #endif
 #ifndef LOG_INFO
 // 该日志等级已禁用
@@ -338,6 +352,7 @@ extern "C" {
 // 别名
 
 #define LOG_D LOG_DEBUG
+#define LOG_P LOG_PASS
 #define LOG_I LOG_INFO
 #define LOG_W LOG_WARN
 #define LOG_E LOG_ERROR

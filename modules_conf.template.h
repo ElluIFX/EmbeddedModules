@@ -46,6 +46,7 @@
 #define _LOG_ENABLE_ASSERT 1     // 是否开启ASSERT
 // 调试日志等级
 #define _LOG_ENABLE_DEBUG 1  // 是否输出DEBUG日志
+#define _LOG_ENABLE_PASS 1   // 是否输出PASS日志
 #define _LOG_ENABLE_INFO 1   // 是否输出INFO日志
 #define _LOG_ENABLE_WARN 1   // 是否输出WARN日志
 #define _LOG_ENABLE_ERROR 1  // 是否输出ERROR日志

@@ -42,15 +42,20 @@
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯 | [link](https://github.com/armink/CmBacktrace) |
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 | [link](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/) |
 | [log.h](./debug/log.h) | 轻量级宏函数日志 |*|
+| [minctest.h](./debug/minctest.h) | 轻量级单元测试 | [link](https://github.com/codeplea/minctest) |
 
 | [Graphics](./graphics) | 图形 | repo |
 |-|-|:-:|
-| [easy_ui](./graphics/easy_ui) | 单色屏UI库 | [link](https://github.com/ErBWs/Easy-UI/tree/main) |
+| [easy_ui](./graphics/easy_ui) | 单色屏UI库 | [link](https://github.com/ErBWs/Easy-UI) |
 | [hagl](./graphics/hagl) | HAL图形库 | [link](https://github.com/tuupola/hagl) |
 | [lvgl](./graphics/lvgl) | LittlevGL图形库 | [link](https://github.com/lvgl/lvgl) |
 | [lvgl/manager/lvgl-pm](./graphics/lvgl/manager/lvgl-pm) | LVGL通用页面管理器 | [link](https://github.com/LanFly/lvgl-pm) |
 | [lvgl/manager/page_manager](./graphics/lvgl/manager/page_manager) | 基于X-TRACK项目移植的页面管理器 | [link](https://github.com/geekheart/page_manager) |
 | [virtual_lcd](./graphics/virtual_lcd) | 虚拟LCD |*|
+
+| [NN](./nn) | 神经网络 | repo |
+|-|-|:-:|
+| [genann](./nn/genann) | 简单前馈神经网络 | [link](https://github.com/codeplea/genann) |
 
 | [Peripheral](./peripheral) | 外设 | repo |
 |-|-|:-:|

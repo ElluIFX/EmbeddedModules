@@ -127,7 +127,7 @@ extern const key_setting_t default_key_setting;
         #<- <long_ms ->#<- <multi_ms ->#<- <repeat_wait_ms ->#`<- >multi_ms ->
         ################               #######################
                                        ^DOUBLE                       *DOUBLE^
-    (*:当multi_max>=3时需要等待抬起后才能触发双击事件, 不影响重复事件)
+    (*:当multi_max>=3时需要等待抬起后判断多击才能触发双击事件, 这不影响重复事件)
 
 2.4 DREPEAT:双击按住重复, 双击并保持一定时间后开始重复触发, 松开触发停止事件
     ...####                                                           ####
@@ -161,6 +161,12 @@ extern const key_setting_t default_key_setting;
 /******************************************************************************
                            User Interface [END]
 *******************************************************************************/
+
+// 静态声明一个按键设备(指针)(由于结构体包含柔性数组, 因此必须使用该宏声明)
+#define KEY_DEV_DEF(name, num)                                         \
+  static uint8_t __key_buf_##name[sizeof(key_dev_t) +                  \
+                                  (num) * sizeof(struct __key)] = {0}; \
+  key_dev_t *name = (key_dev_t *)__key_buf_##name
 
 /**
  * @brief 按键系统初始化  (设置初始化为默认值)
