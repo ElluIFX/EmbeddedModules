@@ -1,8 +1,7 @@
 #ifndef HEAP_4_H
 #define HEAP_4_H
 
-#include "internal.h"
-#include "kernel.h"
+#include "modules.h"
 
 /*               CONFIGURATION                */
 
@@ -20,9 +19,16 @@
 
 #define xTaskResumeAll() ((void)0)
 
+#if _MOD_USE_OS == 1
+#include "internal.h"
 #define taskENTER_CRITICAL() cpu_enter_critical()
 
 #define taskEXIT_CRITICAL() cpu_leave_critical()
+#else
+#define taskENTER_CRITICAL() ((void)0)
+
+#define taskEXIT_CRITICAL() ((void)0)
+#endif
 
 #define traceMALLOC(pvReturn, xWantedSize) ((void)0)
 

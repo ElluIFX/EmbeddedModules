@@ -63,8 +63,12 @@ typedef int64_t m_time_t;
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif _MOD_DELAY_MATHOD == 2  // klite
 #include "kernel.h"
-#define m_delay_us(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ / 1000000)
-#define m_delay_ms(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ / 1000)
+#define m_delay_us(x) thread_sleep((uint64_t)(x) / (1000000 / KERNEL_FREQ))
+#if KERNEL_FREQ >= 1000
+#define m_delay_ms(x) thread_sleep((uint64_t)(x) * (KERNEL_FREQ / 1000))
+#else
+#define m_delay_ms(x) thread_sleep((uint64_t)(x) / (1000 / KERNEL_FREQ))
+#endif
 #define m_delay_s(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ)
 #elif _MOD_DELAY_MATHOD == 3  // freertos
 #include "FreeRTOS.h"         // period = 1ms
@@ -72,6 +76,18 @@ typedef int64_t m_time_t;
 #define m_delay_us(x) vTaskDelay((x) / 1000)
 #define m_delay_ms(x) vTaskDelay((x))
 #define m_delay_s(x) vTaskDelay((x) * 1000)
+#elif _MOD_DELAY_MATHOD == 4  // rtthread
+#include "rtthread.h"         // period = 1ms
+#define m_delay_us(x) \
+  rt_thread_delay((rt_tick_t)(x) / (1000000 / RT_TICK_PER_SECOND))
+#if RT_TICK_PER_SECOND >= 1000
+#define m_delay_ms(x) \
+  rt_thread_delay((rt_tick_t)(x) * (RT_TICK_PER_SECOND / 1000))
+#else
+#define m_delay_ms(x) \
+  rt_thread_delay((rt_tick_t)(x) / (1000 / RT_TICK_PER_SECOND))
+#endif
+#define m_delay_s(x) rt_thread_delay((rt_tick_t)(x) * RT_TICK_PER_SECOND)
 #else
 #error "MOD_DELAY_MATHOD invalid"
 #endif  // _MOD_DELAY_MATHOD
@@ -102,6 +118,11 @@ typedef int64_t m_time_t;
 #define m_alloc(size) pvPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
+#elif _MOD_HEAP_MATHOD == 5  // rtthread
+#include "rtthread.h"
+#define m_alloc(size) rt_malloc(size)
+#define m_free(ptr) rt_free(ptr)
+#define m_realloc(ptr, size) rt_realloc(ptr, size)
 #else
 #error "MOD_HEAP_MATHOD invalid"
 #endif
@@ -126,6 +147,13 @@ typedef int64_t m_time_t;
 #define MOD_MUTEX_ACQUIRE(mutex) xSemaphoreTake(mutex, portMAX_DELAY)
 #define MOD_MUTEX_RELEASE(mutex) xSemaphoreGive(mutex)
 #define MOD_MUTEX_FREE(mutex) vSemaphoreDelete(mutex)
+#elif _MOD_USE_OS == 3  // rtthread
+#include "rtthread.h"
+#define MOD_MUTEX_HANDLE rt_mutex_t
+#define MOD_MUTEX_CREATE() rt_mutex_create("mod_mutex", RT_IPC_FLAG_PRIO)
+#define MOD_MUTEX_ACQUIRE(mutex) rt_mutex_take(mutex, RT_WAITING_FOREVER)
+#define MOD_MUTEX_RELEASE(mutex) rt_mutex_release(mutex)
+#define MOD_MUTEX_FREE(mutex) rt_mutex_delete(mutex)
 #else
 #error "MOD_USE_OS invalid"
 #endif

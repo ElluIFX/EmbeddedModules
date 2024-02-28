@@ -98,7 +98,7 @@ uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, const size_t free_required) {
   return NULL;
 }
 
-uint8_t *LFBB_WriteAcquire2(LFBB_Inst_Type *inst, size_t *available) {
+uint8_t *LFBB_WriteAcquireAlt(LFBB_Inst_Type *inst, size_t *available) {
   assert(inst != NULL);
   assert(inst->data != NULL);
 

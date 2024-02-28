@@ -14,13 +14,20 @@
 /*********************************************************************/
 /****************************** 全局设置 ******************************/
 // 动态内存分配方法(m_alloc/m_free/m_realloc):
-#define _MOD_HEAP_MATHOD 0  // 0:stdlib 1:lwmem 2:klite 3:freertos
+// > 0:stdlib 1:lwmem 2:klite 3:freertos 4:heap4 5:rtthread
+#define _MOD_HEAP_MATHOD 0
+
 // 时间获取方法(m_tick/m_time_*)
-#define _MOD_TIME_MATHOD 1  // 0:HAL 1:perf_counter
+// > 0:HAL 1:perf_counter
+#define _MOD_TIME_MATHOD 1
+
 // 延时方法(m_delay_*)
-#define _MOD_DELAY_MATHOD 1  // 0:HAL 1:perf_counter 2:klite 3:freertos
+// > 0:HAL 1:perf_counter 2:klite 3:freertos 4:rtthread
+#define _MOD_DELAY_MATHOD 1
+
 // 是否使用操作系统(MOD_MUTEX_*)
-#define _MOD_USE_OS 0  // 0:none 1:klite 2:freertos
+// > 0:none 1:klite 2:freertos 3:rtthread
+#define _MOD_USE_OS 0
 
 /******************************调度器设置******************************/
 #define _SCH_ENABLE_TASK 1       // 支持任务

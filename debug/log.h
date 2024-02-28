@@ -22,7 +22,7 @@ extern "C" {
 // 日志输出
 #define _LOG_PRINTF printf  // 日志输出函数 (必须为类printf函数)
 #define _LOG_TIMESTAMP ((float)((uint64_t)m_time_ms()) / 1000)  // 时间戳获取
-#define _LOG_TIMESTAMP_FMT "%.4fs"  // 时间戳格式
+#define _LOG_TIMESTAMP_FMT "%.3fs"  // 时间戳格式
 
 #if 0
 #define _LOG_PREFIX "\r"          // 日志前缀 (移动光标到行首)

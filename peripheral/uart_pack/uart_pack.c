@@ -161,13 +161,17 @@ static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt,
   size_t sendLen, writeLen;
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
   // 第一次尝试直接获取缓冲区最大可用长度
-  uint8_t *buf = LFBB_WriteAcquire2(&ctrl->lfbb, &sendLen);
+  uint8_t *buf = LFBB_WriteAcquireAlt(&ctrl->lfbb, &sendLen);
   if (!buf) {
     MOD_MUTEX_RELEASE(ctrl->mutex);
     return 0;
   }
   do {  // 尝试写入数据
     writeLen = lwprintf_vsnprintf((char *)buf, sendLen, fmt, ap);
+    if (writeLen >= ctrl->lfbb.size - 1) {  // 需求长度超过缓冲区最大长度
+      MOD_MUTEX_RELEASE(ctrl->mutex);
+      return 0;
+    }
     if (writeLen + 1 >= sendLen) {  // 数据长度超过缓冲区最大长度
       buf = wait_fifo(ctrl, writeLen + 2);  // 等待缓冲区可用
       if (!buf) {
@@ -280,7 +284,7 @@ int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, size_t len) {
 #if _UART_TX_TIMEOUT > 0
   m_time_t _start_time = m_time_ms();
   while (_UART_NOT_READY) {
-    m_delay_ms(1);
+    // m_delay_ms(1);
     if (m_time_ms() - _start_time > _UART_TX_TIMEOUT) return -1;
   }
 #elif _UART_TX_TIMEOUT < 0
@@ -390,7 +394,7 @@ LFBB_Inst_Type *Uart_DmaRxInit(UART_HandleTypeDef *huart, uint8_t *buf,
     buf = ctrl->lfbb.data;
   }
   LFBB_Init(&ctrl->lfbb, buf, bufSize);
-  ctrl->pBuffer = LFBB_WriteAcquire2(&ctrl->lfbb, &ctrl->pSize);
+  ctrl->pBuffer = LFBB_WriteAcquireAlt(&ctrl->lfbb, &ctrl->pSize);
   if (!ctrl->pBuffer) {
     m_free(ctrl->lfbb.data);
     ulist_remove(&dma_rx_list, ctrl);
@@ -413,7 +417,7 @@ inline void Uart_DmaRxProcess(UART_HandleTypeDef *huart, size_t Size) {
           ((ctrl->pSize + 31) / 32) * 32);  // 对齐
 #endif
     }
-    ctrl->pBuffer = LFBB_WriteAcquire2(&ctrl->lfbb, &ctrl->pSize);
+    ctrl->pBuffer = LFBB_WriteAcquireAlt(&ctrl->lfbb, &ctrl->pSize);
     if (!ctrl->pBuffer) {  // 缓冲区已满，丢弃数据
       ctrl->pBuffer = &dma_tmp;
       ctrl->pSize = 1;

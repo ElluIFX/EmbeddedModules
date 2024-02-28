@@ -69,6 +69,10 @@ extern "C" {
 /*************************** TYPES ****************************/
 
 typedef struct {
+  size_t size;        /**< Size of the data array */
+  uint8_t *data;      /**< Pointer to the data array */
+  bool write_wrapped; /**< Write wrapped flag, used only in the producer */
+  bool read_wrapped;  /**< Read wrapped flag, used only in the consumer */
 #if LFBB_MULTICORE_HOSTED
   alignas(LFBB_CACHELINE_LENGTH) atomic_size_t r; /**< Read index */
   alignas(LFBB_CACHELINE_LENGTH) atomic_size_t w; /**< Write index */
@@ -79,10 +83,6 @@ typedef struct {
   atomic_size_t w; /**< Write index */
   atomic_size_t i; /**< Invalidated space index */
 #endif
-  size_t size;        /**< Size of the data array */
-  uint8_t *data;      /**< Pointer to the data array */
-  bool write_wrapped; /**< Write wrapped flag, used only in the producer */
-  bool read_wrapped;  /**< Read wrapped flag, used only in the consumer */
 } LFBB_Inst_Type;
 
 /******************** FUNCTION PROTOTYPES *********************/
@@ -112,7 +112,7 @@ uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, size_t free_required);
  * @retval Pointer to the beginning of the linear space
  * @note Use this function if you want to write as much data as possible
  */
-uint8_t *LFBB_WriteAcquire2(LFBB_Inst_Type *inst, size_t *available);
+uint8_t *LFBB_WriteAcquireAlt(LFBB_Inst_Type *inst, size_t *available);
 
 /**
  * @brief Releases the bipartite buffer after a write

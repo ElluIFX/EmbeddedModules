@@ -130,13 +130,20 @@ _STATIC_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
 #endif  // _SCH_DEBUG_REPORT
 
 #if _SCH_ENABLE_TERMINAL
-#define SHOWLWMEM \
-  (_MOD_HEAP_MATHOD == 1 || (_MOD_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 2))
-#define SHOWHEAP4 \
-  (_MOD_HEAP_MATHOD == 4 || (_MOD_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 3))
-#include "heap_4.h"
-#include "lwmem.h"
 #include "term_table.h"
+
+#if (_MOD_HEAP_MATHOD == 1 || \
+     (_MOD_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 2))
+#include "lwmem.h"
+#define SHOWLWMEM 1
+#elif (_MOD_HEAP_MATHOD == 4 ||                              \
+       (_MOD_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 3) || \
+       _MOD_HEAP_MATHOD == 3)
+#include "heap_4.h"
+#define SHOWHEAP4 1
+#elif (_MOD_HEAP_MATHOD == 5)
+#define SHOWRTTHREAD 1
+#endif
 
 static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 #if SHOWLWMEM
@@ -145,6 +152,11 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 #elif SHOWHEAP4
   HeapStats_t stats;
   vPortGetHeapStats(&stats);
+#elif SHOWRTTHREAD
+  rt_uint32_t total = 0;
+  rt_uint32_t used = 0;
+  rt_uint32_t max_used = 0;
+  rt_memory_info(&total, &used, &max_used);
 #endif
   TT tt = TT_NewTable(-1);
   TT_AddTitle(
@@ -222,7 +234,8 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       TT_FmtStr(al, f1, f2, "%d blocks", stats.nr_alloc - stats.nr_free), sep);
 #elif SHOWHEAP4
   TT_AddTitle(
-      tt, TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ Heap Info ]"),
+      tt,
+      TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ RTOS Heap Info ]"),
       '-');
   kv = TT_AddKVPair(tt, 0);
   TT_KVPair_AddItem(
@@ -264,6 +277,24 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
                     TT_FmtStr(al, f1, f2, "%d blocks",
                               stats.xNumberOfSuccessfulAllocations -
                                   stats.xNumberOfSuccessfulFrees),
+                    sep);
+#elif SHOWRTTHREAD
+  TT_AddTitle(tt,
+              TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD,
+                     "[ RT-Thread Heap Info ]"),
+              '-');
+  kv = TT_AddKVPair(tt, 0);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Total"),
+      TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)", total, (float)total / 1024),
+      sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Used"),
+                    TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)", used,
+                              (float)used / total * 100),
+                    sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Max Used"),
+                    TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)", max_used,
+                              (float)max_used / total * 100),
                     sep);
 #endif
   TT_AddSeparator(tt, TT_FMT1_GREEN, TT_FMT2_BOLD, '-');
