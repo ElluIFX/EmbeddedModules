@@ -58,7 +58,7 @@ void heap_create(void *addr, uint32_t size) {
 }
 
 __weak void heap_fault_handler(void) {
-  LOG_ERROR("heap fault");
+  LOG_ERROR("heap operation failed");
   // ((void *(*)(void))0x0)();  // make a fault for tracing
   // MOD_TRIG_DEBUG_HALT();
 }

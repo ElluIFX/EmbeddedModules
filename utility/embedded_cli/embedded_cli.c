@@ -1174,6 +1174,10 @@ static void onHelp(EmbeddedCli *cli, char *tokens, void *context) {
     for (int i = 0; i < impl->bindingsCount; ++i) {
       printBindingHelp(cli, &impl->bindings[i]);
     }
+    writeToOutputColor(cli,
+                       " > Use \"help [cmd]\" or \"[cmd] -h\" for more info",
+                       CLI_HELP_HEADER_COLOR);
+    writeToOutput(cli, lineBreak);
   } else if (tokenCount == 1) {
     // try find command
     CliCommandBinding *binding = NULL;

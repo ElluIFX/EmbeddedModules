@@ -18,3 +18,5 @@
 *.pyo
 *.pyd
 __pycache__
+
+*.pdf

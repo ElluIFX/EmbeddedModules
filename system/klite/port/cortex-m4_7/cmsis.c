@@ -37,9 +37,7 @@ void cpu_enter_critical(void) {
 
 void cpu_leave_critical(void) {
   m_sys_nesting--;
-  if (m_sys_nesting == 0) {
-    __enable_irq();
-  }
+  if (!m_sys_nesting) __enable_irq();
 }
 
 void cpu_sys_init(void) {
@@ -57,16 +55,16 @@ void cpu_sys_start(void) {
 void cpu_sys_sleep(uint32_t time) {
   // Call wfi() can enter low power mode
   // But SysTick may be stopped after call wfi() on some device.
-  // __wfi();
+  __wfi();
 }
 
-extern void HAL_IncTick(void);
+extern __IO uint32_t uwTick;
 void SysTick_Handler(void) {
   kernel_tick(1);
 
   static uint16_t tick_scaler = 0;
   if (++tick_scaler >= (KERNEL_FREQ / 1000)) {  // us -> ms
-    HAL_IncTick();                              // for HAL_Delay()
+    uwTick++;                                   // for HAL_Delay()
     tick_scaler = 0;
   }
 }

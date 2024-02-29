@@ -91,6 +91,7 @@ AVAILABLE_TYPES = [
     "communication",
     "debug",
     "graphics",
+    "nn",
     "peripheral",
     "storage",
     "system",
