@@ -7,7 +7,7 @@
 > 标*的为自己写的模块，其他修改自开源库，原repo已列出
 
 | [Algorithm](./algorithm) | 算法 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [cmsis_dsp](./algorithm/cmsis_dsp) | CMSIS-DSP(Src) | [link](https://github.com/ARM-software/CMSIS-DSP) | 源码形式 |
 | [libcrc](./algorithm/libcrc) | CRC计算库 | [link](https://github.com/whik/crc-lib-c) | |
 | [pid](./algorithm/pid) | 通用PID控制器 |*| |
@@ -15,7 +15,7 @@
 | [tiny_regex](./algorithm/tiny_regex)|  简易正则解析器 | [link](https://github.com/zeta-zero/tiny-regex-c) | 无捕获组 |
 
 | [Communication](./communication) | 通信 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [CherryUSB](./communication/cherryusb) | Cherry USB | [link](https://github.com/cherry-embedded/CherryUSB) | |
 | [lwpkt](./communication/lwpkt) | 轻量级数据包 | [link](https://github.com/MaJerle/lwpkt) | |
 | [minmea](./utility/minmea) | GPS NMEA解析器 | [link](https://github.com/ata4/minema) | |
@@ -23,7 +23,7 @@
 | [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 | [link](https://github.com/MightyPork/TinyFrame) | |
 
 | [DataStruct](./datastruct) | 数据结构 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [btree](./datastruct/btree) | B树 | [link](https://github.com/tidwall/btree.c) | |
 | [cstring](./datastruct/cstring) | C字符串 | [link](https://github.com/cloudwu/cstring) | |
 | [hashmap](./datastruct/hashmap) | 哈希表 | [link](https://github.com/tidwall/hashmap.c) | |
@@ -37,7 +37,7 @@
 | [ulist](./datastruct/ulist) | 通用内存连续列表 |*| |
 
 | [Debug](./debug) | 调试 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [benchmark](./debug/benchmark) | CoreMark基准测试 | [link](https://github.com/eembc/coremark) | |
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯 | [link](https://github.com/armink/CmBacktrace) | |
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 | [link](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/) | |
@@ -45,7 +45,7 @@
 | [minctest.h](./debug/minctest.h) | 轻量级单元测试 | [link](https://github.com/codeplea/minctest) | |
 
 | [Graphics](./graphics) | 图形 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [easy_ui](./graphics/easy_ui) | 单色屏UI库 | [link](https://github.com/ErBWs/Easy-UI) | 大幅魔改 |
 | [hagl](./graphics/hagl) | HAL图形库 | [link](https://github.com/tuupola/hagl) | |
 | [lvgl](./graphics/lvgl) | LittlevGL图形库 | [link](https://github.com/lvgl/lvgl) | |
@@ -55,11 +55,11 @@
 | [virtual_lcd](./graphics/virtual_lcd) | 虚拟LCD |*| 包含上位机 |
 
 | [NN](./nn) | 神经网络 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [genann](./nn/genann) | 简单前馈神经网络 | [link](https://github.com/codeplea/genann) | |
 
 | [Peripheral](./peripheral) | 外设 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [board_i2c](./peripheral/board_i2c) | 板级I2C包装层 |*| |
 | [i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |*| |
 | [key](./peripheral/key) | 通用按键 |*| 支持多种事件 |
@@ -73,12 +73,12 @@
 | [ws2812_spi](./peripheral/ws2812_spi) | WS2812灯带DMA-SPI驱动 |*| |
 
 | [Storage](./storage) | 存储 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [littlefs](./storage/littlefs) | LittleFS | [link](https://github.com/littlefs-project/littlefs) | 魔改 |
 | [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 | [link](https://github.com/Jiu-xiao/MiniFlashDB) | |
 
 | [System](./system) | 系统 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [dalloc](./system/dalloc) | 动态指针管理内存分配器 | [link](https://github.com/SkyEng1neering/dalloc) | |
 | [heap_4](./system/heap_4) | FreeRTOS堆4 | [link](https://www.freertos.org/a00111.html) | |
 | [klite](./system/klite) | 基础实时内核 | [link](https://gitee.com/kerndev/klite) | 轻量高性能,推荐 |
@@ -89,7 +89,7 @@
 | [scheduler_lite](./system/scheduler_lite) | 轻量级任务调度器 |*| |
 
 | [Utility](./utility) | 工具 | repo | 备注 |
-|-|-|-|-|
+|-|-|:-:|-|
 | [cot_menu](./utility/cot_menu) | 轻量级菜单框架 | [link](https://gitee.com/cot_package/cot_menu) | 抽象菜单 |
 | [embedded_cli](./utility/embedded_cli) | 嵌入式命令行 | [link](https://github.com/funbiscuit/embedded-cli) | 魔改 |
 | [lwprintf](./utility/lwprintf) | 轻量级无缓冲区printf | [link](https://github.com/MaJerle/lwprintf) | |
