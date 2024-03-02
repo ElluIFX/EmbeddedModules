@@ -2,7 +2,7 @@
 
 #include "scheduler_internal.h"
 
-#if _SCH_ENABLE_CALLLATER
+#if SCH_CFG_ENABLE_CALLLATER
 #pragma pack(1)
 typedef struct {       // 延时调用任务结构
   cl_func_t task;      // 任务函数指针
@@ -58,4 +58,4 @@ void Sch_CancelCallLater(cl_func_t func) {
     }
   }
 }
-#endif  // _SCH_ENABLE_CALLLATER
+#endif  // SCH_CFG_ENABLE_CALLLATER

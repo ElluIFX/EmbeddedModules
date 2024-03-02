@@ -2,31 +2,31 @@
 
 #include "scheduler_internal.h"
 
-#if _SCH_ENABLE_COROUTINE
+#if SCH_CFG_ENABLE_COROUTINE
 
 #pragma pack(1)
 typedef struct {        // 协程任务结构
-  const char *name;     // 协程名
+  ID_NAME_VAR(name);    // 协程名
   cortn_func_t task;    // 任务函数指针
   void *args;           // 协程主函数参数
   __cortn_handle_t hd;  // 协程句柄
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
   uint64_t max_cost;    // 协程最大执行时间(Tick)
   uint64_t total_cost;  // 协程总执行时间(Tick)
   float last_usage;     // 协程上次执行占用率
 #endif
 } scheduler_cortn_t;
 
-typedef struct {     // 协程互斥锁结构
-  const char *name;  // 锁名
-  uint8_t locked;    // 锁状态
-  ulist_t waitlist;  // 等待的协程列表
+typedef struct {      // 协程互斥锁结构
+  ID_NAME_VAR(name);  // 锁名
+  uint8_t locked;     // 锁状态
+  ulist_t waitlist;   // 等待的协程列表
 } scheduler_cortn_mutex_t;
 
-typedef struct {     // 协程屏障结构
-  const char *name;  // 屏障名
-  uint16_t target;   // 目标协程数
-  ulist_t waitlist;  // 等待的协程列表
+typedef struct {      // 协程屏障结构
+  ID_NAME_VAR(name);  // 屏障名
+  uint16_t target;    // 目标协程数
+  ulist_t waitlist;   // 等待的协程列表
 } scheduler_cortn_barrier_t;
 #pragma pack()
 
@@ -76,7 +76,7 @@ _INLINE uint64_t Cortn_Runner(void) {
          now >= cortn_handle_now->sleepUntil)) {
       cortn_handle_now->depth = 0;
       cortn_handle_now->sleepUntil = 0;
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
       uint64_t _sch_debug_task_tick = get_sys_tick();
       cortn->task(cortn_handle_now, cortn->args);
       _sch_debug_task_tick = get_sys_tick() - _sch_debug_task_tick;
@@ -106,7 +106,6 @@ _INLINE uint64_t Cortn_Runner(void) {
 
 uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args) {
   scheduler_cortn_t cortn = {
-      .name = name,
       .task = func,
       .args = args,
       .hd =
@@ -119,6 +118,7 @@ uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args) {
               .name = name,
           },
   };
+  ID_NAME_SET(cortn.name, name);
   if (!ulist_init(&cortn.hd.dataList, sizeof(__cortn_data_t), 1,
                   ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND |
                       ULIST_CFG_NO_SHRINK,
@@ -287,7 +287,7 @@ _STATIC_INLINE scheduler_cortn_mutex_t *get_mutex(const char *name) {
   }
   scheduler_cortn_mutex_t *ret = ulist_append(&mutexlist);
   if (ret == NULL) return NULL;
-  ret->name = name;
+  ID_NAME_SET(ret->name, name);
   ret->locked = 0;
   ulist_init(&ret->waitlist, sizeof(char *), 0, NULL, NULL);
   return ret;
@@ -343,7 +343,7 @@ _STATIC_INLINE scheduler_cortn_barrier_t *get_barrier(const char *name,
   if (!create) return NULL;
   scheduler_cortn_barrier_t *ret = ulist_append(&barrierlist);
   if (ret == NULL) return NULL;
-  ret->name = name;
+  ID_NAME_SET(ret->name, name);
   ret->target = 0xffff;
   ulist_init(&ret->waitlist, sizeof(char *), 0, NULL, NULL);
   return ret;
@@ -419,7 +419,7 @@ static const char *get_cortn_state_str(uint8_t state) {
   }
 }
 
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
 void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
   if (cortnlist.num) {
     TT_FMT1 f1 = TT_FMT1_BLUE;
@@ -437,7 +437,7 @@ void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head3[i]));
     int i = 0;
     ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
-      if (i >= _SCH_DEBUG_MAXLINE) {
+      if (i >= SCH_CFG_DEBUG_MAXLINE) {
         TT_AddString(
             tt, TT_Str(TT_ALIGN_CENTER, TT_FMT1_NONE, TT_FMT2_NONE, "..."), 0);
         break;
@@ -475,9 +475,9 @@ void sch_cortn_finish_debug(uint8_t first_print, uint64_t offset) {
     cortn->total_cost = 0;
   }
 }
-#endif  // _SCH_DEBUG_REPORT
+#endif  // SCH_CFG_DEBUG_REPORT
 
-#if _SCH_ENABLE_TERMINAL
+#if SCH_CFG_ENABLE_TERMINAL
 void cortn_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   size_t argc = embeddedCliGetTokenCount(args);
   if (!argc) {
@@ -518,6 +518,6 @@ void cortn_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }
 }
-#endif  // _SCH_ENABLE_TERMINAL
+#endif  // SCH_CFG_ENABLE_TERMINAL
 
-#endif  // _SCH_ENABLE_COROUTINE
+#endif  // SCH_CFG_ENABLE_COROUTINE

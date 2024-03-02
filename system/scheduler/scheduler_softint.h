@@ -6,7 +6,7 @@ extern "C" {
 
 #include "scheduler.h"
 
-#if _SCH_ENABLE_SOFTINT
+#if SCH_CFG_ENABLE_SOFTINT
 
 /**
  * @brief 触发软中断
@@ -23,7 +23,7 @@ extern void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel);
  */
 extern void Scheduler_SoftInt_Handler(uint8_t mainChannel, uint8_t subMask);
 
-#endif  // _SCH_ENABLE_SOFTINT
+#endif  // SCH_CFG_ENABLE_SOFTINT
 
 #ifdef __cplusplus
 }

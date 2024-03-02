@@ -23,26 +23,29 @@ Scheduler是一个多功能的时分调度器，它可以在裸机环境下实�
 ## 4. 配置宏定义 🛠
 
 ```C
-#define _SCH_ENABLE_TASK 1       // 支持任务
-#define _SCH_ENABLE_EVENT 1      // 支持事件
-#define _SCH_ENABLE_COROUTINE 1  // 支持宏协程
-#define _SCH_ENABLE_CALLLATER 1  // 支持延时调用
-#define _SCH_ENABLE_SOFTINT 1    // 支持软中断
+#define SCH_CFG_ENABLE_TASK 1       // 支持任务
+#define SCH_CFG_ENABLE_EVENT 1      // 支持事件
+#define SCH_CFG_ENABLE_COROUTINE 1  // 支持宏协程
+#define SCH_CFG_ENABLE_CALLLATER 1  // 支持延时调用
+#define SCH_CFG_ENABLE_SOFTINT 1    // 支持软中断
 
-#define _SCH_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
+#define SCH_CFG_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
+#define SCH_CFG_STATIC_NAME 1       // 是否使用静态标识名
+#define SCH_CFG_STATIC_NAME_LEN 16  // 静态标识名长度
 
-#define _SCH_DEBUG_REPORT 1  // 输出调度器统计信息(调试模式/低性能)
-#define _SCH_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
-#define _SCH_DEBUG_MAXLINE 5  // 调试报告最大行数
+#define SCH_CFG_DEBUG_REPORT 1  // 输出调度器统计信息(调试模式/低性能)
+#define SCH_CFG_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
+#define SCH_CFG_DEBUG_MAXLINE 10  // 调试报告最大行数
 
-#define _SCH_ENABLE_TERMINAL 1  // 是否启用终端命令集(依赖embedded-cli)
+#define SCH_CFG_ENABLE_TERMINAL 1  // 是否启用终端命令集(依赖embedded-cli)
 ```
 
 - 说明:
-  - `_SCH_ENABLE_*`：是否编译对应子模块
-  - `_SCH_COMP_RANGE_US`：任务调度自动补偿范围，当任务调度的延时小于此值时，调度器会自动补偿延时，以保证调度频率符合设定值，大于此值说明任务耗时与设定频率不匹配，可以通过统计信息查看。
-  - `_SCH_DEBUG_*`：调试相关宏定义，启用时会每隔一段时间在串口终端上打印任务、事件、协程相关的统计信息，信息中时间相关的单位均为`us`，占用率单位为`%`，调试模式下会降低调度器性能，仅用于排查问题。
-  - `_SCH_ENABLE_TERMINAL`：是否启用终端命令集，启用时可在`embedded-cli`中注册调度器相关控制命令，用于调试。
+  - `SCH_CFG_ENABLE_*`：是否编译对应子模块
+  - `SCH_CFG_COMP_RANGE_US`：任务调度自动补偿范围，当任务调度的延时小于此值时，调度器会自动补偿延时，以保证调度频率符合设定值，大于此值说明任务耗时与设定频率不匹配，可以通过统计信息查看。
+  - `SCH_CFG_DEBUG_*`：调试相关宏定义，启用时会每隔一段时间在串口终端上打印任务、事件、协程相关的统计信息，信息中时间相关的单位均为`us`，占用率单位为`%`，调试模式下会降低调度器性能，仅用于排查问题。
+  - `SCH_CFG_STATIC_NAME`: 是否使用静态标识名，启用时会为每个对象分配固定长度的字符串缓冲区，关闭时对象的标识名将直接指向用户提供的字符串指针以最小化占用，此时用户需要保证字符串为不变的全局常量。
+  - `SCH_CFG_ENABLE_TERMINAL`：是否启用终端命令集，启用时可在`embedded-cli`中注册调度器相关控制命令，用于调试。
 
 > Tips: 调试模式非常有用，它类似于PC的任务管理器，可以通过调试信息来判断任务函数的执行效率，了解系统瓶颈并针对性优化。
 >
@@ -87,7 +90,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli)
   - `event`：事件相关命令集，可对事件列表进行增删和手动触发。
   - `cortn`：协程相关命令集，可对协程列表进行增删查改。
   - `softint`：软中断相关命令集，可对软中断进行手动触发。
-- 注意：仅当`_SCH_ENABLE_TERMINAL`宏定义为`1`时有效。
+- 注意：仅当`SCH_CFG_ENABLE_TERMINAL`宏定义为`1`时有效。
 
 ### 5.2. 任务 ([`scheduler_task.h`](scheduler_task.h))
 

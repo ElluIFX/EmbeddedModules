@@ -13,7 +13,6 @@
 extern "C" {
 #endif
 
-#include "modules.h"
 #include "scheduler_calllater.h"
 #include "scheduler_conf.h"
 #include "scheduler_coroutine.h"
@@ -38,13 +37,13 @@ extern uint64_t Scheduler_Run(const uint8_t block);
  */
 extern void Scheduler_Idle_Callback(uint64_t idleTimeUs);
 
-#if _SCH_ENABLE_TERMINAL
+#if SCH_CFG_ENABLE_TERMINAL
 #include "embedded_cli.h"
 /**
- * @brief 添加调度器相关的终端命令(sysinfo/task/event/cortn/softint)
+ * @brief 添加调度器相关的终端命令(task/event/cortn/softint)
  */
 extern void Sch_AddCmdToCli(EmbeddedCli *cli);
-#endif  // _SCH_ENABLE_TERMINAL
+#endif  // SCH_CFG_ENABLE_TERMINAL
 
 #ifdef __cplusplus
 }

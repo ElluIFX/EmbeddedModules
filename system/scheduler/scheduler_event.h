@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 #include "scheduler.h"
-#if _SCH_ENABLE_EVENT
+#if SCH_CFG_ENABLE_EVENT
 #pragma pack(1)
 typedef struct {
   uint8_t type;  // 事件参数类型
@@ -82,7 +82,7 @@ extern uint16_t Sch_GetEventNum(void);
  * @retval uint8_t             事件是否存在
  */
 extern uint8_t Sch_IsEventExist(const char *name);
-#endif  // _SCH_ENABLE_EVENT
+#endif  // SCH_CFG_ENABLE_EVENT
 #ifdef __cplusplus
 }
 #endif

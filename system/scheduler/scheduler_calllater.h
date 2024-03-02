@@ -6,7 +6,7 @@ extern "C" {
 
 #include "scheduler.h"
 
-#if _SCH_ENABLE_CALLLATER
+#if SCH_CFG_ENABLE_CALLLATER
 
 typedef void (*cl_func_t)(void *args);
 
@@ -24,7 +24,7 @@ extern uint8_t Sch_CallLater(cl_func_t func, uint64_t delayUs, void *args);
  * @param func              任务函数指针
  */
 extern void Sch_CancelCallLater(cl_func_t func);
-#endif  // _SCH_ENABLE_CALLLATER
+#endif  // SCH_CFG_ENABLE_CALLLATER
 #ifdef __cplusplus
 }
 #endif

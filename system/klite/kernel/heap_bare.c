@@ -95,11 +95,6 @@ static void heap_mutex_unlock(void) {
   cpu_leave_critical();
 }
 
-__weak void heap_fault_handler(void) {
-  LOG_ERROR("heap fault");
-  MOD_TRIG_DEBUG_HALT();
-}
-
 void heap_create(void *addr, uint32_t size) {
   uint32_t start;
   uint32_t end;
@@ -116,6 +111,7 @@ void *heap_alloc(uint32_t size) {
   uint32_t need;
   struct heap_node *temp;
   struct heap_node *node;
+  void *mem = NULL;
   need = MEM_ALIGN_PAD(size + sizeof(struct heap_node));
   heap_mutex_lock();
   for (node = heap->free; node->next != NULL; node = node->next) {
@@ -130,12 +126,18 @@ void *heap_alloc(uint32_t size) {
       if (node == heap->free) {
         heap->free = find_free_node(node);
       }
-      heap_mutex_unlock();
-      return (void *)(temp + 1);
+      mem = (void *)(temp + 1);
+      break;
     }
   }
+#if KERNEL_HOOK_ENABLE
+  if (mem == NULL) {
+    kernel_hook_heap_fault(size);
+  } else {
+    kernel_hook_heap_operation(mem, NULL, size, KERNEL_HEAP_OP_ALLOC);
+  }
+#endif
   heap_mutex_unlock();
-  heap_fault_handler();
   return NULL;
 }
 
@@ -150,19 +152,27 @@ void heap_free(void *mem) {
       heap->free = node->prev;
     }
   }
+#if KERNEL_HOOK_ENABLE
+  kernel_hook_heap_operation(mem, NULL, 0, KERNEL_HEAP_OP_FREE);
+#endif
   heap_mutex_unlock();
 }
 
 void *heap_realloc(void *mem, uint32_t size) {
   void *new_mem;
   new_mem = heap_alloc(size);
-  if (new_mem != NULL) {
+#if KERNEL_HOOK_ENABLE
+  if (new_mem == NULL) {
+    kernel_hook_heap_fault(size);
+  } else {
+    kernel_hook_heap_operation(mem, new_mem, size, KERNEL_HEAP_OP_REALLOC);
+  }
+#endif
+  if (new_mem) {
     memcpy(new_mem, mem, size);
     heap_free(mem);
-    return new_mem;
   }
-  heap_fault_handler();
-  return NULL;
+  return new_mem;
 }
 
 void heap_usage(uint32_t *used, uint32_t *free) {

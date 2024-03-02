@@ -30,6 +30,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define KERNEL_FREQ 100000    // 内核时基频率(赫兹)
+#define KERNEL_HEAP_MATHOD 3  // 1:bare 2:lwmem 3:heap4 4:heap5
+#define KERNEL_HOOK_ENABLE 1  // 内核钩子使能
+
 typedef struct tcb *thread_t;
 typedef struct sem *sem_t;
 typedef struct event *event_t;
@@ -40,13 +44,11 @@ typedef struct cond *cond_t;
  * kernel
  ******************************************************************************/
 
-#define KERNEL_FREQ 100000  // 内核时基频率(赫兹)
-
 /**
- * @param heap_addr 动态分配起始地址
- * @param heap_size 动态分配内存大小
+ * @param heap_addr 内核堆起始地址
+ * @param heap_size 内核堆大小
  * @brief 用于内核初始化在调用内核初始化时需保证中断处于关闭状态,
- *      此函数只能执行一次, 在初始化内核之前不可调用内核其它函数。
+ * @warning 此函数只能执行一次, 在初始化内核之前不可调用内核其它函数。
  */
 void kernel_init(void *heap_addr, uint32_t heap_size);
 
@@ -62,14 +64,14 @@ uint32_t kernel_version(void);
 
 /**
  * @brief 处理内核空闲事务, 回收线程资源
- *      此函数不会返回。必须单独创建一个线程来调用。
+ * @warning 此函数不会返回。必须单独创建一个线程来调用。
  */
 void kernel_idle(void);
 
 /**
  * @retval 系统空闲时间(Tick)
  * @brief 获取系统从启动到现在空闲线程占用CPU的总时间
- *      可使用此函数和kernel_tick_count()一起计算CPU占用率
+ * @note 可使用此函数和kernel_tick_count()一起计算CPU占用率
  */
 uint32_t kernel_idle_time(void);
 
@@ -133,7 +135,6 @@ extern void *kernel_heap_addr;
 /******************************************************************************
  * heap
  ******************************************************************************/
-#define KERNEL_HEAP_MATHOD 3  // 1:bare 2:lwmem 3:heap4 4:heap5
 
 /**
  * @param addr 动态分配起始地址
@@ -176,31 +177,31 @@ void heap_usage(uint32_t *used, uint32_t *free);
  */
 float heap_usage_percent(void);
 
-/**
- * @brief 任意堆内存操作失败时会调用此函数, 用户可以在此函数中添加断点或者日志
- */
-void heap_fault_handler(void);
-
 /******************************************************************************
  * thread
  ******************************************************************************/
-#define THREAD_PRIORITY_HIGHEST 7
-#define THREAD_PRIORITY_HIGHER 6
-#define THREAD_PRIORITY_HIGH 5
-#define THREAD_PRIORITY_NORMAL 4
-#define THREAD_PRIORITY_LOW 3
-#define THREAD_PRIORITY_LOWER 2
-#define THREAD_PRIORITY_LOWEST 1
-#define THREAD_PRIORITY_IDLE 0
+enum {
+  THREAD_PRIORITY_IDLE = 0,
+  THREAD_PRIORITY_LOWEST,
+  THREAD_PRIORITY_LOWER,
+  THREAD_PRIORITY_LOW,
+  THREAD_PRIORITY_NORMAL,
+  THREAD_PRIORITY_HIGH,
+  THREAD_PRIORITY_HIGHER,
+  THREAD_PRIORITY_HIGHEST,
+  __THREAD_PRIORITY_MAX__
+};
 
 /**
  * @param entry 线程入口函数
  * @param arg 线程入口函数的参数
- * @param stack_size 线程的栈大小（字节）, 为0则使用系统默认值(1024字节)
+ * @param stack_size 线程的栈大小（字节）, 0:使用默认值 (1024)
+ * @param prio 线程优先级 (1~7, 7为最高优先级, 0:使用NORMAL优先级)
  * @retval 成功返回线程句柄, 失败返回NULL
- * @brief 创建新线程, 并加入就绪队列, 默认优先级为THREAD_PRIORITY_NORMAL
+ * @brief 创建新线程, 并加入就绪队列
  */
-thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size);
+thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
+                       uint32_t prio);
 
 /**
  * @param thread 被删除的线程标识符
@@ -209,6 +210,18 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size);
  * 请使用thread_exit()或直接使用return退出主循环
  */
 void thread_delete(thread_t thread);
+
+/**
+ * @param thread 线程标识符
+ * @brief 挂起线程, 使线程进入休眠状态, 并释放CPU控制权
+ */
+void thread_suspend(thread_t thread);
+
+/**
+ * @param thread 线程标识符
+ * @brief 恢复线程, 使线程从休眠状态中恢复
+ */
+void thread_resume(thread_t thread);
 
 /**
  * @brief 使当前线程立即释放CPU控制权, 并进入就绪队列
@@ -242,17 +255,25 @@ uint32_t thread_time(thread_t thread);
 
 /**
  * @param thread 线程标识符
- * @param prio 新的优先级
+ * @param stack_free 剩余栈空间
+ * @param stack_size 栈总大小
+ * @brief 获取线程栈信息
+ */
+void thread_stack_info(thread_t thread, size_t *stack_free, size_t *stack_size);
+
+/**
+ * @param thread 线程标识符
+ * @param prio 新的优先级 (0~7, 7为最高优先级)
  * @brief 重新设置线程优先级, 立即生效
  * @warning 不允许在内核启动前修改线程优先级
- * @note THREAD_PRIORITY_HIGHEST 最高优先级
- * @note THREAD_PRIORITY_HIGHER 更高优先级
- * @note THREAD_PRIORITY_HIGH 高优先级
- * @note THREAD_PRIORITY_NORMAL 默认优先级
- * @note THREAD_PRIORITY_LOW 低优先级
- * @note THREAD_PRIORITY_LOWER 更低优先级
- * @note THREAD_PRIORITY_LOWEST 最低优先级
- * @note THREAD_PRIORITY_IDLE 空闲优先级
+ * @note 7 - THREAD_PRIORITY_HIGHEST - 最高优先级
+ * @note 6 - THREAD_PRIORITY_HIGHER  - 较高优先级
+ * @note 5 - THREAD_PRIORITY_HIGH    - 高优先级
+ * @note 4 - THREAD_PRIORITY_NORMAL  - 默认优先级
+ * @note 3 - THREAD_PRIORITY_LOW     - 低优先级
+ * @note 2 - THREAD_PRIORITY_LOWER   - 较低优先级
+ * @note 1 - THREAD_PRIORITY_LOWEST  - 最低优先级
+ * @note 0 - THREAD_PRIORITY_IDLE    - 空闲优先级(仅限空闲线程使用)
  */
 void thread_set_priority(thread_t thread, uint32_t prio);
 
@@ -262,7 +283,6 @@ void thread_set_priority(thread_t thread, uint32_t prio);
  * @brief 获取线程优先级
  */
 uint32_t thread_get_priority(thread_t thread);
-// #define sleep(x) thread_sleep(x)
 
 /******************************************************************************
  * semaphore
@@ -439,5 +459,82 @@ void cond_wait(cond_t cond, mutex_t mutex);
  * @brief 定时阻塞线程, 并等待被条件变量唤醒
  */
 uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);
+
+/******************************************************************************
+ * hook
+ ******************************************************************************/
+
+#if KERNEL_HOOK_ENABLE
+
+/**
+ * @brief 内核空闲钩子函数
+ */
+void kernel_hook_idle(void);
+
+/**
+ * @param time 当前滴答加数
+ * @brief 内核滴答钩子函数
+ */
+void kernel_hook_tick(uint32_t time);
+
+/**
+ * @brief 内核堆内存分配错误钩子函数
+ * @param size 内存大小
+ */
+void kernel_hook_heap_fault(uint32_t size);
+
+/**
+ * @brief 内核堆内存操作钩子函数
+ * @param addr1 内存地址1
+ * @param addr2 内存地址2
+ * @param size 内存大小
+ * @param op 操作类型 0:分配 1:释放 2:重新分配
+ */
+void kernel_hook_heap_operation(void *addr1, void *addr2, uint32_t size,
+                                uint8_t op);
+
+#define KERNEL_HEAP_OP_ALLOC 0
+#define KERNEL_HEAP_OP_FREE 1
+#define KERNEL_HEAP_OP_REALLOC 2
+
+/**
+ * @brief 内核线程创建钩子函数
+ * @param thread 线程标识符
+ */
+void kernel_hook_thread_create(thread_t thread);
+
+/**
+ * @brief 内核线程删除/退出钩子函数
+ * @param thread 线程标识符
+ */
+void kernel_hook_thread_delete(thread_t thread);
+
+/**
+ * @brief 内核线程挂起钩子函数
+ * @param thread 线程标识符
+ */
+void kernel_hook_thread_suspend(thread_t thread);
+
+/**
+ * @brief 内核线程恢复钩子函数
+ * @param thread 线程标识符
+ */
+void kernel_hook_thread_resume(thread_t thread);
+
+/**
+ * @brief 内核线程切换钩子函数
+ * @param from 当前线程标识符
+ * @param to 目标线程标识符
+ */
+void kernel_hook_thread_switch(thread_t from, thread_t to);
+
+/**
+ * @brief 内核线程休眠钩子函数
+ * @param thread 线程标识符
+ * @param time 休眠时间
+ */
+void kernel_hook_thread_sleep(thread_t thread, uint32_t time);
+
+#endif  // KERNEL_HOOK_ENABLE
 
 #endif

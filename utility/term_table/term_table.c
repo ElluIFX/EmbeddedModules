@@ -179,7 +179,13 @@ _EXTERNAL void TT_FreeTable(TT tt) {
         ulist_free(((TT_ITEM_GRID)item->content)->lines);
         ulist_free(((TT_ITEM_GRID)item->content)->widths);
         break;
+      case TT_ITEM_TYPE_PROGRESS:
+        if (((TT_ITEM_PROGRESS)item->content)->_percentStr) {
+          tt_free_str(((TT_ITEM_PROGRESS)item->content)->_percentStr);
+        }
+        break;
       case TT_ITEM_TYPE_SEPARATOR:
+      case TT_ITEM_TYPE_LINEBREAK:
         break;
     }
     tt_free(item->content);
@@ -206,6 +212,12 @@ _INTERNAL TT_ITEM tt_new_item(TT tt, TT_ITEM_TYPE type) {
       break;
     case TT_ITEM_TYPE_SEPARATOR:
       ret->content = tt_alloc(sizeof(term_table_item_separator_t));
+      break;
+    case TT_ITEM_TYPE_LINEBREAK:
+      ret->content = tt_alloc(sizeof(term_table_item_linebreak_t));
+      break;
+    case TT_ITEM_TYPE_PROGRESS:
+      ret->content = tt_alloc(sizeof(term_table_item_progress_t));
       break;
   }
   return ret;
@@ -288,6 +300,27 @@ _EXTERNAL TT_ITEM_SEPARATOR TT_AddSeparator(TT tt, TT_FMT1 fmt1, TT_FMT2 fmt2,
   return content;
 }
 
+_EXTERNAL TT_ITEM_LINEBREAK TT_AddLineBreak(TT tt, uint16_t lineCount) {
+  TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_LINEBREAK);
+  TT_ITEM_LINEBREAK content = (TT_ITEM_LINEBREAK)item->content;
+  content->lineCount = lineCount;
+  return content;
+}
+
+_EXTERNAL TT_ITEM_PROGRESS TT_AddProgress(TT tt, int16_t intent, TT_FMT1 fmt1,
+                                          TT_FMT2 fmt2, float percent,
+                                          bool showPercent) {
+  TT_ITEM item = tt_new_item(tt, TT_ITEM_TYPE_PROGRESS);
+  TT_ITEM_PROGRESS content = (TT_ITEM_PROGRESS)item->content;
+  content->percent = percent;
+  content->showPercent = showPercent;
+  content->intent = intent >= 0 ? intent : 0;
+  content->fmt1 = fmt1;
+  content->fmt2 = fmt2;
+  content->_percentStr = NULL;
+  return content;
+}
+
 _INTERNAL int16_t tt_calc_title_width(TT_ITEM_TITLE title) {
   return title->str->width;
 }
@@ -359,7 +392,13 @@ _INTERNAL int16_t tt_calc_max_width(TT tt) {
         itemWidth =
             tt_calc_grid_width((TT_ITEM_GRID)item->content, tt->tableMinWidth);
         break;
+      case TT_ITEM_TYPE_PROGRESS:
+        if (((TT_ITEM_PROGRESS)item->content)->showPercent) {
+          itemWidth = 7;
+        }
+        itemWidth += ((TT_ITEM_PROGRESS)item->content)->intent * 2;
       case TT_ITEM_TYPE_SEPARATOR:
+      case TT_ITEM_TYPE_LINEBREAK:
         break;
     }
     if (itemWidth > maxWidth) maxWidth = itemWidth;
@@ -459,10 +498,38 @@ _INTERNAL void tt_print_grid(TT tt, TT_ITEM_GRID grid, int16_t minWidth) {
   }
 }
 
+_INTERNAL void tt_print_progress(TT tt, TT_ITEM_PROGRESS progress,
+                                 int16_t minWidth) {
+  int16_t width = minWidth - 2 - 2 * progress->intent;  // [ ]
+  if (progress->percent > 1.0f) progress->percent = 1.0f;
+  if (progress->percent < 0.0f) progress->percent = 0.0f;
+  if (progress->showPercent) {
+    if (progress->_percentStr) {
+      tt_free_str(progress->_percentStr);
+    }
+    progress->_percentStr = TT_FmtStr(TT_ALIGN_LEFT, TT_FMT1_KEEP, TT_FMT2_KEEP,
+                                      "%.1f%%", progress->percent * 100.0f);
+    width -= progress->_percentStr->width;  // [ ...100.0% ...]
+  }
+  for (int16_t i = 0; i < progress->intent; i++) tt_putchar(' ');
+  tt_puts("[");
+  int16_t filled = progress->percent * width;
+  int16_t empty = width - filled;
+  for (int16_t i = 0; i < filled; i++) tt_putchar('#');
+  for (int16_t i = 0; i < empty; i++) tt_putchar(' ');
+  if (progress->showPercent) {
+    tt_print_str(progress->_percentStr, progress->_percentStr->width);
+  }
+  tt_puts("]");
+  tt_puts(line_break);
+  tt->tablePrintedHeight++;
+}
+
 _EXTERNAL void TT_LineBreak(TT tt, uint16_t lineCount) {
   for (uint16_t i = 0; i < lineCount; i++) tt_puts(line_break);
   tt->tablePrintedHeight += lineCount;
 }
+
 _EXTERNAL void TT_CursorBack(TT tt) {
   for (uint16_t i = 0; i < tt->tablePrintedHeight; i++) {
     tt_puts("\033[F");
@@ -470,6 +537,7 @@ _EXTERNAL void TT_CursorBack(TT tt) {
   tt->tablePrintedHeight = 0;
   tt->tablePrintedWidth = 0;
 }
+
 _EXTERNAL void TT_Print(TT tt) {
   tt_puts("\033[1G\033[K");  // 清除本行
   int16_t maxWidth = tt_calc_max_width(tt);
@@ -495,6 +563,12 @@ _EXTERNAL void TT_Print(TT tt) {
         break;
       case TT_ITEM_TYPE_SEPARATOR:
         tt_print_separator(tt, (TT_ITEM_SEPARATOR)item->content, maxWidth);
+        break;
+      case TT_ITEM_TYPE_LINEBREAK:
+        TT_LineBreak(tt, ((TT_ITEM_LINEBREAK)item->content)->lineCount);
+        break;
+      case TT_ITEM_TYPE_PROGRESS:
+        tt_print_progress(tt, (TT_ITEM_PROGRESS)item->content, maxWidth);
         break;
     }
   }

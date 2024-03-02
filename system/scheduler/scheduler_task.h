@@ -8,7 +8,7 @@ extern "C" {
 
 typedef void (*task_func_t)(void *args);  // 任务函数指针类型
 
-#if _SCH_ENABLE_TASK
+#if SCH_CFG_ENABLE_TASK
 
 /**
  * @brief 创建一个调度任务
@@ -91,7 +91,7 @@ extern uint8_t Sch_DelayTask(const char *name, uint64_t delayUs,
  */
 extern uint16_t Sch_GetTaskNum(void);
 
-#endif  // _SCH_ENABLE_TASK
+#endif  // SCH_CFG_ENABLE_TASK
 
 #ifdef __cplusplus
 }

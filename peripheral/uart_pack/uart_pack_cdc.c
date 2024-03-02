@@ -2,7 +2,7 @@
 
 #include "lwprintf.h"
 
-#if _UART_ENABLE_CDC
+#if UART_CFG_ENABLE_CDC
 
 static struct {                       // CDC型UART控制结构体
   lfifo_t txFifo;                     // 发送缓冲区
@@ -11,7 +11,7 @@ static struct {                       // CDC型UART控制结构体
   uint8_t cbkInIRQ;                   // 回调函数是否在中断中执行
 } usb_cdc;
 
-#if _UART_CDC_USE_CUBEMX
+#if UART_CFG_CDC_USE_CUBEMX
 #include "usbd_cdc_if.h"
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
@@ -89,7 +89,7 @@ static inline uint8_t cdc_connected(void) {
 
 static inline uint8_t cdc_idle(void) { return hcdc->TxState == 0; }
 
-#elif _UART_CDC_USE_CHERRY
+#elif UART_CFG_CDC_USE_CHERRY
 #include "cdc_acm_app.h"
 
 void cdc_acm_data_recv_callback(uint8_t *buf, uint32_t len) {
@@ -159,7 +159,7 @@ void CDC_Send(uint8_t *buf, size_t len) {
   buf += wr;
   cdc_start_transfers();
   if (len == 0) return;
-  if (_UART_CDC_TIMEOUT <= 0) return;
+  if (UART_CFG_CDC_TIMEOUT <= 0) return;
   m_time_t _cdc_start_time = m_time_ms();
   while (len) {
     // m_delay_ms(1);
@@ -167,7 +167,7 @@ void CDC_Send(uint8_t *buf, size_t len) {
     len -= wr;
     buf += wr;
     cdc_start_transfers();
-    if (m_time_ms() - _cdc_start_time > _UART_CDC_TIMEOUT) return;
+    if (m_time_ms() - _cdc_start_time > UART_CFG_CDC_TIMEOUT) return;
   }
 }
 
@@ -194,7 +194,7 @@ void CDC_WaitTxFinish(void) {
   while (!cdc_idle() || !LFifo_IsEmpty(&usb_cdc.txFifo)) {
     if (!cdc_connected()) return;
     m_delay_ms(1);
-    if (m_time_ms() - _cdc_start_time > _UART_CDC_TIMEOUT) return;
+    if (m_time_ms() - _cdc_start_time > UART_CFG_CDC_TIMEOUT) return;
   }
 }
 
@@ -207,4 +207,4 @@ void CDC_WaitConnect(int timeout_ms) {
 }
 
 uint8_t CDC_Connected(void) { return cdc_connected(); }
-#endif  // _UART_ENABLE_CDC
+#endif  // UART_CFG_ENABLE_CDC

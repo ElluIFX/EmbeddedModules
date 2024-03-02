@@ -22,7 +22,7 @@
 #define _udict_realloc m_realloc
 #define _udict_memcmp memcmp
 
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
 #define UDICT_LOCK()                                    \
   {                                                     \
     if (!dict->mutex) dict->mutex = MOD_MUTEX_CREATE(); \
@@ -82,7 +82,7 @@ bool udict_init(UDICT dict) {
   dict->size = 0;
   dict->iter = 0;
   dict->dyn = false;
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
   dict->mutex = MOD_MUTEX_CREATE();
 #endif
   return true;
@@ -110,7 +110,7 @@ void udict_clear(UDICT dict) {
 
 void udict_free(UDICT dict) {
   ulist_free(&dict->nodes);
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
   if (dict->mutex) MOD_MUTEX_FREE(dict->mutex);
 #endif
   if (dict->dyn) _udict_free(dict);

@@ -20,7 +20,7 @@ typedef struct {       // 用户任务结构
   m_time_t lastRun;    // 上次执行时间(Tick)
 } scheduler_task_t;
 
-#define __SCH_SECTION(x) __attribute__((section(".scheduler_list.s" x)))
+#define _SCH_CFG_SECTION(x) __attribute__((section(".scheduler_list.s" x)))
 
 /**
  * @brief 声明一个调度器任务
@@ -28,7 +28,7 @@ typedef struct {       // 用户任务结构
  * @param periodMs 任务调度周期(ms)
  */
 #define SCH_TASK(func, periodMs)                                              \
-  __attribute__((used)) scheduler_task_t _sch_task_item_##func __SCH_SECTION( \
+  __attribute__((used)) scheduler_task_t _sch_task_item_##func _SCH_CFG_SECTION( \
       "1") = {func, (periodMs), 0}
 
 /**

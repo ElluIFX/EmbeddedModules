@@ -128,7 +128,7 @@ static struct xv xve_clock(struct xv this, struct xv args, void *udata) {
 
 static struct xv xve_time(struct xv this, struct xv args, void *udata) {
   CHECK_ARG_LEN(0);
-  return xv_new_double((double)m_tick() / m_tick_clk(double));
+  return xv_new_double((double)m_tick() / (double)m_tick_clk);
 }
 
 static bool strcmpn(const char *s1, const char *s2, size_t n) {

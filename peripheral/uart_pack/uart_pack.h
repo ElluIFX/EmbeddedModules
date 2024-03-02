@@ -101,7 +101,7 @@ extern void Uart_RxProcess(UART_HandleTypeDef *huart);
  */
 extern void Uart_ErrorProcess(UART_HandleTypeDef *huart);
 
-#if _UART_ENABLE_FIFO_TX
+#if UART_CFG_ENABLE_FIFO_TX
 /**
  * @brief 初始化FIFO串口发送
  * @param  huart         目标串口
@@ -114,7 +114,7 @@ extern int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf,
 extern void Uart_FifoTxDeInit(UART_HandleTypeDef *huart);
 #endif
 
-#if _UART_ENABLE_DMA_RX
+#if UART_CFG_ENABLE_DMA_RX
 
 /**
  * @brief 串口DMA接收初始化
@@ -134,9 +134,9 @@ extern LFBB_Inst_Type *Uart_DmaRxInit(
  * @note DMA接收需要该函数
  */
 extern void Uart_DmaRxProcess(UART_HandleTypeDef *huart, size_t Size);
-#endif  // _UART_ENABLE_DMA_RX
+#endif  // UART_CFG_ENABLE_DMA_RX
 
-#if _VOFA_ENABLE
+#if VOFA_CFG_ENABLE
 /**
  * @brief 向VOFA缓冲区添加浮点数据
  */
@@ -162,73 +162,73 @@ extern void Vofa_Send(UART_HandleTypeDef *huart);
  */
 extern void Vofa_SendFast(UART_HandleTypeDef *huart);
 
-#if _UART_ENABLE_CDC
+#if UART_CFG_ENABLE_CDC
 /**
  * @brief 向CDC发送VOFA数据
  */
 extern void Vofa_SendCDC(void);
-#endif  // _UART_ENABLE_CDC
+#endif  // UART_CFG_ENABLE_CDC
 
-#endif  // _VOFA_ENABLE
+#endif  // VOFA_CFG_ENABLE
 
 // 重定向printf
-#if _PRINTF_BLOCK
+#if UART_CFG_PRINTF_BLOCK
 #define printf(...) ((void)0)
 #define printf_flush() ((void)0)
-#else  // _PRINTF_BLOCK
-#if _PRINTF_REDIRECT
+#else  // UART_CFG_PRINTF_BLOCK
+#if UART_CFG_PRINTF_REDIRECT
 #undef printf
-#if _PRINTF_USE_RTT
+#if UART_CFG_PRINTF_USE_RTT
 #include "SEGGER_RTT.h"
 #define printf(...) SEGGER_RTT_printf(0, __VA_ARGS__)
 #define printf_flush() ((void)0)
-#elif _PRINTF_USE_CDC && _UART_ENABLE_CDC
+#elif UART_CFG_PRINTF_USE_CDC && UART_CFG_ENABLE_CDC
 #define printf(...) printfcdc(__VA_ARGS__)
 #define printf_flush() printfcdc_flush()
-#elif _PRINTF_USE_ITM
+#elif UART_CFG_PRINTF_USE_ITM
 #define printf(...) ITM_Printf(__VA_ARGS__)
 #define printf_flush() ((void)0)
 #else
-#define printf(...) printft(&_PRINTF_UART_PORT, __VA_ARGS__)
-#define printf_flush() printft_flush(&_PRINTF_UART_PORT)
-#define printf_block(...) printft_block(&_PRINTF_UART_PORT, __VA_ARGS__)
+#define printf(...) printft(&_PRINTFUART_CFG_PORT, __VA_ARGS__)
+#define printf_flush() printft_flush(&_PRINTFUART_CFG_PORT)
+#define printf_block(...) printft_block(&_PRINTFUART_CFG_PORT, __VA_ARGS__)
 #define println(fmt, ...) printf(fmt "\r\n", ##__VA_ARGS__)
-#endif  // _PRINTF_USE_*
-#endif  // _PRINTF_REDIRECT
-#endif  // _PRINTF_BLOCK
+#endif  // UART_CFG_PRINTF_USE_*
+#endif  // UART_CFG_PRINTF_REDIRECT
+#endif  // UART_CFG_PRINTF_BLOCK
 
-#if _PRINTF_REDIRECT_PUTX
+#if UART_CFG_PRINTF_REDIRECT_PUTX
 static inline int __putchar(int ch) {
-#if _PRINTF_USE_RTT
+#if UART_CFG_PRINTF_USE_RTT
   SEGGER_RTT_Write(0, &ch, 1);
-#elif _PRINTF_USE_CDC && _UART_ENABLE_CDC
+#elif UART_CFG_PRINTF_USE_CDC && UART_CFG_ENABLE_CDC
   CDC_Send(&ch, 1);
-#elif _PRINTF_USE_ITM
+#elif UART_CFG_PRINTF_USE_ITM
   ITM_SendChar(ch);
 #else
-  Uart_Send(&_PRINTF_UART_PORT, (uint8_t *)&ch, 1);
-#endif  // _PRINTF_USE_*
+  Uart_Send(&_PRINTFUART_CFG_PORT, (uint8_t *)&ch, 1);
+#endif  // UART_CFG_PRINTF_USE_*
   return ch;
 }
 static inline int __puts(const char *s) {
-#if _PRINTF_USE_RTT
+#if UART_CFG_PRINTF_USE_RTT
   SEGGER_RTT_Write(0, s, strlen(s));
-#elif _PRINTF_USE_CDC && _UART_ENABLE_CDC
+#elif UART_CFG_PRINTF_USE_CDC && UART_CFG_ENABLE_CDC
   CDC_Send((uint8_t *)s, strlen(s));
-#elif _PRINTF_USE_ITM
+#elif UART_CFG_PRINTF_USE_ITM
   while (*s) {
     ITM_SendChar(*s++);
   }
 #else
-  Uart_Send(&_PRINTF_UART_PORT, (uint8_t *)s, strlen(s));
-#endif  // _PRINTF_USE_*
+  Uart_Send(&_PRINTFUART_CFG_PORT, (uint8_t *)s, strlen(s));
+#endif  // UART_CFG_PRINTF_USE_*
   return 0;
 }
 #undef putchar
 #undef puts
 #define putchar __putchar
 #define puts __puts
-#endif  // _PRINTF_REDIRECT_PUTX
+#endif  // UART_CFG_PRINTF_REDIRECT_PUTX
 
 #ifdef __cplusplus
 }

@@ -24,18 +24,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#ifndef __SOFT_TIMER_H
-#define __SOFT_TIMER_H
-
+#include "internal.h"
 #include "kernel.h"
+#if KERNEL_HOOK_ENABLE
+#include "log.h"
 
-typedef struct soft_timer *soft_timer_t;
+__weak void kernel_hook_idle(void) {}
 
-#define SOFT_TIMER_PRIORITY THREAD_PRIORITY_NORMAL
+__weak void kernel_hook_tick(uint32_t time) { (void)time; }
 
-soft_timer_t soft_timer_create(void (*handler)(void *), void *arg);
-void soft_timer_delete(soft_timer_t timer);
-void soft_timer_start(soft_timer_t timer, uint32_t timeout);
-void soft_timer_stop(soft_timer_t timer);
+__weak void kernel_hook_heap_fault(uint32_t size) {
+  LOG_ERROR("heap alloc failed: size=%d", size);
+}
 
-#endif
+__weak void kernel_hook_heap_operation(void *addr1, void *addr2, uint32_t size,
+                                       uint8_t op) {
+  (void)addr1;
+  (void)addr2;
+  (void)size;
+  (void)op;
+}
+
+__weak void kernel_hook_thread_create(thread_t thread) { (void)thread; }
+
+__weak void kernel_hook_thread_delete(thread_t thread) { (void)thread; }
+
+__weak void kernel_hook_thread_suspend(thread_t thread) { (void)thread; }
+
+__weak void kernel_hook_thread_resume(thread_t thread) { (void)thread; }
+
+__weak void kernel_hook_thread_switch(thread_t from, thread_t to) {
+  (void)from;
+  (void)to;
+}
+
+__weak void kernel_hook_thread_sleep(thread_t thread, uint32_t time) {
+  (void)thread;
+  (void)time;
+}
+
+#endif  // KERNEL_HOOK_ENABLE

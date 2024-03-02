@@ -72,14 +72,23 @@ _STATIC_INLINE uint8_t fast_strcmp(const char *str1, const char *str2) {
   return (!*str1) && (!*str2);
 }
 
+#if SCH_CFG_STATIC_NAME
+#define ID_NAME_VAR(name) char name[SCH_CFG_STATIC_NAME_LEN]
+#define ID_NAME_SET(name, str) strncpy(name, str, SCH_CFG_STATIC_NAME_LEN)
+#else
+#define ID_NAME_VAR(name) const char *name
+#define ID_NAME_SET(name, str) name = str
+#endif
+
 //////// 子模块的运行函数 ////////
 extern void Event_Runner(void);
 extern void SoftInt_Runner(void);
 extern uint64_t Task_Runner(void);
 extern uint64_t Cortn_Runner(void);
 extern uint64_t CallLater_Runner(void);
+extern uint8_t DebugInfo_Runner(uint64_t sleep_us);
 
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
 #include "term_table.h"
 //////// 子模块向调试输出表添加数据的函数 ////////
 extern void sch_task_add_debug(TT tt, uint64_t period, uint64_t *other);
@@ -90,7 +99,7 @@ extern void sch_event_finish_debug(uint8_t first_print, uint64_t offset);
 extern void sch_cortn_finish_debug(uint8_t first_print, uint64_t offset);
 #endif
 
-#if _SCH_ENABLE_TERMINAL
+#if SCH_CFG_ENABLE_TERMINAL
 //////// 子模块的命令行回调函数 ////////
 extern void task_cmd_func(EmbeddedCli *cli, char *args, void *context);
 extern void event_cmd_func(EmbeddedCli *cli, char *args, void *context);

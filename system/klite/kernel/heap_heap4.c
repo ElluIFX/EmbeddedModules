@@ -28,7 +28,6 @@
 #include "kernel.h"
 #if KERNEL_HEAP_MATHOD == 3
 #include "heap_4.h"
-#include "log.h"
 
 volatile static uint8_t heap_lock = 0;
 static struct tcb_list heap_tcb;
@@ -57,18 +56,16 @@ void heap_create(void *addr, uint32_t size) {
   prvHeapInit((uint8_t *)addr, size);
 }
 
-__weak void heap_fault_handler(void) {
-  LOG_ERROR("heap operation failed");
-  // ((void *(*)(void))0x0)();  // make a fault for tracing
-  // MOD_TRIG_DEBUG_HALT();
-}
-
 void *heap_alloc(uint32_t size) {
   heap_mutex_lock();
   void *mem = pvPortMalloc(size);
+#if KERNEL_HOOK_ENABLE
   if (mem == NULL) {
-    heap_fault_handler();
+    kernel_hook_heap_fault(size);
+  } else {
+    kernel_hook_heap_operation(mem, NULL, size, KERNEL_HEAP_OP_ALLOC);
   }
+#endif
   heap_mutex_unlock();
   return mem;
 }
@@ -76,26 +73,39 @@ void *heap_alloc(uint32_t size) {
 void heap_free(void *mem) {
   heap_mutex_lock();
   vPortFree(mem);
+#if KERNEL_HOOK_ENABLE
+  kernel_hook_heap_operation(mem, NULL, 0, KERNEL_HEAP_OP_FREE);
+#endif
   heap_mutex_unlock();
 }
 
 void *heap_realloc(void *mem, uint32_t size) {
   heap_mutex_lock();
   void *new_mem = pvPortRealloc(mem, size);
+#if KERNEL_HOOK_ENABLE
   if (new_mem == NULL) {
-    heap_fault_handler();
+    kernel_hook_heap_fault(size);
+  } else {
+    kernel_hook_heap_operation(mem, new_mem, size, KERNEL_HEAP_OP_REALLOC);
   }
+#endif
   heap_mutex_unlock();
   return new_mem;
 }
 
 void heap_usage(uint32_t *used, uint32_t *free) {
+  heap_mutex_lock();
   *free = xPortGetFreeHeapSize();
   *used = xPortGetTotalHeapSize() - *free;
+  heap_mutex_unlock();
 }
 
 float heap_usage_percent(void) {
-  return (float)(xPortGetTotalHeapSize() - xPortGetFreeHeapSize()) /
-         xPortGetTotalHeapSize();
+  heap_mutex_lock();
+  float usage = (float)(xPortGetTotalHeapSize() - xPortGetFreeHeapSize()) /
+                xPortGetTotalHeapSize();
+  heap_mutex_unlock();
+  return usage;
 }
-#endif
+
+#endif  // KERNEL_HEAP_MATHOD == 3

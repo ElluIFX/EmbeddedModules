@@ -32,7 +32,7 @@
   }
 #endif
 
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
 #define ULIST_LOCK()                                      \
   {                                                       \
     if (!(list->cfg & ULIST_CFG_NO_MUTEX)) {              \
@@ -192,7 +192,7 @@ bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
     }
     list->num = init_size;
   }
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
   if (!(list->cfg & ULIST_CFG_NO_MUTEX))
     list->mutex = MOD_MUTEX_CREATE();
   else
@@ -224,7 +224,7 @@ void ulist_free(ULIST list) {
   if (list->data != NULL) {
     _ulist_free(list->data);
   }
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
   if (list->mutex) MOD_MUTEX_FREE(list->mutex);
 #endif
   if (list->dyn) _ulist_free(list);

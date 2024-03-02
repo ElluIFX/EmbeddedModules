@@ -102,7 +102,8 @@ static bool soft_timer_init(void) {
     mutex_delete(m_timer_mutex);
     return false;
   }
-  m_timer_thread = thread_create(soft_timer_service, NULL, 0);
+  m_timer_thread =
+      thread_create(soft_timer_service, NULL, 0, SOFT_TIMER_PRIORITY);
   if (m_timer_thread == NULL) {
     mutex_delete(m_timer_mutex);
     event_delete(m_timer_event);
@@ -116,7 +117,7 @@ soft_timer_t soft_timer_create(void (*handler)(void *), void *arg) {
   if (!soft_timer_init()) {
     return NULL;
   }
-  timer = heap_alloc( sizeof(struct soft_timer));
+  timer = heap_alloc(sizeof(struct soft_timer));
   if (timer != NULL) {
     memset(timer, 0, sizeof(struct soft_timer));
     timer->handler = handler;
@@ -132,7 +133,7 @@ void soft_timer_delete(soft_timer_t timer) {
   mutex_lock(m_timer_mutex);
   list_remove(&m_timer_list, timer);
   mutex_unlock(m_timer_mutex);
-  heap_free( timer);
+  heap_free(timer);
 }
 
 void soft_timer_start(soft_timer_t timer, uint32_t timeout) {

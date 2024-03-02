@@ -7,8 +7,8 @@
  * THINK DIFFERENTLY
  */
 
-#ifndef _LED_H_
-#define _LED_H_
+#ifndef __LED_H__
+#define __LED_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +20,7 @@ extern "C" {
 #define IGNORE 0x02
 #define TOGGLE 0xFF
 
-#if _LED_USE_PWM
+#if LED_CFG_USE_PWM
 
 /**
  * @brief LED控制
@@ -48,4 +48,4 @@ extern void LED(uint8_t act);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // __LED_H__

@@ -33,7 +33,7 @@ typedef struct {
   uint8_t cfg;            // 配置
   bool dyn;               // 是否动态分配
   void (*elfree)(void*);  // 元素释放函数
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
 #endif
 } ulist_t;

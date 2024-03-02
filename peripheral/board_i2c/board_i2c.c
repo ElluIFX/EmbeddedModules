@@ -12,14 +12,14 @@
 
 #define _INLINE __attribute__((always_inline))
 
-#if _BOARD_I2C_USE_SW_IIC
+#if BOARD_I2C_CFG_USE_SW_IIC
 #include "sw_i2c.h"
 
 static sw_iic_t _i2c_dev = {
-    .sclPort = _BOARD_I2C_SW_SCL_PORT,
-    .sclPin = _BOARD_I2C_SW_SCL_PIN,
-    .sdaPort = _BOARD_I2C_SW_SDA_PORT,
-    .sdaPin = _BOARD_I2C_SW_SDA_PIN,
+    .sclPort = BOARD_I2C_CFG_SW_SCL_PORT,
+    .sclPin = BOARD_I2C_CFG_SW_SCL_PIN,
+    .sdaPort = BOARD_I2C_CFG_SW_SDA_PORT,
+    .sdaPin = BOARD_I2C_CFG_SW_SDA_PIN,
 };
 
 void I2C_Init(void) { SW_IIC_Init(&_i2c_dev); }
@@ -79,117 +79,117 @@ _INLINE uint8_t I2C_CheckDevice(uint8_t addr) {
   return SW_IIC_CheckSlaveAddr(&_i2c_dev, addr);
 }
 
-#elif _BOARD_I2C_USE_LL_I2C
+#elif BOARD_I2C_CFG_USE_LL_I2C
 #include "ll_i2c.h"
 
 _INLINE void I2C_Init(void) {}
 
 _INLINE void I2C_WriteByte(uint8_t addr, uint8_t reg, uint8_t data) {
-  LL_IIC_Write8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, &data, 1);
+  LL_IIC_Write8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, &data, 1);
 }
 
 _INLINE uint8_t I2C_ReadByte(uint8_t addr, uint8_t reg) {
   uint8_t temp;
-  LL_IIC_Read8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, &temp, 1);
+  LL_IIC_Read8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, &temp, 1);
   return temp;
 }
 
 _INLINE void I2C_WriteWord(uint8_t addr, uint8_t reg, uint16_t data) {
   uint8_t buf[2] = {data >> 8, data};
-  LL_IIC_Write8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, buf, 2);
+  LL_IIC_Write8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, buf, 2);
 }
 
 _INLINE uint16_t I2C_ReadWord(uint8_t addr, uint8_t reg) {
   uint8_t buf[2] = {0, 0};
-  LL_IIC_Read8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, buf, 2);
+  LL_IIC_Read8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, buf, 2);
   return ((buf[1] << 8) | (buf[0] & 0xff));
 }
 
 _INLINE void I2C_WriteBuffer(uint8_t addr, uint8_t reg, uint8_t *data,
                              uint8_t len) {
-  LL_IIC_Write8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, data, len);
+  LL_IIC_Write8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, data, len);
 }
 
 _INLINE void I2C_ReadBuffer(uint8_t addr, uint8_t reg, uint8_t *data,
                             uint8_t len) {
-  LL_IIC_Read8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, data, len);
+  LL_IIC_Read8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, data, len);
 }
 
 _INLINE void I2C_WriteBuffer16Addr(uint8_t addr, uint8_t reg, uint8_t *data,
                                    uint8_t len) {
-  LL_IIC_Write16addr(_BOARD_I2C_LL_INSTANCE, addr, reg, data, len);
+  LL_IIC_Write16addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, data, len);
 }
 
 _INLINE void I2C_ReadBuffer16Addr(uint8_t addr, uint8_t reg, uint8_t *data,
                                   uint8_t len) {
-  LL_IIC_Read16addr(_BOARD_I2C_LL_INSTANCE, addr, reg, data, len);
+  LL_IIC_Read16addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, data, len);
 }
 
 _INLINE void I2C_WriteBufferWord(uint8_t addr, uint8_t reg, uint16_t *data,
                                  uint8_t len) {
-  LL_IIC_Write8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, (uint8_t *)data,
+  LL_IIC_Write8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, (uint8_t *)data,
                     len * 2);
 }
 
 _INLINE void I2C_ReadBufferWord(uint8_t addr, uint8_t reg, uint16_t *data,
                                 uint8_t len) {
-  LL_IIC_Read8addr(_BOARD_I2C_LL_INSTANCE, addr, reg, (uint8_t *)data, len * 2);
+  LL_IIC_Read8addr(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, (uint8_t *)data, len * 2);
 }
 
 _INLINE uint8_t I2C_CheckDevice(uint8_t addr) {
-  return LL_IIC_CheckSlaveAddr(_BOARD_I2C_LL_INSTANCE, addr);
+  return LL_IIC_CheckSlaveAddr(BOARD_I2C_CFG_LL_INSTANCE, addr);
 }
 
-#elif _BOARD_I2C_USE_HAL_I2C
+#elif BOARD_I2C_CFG_USE_HAL_I2C
 #include "i2c.h"
 
 _INLINE void I2C_Init(void) {}
 
 _INLINE void I2C_WriteByte(uint8_t addr, uint8_t reg, uint8_t data) {
-  HAL_I2C_Mem_Write(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, &data, 1, 1000);
+  HAL_I2C_Mem_Write(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, &data, 1, 1000);
 }
 
 _INLINE uint8_t I2C_ReadByte(uint8_t addr, uint8_t reg) {
   uint8_t temp;
-  HAL_I2C_Mem_Read(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, &temp, 1, 1000);
+  HAL_I2C_Mem_Read(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, &temp, 1, 1000);
   return temp;
 }
 
 _INLINE void I2C_WriteWord(uint8_t addr, uint8_t reg, uint16_t data) {
   uint8_t buf[2] = {data >> 8, data};
-  HAL_I2C_Mem_Write(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, buf, 2, 1000);
+  HAL_I2C_Mem_Write(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, buf, 2, 1000);
 }
 
 _INLINE uint16_t I2C_ReadWord(uint8_t addr, uint8_t reg) {
   uint8_t buf[2] = {0, 0};
-  HAL_I2C_Mem_Read(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, buf, 2, 1000);
+  HAL_I2C_Mem_Read(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, buf, 2, 1000);
   return ((buf[1] << 8) | (buf[0] & 0xff));
 }
 
 _INLINE void I2C_WriteBuffer(uint8_t addr, uint8_t reg, uint8_t *data,
                              uint8_t len) {
-  HAL_I2C_Mem_Write(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, data, len, 1000);
+  HAL_I2C_Mem_Write(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, data, len, 1000);
 }
 
 _INLINE void I2C_ReadBuffer(uint8_t addr, uint8_t reg, uint8_t *data,
                             uint8_t len) {
-  HAL_I2C_Mem_Read(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, data, len, 1000);
+  HAL_I2C_Mem_Read(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, data, len, 1000);
 }
 
 _INLINE void I2C_WriteBufferWord(uint8_t addr, uint8_t reg, uint16_t *data,
                                  uint8_t len) {
-  HAL_I2C_Mem_Write(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, (uint8_t *)data,
+  HAL_I2C_Mem_Write(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, (uint8_t *)data,
                     len * 2, 1000);
 }
 
 _INLINE void I2C_ReadBufferWord(uint8_t addr, uint8_t reg, uint16_t *data,
                                 uint8_t len) {
-  HAL_I2C_Mem_Read(_BOARD_I2C_HAL_INSTANCE, addr, reg, 1, (uint8_t *)data,
+  HAL_I2C_Mem_Read(BOARD_I2C_CFG_HAL_INSTANCE, addr, reg, 1, (uint8_t *)data,
                    len * 2, 1000);
 }
 
 _INLINE uint8_t I2C_CheckDevice(uint8_t addr) {
-  return HAL_I2C_IsDeviceReady(_BOARD_I2C_HAL_INSTANCE, addr, 1, 1000);
+  return HAL_I2C_IsDeviceReady(BOARD_I2C_CFG_HAL_INSTANCE, addr, 1, 1000);
 }
 
 #else

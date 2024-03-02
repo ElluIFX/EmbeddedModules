@@ -65,18 +65,16 @@ void heap_create(void *addr, uint32_t size) {
   lwmem_assignmem(regions);
 }
 
-__weak void heap_fault_handler(void) {
-  LOG_ERROR("heap fault");
-  ((void *(*)(void))0x0)();  // make a fault for tracing
-  // MOD_TRIG_DEBUG_HALT();
-}
-
 void *heap_alloc(uint32_t size) {
   heap_mutex_lock();
   void *mem = lwmem_malloc(size);
+#if KERNEL_HOOK_ENABLE
   if (mem == NULL) {
-    heap_fault_handler();
+    kernel_hook_heap_fault(size);
+  } else {
+    kernel_hook_heap_operation(mem, NULL, size, KERNEL_HEAP_OP_ALLOC);
   }
+#endif
   heap_mutex_unlock();
   return mem;
 }
@@ -84,15 +82,22 @@ void *heap_alloc(uint32_t size) {
 void heap_free(void *mem) {
   heap_mutex_lock();
   lwmem_free(mem);
+#if KERNEL_HOOK_ENABLE
+  kernel_hook_heap_operation(mem, NULL, 0, KERNEL_HEAP_OP_FREE);
+#endif
   heap_mutex_unlock();
 }
 
 void *heap_realloc(void *mem, uint32_t size) {
   heap_mutex_lock();
   void *new_mem = lwmem_realloc(mem, size);
+#if KERNEL_HOOK_ENABLE
   if (new_mem == NULL) {
-    heap_fault_handler();
+    kernel_hook_heap_fault(size);
+  } else {
+    kernel_hook_heap_operation(mem, new_mem, size, KERNEL_HEAP_OP_REALLOC);
   }
+#endif
   heap_mutex_unlock();
   return new_mem;
 }

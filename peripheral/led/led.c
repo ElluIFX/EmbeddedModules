@@ -10,7 +10,7 @@
 
 #include "led.h"
 
-#if !_LED_USE_PWM
+#if !LED_CFG_USE_PWM
 #define LED_STATE(s) (s ? GPIO_PIN_RESET : GPIO_PIN_SET)
 
 #if defined(LED_R_Pin) && defined(LED_G_Pin) && defined(LED_B_Pin)
@@ -43,23 +43,23 @@ void LED(uint8_t act) {
 void LED(float R, float G, float B) {
   static uint8_t inited = 0;
   if (R >= 0)
-    __HAL_TIM_SET_COMPARE(&_LED_R_HTIM, _LED_R_CHANNEL,
-                          R * _LED_R_PULSE / 255.0f);
+    __HAL_TIM_SET_COMPARE(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL,
+                          R * LED_CFG_R_PULSE / 255.0f);
   if (G >= 0)
-    __HAL_TIM_SET_COMPARE(&_LED_G_HTIM, _LED_G_CHANNEL,
-                          G * _LED_G_PULSE / 255.0f);
+    __HAL_TIM_SET_COMPARE(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL,
+                          G * LED_CFG_G_PULSE / 255.0f);
   if (B >= 0)
-    __HAL_TIM_SET_COMPARE(&_LED_B_HTIM, _LED_B_CHANNEL,
-                          B * _LED_B_PULSE / 255.0f);
+    __HAL_TIM_SET_COMPARE(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL,
+                          B * LED_CFG_B_PULSE / 255.0f);
   if (!inited) {
-#if !_LED_PWMN_OUTPUT
-    HAL_TIM_PWM_Start(&_LED_R_HTIM, _LED_R_CHANNEL);
-    HAL_TIM_PWM_Start(&_LED_G_HTIM, _LED_G_CHANNEL);
-    HAL_TIM_PWM_Start(&_LED_B_HTIM, _LED_B_CHANNEL);
+#if !LED_CFG_PWMN_OUTPUT
+    HAL_TIM_PWM_Start(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL);
+    HAL_TIM_PWM_Start(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL);
+    HAL_TIM_PWM_Start(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL);
 #else
-    HAL_TIMEx_PWMN_Start(&_LED_R_HTIM, _LED_R_CHANNEL);
-    HAL_TIMEx_PWMN_Start(&_LED_G_HTIM, _LED_G_CHANNEL);
-    HAL_TIMEx_PWMN_Start(&_LED_B_HTIM, _LED_B_CHANNEL);
+    HAL_TIMEx_PWMN_Start(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL);
+    HAL_TIMEx_PWMN_Start(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL);
+    HAL_TIMEx_PWMN_Start(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL);
 #endif
     inited = 1;
   }

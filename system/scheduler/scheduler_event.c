@@ -1,13 +1,13 @@
 #include "scheduler_event.h"
 
 #include "scheduler_internal.h"
-#if _SCH_ENABLE_EVENT
+#if SCH_CFG_ENABLE_EVENT
 #pragma pack(1)
 typedef struct {      // 事件结构
-  const char *name;   // 事件名
+  ID_NAME_VAR(name);  // 事件名
   event_func_t task;  // 事件回调函数指针
   uint8_t enable;     // 是否使能
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
   uint64_t max_cost;     // 事件最大执行时间(Tick)
   uint64_t total_cost;   // 事件总执行时间(Tick)
   uint64_t max_lat;      // 事件调度延迟(Tick)
@@ -21,7 +21,7 @@ typedef struct {              // 事件触发结构
   event_func_t task;          // 事件回调函数指针
   scheduler_event_arg_t arg;  // 事件参数
   uint8_t allocated;          // 动态分配的参数内存
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
   uint64_t trigger_time;     // 触发时间(Tick)
   scheduler_event_t *event;  // 源事件指针
 #endif
@@ -54,7 +54,7 @@ _INLINE void Event_Runner(void) {
   }
   uint16_t cnt = 0;
   ulist_foreach(&triggered_eventlist, scheduler_triggered_event_t, triggered) {
-#if !_SCH_DEBUG_REPORT
+#if !SCH_CFG_DEBUG_REPORT
     triggered->task(triggered->arg);
 #else
     scheduler_event_t *event = triggered->event;
@@ -67,7 +67,7 @@ _INLINE void Event_Runner(void) {
     if (event->max_lat < _late) event->max_lat = _late;
     event->total_lat += _late;
     event->run_cnt++;
-#endif  // !_SCH_DEBUG_REPORT
+#endif  // !SCH_CFG_DEBUG_REPORT
     if (triggered->allocated) m_free(triggered->arg.ptr);
     cnt++;
   }
@@ -82,10 +82,10 @@ uint8_t Sch_CreateEvent(const char *name, event_func_t callback,
     if (fast_strcmp(event->name, name)) return 0;
   }
   scheduler_event_t event = {
-      .name = name,
       .task = callback,
       .enable = enable,
   };
+  ID_NAME_SET(event.name, name);
   return ulist_append_copy(&eventlist, &event);
 }
 
@@ -126,7 +126,7 @@ uint8_t Sch_TriggerEvent(const char *name, uint8_t arg_type, void *arg_ptr,
                                                    .size = arg_size,
                                                },
                                            .allocated = 0};
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
   triggered.trigger_time = get_sys_tick();
   triggered.event = event;
   event->trigger_cnt++;
@@ -147,7 +147,7 @@ uint8_t Sch_TriggerEventEx(const char *name, uint8_t arg_type,
       .task = event->task,
       .arg = {.type = arg_type, .ptr = args, .size = arg_size},
       .allocated = 1};
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
   triggered.trigger_time = get_sys_tick();
   triggered.event = event;
   event->trigger_cnt++;
@@ -169,7 +169,7 @@ uint8_t Sch_GetEventEnabled(const char *name) {
 
 uint16_t Sch_GetEventNum(void) { return eventlist.num; }
 
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
 void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
   if (eventlist.num) {
     TT_FMT1 f1 = TT_FMT1_BLUE;
@@ -187,7 +187,7 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head2[i]));
     int i = 0;
     ulist_foreach(&eventlist, scheduler_event_t, event) {
-      if (i >= _SCH_DEBUG_MAXLINE) {
+      if (i >= SCH_CFG_DEBUG_MAXLINE) {
         TT_AddString(
             tt, TT_Str(TT_ALIGN_CENTER, TT_FMT1_NONE, TT_FMT2_NONE, "..."), 0);
         break;
@@ -258,9 +258,9 @@ void sch_event_finish_debug(uint8_t first_print, uint64_t offset) {
     event->total_lat = 0;
   }
 }
-#endif  // _SCH_DEBUG_REPORT
+#endif  // SCH_CFG_DEBUG_REPORT
 
-#if _SCH_ENABLE_TERMINAL
+#if SCH_CFG_ENABLE_TERMINAL
 void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   size_t argc = embeddedCliGetTokenCount(args);
   if (!argc) {
@@ -314,6 +314,6 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }
 }
-#endif  // _SCH_ENABLE_TERMINAL
+#endif  // SCH_CFG_ENABLE_TERMINAL
 
-#endif  // _SCH_ENABLE_EVENT
+#endif  // SCH_CFG_ENABLE_EVENT

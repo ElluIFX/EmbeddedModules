@@ -19,7 +19,7 @@
 
 #define xTaskResumeAll() ((void)0)
 
-#if _MOD_USE_OS == 1
+#if MOD_CFG_USE_OS == 1
 #include "internal.h"
 #define taskENTER_CRITICAL() cpu_enter_critical()
 

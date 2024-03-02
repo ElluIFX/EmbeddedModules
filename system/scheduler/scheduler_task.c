@@ -1,16 +1,17 @@
 #include "scheduler_task.h"
 
 #include "scheduler_internal.h"
-#if _SCH_ENABLE_TASK
+#if SCH_CFG_ENABLE_TASK
 #pragma pack(1)
 typedef struct {      // 用户任务结构
+  ID_NAME_VAR(name);  // 任务名
   task_func_t task;   // 任务函数指针
   uint64_t period;    // 任务调度周期(Tick)
   uint64_t pendTime;  // 下次执行时间(Tick)
   uint8_t enable;     // 是否使能
   uint8_t priority;   // 优先级
   void *args;         // 任务参数
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
   uint64_t max_cost;    // 任务最大执行时间(Tick)
   uint64_t total_cost;  // 任务总执行时间(Tick)
   uint64_t max_lat;     // 任务调度延迟(Tick)
@@ -19,7 +20,6 @@ typedef struct {      // 用户任务结构
   float last_usage;     // 任务上次执行占用率
   uint8_t unsync;       // 丢失同步
 #endif
-  const char *name;  // 任务名
 } scheduler_task_t;
 #pragma pack()
 
@@ -70,15 +70,15 @@ _INLINE uint64_t Task_Runner(void) {
   }
   scheduler_task_t *task = pending_task;
   uint64_t latency = now - task->pendTime;
-  if (latency <= us_to_tick(_SCH_COMP_RANGE_US)) {
+  if (latency <= us_to_tick(SCH_CFG_COMP_RANGE_US)) {
     task->pendTime += task->period;
   } else {
     task->pendTime = now + task->period;
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
     task->unsync = 1;
 #endif
   }
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
   uint64_t _sch_debug_task_tick = get_sys_tick();
   task->task(task->args);
   _sch_debug_task_tick = get_sys_tick() - _sch_debug_task_tick;
@@ -90,7 +90,7 @@ _INLINE uint64_t Task_Runner(void) {
   task->run_cnt++;
 #else
   task->task(task->args);
-#endif  // _SCH_DEBUG_REPORT
+#endif  // SCH_CFG_DEBUG_REPORT
   pending_task = get_next_task();
   return 0;
 }
@@ -103,9 +103,9 @@ uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
       .priority = priority,
       .period = (double)get_sys_freq() / (double)freqHz,
       .pendTime = get_sys_tick(),
-      .name = name,
       .args = args,
   };
+  ID_NAME_SET(task.name, name);
   if (!task.period) task.period = 1;
   if (!ulist_append_copy(&tasklist, &task)) return 0;
   resort_task();
@@ -177,7 +177,7 @@ uint8_t Sch_SetTaskFreq(const char *name, float freqHz) {
   return 1;
 }
 
-#if _SCH_DEBUG_REPORT
+#if SCH_CFG_DEBUG_REPORT
 void sch_task_add_debug(TT tt, uint64_t period, uint64_t *other) {
   if (tasklist.num) {
     TT_FMT1 f1 = TT_FMT1_BLUE;
@@ -195,7 +195,7 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t *other) {
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head1[i]));
     int i = 0;
     ulist_foreach(&tasklist, scheduler_task_t, task) {
-      if (i >= _SCH_DEBUG_MAXLINE) {
+      if (i >= SCH_CFG_DEBUG_MAXLINE) {
         TT_AddString(
             tt, TT_Str(TT_ALIGN_CENTER, TT_FMT1_NONE, TT_FMT2_NONE, "..."), 0);
         break;
@@ -265,9 +265,9 @@ void sch_task_finish_debug(uint8_t first_print, uint64_t offset) {
   }
   pending_task = get_next_task();
 }
-#endif  // _SCH_DEBUG_REPORT
+#endif  // SCH_CFG_DEBUG_REPORT
 
-#if _SCH_ENABLE_TERMINAL
+#if SCH_CFG_ENABLE_TERMINAL
 void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   size_t argc = embeddedCliGetTokenCount(args);
   if (!argc) {
@@ -328,6 +328,6 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }
 }
-#endif  // _SCH_ENABLE_TERMINAL
+#endif  // SCH_CFG_ENABLE_TERMINAL
 
-#endif  // _SCH_ENABLE_TASK
+#endif  // SCH_CFG_ENABLE_TASK

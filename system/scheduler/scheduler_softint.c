@@ -2,7 +2,7 @@
 
 #include "scheduler_internal.h"
 
-#if _SCH_ENABLE_SOFTINT
+#if SCH_CFG_ENABLE_SOFTINT
 
 static __IO uint8_t imm = 0;
 static __IO uint8_t ism[8] = {0};
@@ -31,7 +31,7 @@ _INLINE void SoftInt_Runner(void) {
   }
 }
 
-#if _SCH_ENABLE_TERMINAL
+#if SCH_CFG_ENABLE_TERMINAL
 void softint_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   size_t argc = embeddedCliGetTokenCount(args);
   if (!argc) {
@@ -51,5 +51,5 @@ void softint_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   Sch_TriggerSoftInt(ch, sub);
   LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "SoftInt: %d-%d triggered" T_RST, ch, sub);
 }
-#endif  // _SCH_ENABLE_TERMINAL
-#endif  // _SCH_ENABLE_SOFTINT
+#endif  // SCH_CFG_ENABLE_TERMINAL
+#endif  // SCH_CFG_ENABLE_SOFTINT

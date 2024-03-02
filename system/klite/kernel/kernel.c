@@ -54,6 +54,9 @@ void kernel_idle(void) {
   m_idle_thread = thread_self();
   thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE);
   while (1) {
+#if KERNEL_HOOK_ENABLE
+    kernel_hook_idle();
+#endif
     thread_clean_up();
     cpu_enter_critical();
     sched_idle();
@@ -67,6 +70,9 @@ uint32_t kernel_idle_time(void) {
 
 void kernel_tick(uint32_t time) {
   m_tick_count += time;
+#if KERNEL_HOOK_ENABLE
+  kernel_hook_tick(time);
+#endif
   cpu_enter_critical();
   sched_timing(time);
   sched_preempt(true);

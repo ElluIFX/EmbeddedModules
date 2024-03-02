@@ -52,6 +52,8 @@ typedef enum {
   TT_ITEM_TYPE_KVPAIR,     // 键值对
   TT_ITEM_TYPE_GRID,       // 对齐网格
   TT_ITEM_TYPE_SEPARATOR,  // 分割线
+  TT_ITEM_TYPE_LINEBREAK,  // 换行
+  TT_ITEM_TYPE_PROGRESS,   // 进度条
 } TT_ITEM_TYPE;
 
 typedef struct {
@@ -143,6 +145,24 @@ typedef struct {
 } term_table_item_separator_t;
 
 typedef term_table_item_separator_t* TT_ITEM_SEPARATOR;
+
+typedef struct {
+  int16_t lineCount;
+} term_table_item_linebreak_t;
+
+typedef term_table_item_linebreak_t* TT_ITEM_LINEBREAK;
+
+typedef struct {
+  float percent;
+  int16_t intent;
+  uint8_t fmt1;
+  uint8_t fmt2;
+  bool showPercent;
+  TT_STR _percentStr;
+} term_table_item_progress_t;
+
+typedef term_table_item_progress_t* TT_ITEM_PROGRESS;
+
 #pragma pack()
 
 /**
@@ -283,5 +303,24 @@ extern TT_ITEM_GRID_LINE_ITEM TT_GridLine_AddItem(TT_ITEM_GRID_LINE line,
  */
 extern TT_ITEM_SEPARATOR TT_AddSeparator(TT tt, TT_FMT1 fmt1, TT_FMT2 fmt2,
                                          char separator);
+
+/**
+ * @brief 添加一个换行组件
+ * @param  tt          表格
+ * @param  lineCount   行数
+ * @retval TT_ITEM_LINEBREAK 换行
+ */
+extern TT_ITEM_LINEBREAK TT_AddLineBreak(TT tt, uint16_t lineCount);
+
+/**
+ * @brief 添加一个进度条组件
+ * @param  tt          表格
+ * @param  percent     百分比 (0.0~1.0)
+ * @param  showPercent 是否显示百分比
+ * @retval TT_ITEM_PROGRESS 进度条
+ */
+extern TT_ITEM_PROGRESS TT_AddProgress(TT tt, int16_t intent, TT_FMT1 fmt1,
+                                       TT_FMT2 fmt2, float percent,
+                                       bool showPercent);
 
 #endif  // __TERM_TABLE_H

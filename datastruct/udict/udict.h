@@ -30,7 +30,7 @@ typedef struct udict {
   ulist_t nodes;
   udict_size_t size;
   udict_size_t iter;
-#if _MOD_USE_OS
+#if MOD_CFG_USE_OS
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
 #endif
   bool dyn;

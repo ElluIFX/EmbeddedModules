@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 #include "scheduler.h"
-#if _SCH_ENABLE_COROUTINE
+#if SCH_CFG_ENABLE_COROUTINE
 #include "scheduler_coroutine_internal.h"
 
 /**
@@ -183,7 +183,7 @@ extern uint16_t Sch_GetCortnBarrierWaitingNum(const char *name);
  */
 extern uint8_t Sch_SetCortnBarrierTarget(const char *name, uint16_t target);
 
-#endif  // _SCH_ENABLE_COROUTINE
+#endif  // SCH_CFG_ENABLE_COROUTINE
 #ifdef __cplusplus
 }
 #endif
