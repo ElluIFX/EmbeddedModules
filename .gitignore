@@ -18,5 +18,11 @@
 *.pyo
 *.pyd
 __pycache__
+.venv
 
 *.pdf
+
+# kconfig
+.config
+.config.old
+modules_conf.h

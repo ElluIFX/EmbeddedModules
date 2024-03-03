@@ -1,0 +1,84 @@
+mainmenu "Ellu's Modules"
+
+
+menu "System Configuration"
+
+    choice
+        prompt "Enable RTOS Support"
+        help
+            Select the RTOS you are using.
+        default MOD_CFG_USE_OS_NONE
+        config MOD_CFG_USE_OS_NONE
+            bool "None"
+        config MOD_CFG_USE_OS_FREERTOS
+            bool "FreeRTOS"
+        config MOD_CFG_USE_OS_RTT
+            bool "RT-Thread"
+        config MOD_CFG_USE_OS_KLITE
+            bool "KLite RTOS"
+    endchoice
+
+    choice
+        prompt "System Time/Tick Provider"
+        help
+            Select the system time source that offers m_tick/m_time_* functions.
+        default MOD_CFG_TIME_MATHOD_PERF_COUNTER
+        config MOD_CFG_TIME_MATHOD_HAL
+            bool "ST HAL Library"
+        config MOD_CFG_TIME_MATHOD_PERF_COUNTER
+            bool "PerfCounter Library"
+    endchoice
+
+    choice
+        prompt "System Heap Provider"
+        help
+            Select the memory manager that offers m_alloc/m_free/m_realloc functions.
+            Be aware that if you are using an RTOS, the RTOS's memory manager should best be used.
+        default MOD_CFG_HEAP_MATHOD_KLITE if MOD_CFG_USE_OS_KLITE
+        default MOD_CFG_HEAP_MATHOD_FREERTOS if MOD_CFG_USE_OS_FREERTOS
+        default MOD_CFG_HEAP_MATHOD_RTT if MOD_CFG_USE_OS_RTT
+        default MOD_CFG_HEAP_MATHOD_STDLIB
+        config MOD_CFG_HEAP_MATHOD_STDLIB
+            bool "Standard Library (stdlib.h)"
+        config MOD_CFG_HEAP_MATHOD_LWMEM
+            bool "LwMEM Memory Manager"
+        config MOD_CFG_HEAP_MATHOD_HEAP4
+            bool "Heap4 Memory Manager (modified from FreeRTOS)"
+        config MOD_CFG_HEAP_MATHOD_KLITE
+            bool "KLite RTOS Memory Manager"
+            depends on MOD_CFG_USE_OS_KLITE
+        config MOD_CFG_HEAP_MATHOD_FREERTOS
+            bool "FreeRTOS Memory Manager"
+            depends on MOD_CFG_USE_OS_FREERTOS
+        config MOD_CFG_HEAP_MATHOD_RTT
+            bool "RT-Thread Memory Manager"
+            depends on MOD_CFG_USE_OS_RTT
+    endchoice
+
+    choice
+        prompt "System Delay Provider"
+        help
+            Select the system delay source that offers m_delay_* functions.
+            Be aware that if you are using an RTOS, the RTOS's delay functions should best be used.
+        default MOD_CFG_DELAY_MATHOD_RTT if MOD_CFG_USE_OS_RTT
+        default MOD_CFG_DELAY_MATHOD_KLITE if MOD_CFG_USE_OS_KLITE
+        default MOD_CFG_DELAY_MATHOD_FREERTOS if MOD_CFG_USE_OS_FREERTOS
+        default MOD_CFG_DELAY_MATHOD_PERF_COUNTER
+        config MOD_CFG_DELAY_MATHOD_HAL
+            bool "ST HAL Library"
+        config MOD_CFG_DELAY_MATHOD_PERF_COUNTER
+            bool "PerfCounter Library"
+        config MOD_CFG_DELAY_MATHOD_RTT
+            bool "RT-Thread"
+            depends on MOD_CFG_USE_OS_RTT
+        config MOD_CFG_DELAY_MATHOD_KLITE
+            bool "KLite RTOS"
+            depends on MOD_CFG_USE_OS_KLITE
+        config MOD_CFG_DELAY_MATHOD_FREERTOS
+            bool "FreeRTOS"
+            depends on MOD_CFG_USE_OS_FREERTOS
+    endchoice
+endmenu
+
+# Sub-Modules
+source "*/Kconfig"

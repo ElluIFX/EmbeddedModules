@@ -19,6 +19,20 @@ extern "C" {
 #include "uart_pack.h"
 
 /****************************    日志设置     ***********************/
+#if !KCONFIG_AVAILABLE // 由Kconfig配置
+// 调试日志设置
+#define LOG_CFG_ENABLE           1 // 调试日志总开关
+#define LOG_CFG_ENABLE_TIMESTAMP 1 // 调试日志是否添加时间戳
+#define LOG_CFG_ENABLE_COLOR     1 // 调试日志是否按等级添加颜色
+#define LOG_CFG_ENABLE_FUNC_LINE 0 // 调试日志是否添加函数名和行号
+#define LOG_CFG_ENABLE_ASSERT    1 // 是否开启ASSERT
+// 调试日志等级
+#define LOG_CFG_ENABLE_DEBUG 1 // 是否输出DEBUG日志
+#define LOG_CFG_ENABLE_PASS  1 // 是否输出PASS日志
+#define LOG_CFG_ENABLE_INFO  1 // 是否输出INFO日志
+#define LOG_CFG_ENABLE_WARN  1 // 是否输出WARN日志
+#define LOG_CFG_ENABLE_ERROR 1 // 是否输出ERROR日志
+#define LOG_CFG_ENABLE_FATAL 1 // 是否输出FATAL日志
 // 日志输出
 #define LOG_CFG_PRINTF        printf                                  // 日志输出函数 (必须为类printf函数)
 #define LOG_CFG_TIMESTAMP     ((float)((uint64_t)m_time_ms()) / 1000) // 时间戳获取
@@ -54,6 +68,7 @@ extern "C" {
 #define LOG_CFG_R_STR "REFRESH" // 单行刷新日志
 #define LOG_CFG_A_STR "ASSERT"  // 断言日志
 #define LOG_CFG_T_STR "TIMEIT"  // 计时日志
+#endif
 /*********************************************************************/
 
 // 终端颜色代码
@@ -361,7 +376,7 @@ extern "C" {
 #define LOG_AC LOG_ASSERT_CMD
 #define LOG_L  LOG_LIMIT
 
-#if MOD_CFG_TIME_MATHOD == 1 // perf_counter
+#if MOD_CFG_TIME_MATHOD_PERF_COUNTER
 /**
  * @brief 测量代码块执行时间
  * @param  NAME             测量名称

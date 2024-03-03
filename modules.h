@@ -17,14 +17,44 @@ extern "C" {
 
 #include "main.h"
 
-#if __has_include("modules_conf.h")
-#include "modules_conf.h"
+#if __has_include("modules_config.h")
+#include "modules_config.h"
+#define KCONFIG_AVAILABLE 1
 #else
-#error \
-    "modules_conf.h not found, copy modules_conf.template.h to modules_conf.h and modify it"
+#warning \
+    "modules_config.h not found, run menuconfig (by Kconfig) to generate it"
+#define KCONFIG_AVAILABLE 0
 #endif
 
-#if MOD_CFG_TIME_MATHOD == 0  // HAL
+#if !KCONFIG_AVAILABLE  // 由Kconfig配置
+// 动态内存分配方法(m_alloc/m_free/m_realloc):
+#define MOD_CFG_HEAP_MATHOD_STDLIB 1
+#define MOD_CFG_HEAP_MATHOD_LWMEM 0
+#define MOD_CFG_HEAP_MATHOD_KLITE 0
+#define MOD_CFG_HEAP_MATHOD_FREERTOS 0
+#define MOD_CFG_HEAP_MATHOD_HEAP4 0
+#define MOD_CFG_HEAP_MATHOD_RTT 0
+
+// 时间获取方法(m_tick/m_time_*)
+#define MOD_CFG_TIME_MATHOD_HAL 0
+#define MOD_CFG_TIME_MATHOD_PERF_COUNTER 1
+
+// 延时方法(m_delay_*)
+#define MOD_CFG_DELAY_MATHOD_HAL 0
+#define MOD_CFG_DELAY_MATHOD_PERF_COUNTER 1
+#define MOD_CFG_DELAY_MATHOD_KLITE 0
+#define MOD_CFG_DELAY_MATHOD_FREERTOS 0
+#define MOD_CFG_DELAY_MATHOD_RTT 0
+
+// 是否使用操作系统(MOD_MUTEX_*)
+#define MOD_CFG_USE_OS_NONE 1
+#define MOD_CFG_USE_OS_KLITE 0
+#define MOD_CFG_USE_OS_FREERTOS 0
+#define MOD_CFG_USE_OS_RTT 0
+
+#endif  // KCONFIG_AVAILABLE
+
+#if MOD_CFG_TIME_MATHOD_HAL
 typedef uint32_t m_time_t;
 #define m_time_t_max_value (UINT32_MAX)
 #define Init_Module_Timebase() ((void)0)
@@ -36,7 +66,7 @@ typedef uint32_t m_time_t;
 #define m_tick_clk (1000)
 #define m_tick_per_ms(type) ((type)1)
 #define m_tick_per_us(type) ((type)0.001)
-#elif MOD_CFG_TIME_MATHOD == 1  // perf_counter
+#elif MOD_CFG_TIME_MATHOD_PERF_COUNTER
 #include "perf_counter.h"
 typedef int64_t m_time_t;
 #define m_time_t_max_value (INT64_MAX)
@@ -53,15 +83,15 @@ typedef int64_t m_time_t;
 #error "MOD_TIME_MATHOD invalid"
 #endif  // MOD_CFG_TIME_MATHOD
 
-#if MOD_CFG_DELAY_MATHOD == 0  // HAL
+#if MOD_CFG_DELAY_MATHOD_HAL  // HAL
 #define m_delay_us(x) HAL_Delay((x) / 1000)
 #define m_delay_ms(x) HAL_Delay((x))
 #define m_delay_s(x) HAL_Delay((x) * 1000)
-#elif MOD_CFG_DELAY_MATHOD == 1  // perf_counter
+#elif MOD_CFG_DELAY_MATHOD_PERF_COUNTER  // perf_counter
 #define m_delay_us(x) delay_us((x))
 #define m_delay_ms(x) delay_ms((x))
 #define m_delay_s(x) delay_ms((x) * 1000)
-#elif MOD_CFG_DELAY_MATHOD == 2  // klite
+#elif MOD_CFG_DELAY_MATHOD_KLITE  // klite
 #include "kernel.h"
 #define m_delay_us(x) thread_sleep((uint64_t)(x) / (1000000 / KERNEL_FREQ))
 #if KERNEL_FREQ >= 1000
@@ -70,14 +100,14 @@ typedef int64_t m_time_t;
 #define m_delay_ms(x) thread_sleep((uint64_t)(x) / (1000 / KERNEL_FREQ))
 #endif
 #define m_delay_s(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ)
-#elif MOD_CFG_DELAY_MATHOD == 3  // freertos
-#include "FreeRTOS.h"            // period = 1ms
+#elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
+#include "FreeRTOS.h"                // period = 1ms
 #include "task.h"
 #define m_delay_us(x) vTaskDelay((x) / 1000)
 #define m_delay_ms(x) vTaskDelay((x))
 #define m_delay_s(x) vTaskDelay((x) * 1000)
-#elif MOD_CFG_DELAY_MATHOD == 4  // rtthread
-#include "rtthread.h"            // period = 1ms
+#elif MOD_CFG_DELAY_MATHOD_RTT  // rtthread
+#include "rtthread.h"           // period = 1ms
 #define m_delay_us(x) \
   rt_thread_delay((rt_tick_t)(x) / (1000000 / RT_TICK_PER_SECOND))
 #if RT_TICK_PER_SECOND >= 1000
@@ -92,33 +122,33 @@ typedef int64_t m_time_t;
 #error "MOD_DELAY_MATHOD invalid"
 #endif  // MOD_CFG_DELAY_MATHOD
 
-#if MOD_CFG_HEAP_MATHOD == 0  // stdlib
+#if MOD_CFG_HEAP_MATHOD_STDLIB  // stdlib
 #include "stdlib.h"
 #define m_alloc(size) malloc(size)
 #define m_free(ptr) free(ptr)
 #define m_realloc(ptr, size) realloc(ptr, size)
-#elif MOD_CFG_HEAP_MATHOD == 1  // lwmem
+#elif MOD_CFG_HEAP_MATHOD_LWMEM  // lwmem
 #define _MOD_USE_DALLOC 1
 #include "lwmem.h"
 #define m_alloc(size) lwmem_malloc(size)
 #define m_free(ptr) lwmem_free(ptr)
 #define m_realloc(ptr, size) lwmem_realloc(ptr, size)
-#elif MOD_CFG_HEAP_MATHOD == 2  // klite
+#elif MOD_CFG_HEAP_MATHOD_KLITE  // klite
 #include "kernel.h"
 #define m_alloc(size) heap_alloc(size)
 #define m_free(ptr) heap_free((ptr))
 #define m_realloc(ptr, size) heap_realloc((ptr), size)
-#elif MOD_CFG_HEAP_MATHOD == 3  // freertos
+#elif MOD_CFG_HEAP_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"
 #define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
-#elif MOD_CFG_HEAP_MATHOD == 4  // heap_4
+#elif MOD_CFG_HEAP_MATHOD_HEAP4  // heap_4
 #include "heap_4.h"
 #define m_alloc(size) pvPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
-#elif MOD_CFG_HEAP_MATHOD == 5  // rtthread
+#elif MOD_CFG_HEAP_MATHOD_RTT  // rtthread
 #include "rtthread.h"
 #define m_alloc(size) rt_malloc(size)
 #define m_free(ptr) rt_free(ptr)
@@ -127,27 +157,27 @@ typedef int64_t m_time_t;
 #error "MOD_HEAP_MATHOD invalid"
 #endif
 
-#if MOD_CFG_USE_OS == 0  // none
+#if MOD_CFG_USE_OS_NONE  // none
 #define MOD_MUTEX_HANDLE void*
 #define MOD_MUTEX_CREATE() (NULL)
 #define MOD_MUTEX_ACQUIRE(mutex) ((void)0)
 #define MOD_MUTEX_RELEASE(mutex) ((void)0)
 #define MOD_MUTEX_FREE(mutex) ((void)0)
-#elif MOD_CFG_USE_OS == 1  // klite
+#elif MOD_CFG_USE_OS_KLITE  // klite
 #include "kernel.h"
 #define MOD_MUTEX_HANDLE mutex_t
 #define MOD_MUTEX_CREATE() mutex_create()
 #define MOD_MUTEX_ACQUIRE(mutex) mutex_lock(mutex)
 #define MOD_MUTEX_RELEASE(mutex) mutex_unlock(mutex)
 #define MOD_MUTEX_FREE(mutex) mutex_delete(mutex)
-#elif MOD_CFG_USE_OS == 2  // freertos
+#elif MOD_CFG_USE_OS_FREERTOS  // freertos
 #include "FreeRTOS.h"
 #define MOD_MUTEX_HANDLE SemaphoreHandle_t
 #define MOD_MUTEX_CREATE() xSemaphoreCreateMutex()
 #define MOD_MUTEX_ACQUIRE(mutex) xSemaphoreTake(mutex, portMAX_DELAY)
 #define MOD_MUTEX_RELEASE(mutex) xSemaphoreGive(mutex)
 #define MOD_MUTEX_FREE(mutex) vSemaphoreDelete(mutex)
-#elif MOD_CFG_USE_OS == 3  // rtthread
+#elif MOD_CFG_USE_OS_RTT  // rtthread
 #include "rtthread.h"
 #define MOD_MUTEX_HANDLE rt_mutex_t
 #define MOD_MUTEX_CREATE() rt_mutex_create("mod_mutex", RT_IPC_FLAG_PRIO)
@@ -157,12 +187,6 @@ typedef int64_t m_time_t;
 #else
 #error "MOD_USE_OS invalid"
 #endif
-
-// 触发调试断点
-#define MOD_TRIG_DEBUG_HALT() \
-  if (CoreDebug->DHCSR & 1) { \
-    __breakpoint(0);          \
-  }
 
 #ifndef __has_include
 #define __has_include(x) 1  // Compatibility with non-clang compilers.

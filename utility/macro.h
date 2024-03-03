@@ -227,6 +227,11 @@ typedef int64_t s64;
  */
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
+#define TRIGGER_DEBUG_HALT()    \
+    if (CoreDebug->DHCSR & 1) { \
+        __breakpoint(0);        \
+    }
+
 /************** 语法糖 END *********************/
 #ifdef __cplusplus
 }

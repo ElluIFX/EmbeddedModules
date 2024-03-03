@@ -41,8 +41,8 @@
 | [benchmark](./debug/benchmark) | CoreMark基准测试 | [link](https://github.com/eembc/coremark) | |
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯 | [link](https://github.com/armink/CmBacktrace) | |
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 | [link](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/) | |
-| [log.h](./debug/log.h) | 轻量级宏函数日志 |*| 需要uart_pack |
-| [minctest.h](./debug/minctest.h) | 轻量级单元测试 | [link](https://github.com/codeplea/minctest) | |
+| [log](./debug/log.h) | 轻量级宏函数日志 |*| 需要uart_pack |
+| [minctest](./debug/minctest.h) | 轻量级单元测试 | [link](https://github.com/codeplea/minctest) | |
 
 | [Graphics](./graphics) | 图形 | repo | 备注 |
 |-|-|:-:|-|
@@ -61,9 +61,9 @@
 | [Peripheral](./peripheral) | 外设 | repo | 备注 |
 |-|-|:-:|-|
 | [board_i2c](./peripheral/board_i2c) | 板级I2C包装层 |*| |
+| [board_led](./peripheral/board_led) | 板级LED包装层 |*| |
 | [i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |*| |
 | [key](./peripheral/key) | 通用按键 |*| 支持多种事件 |
-| [led](./peripheral/led) | 通用LED |*| 没啥用 |
 | [ll_i2c](./peripheral/ll_i2c) | LL库I2C | [link](https://github.com/jesstr/i2c_ll) | |
 | [motor](./peripheral/motor) | 直流电机闭环驱动 |*| |
 | [stepper](./peripheral/stepper) | 步进电机驱动 |*| |
@@ -102,14 +102,28 @@
 
 | 根目录文件 | 功能 |
 |-|-|
-| [create_new_module.py](./create_new_module.py) | 新模块创建脚本 |
-| [modules_conf.template.h](./modules_conf.template.h) | 模块统一配置文件模板 |
 | [modules.h](./modules.h) | 模块统一头文件 |
+| [modules_conf.template.h](./modules_conf.template.h) | 模块统一配置文件模板 ***(deprecated)*** |
+| [tool.py](./tool.py) | 生成模块统一配置文件的工具 |
+
+## 配置方法
+
+使用Kconfig可视化配置:
+
+```bash
+python tool.py -m
+```
+
+创建新模块:
+
+```bash
+python tool.py -n
+```
 
 ## TODO
 
-- [ ] 用kconfig替代modules_conf.template.h
-- [ ] 为自己写的模块编写子README
+- [x] 用kconfig替代modules_conf.template.h
+- [ ] 为所有自己写的模块编写README
 
 ## LICENSE
 

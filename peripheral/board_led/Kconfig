@@ -1,0 +1,49 @@
+menu "Board LED Configuration"
+
+config LED_CFG_USE_PWM
+    bool "Use PWM for LED"
+    default n
+
+if LED_CFG_USE_PWM
+    config LED_CFG_R_HTIM
+        string "Red LED Timer"
+        default "htim1"
+
+    config LED_CFG_R_CHANNEL
+        string "Red LED Channel"
+        default "TIM_CHANNEL_1"
+
+    config LED_CFG_G_HTIM
+        string "Green LED Timer"
+        default "htim1"
+
+    config LED_CFG_G_CHANNEL
+        string "Green LED Channel"
+        default "TIM_CHANNEL_2"
+
+    config LED_CFG_B_HTIM
+        string "Blue LED Timer"
+        default "htim1"
+
+    config LED_CFG_B_CHANNEL
+        string "Blue LED Channel"
+        default "TIM_CHANNEL_3"
+
+    config LED_CFG_R_PULSE
+        int "Red LED Max Pulse"
+        default 1024
+
+    config LED_CFG_G_PULSE
+        int "Green LED Max Pulse"
+        default 1024
+
+    config LED_CFG_B_PULSE
+        int "Blue LED Max Pulse"
+        default 1024
+
+    config LED_CFG_PWMN_OUTPUT
+        bool "Use PWMN for LED"
+        default n
+endif
+
+endmenu

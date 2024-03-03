@@ -49,7 +49,7 @@ typedef struct {              // FIFO串口发送控制结构体
   LFBB_Inst_Type lfbb;        // 发送缓冲区
   size_t sending;             // 正在发送的数据长度
   UART_HandleTypeDef *huart;  // 串口句柄
-#if MOD_CFG_USE_OS
+#if !MOD_CFG_USE_OS_NONE
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
 #endif
 } uart_fifo_tx_t;
@@ -77,7 +77,7 @@ int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf, size_t bufSize) {
   LFBB_Init(&ctrl->lfbb, buf, bufSize);
   ctrl->huart = huart;
   ctrl->sending = 0;
-#if MOD_CFG_USE_OS
+#if !MOD_CFG_USE_OS_NONE
   ctrl->mutex = MOD_MUTEX_CREATE();
 #endif
   return 0;

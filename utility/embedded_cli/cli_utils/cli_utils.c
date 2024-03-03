@@ -15,19 +15,18 @@
 #include "term_table.h"
 // Private Defines --------------------------
 
-#if (MOD_CFG_HEAP_MATHOD == 1 || \
-     (MOD_CFG_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 2))
+#if (MOD_CFG_HEAP_MATHOD_LWMEM || \
+     (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_HEAP_MATHOD == 2))
 #include "lwmem.h"
 #define SHOWLWMEM 1
-#elif (MOD_CFG_HEAP_MATHOD == 4 ||                              \
-       (MOD_CFG_HEAP_MATHOD == 2 && KERNEL_HEAP_MATHOD == 3) || \
-       MOD_CFG_HEAP_MATHOD == 3)
+#elif (MOD_CFG_HEAP_MATHOD_HEAP4 == 4 || \
+       (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_HEAP_MATHOD == 3))
 #include "heap_4.h"
 #define SHOWHEAP4 1
-#elif (MOD_CFG_HEAP_MATHOD == 5)
+#elif (MOD_CFG_HEAP_MATHOD_RTT)
 #define SHOWRTTHREAD 1
 #endif
-#if MOD_CFG_USE_OS == 1 && KERNEL_HOOK_ENABLE
+#if MOD_CFG_USE_OS_KLITE && KERNEL_HOOK_ENABLE
 #include "kernel.h"
 #define SHOWKLITE 1
 #endif
@@ -170,7 +169,7 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       TT_FmtStr(al, f1, f2, "%.2fs", (float)m_time_us() / 1000000), sep);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Build Time"),
                     TT_Str(al, f1, f2, __DATE__ " " __TIME__), sep);
-#if MOD_CFG_USE_OS == 1  // klite
+#if MOD_CFG_USE_OS_KLITE  // klite
   TT_AddTitle(
       tt,
       TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ KLite RTOS Info ]"),

@@ -1,0 +1,5 @@
+menu "System Modules"
+
+source "system/**/Kconfig"
+
+endmenu

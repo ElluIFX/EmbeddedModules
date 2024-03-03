@@ -30,7 +30,7 @@ __attribute__((always_inline)) void SchedulerLite_Run(const uint8_t block) {
       if ((now >= schTaskList[i].lastRun + schTaskList[i].period)) {
         schTaskList[i].task();
         if (now - (schTaskList[i].lastRun + schTaskList[i].period) <
-            SCH_CFG_COMP_RANGE_US * m_tick_per_us(m_time_t))
+            1000 * m_tick_per_us(m_time_t))
           schTaskList[i].lastRun += schTaskList[i].period;
         else
           schTaskList[i].lastRun = now;

@@ -16,6 +16,19 @@ extern "C" {
 
 #include "modules.h"
 
+#if !KCONFIG_AVAILABLE
+#define BOARD_I2C_CFG_USE_SW_IIC 0       // 是否使用软件IIC
+#define BOARD_I2C_CFG_USE_LL_I2C 0       // 是否使用LL库IIC
+#define BOARD_I2C_CFG_USE_HAL_I2C 0      // 是否使用HAL库IIC
+#define BOARD_I2C_CFG_SW_SCL_PORT GPIOB  // 软件IIC SCL引脚
+#define BOARD_I2C_CFG_SW_SCL_PIN GPIO_PIN_6
+#define BOARD_I2C_CFG_SW_SDA_PORT GPIOB  // 软件IIC SDA引脚
+#define BOARD_I2C_CFG_SW_SDA_PIN GPIO_PIN_7
+#define BOARD_I2C_CFG_LL_INSTANCE I2C1    // LL库IIC实例
+#define BOARD_I2C_CFG_HAL_INSTANCE hi2c1  // HAL库IIC实例
+
+#endif  // !KCONFIG_AVAILABLE
+
 /**
  * @brief 初始化板载I2C
  */

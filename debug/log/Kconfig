@@ -1,0 +1,177 @@
+menuconfig LOG_CFG_ENABLE
+bool "Enable Log Output"
+default y
+help
+    Enable this option to configure the log module.
+
+if LOG_CFG_ENABLE
+    config LOG_CFG_ENABLE_TIMESTAMP
+        bool "Enable Timestamp Output"
+        default y
+        help
+        Enable this option to add a timestamp to the log output.
+
+    config LOG_CFG_ENABLE_COLOR
+        bool "Enable Color Output"
+        default y
+        help
+        Enable this option to add color to the log output.
+
+    config LOG_CFG_ENABLE_FUNC_LINE
+        bool "Enable Function and Line Number Output"
+        default y
+        help
+        Enable this option to add the function and line number to the log output.
+
+    menu "Log Levels Config (Enable/Disable)"
+        config LOG_CFG_ENABLE_ASSERT
+            bool "Level: Assert"
+            default y
+
+        config LOG_CFG_ENABLE_DEBUG
+            bool "Level: Debug"
+            default y
+
+        config LOG_CFG_ENABLE_PASS
+            bool "Level: Pass"
+            default y
+
+        config LOG_CFG_ENABLE_INFO
+            bool "Level: Info"
+            default y
+
+        config LOG_CFG_ENABLE_WARN
+            bool "Level: Warning"
+            default y
+
+        config LOG_CFG_ENABLE_ERROR
+            bool "Level: Error"
+            default y
+
+        config LOG_CFG_ENABLE_FATAL
+            bool "Level: Fatal"
+            default y
+    endmenu
+
+    menu "Log Colors Config"
+        config LOG_CFG_A_COLOR
+            string "Color: Assert"
+            default "T_RED"
+
+        config LOG_CFG_D_COLOR
+            string "Color: Debug"
+            default "T_CYAN"
+
+        config LOG_CFG_P_COLOR
+            string "Color: Pass"
+            default "T_LGREEN"
+
+        config LOG_CFG_I_COLOR
+            string "Color: Info"
+            default "T_GREEN"
+
+        config LOG_CFG_W_COLOR
+            string "Color: Warning"
+            default "T_YELLOW"
+
+        config LOG_CFG_E_COLOR
+            string "Color: Error"
+            default "T_RED"
+
+        config LOG_CFG_F_COLOR
+            string "Color: Fatal"
+            default "T_MAGENTA"
+
+        config LOG_CFG_L_COLOR
+            string "Color: Limited"
+            default "T_BLUE"
+
+        config LOG_CFG_R_COLOR
+            string "Color: Refresh"
+            default "T_BLUE"
+
+        config LOG_CFG_A_COLOR
+            string "Color: Assert"
+            default "T_RED"
+
+        config LOG_CFG_T_COLOR
+            string "Color: Timeit"
+            default "T_YELLOW"
+    endmenu
+
+    menu "Log String Config"
+        config LOG_CFG_D_STR
+            string "String: Debug"
+            default "\"DEBUG\""
+
+        config LOG_CFG_P_STR
+            string "String: Pass"
+            default "\"PASS\""
+
+        config LOG_CFG_I_STR
+            string "String: Info"
+            default "\"INFO\""
+
+        config LOG_CFG_W_STR
+            string "String: Warning"
+            default "\"WARN\""
+
+        config LOG_CFG_E_STR
+            string "String: Error"
+            default "\"ERROR\""
+
+        config LOG_CFG_F_STR
+            string "String: Fatal"
+            default "\"FATAL\""
+
+        config LOG_CFG_L_STR
+            string "String: Limited"
+            default "\"LIMIT\""
+
+        config LOG_CFG_R_STR
+            string "String: Refresh"
+            default "\"REFRESH\""
+
+        config LOG_CFG_A_STR
+            string "String: Assert"
+            default "\"ASSERT\""
+
+        config LOG_CFG_T_STR
+            string "String: Timeit"
+            default "\"TIMEIT\""
+    endmenu
+
+    menu "Advanced Configuration"
+        config LOG_CFG_PRINTF
+            string "Log Printf Function"
+            default "printf"
+            help
+            The function to use for log output.
+
+        config LOG_CFG_TIMESTAMP
+            string "Log Timestamp Function"
+            default "((float)((uint64_t)m_time_ms()) / 1000)"
+            help
+            The function to use for acquiring the timestamp.
+
+        config LOG_CFG_TIMESTAMP_FMT
+            string "Log Timestamp Format"
+            default "\"%.3fs\""
+            help
+            The format to use for the timestamp.
+
+        config LOG_CFG_PREFIX
+            string "Log Prefix"
+            default "\"\""
+            help
+            The prefix to use for the log output.
+            e.g. "\r" to move the cursor to the beginning of the line.
+
+        config LOG_CFG_SUFFIX
+            string "Log Suffix"
+            default "\"\\r\\n\""
+            help
+            The suffix to use for the log output.
+            e.g. "\033[K\r\n" to clear the line and move the cursor to the beginning of the next line.
+    endmenu
+endif

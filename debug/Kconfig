@@ -1,0 +1,5 @@
+menu "Debug Modules"
+
+source "debug/**/Kconfig"
+
+endmenu

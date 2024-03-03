@@ -1,0 +1,41 @@
+menu "Board I2C Configuration"
+
+choice
+    prompt "I2C Bus Driver"
+    config BOARD_I2C_CFG_USE_NONE
+        bool "None"
+
+    config BOARD_I2C_CFG_USE_SW_IIC
+        bool "Software I2C"
+
+    config BOARD_I2C_CFG_USE_LL_I2C
+        bool "LL Library I2C"
+
+    config BOARD_I2C_CFG_USE_HAL_I2C
+        bool "HAL Library I2C"
+endchoice
+    config BOARD_I2C_CFG_SW_SCL_PORT
+        string "SCL Port"
+        default "GPIOB"
+        depends on BOARD_I2C_CFG_USE_SW_IIC
+    config BOARD_I2C_CFG_SW_SCL_PIN
+        string "SCL Pin"
+        default "GPIO_PIN_6"
+        depends on BOARD_I2C_CFG_USE_SW_IIC
+    config BOARD_I2C_CFG_SW_SDA_PORT
+        string "SDA Port"
+        default "GPIOB"
+        depends on BOARD_I2C_CFG_USE_SW_IIC
+    config BOARD_I2C_CFG_SW_SDA_PIN
+        string "SDA Pin"
+        default "GPIO_PIN_7"
+        depends on BOARD_I2C_CFG_USE_SW_IIC
+    config BOARD_I2C_CFG_LL_INSTANCE
+        string "LL I2C Instance"
+        default "I2C1"
+        depends on BOARD_I2C_CFG_USE_LL_I2C
+    config BOARD_I2C_CFG_HAL_INSTANCE
+        string "HAL I2C Instance"
+        default "hi2c1"
+        depends on BOARD_I2C_CFG_USE_HAL_I2C
+endmenu

@@ -1,0 +1,5 @@
+menu "Peripherals Modules"
+
+source "peripheral/**/Kconfig"
+
+endmenu

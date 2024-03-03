@@ -12,13 +12,32 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include "modules.h"
 #include "scheduler_calllater.h"
-#include "scheduler_conf.h"
 #include "scheduler_coroutine.h"
 #include "scheduler_event.h"
 #include "scheduler_softint.h"
 #include "scheduler_task.h"
+
+#if !KCONFIG_AVAILABLE  // 由Kconfig配置
+/******************************调度器设置******************************/
+#define SCH_CFG_ENABLE_TASK 1       // 支持任务
+#define SCH_CFG_ENABLE_EVENT 1      // 支持事件
+#define SCH_CFG_ENABLE_COROUTINE 1  // 支持宏协程
+#define SCH_CFG_ENABLE_CALLLATER 1  // 支持延时调用
+#define SCH_CFG_ENABLE_SOFTINT 1    // 支持软中断
+
+#define SCH_CFG_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
+#define SCH_CFG_STATIC_NAME 1       // 是否使用静态标识名
+#define SCH_CFG_STATIC_NAME_LEN 16  // 静态标识名长度
+
+#define SCH_CFG_DEBUG_REPORT 1  // 输出调度器统计信息(调试模式/低性能)
+#define SCH_CFG_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)
+#define SCH_CFG_DEBUG_MAXLINE 10  // 调试报告最大行数
+
+#define SCH_CFG_ENABLE_TERMINAL 1  // 是否启用终端命令集(依赖embedded-cli)
+
+#endif  // KCONFIG_AVAILABLE
 
 /**
  * @brief 调度器主函数
