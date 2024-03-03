@@ -56,17 +56,6 @@ except ImportError:
     install_package("windows-curses")
 
 
-try:
-    from rich.console import Console
-    from rich.prompt import Confirm, Prompt
-    from rich.table import Table
-except ImportError:
-    install_package("rich")
-    from rich.console import Console
-    from rich.prompt import Confirm, Prompt
-    from rich.table import Table
-
-
 C_FILE_TEMP = """/**
  * @file &&&FILE_NAME&&&.c
  * @brief &&&BREIF&&&
@@ -165,6 +154,16 @@ AVAILABLE_TYPES = [
 
 
 def create_module():
+    try:
+        from rich.console import Console
+        from rich.prompt import Confirm, Prompt
+        from rich.table import Table
+    except ImportError:
+        install_package("rich")
+        from rich.console import Console
+        from rich.prompt import Confirm, Prompt
+        from rich.table import Table
+
     module_root = os.path.dirname(os.path.abspath(__file__))
     con = Console()
 
