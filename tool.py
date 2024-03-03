@@ -9,14 +9,16 @@ import pip
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-logo = r"""
- ______     __         __         __  __        __    __     ______     _____     __  __     __         ______     ______
-/\  ___\   /\ \       /\ \       /\ \/\ \      /\ "-./  \   /\  __ \   /\  __-.  /\ \/\ \   /\ \       /\  ___\   /\  ___\
-\ \  __\   \ \ \____  \ \ \____  \ \ \_\ \     \ \ \-./\ \  \ \ \/\ \  \ \ \/\ \ \ \ \_\ \  \ \ \____  \ \  __\   \ \___  \
- \ \_____\  \ \_____\  \ \_____\  \ \_____\     \ \_\ \ \_\  \ \_____\  \ \____-  \ \_____\  \ \_____\  \ \_____\  \/\_____\
-  \/_____/   \/_____/   \/_____/   \/_____/      \/_/  \/_/   \/_____/   \/____/   \/_____/   \/_____/   \/_____/   \/_____/
-                                                                                                                            """
-print(logo)
+C1 = "\033[34m"
+C2 = "\033[32m"
+LOGO = rf"""
+{C1} ______     __         __         __  __    {C2}  __    __     ______     _____     __  __     __         ______     ______
+{C1}/\  ___\   /\ \       /\ \       /\ \/\ \   {C2} /\ "-./  \   /\  __ \   /\  __-.  /\ \/\ \   /\ \       /\  ___\   /\  ___\
+{C1}\ \  __\   \ \ \____  \ \ \____  \ \ \_\ \  {C2} \ \ \-./\ \  \ \ \/\ \  \ \ \/\ \ \ \ \_\ \  \ \ \____  \ \  __\   \ \___  \
+{C1} \ \_____\  \ \_____\  \ \_____\  \ \_____\ {C2}  \ \_\ \ \_\  \ \_____\  \ \____-  \ \_____\  \ \_____\  \ \_____\  \/\_____\
+{C1}  \/_____/   \/_____/   \/_____/   \/_____/ {C2}   \/_/  \/_/   \/_____/   \/____/   \/_____/   \/_____/   \/_____/   \/_____/
+"""
+print(LOGO + "\033[0m")
 
 
 def log_print(level, text):
@@ -316,6 +318,7 @@ def generate_config_file(conf_name, kconfig_file, config_in, config_out, header_
 
 def menuconfig():
     complete = False
+    log_print("info", "loading menuconfig")
     try:
         from menuconfig import _main
 
@@ -324,7 +327,7 @@ def menuconfig():
         complete = True
     finally:
         if not complete:
-            log_print("error", "menuconfig failed")
+            log_print("error", "run menuconfig failed")
             exit(1)
     if not os.path.exists(".config"):
         log_print("error", "menuconfig not complete (.config not found)")
