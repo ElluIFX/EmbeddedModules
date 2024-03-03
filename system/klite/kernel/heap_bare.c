@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if KERNEL_HEAP_MATHOD == 1
+#if KERNEL_CFG_HEAP_USE_BARE
 #include "log.h"
 
 #define MEM_ALIGN_BYTE (4)
@@ -130,7 +130,7 @@ void *heap_alloc(uint32_t size) {
       break;
     }
   }
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   if (mem == NULL) {
     kernel_hook_heap_fault(size);
   } else {
@@ -152,7 +152,7 @@ void heap_free(void *mem) {
       heap->free = node->prev;
     }
   }
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_heap_operation(mem, NULL, 0, KERNEL_HEAP_OP_FREE);
 #endif
   heap_mutex_unlock();
@@ -161,7 +161,7 @@ void heap_free(void *mem) {
 void *heap_realloc(void *mem, uint32_t size) {
   void *new_mem;
   new_mem = heap_alloc(size);
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   if (new_mem == NULL) {
     kernel_hook_heap_fault(size);
   } else {

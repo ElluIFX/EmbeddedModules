@@ -1,0 +1,80 @@
+menu "CmBacktrace Configuration"
+
+choice
+    prompt "Using OS or Baremetal"
+    default CMB_USING_BARE_METAL_PLATFORM if MOD_CFG_USE_OS_NONE
+    default CMB_USING_OS_PLATFORM
+
+    config CMB_USING_BARE_METAL_PLATFORM
+        bool "Bare Metal"
+
+    config CMB_USING_OS_PLATFORM
+        bool "OS"
+endchoice
+
+if CMB_USING_OS_PLATFORM
+    choice
+        prompt "OS Type"
+        default CMB_OS_PLATFORM_USE_RTT if MOD_CFG_USE_OS_RTT
+        default CMB_OS_PLATFORM_USE_FREERTOS if MOD_CFG_USE_OS_FREERTOS
+        default CMB_OS_PLATFORM_USE_KLITE if MOD_CFG_USE_OS_KLITE
+        default CMB_OS_PLATFORM_USE_UCOSII if MOD_CFG_USE_OS_UCOSII
+        default CMB_OS_PLATFORM_USE_UCOSIII if MOD_CFG_USE_OS_UCOSIII
+        default CMB_OS_PLATFORM_USE_RTX5 if MOD_CFG_USE_OS_RTX5
+        default CMB_OS_PLATFORM_USE_FREERTOS
+
+        config CMB_OS_PLATFORM_USE_FREERTOS
+            bool "FreeRTOS"
+
+        config CMB_OS_PLATFORM_USE_RTT
+            bool "RT-Thread"
+
+        config CMB_OS_PLATFORM_USE_UCOSII
+            bool "uC/OS-II"
+
+        config CMB_OS_PLATFORM_USE_UCOSIII
+            bool "uC/OS-III"
+
+        config CMB_OS_PLATFORM_USE_RTX5
+            bool "RTX5"
+
+        config CMB_OS_PLATFORM_USE_KLITE
+            bool "Klite"
+    endchoice
+endif
+
+choice
+    prompt "CPU Platform"
+    default CMB_CPU_USE_ARM_CORTEX_M4
+
+    config CMB_CPU_USE_ARM_CORTEX_M0
+        bool "ARM Cortex-M3"
+
+    config CMB_CPU_USE_ARM_CORTEX_M3
+        bool "ARM Cortex-M3"
+
+    config CMB_CPU_USE_ARM_CORTEX_M4
+        bool "ARM Cortex-M4"
+
+    config CMB_CPU_USE_ARM_CORTEX_M7
+        bool "ARM Cortex-M7"
+
+    config CMB_CPU_USE_ARM_CORTEX_M33
+        bool "ARM Cortex-M33"
+endchoice
+
+
+config CMB_USING_DUMP_STACK_INFO
+    bool "Dump Stack Info"
+    default n
+choice
+    prompt "Use Language"
+    default CMB_PRINT_USE_ENGLISH
+
+    config CMB_PRINT_USE_ENGLISH
+        bool "English"
+
+    config CMB_PRINT_USE_CHINESE
+        bool "Chinese"
+endchoice
+endmenu

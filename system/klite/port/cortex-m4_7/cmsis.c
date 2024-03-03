@@ -48,7 +48,7 @@ void cpu_sys_init(void) {
 
 void cpu_sys_start(void) {
   SystemCoreClockUpdate();
-  SysTick_Config(SystemCoreClock / KERNEL_FREQ);
+  SysTick_Config(SystemCoreClock / KERNEL_CFG_FREQ);
   cpu_leave_critical();
 }
 
@@ -63,7 +63,7 @@ void SysTick_Handler(void) {
   kernel_tick(1);
 
   static uint16_t tick_scaler = 0;
-  if (++tick_scaler >= (KERNEL_FREQ / 1000)) {  // us -> ms
+  if (++tick_scaler >= (KERNEL_CFG_FREQ / 1000)) {  // us -> ms
     uwTick++;                                   // for HAL_Delay()
     tick_scaler = 0;
   }

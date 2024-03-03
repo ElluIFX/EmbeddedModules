@@ -30,9 +30,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define KERNEL_FREQ 100000    // 内核时基频率(赫兹)
-#define KERNEL_HEAP_MATHOD 3  // 1:bare 2:lwmem 3:heap4 4:heap5
-#define KERNEL_HOOK_ENABLE 1  // 内核钩子使能
+#include "modules.h"
+
+#if !KCONFIG_AVAILABLE
+#define KERNEL_CFG_FREQ 100000       // 内核时基频率(赫兹)
+#define KERNEL_CFG_HEAP_USE_BARE 0   // 使用裸机基础内存管理器
+#define KERNEL_CFG_HEAP_USE_LWMEM 0  // 使用lwmem内存管理器
+#define KERNEL_CFG_HEAP_USE_HEAP4 1  // 使用heap4内存管理器
+#define KERNEL_CFG_HOOK_ENABLE 1     // 内核钩子使能
+
+#endif
 
 typedef struct tcb *thread_t;
 typedef struct sem *sem_t;
@@ -78,7 +85,7 @@ uint32_t kernel_idle_time(void);
 /**
  * @param time 递增Tick数
  * @brief 此函数不是用户API, 而是由CPU的滴答时钟中断程序调用, 为系统提供时钟源。
- * @note 滴答定时器的周期决定了系统计时功能的细粒度 (1/KERNEL_FREQ)
+ * @note 滴答定时器的周期决定了系统计时功能的细粒度 (1/KERNEL_CFG_FREQ)
  */
 void kernel_tick(uint32_t time);
 
@@ -100,7 +107,7 @@ uint64_t kernel_tick_count64(void);
  * @brief 计算ms对应的Tick数
  */
 static inline uint32_t kernel_ms_to_tick(uint32_t ms) {
-  return ((uint64_t)ms * KERNEL_FREQ) / 1000;
+  return ((uint64_t)ms * KERNEL_CFG_FREQ) / 1000;
 }
 
 /**
@@ -109,7 +116,7 @@ static inline uint32_t kernel_ms_to_tick(uint32_t ms) {
  * @brief 计算Tick对应的毫秒数
  */
 static inline uint32_t kernel_tick_to_ms(uint32_t tick) {
-  return ((uint64_t)tick * 1000) / KERNEL_FREQ;
+  return ((uint64_t)tick * 1000) / KERNEL_CFG_FREQ;
 }
 
 /**
@@ -118,7 +125,7 @@ static inline uint32_t kernel_tick_to_ms(uint32_t tick) {
  * @brief 计算us对应的Tick数
  */
 static inline uint32_t kernel_us_to_tick(uint32_t us) {
-  return ((uint64_t)us * KERNEL_FREQ) / 1000000;
+  return ((uint64_t)us * KERNEL_CFG_FREQ) / 1000000;
 }
 
 /**
@@ -127,7 +134,7 @@ static inline uint32_t kernel_us_to_tick(uint32_t us) {
  * @brief 计算Tick对应的微秒数
  */
 static inline uint32_t kernel_tick_to_us(uint32_t tick) {
-  return ((uint64_t)tick * 1000000) / KERNEL_FREQ;
+  return ((uint64_t)tick * 1000000) / KERNEL_CFG_FREQ;
 }
 
 extern void *kernel_heap_addr;
@@ -464,7 +471,7 @@ uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);
  * hook
  ******************************************************************************/
 
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
 
 /**
  * @brief 内核空闲钩子函数
@@ -535,6 +542,6 @@ void kernel_hook_thread_switch(thread_t from, thread_t to);
  */
 void kernel_hook_thread_sleep(thread_t thread, uint32_t time);
 
-#endif  // KERNEL_HOOK_ENABLE
+#endif  // KERNEL_CFG_HOOK_ENABLE
 
 #endif

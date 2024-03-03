@@ -19,15 +19,14 @@ extern "C" {
 
 #include "modules.h"
 
-#ifndef FIFO_DISABLE_ATOMIC
-#define FIFO_DISABLE_ATOMIC 0  // 禁用原子操作
-#endif
+#if !KCONFIG_AVAILABLE
 
-#ifndef FIFO_MEMCPY
-#define FIFO_MEMCPY memcpy  // 内存拷贝函数
-#endif
+#define LFIFO_CFG_DISABLE_ATOMIC 0    // 禁用原子操作
+#define LFIFO_CFG_MEMCPY_FUNC memcpy  // 内存拷贝函数
 
-#if FIFO_DISABLE_ATOMIC
+#endif  // !KCONFIG_AVAILABLE
+
+#if LFIFO_CFG_DISABLE_ATOMIC
 #define FIFO_INIT(var, val) (var) = (val)
 #define FIFO_LOAD(var, type) (var)
 #define FIFO_STORE(var, val, type) (var) = (val)
@@ -42,7 +41,7 @@ typedef atomic_uint_fast16_t fifo_atomic_size_t;
 #include <atomic>
 typedef std::atomic_uint_fast16_t fifo_atomic_size_t;
 #endif  // __cplusplus
-#endif  // FIFO_DISABLE_ATOMIC
+#endif  // LFIFO_CFG_DISABLE_ATOMIC
 
 typedef uint32_t fifo_size_t;
 typedef int32_t fifo_offset_t;

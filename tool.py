@@ -41,8 +41,20 @@ def log_print(level, text):
 
 
 def install_package(package):
-    log_print("info", "%s package installing..." % package)
-    pip.main(["install", package])
+    log_print("info", f"pip install {package} ...")
+    stdout = sys.stdout
+    stderr = sys.stderr
+    with open(".pip_output", "w") as temp:
+        sys.stdout = temp
+        sys.stderr = temp
+        ret = pip.main(["install", package])
+    sys.stdout = stdout
+    sys.stderr = stderr
+    if ret != 0:
+        log_print("error", f"failed to install {package}, see .pip_output for details.")
+        exit(1)
+    log_print("success", f"{package} successfully installed")
+    os.remove(".pip_output")
 
 
 try:

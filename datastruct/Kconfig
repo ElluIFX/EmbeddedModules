@@ -1,3 +1,5 @@
 menu "DataStruct Modules"
 
+source "datastruct/**/Kconfig"
+
 endmenu

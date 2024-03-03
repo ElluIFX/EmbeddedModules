@@ -1,0 +1,86 @@
+menu "µGUI configuration"
+
+choice
+    prompt "Color Format"
+    default UGUI_CFG_USE_COLOR_RGB565
+    help
+      Select the color format for the µGUI library.
+
+    config UGUI_CFG_USE_COLOR_RGB565
+        bool "RGB565"
+
+    config UGUI_CFG_USE_COLOR_RGB888
+        bool "RGB888"
+endchoice
+
+menu "Enable/Disable Fonts"
+    config UGUI_CFG_USE_FONT_4X6
+        bool "4x6"
+        default n
+
+    config UGUI_CFG_USE_FONT_5X8
+        bool "5x8"
+        default n
+
+    config UGUI_CFG_USE_FONT_5X12
+        bool "5x12"
+        default n
+
+    config UGUI_CFG_USE_FONT_6X8
+        bool "6x8"
+        default n
+
+    config UGUI_CFG_USE_FONT_6X10
+        bool "6x10"
+        default n
+
+    config UGUI_CFG_USE_FONT_7X12
+        bool "7x12"
+        default n
+
+    config UGUI_CFG_USE_FONT_8X8
+        bool "8x8"
+        default n
+
+    config UGUI_CFG_USE_FONT_8X12_CYRILLIC
+        bool "8x12_cyrillic"
+        default n
+
+    config UGUI_CFG_USE_FONT_8X12
+        bool "8x12"
+        default n
+
+    config UGUI_CFG_USE_FONT_8X14
+        bool "8x14"
+        default n
+
+    config UGUI_CFG_USE_FONT_10X16
+        bool "10x16"
+        default n
+
+    config UGUI_CFG_USE_FONT_12X16
+        bool "12x16"
+        default n
+
+    config UGUI_CFG_USE_FONT_12X20
+        bool "12x20"
+        default n
+
+    config UGUI_CFG_USE_FONT_16X26
+        bool "16x26"
+        default n
+
+    config UGUI_CFG_USE_FONT_22X36
+        bool "22x36"
+        default n
+
+    config UGUI_CFG_USE_FONT_24X40
+        bool "24x40"
+        default n
+
+    config UGUI_CFG_USE_FONT_32X53
+        bool "32x53"
+        default n
+endmenu
+
+endmenu

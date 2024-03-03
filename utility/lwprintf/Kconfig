@@ -1,0 +1,49 @@
+menu "LwPrintf Configuration"
+
+config LWPRINTF_CFG_SUPPORT_LONG_LONG
+    bool "Support type: long long int ('%ll')"
+    default y
+
+config LWPRINTF_CFG_SUPPORT_TYPE_INT
+    bool "Support type: int ('%d, %b, %u, %o, %i, %x')"
+    default y
+
+config LWPRINTF_CFG_SUPPORT_TYPE_POINTER
+    bool "Support type: pointer ('%p')"
+    default y
+
+config LWPRINTF_CFG_SUPPORT_TYPE_FLOAT
+    bool "Support type: float ('%f')"
+    default y
+
+config LWPRINTF_CFG_SUPPORT_TYPE_ENGINEERING
+    bool "Support type: engineering ('%e')"
+    default y
+
+config LWPRINTF_CFG_SUPPORT_TYPE_STRING
+    bool "Support type: string ('%s')"
+    default y
+
+config LWPRINTF_CFG_SUPPORT_TYPE_BYTE_ARRAY
+    bool "Support type: byte array ('%k')"
+    default y
+
+config LWPRINTF_CFG_FLOAT_DEFAULT_PRECISION
+    int "Default precision for float type"
+    default 6
+    depends on LWPRINTF_CFG_SUPPORT_TYPE_FLOAT
+
+config LWPRINTF_CFG_ENABLE_SHORTNAMES
+    bool "Enable short names"
+    default y
+    help
+      It adds functions for default instance: `lwprintf`, `lwsnprintf` and others
+
+config LWPRINTF_CFG_ENABLE_STD_NAMES
+    bool "Enable standard names"
+    default n
+    help
+      Disabled by default not to interfere with compiler implementation.
+      Application may need to remove standard C STDIO library from linkage
+      to be able to properly compile LwPRINTF with this option enabled
+endmenu

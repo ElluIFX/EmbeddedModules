@@ -162,7 +162,7 @@ void sched_switch(void) {
   }
   tcb->list_sched = NULL;
   sched_tcb_next = tcb;
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_thread_switch(sched_tcb_now, sched_tcb_next);
 #endif
   cpu_contex_switch();

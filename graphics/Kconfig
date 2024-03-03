@@ -1,3 +1,14 @@
 menu "Graphics Modules"
 
+config _ENABLE_LVGL_KCONFIG
+    bool "Enable LVGL Kconfig"
+    default n
+    help
+      Enable LittlevGL Kconfig support.
+if _ENABLE_LVGL_KCONFIG
+    source "graphics/lvgl/Kconfig"
+endif
+
+source "graphics/ugui/Kconfig"
+
 endmenu

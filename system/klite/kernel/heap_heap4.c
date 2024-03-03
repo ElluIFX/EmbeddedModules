@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if KERNEL_HEAP_MATHOD == 3
+#if KERNEL_CFG_HEAP_USE_LWMEM
 #include "heap_4.h"
 
 volatile static uint8_t heap_lock = 0;
@@ -59,7 +59,7 @@ void heap_create(void *addr, uint32_t size) {
 void *heap_alloc(uint32_t size) {
   heap_mutex_lock();
   void *mem = pvPortMalloc(size);
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   if (mem == NULL) {
     kernel_hook_heap_fault(size);
   } else {
@@ -73,7 +73,7 @@ void *heap_alloc(uint32_t size) {
 void heap_free(void *mem) {
   heap_mutex_lock();
   vPortFree(mem);
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_heap_operation(mem, NULL, 0, KERNEL_HEAP_OP_FREE);
 #endif
   heap_mutex_unlock();
@@ -82,7 +82,7 @@ void heap_free(void *mem) {
 void *heap_realloc(void *mem, uint32_t size) {
   heap_mutex_lock();
   void *new_mem = pvPortRealloc(mem, size);
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   if (new_mem == NULL) {
     kernel_hook_heap_fault(size);
   } else {
@@ -108,4 +108,4 @@ float heap_usage_percent(void) {
   return usage;
 }
 
-#endif  // KERNEL_HEAP_MATHOD == 3
+#endif

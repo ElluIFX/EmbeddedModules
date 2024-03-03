@@ -1,0 +1,16 @@
+menu "LFifo Configuration"
+
+config LFIFO_CFG_DISABLE_ATOMIC
+    bool "Disable atomic operations"
+    default n
+    help
+      If you say Y here, the atomic operations will be disabled.
+
+config LFIFO_CFG_MEMCPY_FUNC
+    string "memcpy function"
+    default "memcpy"
+    help
+      The function to use for copying data. The default is the standard
+      library memcpy function.
+
+endmenu

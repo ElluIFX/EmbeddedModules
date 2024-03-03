@@ -55,7 +55,7 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
   tcb->node_wait.tcb = tcb;
   tcb->node_sched.tcb = tcb;
   cpu_enter_critical();
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_thread_create(tcb);
 #endif
   sched_tcb_ready(tcb);
@@ -66,7 +66,7 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
 void thread_delete(thread_t thread) {
   if (thread == sched_tcb_now) return thread_exit();
   cpu_enter_critical();
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_thread_delete(thread);
 #endif
   sched_tcb_remove(thread);
@@ -76,7 +76,7 @@ void thread_delete(thread_t thread) {
 
 void thread_suspend(thread_t thread) {
   cpu_enter_critical();
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_thread_suspend(thread);
 #endif
   sched_tcb_remove(thread);
@@ -86,7 +86,7 @@ void thread_suspend(thread_t thread) {
 
 void thread_resume(thread_t thread) {
   cpu_enter_critical();
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_thread_resume(thread);
 #endif
   sched_tcb_ready(thread);
@@ -102,7 +102,7 @@ void thread_yield(void) {
 
 void thread_sleep(uint32_t time) {
   cpu_enter_critical();
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_thread_sleep(sched_tcb_now, time);
 #endif
   sched_tcb_sleep(sched_tcb_now, time);
@@ -134,7 +134,7 @@ uint32_t thread_get_priority(thread_t thread) { return thread->prio; }
 
 void thread_exit(void) {
   cpu_enter_critical();
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
   kernel_hook_thread_delete(sched_tcb_now);
 #endif
   sched_tcb_remove(sched_tcb_now);

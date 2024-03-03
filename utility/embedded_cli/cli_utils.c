@@ -16,17 +16,17 @@
 // Private Defines --------------------------
 
 #if (MOD_CFG_HEAP_MATHOD_LWMEM || \
-     (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_HEAP_MATHOD == 2))
+     (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_CFG_HEAP_USE_LWMEM))
 #include "lwmem.h"
 #define SHOWLWMEM 1
 #elif (MOD_CFG_HEAP_MATHOD_HEAP4 == 4 || \
-       (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_HEAP_MATHOD == 3))
+       (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_CFG_HEAP_USE_HEAP4))
 #include "heap_4.h"
 #define SHOWHEAP4 1
 #elif (MOD_CFG_HEAP_MATHOD_RTT)
 #define SHOWRTTHREAD 1
 #endif
-#if MOD_CFG_USE_OS_KLITE && KERNEL_HOOK_ENABLE
+#if MOD_CFG_USE_OS_KLITE && KERNEL_CFG_HOOK_ENABLE
 #include "kernel.h"
 #define SHOWKLITE 1
 #endif

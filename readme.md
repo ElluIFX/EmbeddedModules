@@ -11,7 +11,7 @@
 | [cmsis_dsp](./algorithm/cmsis_dsp) | CMSIS-DSP(Src) | [link](https://github.com/ARM-software/CMSIS-DSP) | 源码形式 |
 | [libcrc](./algorithm/libcrc) | CRC计算库 | [link](https://github.com/whik/crc-lib-c) | |
 | [pid](./algorithm/pid) | 通用PID控制器 |*| |
-| [Quaternions](./algorithm/quaternion) | 四元数和IMU姿态估计 | [link](https://github.com/rbv188/IMU-algorithm) | 未测试 |
+| [quaternion](./algorithm/quaternion) | 四元数和IMU姿态估计 | [link](https://github.com/rbv188/IMU-algorithm) | 未测试 |
 | [tiny_regex](./algorithm/tiny_regex)|  简易正则解析器 | [link](https://github.com/zeta-zero/tiny-regex-c) | 无捕获组 |
 
 | [Communication](./communication) | 通信 | repo | 备注 |
@@ -74,8 +74,8 @@
 
 | [Storage](./storage) | 存储 | repo | 备注 |
 |-|-|:-:|-|
-| [littlefs](./storage/littlefs) | LittleFS | [link](https://github.com/littlefs-project/littlefs) | 魔改 |
-| [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 | [link](https://github.com/Jiu-xiao/MiniFlashDB) | |
+| [littlefs](./storage/littlefs) | LittleFS | [link](https://github.com/littlefs-project/littlefs) | |
+| [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 | [link](https://github.com/Jiu-xiao/MiniFlashDB) | 魔改 |
 
 | [System](./system) | 系统 | repo | 备注 |
 |-|-|:-:|-|

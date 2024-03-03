@@ -42,55 +42,55 @@ typedef struct
    UG_U8  *widths;
 } UG_FONT;
 
-#ifdef USE_FONT_4X6
+#ifdef UGUI_CFG_USE_FONT_4X6
    extern const UG_FONT FONT_4X6;
 #endif
-#ifdef USE_FONT_5X8
+#ifdef UGUI_CFG_USE_FONT_5X8
    extern const UG_FONT FONT_5X8;
 #endif
-#ifdef USE_FONT_5X12
+#ifdef UGUI_CFG_USE_FONT_5X12
    extern const UG_FONT FONT_5X12;
 #endif
-#ifdef USE_FONT_6X8
+#ifdef UGUI_CFG_USE_FONT_6X8
    extern const UG_FONT FONT_6X8;
 #endif
-#ifdef USE_FONT_6X10
+#ifdef UGUI_CFG_USE_FONT_6X10
    extern const UG_FONT FONT_6X10;
 #endif
-#ifdef USE_FONT_7X12
+#ifdef UGUI_CFG_USE_FONT_7X12
    extern const UG_FONT FONT_7X12;
 #endif
-#ifdef USE_FONT_8X8
+#ifdef UGUI_CFG_USE_FONT_8X8
    extern const UG_FONT FONT_8X8;
 #endif
-#ifdef USE_FONT_8X12
+#ifdef UGUI_CFG_USE_FONT_8X12
    extern const UG_FONT FONT_8X12;
 #endif
-#ifdef USE_FONT_8X12_CYRILLIC
+#ifdef UGUI_CFG_USE_FONT_8X12_CYRILLIC
    extern const UG_FONT FONT_8X12;
 #endif
-#ifdef USE_FONT_8X14
+#ifdef UGUI_CFG_USE_FONT_8X14
    extern const UG_FONT FONT_8X14;
 #endif
-#ifdef USE_FONT_10X16
+#ifdef UGUI_CFG_USE_FONT_10X16
    extern const UG_FONT FONT_10X16;
 #endif
-#ifdef USE_FONT_12X16
+#ifdef UGUI_CFG_USE_FONT_12X16
    extern const UG_FONT FONT_12X16;
 #endif
-#ifdef USE_FONT_12X20
+#ifdef UGUI_CFG_USE_FONT_12X20
    extern const UG_FONT FONT_12X20;
 #endif
-#ifdef USE_FONT_16X26
+#ifdef UGUI_CFG_USE_FONT_16X26
    extern const UG_FONT FONT_16X26;
 #endif
-#ifdef USE_FONT_22X36
+#ifdef UGUI_CFG_USE_FONT_22X36
    extern const UG_FONT FONT_22X36;
 #endif
-#ifdef USE_FONT_24X40
+#ifdef UGUI_CFG_USE_FONT_24X40
    extern const UG_FONT FONT_24X40;
 #endif
-#ifdef USE_FONT_32X53
+#ifdef UGUI_CFG_USE_FONT_32X53
    extern const UG_FONT FONT_32X53;
 #endif
 
@@ -100,10 +100,10 @@ typedef struct
 typedef struct S_OBJECT                               UG_OBJECT;
 typedef struct S_WINDOW                               UG_WINDOW;
 typedef UG_S8                                         UG_RESULT;
-#ifdef USE_COLOR_RGB888
+#ifdef UGUI_CFG_USE_COLOR_RGB888
 typedef UG_U32                                        UG_COLOR;
 #endif
-#ifdef USE_COLOR_RGB565
+#ifdef UGUI_CFG_USE_COLOR_RGB565
 typedef UG_U16                                        UG_COLOR;
 #endif
 /* -------------------------------------------------------------------------------- */
@@ -593,7 +593,7 @@ typedef struct
 /* -- µGUI COLORS                                                                -- */
 /* -- Source: http://www.rapidtables.com/web/color/RGB_Color.htm                 -- */
 /* -------------------------------------------------------------------------------- */
-#ifdef USE_COLOR_RGB565
+#ifdef UGUI_CFG_USE_COLOR_RGB565
 #define C_MAROON                       0x8000
 #define C_DARK_RED                     0x8800
 #define C_BROWN                        0xA145
@@ -735,7 +735,7 @@ typedef struct
 #define C_WHITE                        0xFFFF
 #endif
 
-#ifdef USE_COLOR_RGB888
+#ifdef UGUI_CFG_USE_COLOR_RGB888
 #define  C_MAROON                     0x800000
 #define  C_DARK_RED                   0x8B0000
 #define  C_BROWN                      0xA52A2A

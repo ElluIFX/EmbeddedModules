@@ -1,3 +1,5 @@
 menu "Utility Modules"
 
+source "utility/**/Kconfig"
+
 endmenu

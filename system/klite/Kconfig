@@ -1,0 +1,29 @@
+menu "Klite RTOS Configuration"
+config KERNEL_CFG_FREQ
+    int "Kernel Frequency"
+    default 100000
+    range 100 1000000
+    help
+        The frequency of the kernel clock in Hz.
+
+config KERNEL_CFG_HOOK_ENABLE
+    bool "Enable Kernel Hooks"
+    default y
+    help
+        Enable the kernel hooks.
+
+choice
+    prompt "Kernel Heap Provider"
+    default KERNEL_CFG_HEAP_USE_HEAP4
+
+    config KERNEL_CFG_HEAP_USE_BARE
+        bool "Simple Heap (Bare)"
+
+    config KERNEL_CFG_HEAP_USE_HEAP4
+        bool "Heap4 (From FreeRTOS)"
+
+    config KERNEL_CFG_HEAP_USE_LWMEM
+        bool "LwMEM"
+endchoice
+
+endmenu

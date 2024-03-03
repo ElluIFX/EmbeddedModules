@@ -93,13 +93,13 @@ typedef int64_t m_time_t;
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif MOD_CFG_DELAY_MATHOD_KLITE  // klite
 #include "kernel.h"
-#define m_delay_us(x) thread_sleep((uint64_t)(x) / (1000000 / KERNEL_FREQ))
-#if KERNEL_FREQ >= 1000
-#define m_delay_ms(x) thread_sleep((uint64_t)(x) * (KERNEL_FREQ / 1000))
+#define m_delay_us(x) thread_sleep((uint64_t)(x) / (1000000 / KERNEL_CFG_FREQ))
+#if KERNEL_CFG_FREQ >= 1000
+#define m_delay_ms(x) thread_sleep((uint64_t)(x) * (KERNEL_CFG_FREQ / 1000))
 #else
-#define m_delay_ms(x) thread_sleep((uint64_t)(x) / (1000 / KERNEL_FREQ))
+#define m_delay_ms(x) thread_sleep((uint64_t)(x) / (1000 / KERNEL_CFG_FREQ))
 #endif
-#define m_delay_s(x) thread_sleep((uint64_t)(x) * KERNEL_FREQ)
+#define m_delay_s(x) thread_sleep((uint64_t)(x) * KERNEL_CFG_FREQ)
 #elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"                // period = 1ms
 #include "task.h"

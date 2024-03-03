@@ -9,7 +9,7 @@
  */
 #include "lfifo.h"
 
-#if FIFO_DISABLE_ATOMIC
+#if LFIFO_CFG_DISABLE_ATOMIC
 #define FIFO_INIT(var, val) (var) = (val)
 #define FIFO_LOAD(var, type) (var)
 #define FIFO_STORE(var, val, type) (var) = (val)
@@ -22,7 +22,7 @@
 #define _FIFO_MEMORDER_ACQ __ATOMIC_ACQUIRE
 #define _FIFO_MEMORDER_REL __ATOMIC_RELEASE
 #define _FIFO_MEMORDER_RELEX __ATOMIC_RELAXED
-#endif  // FIFO_DISABLE_ATOMIC
+#endif  // LFIFO_CFG_DISABLE_ATOMIC
 
 #define _INLINE __attribute__((always_inline)) inline
 
@@ -95,12 +95,12 @@ fifo_size_t LFifo_Write(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
   fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_ACQ);
   fifo_size_t tocpy = len;
   if (len > fifo->size - wr_t) tocpy = fifo->size - wr_t;
-  if (data != NULL) FIFO_MEMCPY(&fifo->buf[wr_t], data, tocpy);
+  if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(&fifo->buf[wr_t], data, tocpy);
   wr_t += tocpy;
   data += tocpy;
   tocpy = len - tocpy;
   if (tocpy) {
-    if (data != NULL) FIFO_MEMCPY(fifo->buf, data, tocpy);
+    if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(fifo->buf, data, tocpy);
     wr_t = tocpy;
   }
   wr_t %= fifo->size;
@@ -119,12 +119,12 @@ fifo_size_t LFifo_Read(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
   fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_ACQ);
   fifo_size_t tocpy = len;
   if (len > fifo->size - rd_t) tocpy = fifo->size - rd_t;
-  if (data != NULL) FIFO_MEMCPY(data, &fifo->buf[rd_t], tocpy);
+  if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(data, &fifo->buf[rd_t], tocpy);
   rd_t += tocpy;
   data += tocpy;
   tocpy = len - tocpy;
   if (tocpy) {
-    if (data != NULL) FIFO_MEMCPY(data, fifo->buf, tocpy);
+    if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(data, fifo->buf, tocpy);
     rd_t = tocpy;
   }
   rd_t %= fifo->size;
@@ -140,10 +140,10 @@ fifo_size_t LFifo_Peek(lfifo_t *fifo, fifo_size_t offset, uint8_t *data,
   fifo_size_t rd_t = (fifo->rd + offset) % fifo->size;
   fifo_size_t tocpy = len;
   if (len > fifo->size - rd_t) tocpy = fifo->size - rd_t;
-  FIFO_MEMCPY(data, &fifo->buf[rd_t], tocpy);
+  LFIFO_CFG_MEMCPY_FUNC(data, &fifo->buf[rd_t], tocpy);
   data += tocpy;
   tocpy = len - tocpy;
-  if (tocpy) FIFO_MEMCPY(data, fifo->buf, tocpy);
+  if (tocpy) LFIFO_CFG_MEMCPY_FUNC(data, fifo->buf, tocpy);
   return len;
 }
 

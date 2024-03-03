@@ -39,6 +39,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "modules.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -48,7 +50,7 @@ extern "C" {
  * \brief           LwPRINTF options
  * \{
  */
-
+#if !KCONFIG_AVAILABLE
 /**
  * \brief           Enables `1` or disables `0` support for `long long int`
  * type, signed or unsigned.
@@ -147,6 +149,8 @@ extern "C" {
 #ifndef LWPRINTF_CFG_ENABLE_STD_NAMES
 #define LWPRINTF_CFG_ENABLE_STD_NAMES 0
 #endif /* LWPRINTF_CFG_ENABLE_SHORTNAMES */
+
+#endif /* !KCONFIG_AVAILABLE */
 
 /**
  * \}

@@ -1,9 +1,9 @@
 #include "mf.h"
 
-#if __has_include("mf_config.h")
-#include "mf_config.h"
+#if __has_include("mf_hal.h")
+#include "mf_hal.h"
 #else
-#include "mf_config_template.h"
+#include "mf_hal_template.h"
 #endif
 
 #include <stdint.h>

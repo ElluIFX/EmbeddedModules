@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if KERNEL_HOOK_ENABLE
+#if KERNEL_CFG_HOOK_ENABLE
 #include "log.h"
 
 __weak void kernel_hook_idle(void) {}
@@ -63,4 +63,4 @@ __weak void kernel_hook_thread_sleep(thread_t thread, uint32_t time) {
   (void)time;
 }
 
-#endif  // KERNEL_HOOK_ENABLE
+#endif  // KERNEL_CFG_HOOK_ENABLE
