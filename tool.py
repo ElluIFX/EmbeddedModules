@@ -1,9 +1,8 @@
 import argparse
 import datetime
 import os
-import re  # noqa: F401
+import re
 import shutil
-import subprocess
 import sys
 
 import pip
@@ -50,7 +49,7 @@ except ImportError:
     install_package("kconfiglib")
 
 try:
-    import curses
+    import curses  # noqa: F401
 except ImportError:
     install_package("windows-curses")
 
@@ -316,20 +315,23 @@ def generate_config_file(conf_name, kconfig_file, config_in, config_out, header_
 
 
 def menuconfig():
+    complete = False
     try:
-        subprocess.run(["menuconfig"], check=True)
-    except subprocess.CalledProcessError:
-        log_print("error", "menuconfig failed")
-        exit(1)
+        from menuconfig import _main
+
+        sys.argv = [sys.argv[0]]
+        _main()
+        complete = True
+    finally:
+        if not complete:
+            log_print("error", "menuconfig failed")
+            exit(1)
     if not os.path.exists(".config"):
         log_print("error", "menuconfig not complete (.config not found)")
         exit(1)
-    conf_name = "MODULES_CONF"
-    kconfig_file = "Kconfig"
-    config_in = ".config"
-    config_out = ".config"
-    header_out = "modules_conf.h"
-    generate_config_file(conf_name, kconfig_file, config_in, config_out, header_out)
+    generate_config_file(
+        "MODULES_CONF", "Kconfig", ".config", ".config", "modules_config.h"
+    )
 
 
 if __name__ == "__main__":
