@@ -11,12 +11,18 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 C1 = "\033[34m"
 C2 = "\033[32m"
+C3 = "\033[33m"
 LOGO = rf"""
-{C1} ______     __         __         __  __    {C2}  __    __     ______     _____     __  __     __         ______     ______
-{C1}/\  ___\   /\ \       /\ \       /\ \/\ \   {C2} /\ "-./  \   /\  __ \   /\  __-.  /\ \/\ \   /\ \       /\  ___\   /\  ___\
-{C1}\ \  __\   \ \ \____  \ \ \____  \ \ \_\ \  {C2} \ \ \-./\ \  \ \ \/\ \  \ \ \/\ \ \ \ \_\ \  \ \ \____  \ \  __\   \ \___  \
-{C1} \ \_____\  \ \_____\  \ \_____\  \ \_____\ {C2}  \ \_\ \ \_\  \ \_____\  \ \____-  \ \_____\  \ \_____\  \ \_____\  \/\_____\
-{C1}  \/_____/   \/_____/   \/_____/   \/_____/ {C2}   \/_/  \/_/   \/_____/   \/____/   \/_____/   \/_____/   \/_____/   \/_____/
+{C1} ______     __         __         __  __   {C3} __   ______
+{C1}/\  ___\   /\ \       /\ \       /\ \/\ \  {C3}/\_\ /\  ___\
+{C1}\ \  __\   \ \ \____  \ \ \____  \ \ \_\ \ {C3}\/_/ \ \___  \
+{C1} \ \_____\  \ \_____\  \ \_____\  \ \_____\{C3}      \/\_____\
+{C1}  \/_____/   \/_____/   \/_____/   \/_____/{C3}       \/_____/ {C2}
+ __    __     ______     _____     __  __     __         ______     ______
+/\ "-./  \   /\  __ \   /\  __-.  /\ \/\ \   /\ \       /\  ___\   /\  ___\
+\ \ \-./\ \  \ \ \/\ \  \ \ \/\ \ \ \ \_\ \  \ \ \____  \ \  __\   \ \___  \
+ \ \_\ \ \_\  \ \_____\  \ \____-  \ \_____\  \ \_____\  \ \_____\  \/\_____\
+  \/_/  \/_/   \/_____/   \/____/   \/_____/   \/_____/   \/_____/   \/_____/
 """
 print(LOGO + "\033[0m")
 
@@ -330,6 +336,10 @@ def generate_config_file(conf_name, kconfig_file, config_in, config_out, header_
 def menuconfig():
     complete = False
     log_print("info", "loading menuconfig")
+    old_data = ""
+    if os.path.exists(".config"):
+        with open(".config", "r") as f:
+            old_data = f.read()
     try:
         from menuconfig import _main
 
@@ -343,6 +353,12 @@ def menuconfig():
     if not os.path.exists(".config"):
         log_print("error", "menuconfig not complete (.config not found)")
         exit(1)
+    if old_data != "":
+        with open(".config", "r") as f:
+            new_data = f.read()
+        if old_data == new_data:
+            log_print("info", "no change in .config file")
+            exit(0)
     generate_config_file(
         "MODULES_CONF", "Kconfig", ".config", ".config", "modules_config.h"
     )

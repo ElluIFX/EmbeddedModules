@@ -50,6 +50,7 @@ extern "C" {
 #define LOG_CFG_TIMESTAMP_FMT "%.3fs"
 #define LOG_CFG_PREFIX ""
 #define LOG_CFG_SUFFIX "\r\n"
+#define UGUI_CFG_USE_COLOR_RGB565 1
 #define BOARD_I2C_CFG_USE_NONE 1
 #define UART_CFG_ENABLE_DMA_RX 1
 #define UART_CFG_ENABLE_FIFO_TX 1
