@@ -23,7 +23,7 @@ if LOG_CFG_ENABLE
         help
         Enable this option to add the function and line number to the log output.
 
-    menu "Log Levels Config (Enable/Disable)"
+    menu "Log Levels Config"
         config LOG_CFG_ENABLE_ASSERT
             bool "Level: Assert"
             default y

@@ -83,8 +83,6 @@ config UART_CFG_TX_TIMEOUT
 config UART_CFG_PRINTF_REDIRECT
     bool "Enable Printf Redirect"
     default y
-    help
-      Enable printf Redirect to UART
 if UART_CFG_PRINTF_REDIRECT
     choice
         prompt "Printf Redirect To"
@@ -97,6 +95,7 @@ if UART_CFG_PRINTF_REDIRECT
             bool "SEGGER RTT"
         config UART_CFG_PRINTF_USE_CDC
             bool "USB CDC"
+            depends on UART_CFG_ENABLE_CDC
         config UART_CFG_PRINTF_USE_ITM
             bool "ITM (SWO Debug)"
     endchoice

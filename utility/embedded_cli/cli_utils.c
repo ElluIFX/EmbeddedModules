@@ -19,7 +19,7 @@
      (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_CFG_HEAP_USE_LWMEM))
 #include "lwmem.h"
 #define SHOWLWMEM 1
-#elif (MOD_CFG_HEAP_MATHOD_HEAP4 == 4 || \
+#elif (MOD_CFG_HEAP_MATHOD_HEAP4 || \
        (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_CFG_HEAP_USE_HEAP4))
 #include "heap_4.h"
 #define SHOWHEAP4 1
@@ -41,6 +41,7 @@
 
 // Private Functions ------------------------
 #if SHOWKLITE
+#include "internal.h"
 ULIST thread_list;
 
 void kernel_hook_thread_create(thread_t thread) {

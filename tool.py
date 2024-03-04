@@ -4,14 +4,14 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 
 import pip
-
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 C1 = "\033[34m"
 C2 = "\033[32m"
 C3 = "\033[33m"
+C0 = "\033[0m"
 LOGO = rf"""
 {C1} ______     __         __         __  __   {C3} __   ______
 {C1}/\  ___\   /\ \       /\ \       /\ \/\ \  {C3}/\_\ /\  ___\
@@ -23,17 +23,17 @@ LOGO = rf"""
 \ \ \-./\ \  \ \ \/\ \  \ \ \/\ \ \ \ \_\ \  \ \ \____  \ \  __\   \ \___  \
  \ \_\ \ \_\  \ \_____\  \ \____-  \ \_____\  \ \_____\  \ \_____\  \/\_____\
   \/_/  \/_/   \/_____/   \/____/   \/_____/   \/_____/   \/_____/   \/_____/
-"""
-print(LOGO + "\033[0m")
+{C0}"""
 
 
-def log_print(level, text):
+def log(level, text):
     # Log level colors
     LEVEL_COLORS = {
         "error": "\033[31m",
         "success": "\033[32m",
         "warning": "\033[33m",
         "info": "\033[34m",
+        "debug": "\033[35m",
     }
     RESET_COLOR = "\033[0m"
     # Log level name
@@ -42,36 +42,42 @@ def log_print(level, text):
         "success": "SUCCESS",
         "warning": "WARNING",
         "info": "INFO",
+        "debug": "DEBUG",
     }
     print(LEVEL_COLORS[level] + LEVEL_NAME[level] + ": " + text + RESET_COLOR)
 
 
 def install_package(package):
-    log_print("info", f"pip install {package} ...")
-    stdout = sys.stdout
-    stderr = sys.stderr
-    with open(".pip_output", "w") as temp:
-        sys.stdout = temp
-        sys.stderr = temp
+    log("info", f"pip install {package} ...")
+    output = ""
+    with tempfile.TemporaryFile(mode="w+") as tempf:
+        sys.stdout = tempf
+        sys.stderr = tempf
         ret = pip.main(["install", package])
-    sys.stdout = stdout
-    sys.stderr = stderr
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        tempf.seek(0)
+        output = tempf.read()
     if ret != 0:
-        log_print("error", f"failed to install {package}, see .pip_output for details.")
+        log("error", f"failed to install {package}, see below for details:")
+        print(output)
         exit(1)
-    log_print("success", f"{package} successfully installed")
-    os.remove(".pip_output")
+    log("success", f"{package} successfully installed")
 
+
+if os.name == "nt":  # Windows
+    try:
+        import curses  # noqa: F401
+    except ImportError:
+        install_package("windows-curses")
 
 try:
-    from kconfiglib import Kconfig  # noqa: F401
+    from kconfiglib import Kconfig
+    from menuconfig import menuconfig as Kmenuconfig
 except ImportError:
     install_package("kconfiglib")
-
-try:
-    import curses  # noqa: F401
-except ImportError:
-    install_package("windows-curses")
+    from kconfiglib import Kconfig
+    from menuconfig import menuconfig as Kmenuconfig
 
 
 C_FILE_TEMP = """/**
@@ -171,7 +177,7 @@ AVAILABLE_TYPES = [
 ]
 
 
-def create_module():
+def module_wizard():
     try:
         from rich.console import Console
         from rich.prompt import Confirm, Prompt
@@ -302,17 +308,15 @@ def generate_config_file(conf_name, kconfig_file, config_in, config_out, header_
 
     with open(header_out, "r+") as header_file:
         content = header_file.read()
-        header_file.truncate(0)
-        header_file.seek(0)
 
-        # Preprocess the content
-        content = content.replace("CONFIG_", "")
-        content = content.replace("\\\\", "\\")
-        #  remove standalone " and leave \" as "
-        content = re.sub(r'(?<!\\)"', "", content)
-        content = re.sub(r"\\\"", '"', content)
+    # Preprocess the content
+    content = content.replace("CONFIG_", "")
+    content = content.replace("\\\\", "\\")
+    #  remove standalone " and leave \" as "
+    content = re.sub(r'(?<!\\)"', "", content)
+    content = re.sub(r"\\\"", '"', content)
 
-        # Add the micro
+    with open(header_out, "w") as header_file:
         conf_name = conf_name.upper()
         header_file.write(f"#ifndef _{conf_name}_H_\n")
         header_file.write(f"#define _{conf_name}_H_\n\n")
@@ -320,52 +324,35 @@ def generate_config_file(conf_name, kconfig_file, config_in, config_out, header_
         header_file.write("#ifdef __cplusplus\n")
         header_file.write('extern "C" {\n')
         header_file.write("#endif /* __cplusplus */\n\n")
-        # Write back the original data
+
         header_file.write(content)
 
-        # Add the micro
         header_file.write("\n#ifdef __cplusplus\n")
         header_file.write("}\n")
         header_file.write("#endif /* __cplusplus */\n\n")
         header_file.write(f"#endif /* _{conf_name}_H_ */\n")
-
-        header_file.close()
-        log_print("success", "config file make success")
+    log("success", "config file make success")
 
 
-def menuconfig():
-    complete = False
-    log_print("info", "loading menuconfig")
-    old_data = ""
-    if os.path.exists(".config"):
-        with open(".config", "r") as f:
-            old_data = f.read()
+def menuconfig(kconfig_file="Kconfig", config_out=".config", header_dir=None):
+    log("info", "loading menuconfig")
     try:
-        from menuconfig import _main
-
-        sys.argv = [sys.argv[0]]
-        _main()
-        complete = True
-    finally:
-        if not complete:
-            log_print("error", "run menuconfig failed")
-            exit(1)
-    if not os.path.exists(".config"):
-        log_print("error", "menuconfig not complete (.config not found)")
+        Kmenuconfig(Kconfig(kconfig_file))
+    except Exception as e:
+        log("error", f"run menuconfig failed, see error and output below:\n{e}")
         exit(1)
-    if old_data != "":
-        with open(".config", "r") as f:
-            new_data = f.read()
-        if old_data == new_data:
-            log_print("info", "no change in .config file")
-            exit(0)
-    generate_config_file(
-        "MODULES_CONF", "Kconfig", ".config", ".config", "modules_config.h"
-    )
+    if not os.path.exists(config_out):
+        log("warning", "menuconfig not complete (.config not found)")
+        exit(1)
+    target = "modules_config.h"
+    if header_dir:
+        target = os.path.join(header_dir, target)
+    generate_config_file("MODULES_CONFIG", kconfig_file, config_out, config_out, target)
 
 
 if __name__ == "__main__":
-    # Parse arguments
+    print(LOGO)
+
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "-m", "--menuconfig", action="store_true", help="Run menuconfig"
@@ -376,12 +363,50 @@ if __name__ == "__main__":
         action="store_true",
         help="Create a new module",
     )
+    parser.add_argument(
+        "-g",
+        "--generate",
+        action="store_true",
+        help="Generate header file without menuconfig",
+    )
+    parser.add_argument(
+        "-k",
+        "--kconfig",
+        default="Kconfig",
+        help="Specify the kconfig file, default is Kconfig",
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        default=".config",
+        help="Specify the menuconfig output file, default is .config",
+    )
+    parser.add_argument(
+        "-d",
+        "--headerdir",
+        type=str,
+        default=os.getenv("MOD_HEADER_DIR"),
+        help="Specify the directory for the output header file, or use MOD_HEADER_DIR env variable",
+    )
     args = parser.parse_args()
 
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+    if args.headerdir:
+        if not os.path.isdir(args.headerdir):
+            log("error", "header dir must be a existed directory")
+            exit(1)
     if args.menuconfig:
-        menuconfig()
+        menuconfig(args.kconfig, args.config, args.headerdir)
+    elif args.generate:
+        target = "modules_config.h"
+        if args.headerdir:
+            target = os.path.join(args.headerdir, target)
+        generate_config_file(
+            "MODULES_CONFIG", args.kconfig, args.config, args.config, target
+        )
     elif args.newmodule:
-        create_module()
+        module_wizard()
     else:
         parser.print_help()
         exit(1)

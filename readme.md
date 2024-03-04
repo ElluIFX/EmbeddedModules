@@ -104,19 +104,38 @@
 |-|-|
 | [modules.h](./modules.h) | 模块统一头文件 |
 | [modules_conf.template.h](./modules_conf.template.h) | 模块统一配置文件模板 ***(deprecated)*** |
-| [tool.py](./tool.py) | 生成模块统一配置文件的工具 |
+| [tool.py](./tool.py) | 模块配置工具 |
 
-## 配置方法
+## 配置工具 `tool.py`
 
-使用Kconfig可视化配置:
+```shell
+python tool.py -h
+```
 
-```bash
+```shell
+usage: tool.py [-m] [-n] [-g] [-k KCONFIG] [-c CONFIG] [-d HEADERDIR]
+
+optional arguments:
+  -m, --menuconfig      Run menuconfig
+  -n, --newmodule       Create a new module
+  -g, --generate        Generate header file without menuconfig
+  -k KCONFIG, --kconfig KCONFIG
+                        Specify the kconfig file, default is Kconfig
+  -c CONFIG, --config CONFIG
+                        Specify the menuconfig output file, default is .config
+  -d HEADERDIR, --headerdir HEADERDIR
+                        Specify the directory for the output header file, or use MOD_HEADER_DIR env variable
+```
+
+使用Kconfig可视化配置并生成头文件:
+
+```shell
 python tool.py -m
 ```
 
 创建新模块:
 
-```bash
+```shell
 python tool.py -n
 ```
 

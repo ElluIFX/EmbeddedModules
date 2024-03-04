@@ -92,7 +92,7 @@ extern "C" {
  * data. It is disabled by default since it has performance penalties.
  */
 #ifndef LWMEM_CFG_CLEAN_MEMORY
-#define LWMEM_CFG_CLEAN_MEMORY 1
+#define LWMEM_CFG_CLEAN_MEMORY 0
 #endif
 
 /**

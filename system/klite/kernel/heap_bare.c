@@ -29,7 +29,7 @@
 #if KERNEL_CFG_HEAP_USE_BARE
 #include "log.h"
 
-#define MEM_ALIGN_BYTE (4)
+#define MEM_ALIGN_BYTE (8)
 #define MEM_ALIGN_MASK (MEM_ALIGN_BYTE - 1)
 #define MEM_ALIGN_PAD(m) (((m) + MEM_ALIGN_MASK) & (~MEM_ALIGN_MASK))
 #define MEM_ALIGN_CUT(m) ((m) & (~MEM_ALIGN_MASK))
@@ -138,7 +138,7 @@ void *heap_alloc(uint32_t size) {
   }
 #endif
   heap_mutex_unlock();
-  return NULL;
+  return mem;
 }
 
 void heap_free(void *mem) {

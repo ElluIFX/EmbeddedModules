@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if KERNEL_CFG_HEAP_USE_HEAP4
+#if KERNEL_CFG_HEAP_USE_LWMEM
 #include "log.h"
 #include "lwmem.h"
 

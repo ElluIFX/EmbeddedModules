@@ -26,7 +26,7 @@
  ******************************************************************************/
 #include "internal.h"
 #include "kernel.h"
-#if KERNEL_CFG_HEAP_USE_LWMEM
+#if KERNEL_CFG_HEAP_USE_HEAP4
 #include "heap_4.h"
 
 volatile static uint8_t heap_lock = 0;
