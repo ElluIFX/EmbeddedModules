@@ -49,8 +49,8 @@
 | [easy_ui](./graphics/easy_ui) | 单色屏UI库 | [link](https://github.com/ErBWs/Easy-UI) | 大幅魔改 |
 | [hagl](./graphics/hagl) | HAL图形库 | [link](https://github.com/tuupola/hagl) | |
 | [lvgl](./graphics/lvgl) | LittlevGL图形库 | [link](https://github.com/lvgl/lvgl) | |
-| [lvgl/manager/lvgl-pm](./graphics/lvgl/manager/lvgl-pm) | LVGL通用页面管理器 | [link](https://github.com/LanFly/lvgl-pm) | |
-| [lvgl/manager/page_manager](./graphics/lvgl/manager/page_manager) | 基于X-TRACK项目移植的页面管理器 | [link](https://github.com/geekheart/page_manager) | |
+| [lvgl_gaussian_blur](./graphics/lvgl_gaussian_blur) | LVGL高斯模糊效果 | [link](https://gitee.com/MIHI1/lvgl_gaussian_blur) | cpp->c |
+| [lvgl-pm](./graphics/lvgl-pm) | LVGL页面管理器 | [link](https://github.com/LanFly/lvgl-pm) | |
 | [ugui](./graphics/ugui) | uGUI图形库 | [link](https://github.com/achimdoebler/UGUI) | |
 | [virtual_lcd](./graphics/virtual_lcd) | 虚拟LCD |*| 包含上位机 |
 

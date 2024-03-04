@@ -42,17 +42,29 @@
 // Private Functions ------------------------
 #if SHOWKLITE
 #include "internal.h"
-ULIST thread_list;
+static ULIST thread_list;
+
+static int sort_thread(const void *a, const void *b) {
+  thread_t *ta = (thread_t *)a;
+  thread_t *tb = (thread_t *)b;
+  return (int)thread_get_priority(*tb) - (int)thread_get_priority(*ta);
+}
 
 void kernel_hook_thread_create(thread_t thread) {
   if (!thread_list) {
     thread_list = ulist_new(sizeof(thread_t), 0, NULL, NULL);
   }
   ulist_append_copy(thread_list, &thread);
+  ulist_sort(thread_list, sort_thread, SLICE_START, SLICE_END);
 }
 
 void kernel_hook_thread_delete(thread_t thread) {
   ulist_delete(thread_list, ulist_find(thread_list, &thread));
+  ulist_sort(thread_list, sort_thread, SLICE_START, SLICE_END);
+}
+
+void kernel_hook_thread_prio_change(thread_t thread, uint32_t prio) {
+  ulist_sort(thread_list, sort_thread, SLICE_START, SLICE_END);
 }
 
 static void list_klite(void) {

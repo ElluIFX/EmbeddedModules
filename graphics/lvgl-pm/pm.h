@@ -1,8 +1,9 @@
 #ifndef PM_H
 #define PM_H
 
-#include "lvgl.h"
 #include <stdint.h>
+
+#include "lvgl.h"
 
 #define LV_PM_MAJOR 0
 #define LV_PM_MINOR 1
@@ -33,15 +34,13 @@ enum LV_PM_OPEN_TARGET {
   LV_PM_TARGET_RESET = 2
 };
 
-typedef struct _lv_pm_open_options_t
-{
+typedef struct _lv_pm_open_options_t {
   enum LV_PM_PAGE_ANIMA animation;
   enum LV_PM_OPEN_TARGET target;
   enum LV_PM_ANIMA_DIR direction;
 } lv_pm_open_options_t;
 
-typedef struct _lv_pm_page_t
-{
+typedef struct _lv_pm_page_t {
   lv_obj_t *page;
   lv_pm_lifecycle onLoad;
   lv_pm_lifecycle willAppear;
@@ -54,14 +53,9 @@ typedef struct _lv_pm_page_t
 } lv_pm_page_t;
 
 
-uint8_t lv_pm_history_len;
-
 #ifndef LV_PM_PAGE_NUM
 #define LV_PM_PAGE_NUM 10
 #endif
-
-lv_pm_page_t *lv_pm_router[LV_PM_PAGE_NUM];
-uint8_t lv_pm_history[LV_PM_PAGE_NUM];
 
 uint8_t lv_pm_init();
 

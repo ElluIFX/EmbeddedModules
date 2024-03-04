@@ -38,7 +38,7 @@ SPDX-License-Identifier: MIT
 #include "hagl.h"
 #include "hagl/image.h"
 #include "hagl/surface.h"
-#include "tjpgd.h"
+#include "hagl_tjpgd.h"
 
 typedef struct {
   FILE *fp;

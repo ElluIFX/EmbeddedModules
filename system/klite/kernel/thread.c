@@ -127,6 +127,9 @@ void thread_set_priority(thread_t thread, uint32_t prio) {
   sched_tcb_reset(thread, prio);
   thread->prio = prio;
   sched_preempt(false);
+#if KERNEL_CFG_HOOK_ENABLE
+  kernel_hook_thread_prio_change(thread, prio);
+#endif
   cpu_leave_critical();
 }
 

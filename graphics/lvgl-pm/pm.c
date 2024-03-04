@@ -1,26 +1,31 @@
 #include "pm.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "anima.h"
 #include "pm_utils.h"
 
-#include <stdlib.h>
-#include <stdio.h>
+static uint8_t lv_pm_history_len;
+static lv_pm_page_t *lv_pm_router[LV_PM_PAGE_NUM];
+static uint8_t lv_pm_history[LV_PM_PAGE_NUM];
 
-static void _appear_complete_cb(lv_pm_page_t *pm_page, lv_pm_open_options_t options)
-{
+static void _appear_complete_cb(lv_pm_page_t *pm_page,
+                                lv_pm_open_options_t options) {
   if (pm_page->didAppear) {
     pm_page->didAppear(pm_page->page);
   }
 }
 
-static void _back_appear_complete_cb(lv_pm_page_t *pm_page, lv_pm_open_options_t options)
-{
+static void _back_appear_complete_cb(lv_pm_page_t *pm_page,
+                                     lv_pm_open_options_t options) {
   if (pm_page->didAppear) {
     pm_page->didAppear(pm_page->page);
   }
 }
 
-static void _disAppear_complete_cb(lv_pm_page_t *pm_page, lv_pm_open_options_t options)
-{
+static void _disAppear_complete_cb(lv_pm_page_t *pm_page,
+                                   lv_pm_open_options_t options) {
   if (options.animation != LV_PM_ANIMA_POPUP) {
     lv_obj_add_flag(pm_page->page, LV_OBJ_FLAG_HIDDEN);
   }
@@ -33,8 +38,8 @@ static void _disAppear_complete_cb(lv_pm_page_t *pm_page, lv_pm_open_options_t o
   }
 }
 
-static void _back_disAppear_complete_cb(lv_pm_page_t *pm_page, lv_pm_open_options_t options)
-{
+static void _back_disAppear_complete_cb(lv_pm_page_t *pm_page,
+                                        lv_pm_open_options_t options) {
   lv_obj_add_flag(pm_page->page, LV_OBJ_FLAG_HIDDEN);
   if (pm_page->didDisappear) {
     pm_page->didDisappear(pm_page->page);
@@ -43,11 +48,9 @@ static void _back_disAppear_complete_cb(lv_pm_page_t *pm_page, lv_pm_open_option
   lv_obj_clean(pm_page->page);
 }
 
-uint8_t lv_pm_init()
-{
+uint8_t lv_pm_init() {
   lv_pm_history_len = 0;
-  for (uint8_t i = 0; i < LV_PM_PAGE_NUM; i++)
-  {
+  for (uint8_t i = 0; i < LV_PM_PAGE_NUM; i++) {
     lv_pm_router[i] = 0;
   }
 
@@ -58,8 +61,7 @@ uint8_t lv_pm_init()
   return 0;
 }
 
-lv_pm_page_t *lv_pm_create_page(uint8_t id)
-{
+lv_pm_page_t *lv_pm_create_page(uint8_t id) {
   lv_pm_page_t *pm_page = (lv_pm_page_t *)malloc(sizeof(lv_pm_page_t));
   if (pm_page == NULL) {
     return NULL;
@@ -80,8 +82,7 @@ lv_pm_page_t *lv_pm_create_page(uint8_t id)
   return pm_page;
 }
 
-uint8_t lv_pm_open_page(uint8_t id, lv_pm_open_options_t *behavior)
-{
+uint8_t lv_pm_open_page(uint8_t id, lv_pm_open_options_t *behavior) {
   if (lv_pm_router[id] == 0) {
     return 4;
   }
@@ -104,7 +105,8 @@ uint8_t lv_pm_open_page(uint8_t id, lv_pm_open_options_t *behavior)
     if (prev_pm_page->willDisappear) {
       prev_pm_page->willDisappear(prev_page);
     }
-    _pm_anima_disAppear(prev_pm_page, &pm_page->_options, _disAppear_complete_cb);
+    _pm_anima_disAppear(prev_pm_page, &pm_page->_options,
+                        _disAppear_complete_cb);
   }
 
   pm_page->onLoad(page);
@@ -127,8 +129,7 @@ uint8_t lv_pm_open_page(uint8_t id, lv_pm_open_options_t *behavior)
   return 0;
 }
 
-uint8_t lv_pm_back()
-{
+uint8_t lv_pm_back() {
   if (lv_pm_history_len < 2) {
     return 0;
   }

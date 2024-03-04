@@ -19,7 +19,7 @@ seq. / Sep 03, 2012 R0.01b Added JD_TBLCLIP option. / Mar 16, 2019 R0.01c
 Supprted stdint.h.
 /----------------------------------------------------------------------------*/
 
-#include "tjpgd.h"
+#include "hagl_tjpgd.h"
 
 #include "config.h"
 

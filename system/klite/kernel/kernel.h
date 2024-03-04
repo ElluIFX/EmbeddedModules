@@ -34,10 +34,10 @@
 
 #if !KCONFIG_AVAILABLE
 #define KERNEL_CFG_FREQ 100000       // 内核时基频率(赫兹)
+#define KERNEL_CFG_HOOK_ENABLE 1     // 内核钩子使能
 #define KERNEL_CFG_HEAP_USE_BARE 0   // 使用裸机基础内存管理器
 #define KERNEL_CFG_HEAP_USE_LWMEM 0  // 使用lwmem内存管理器
 #define KERNEL_CFG_HEAP_USE_HEAP4 1  // 使用heap4内存管理器
-#define KERNEL_CFG_HOOK_ENABLE 1     // 内核钩子使能
 
 #endif
 
@@ -515,6 +515,13 @@ void kernel_hook_thread_create(thread_t thread);
  * @param thread 线程标识符
  */
 void kernel_hook_thread_delete(thread_t thread);
+
+/**
+ * @brief 内核线程优先级改变钩子函数
+ * @param thread 线程标识符
+ * @param prio 新的优先级
+ */
+void kernel_hook_thread_prio_change(thread_t thread, uint32_t prio);
 
 /**
  * @brief 内核线程挂起钩子函数

@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------------/
 / TJpgDec - Tiny JPEG Decompressor include file               (C)ChaN, 2019
 /----------------------------------------------------------------------------*/
-#ifndef DEF_TJPGDEC
-#define DEF_TJPGDEC
+#ifndef DEF_TJPGDEC_HAGL
+#define DEF_TJPGDEC_HAGL
 /*---------------------------------------------------------------------------*/
 /* System Configurations */
 

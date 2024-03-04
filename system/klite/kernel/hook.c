@@ -53,6 +53,11 @@ __weak void kernel_hook_thread_suspend(thread_t thread) { (void)thread; }
 
 __weak void kernel_hook_thread_resume(thread_t thread) { (void)thread; }
 
+__weak void kernel_hook_thread_prio_change(thread_t thread, uint32_t prio) {
+  (void)thread;
+  (void)prio;
+}
+
 __weak void kernel_hook_thread_switch(thread_t from, thread_t to) {
   (void)from;
   (void)to;
