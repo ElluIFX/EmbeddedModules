@@ -41,8 +41,8 @@
 | [benchmark](./debug/benchmark) | CoreMark基准测试 | [link](https://github.com/eembc/coremark) | |
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯 | [link](https://github.com/armink/CmBacktrace) | |
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 | [link](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/) | |
-| [log](./debug/log.h) | 轻量级宏函数日志 |*| 需要uart_pack |
-| [minctest](./debug/minctest.h) | 轻量级单元测试 | [link](https://github.com/codeplea/minctest) | |
+| [log](./debug/log) | 轻量级宏函数日志 |*| |
+| [minctest](./debug/minctest) | 轻量级单元测试 | [link](https://github.com/codeplea/minctest) | |
 
 | [Graphics](./graphics) | 图形 | repo | 备注 |
 |-|-|:-:|-|
@@ -97,7 +97,7 @@
 | [ryu](./utility/ryu) | 浮点数转字符串 | [link](https://github.com/tidwall/ryu) | |
 | [term_table](./utility/term_table) | 动态终端表格工具 |*| 仅debug使用 |
 | [xv](./utility/xv) | 类JavaScript的字符串解析器 | [link](https://github.com/tidwall/xv) | |
-| [incbin.h](./utility/incbin.h) | 二进制文件嵌入 | [link](https://github.com/graphitemaster/incbin) | |
+| [incbin.h](./utility/incbin) | 二进制文件嵌入 | [link](https://github.com/graphitemaster/incbin) | |
 | [macro.h](./utility/macro.h) | 通用宏 |*| |
 
 | 根目录文件 | 功能 |

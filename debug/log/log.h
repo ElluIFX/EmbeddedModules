@@ -16,7 +16,10 @@ extern "C" {
 #endif
 #include "macro.h"
 #include "modules.h"
+
+#if UART_CFG_PRINTF_REDIRECT
 #include "uart_pack.h"
+#endif
 
 /****************************    日志设置     ***********************/
 #if !KCONFIG_AVAILABLE  // 由Kconfig配置
