@@ -103,7 +103,7 @@
 | 根目录文件 | 功能 |
 |-|-|
 | [modules.h](./modules.h) | 模块统一头文件 |
-| [modules_conf.template.h](./modules_conf.template.h) | 模块统一配置文件模板 ***(deprecated)*** |
+| [~modules_conf.template.h~](./modules_conf.template.h) | ~模块统一配置文件模板~ ***(deprecated)*** |
 | [tool.py](./tool.py) | 模块配置工具 |
 
 ## 配置工具 `tool.py`
