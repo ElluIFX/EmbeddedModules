@@ -57,7 +57,7 @@ static inline scheduler_task_t *get_next_task(void) {
   ulist_foreach(&tasklist, scheduler_task_t, task) {
     if (!task->enable) continue;             // 跳过禁用任务
     if (now >= task->pendTime) return task;  // 高优先级在前
-    if (task->pendTime < next->pendTime) next = task;
+    if (next == NULL || task->pendTime < next->pendTime) next = task;
   }
   return next;
 }
