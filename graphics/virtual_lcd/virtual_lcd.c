@@ -141,29 +141,29 @@ static void check_init(void) {
 // Public Functions -------------------------
 
 __weak void vlcd_send_data_handler(uint8_t* data, uint32_t length) {
-  LOG_E("[vlcd] send data handler not implemented");
+  LOG_ERROR("[vlcd] send data handler not implemented");
 }
 
 __weak void vlcd_keyboard_callback(uint8_t action, uint16_t scancode,
                                    uint8_t modifier, uint8_t ascii) {
-  LOG_D("[vlcd][keyboard] %d, %d, %d, %c", action, scancode, modifier, ascii);
+  LOG_DEBUG("[vlcd][keyboard] %d, %d, %d, %c", action, scancode, modifier, ascii);
 }
 
 __weak void vlcd_touch_callback(uint16_t x, uint16_t y, uint8_t touched) {
-  LOG_D("[vlcd][touch] %d, %d, %d", x, y, touched);
+  LOG_DEBUG("[vlcd][touch] %d, %d, %d", x, y, touched);
 }
 
 __weak void vlcd_mouse_callback(uint16_t x, uint16_t y, int8_t wheel,
                                 uint8_t mousekey) {
-  LOG_D("[vlcd][mouse] %d, %d, %d, %d", x, y, wheel, mousekey);
+  LOG_DEBUG("[vlcd][mouse] %d, %d, %d, %d", x, y, wheel, mousekey);
 }
 
 __weak void vlcd_button_callback(uint8_t button, uint8_t pressed) {
-  LOG_D("[vlcd][button] %d, %d", button, pressed);
+  LOG_DEBUG("[vlcd][button] %d, %d", button, pressed);
 }
 
 __weak void vlcd_encoder_callback(int8_t diff, uint8_t pressed) {
-  LOG_D("[vlcd][encoder] %d, %d", diff, pressed);
+  LOG_DEBUG("[vlcd][encoder] %d, %d", diff, pressed);
 }
 
 void vlcd_init_screen(uint16_t width, uint16_t height, uint8_t format,

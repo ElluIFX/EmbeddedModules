@@ -31,13 +31,14 @@
  */
 
 #include "sds.h"
-
-#include <assert.h>
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "log.h"
+#define assert LOG_ASSERT
 
 const char *SDS_NOINIT = "SDS_NOINIT";
 

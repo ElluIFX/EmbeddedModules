@@ -15,7 +15,6 @@
 #include "macro.h"
 
 #if __has_include("tim.h")
-#include "tim.h"
 
 void Motor_Setup(motor_t *motor) {
   motor->mode = MOTOR_MODE_BRAKE;

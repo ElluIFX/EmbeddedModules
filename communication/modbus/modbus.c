@@ -2,8 +2,8 @@
 
 #include <log.h>
 
-#define MODBUS_DEBUG(x) LOG_D x
-#define MODBUS_DELAY_DEBUG(x) LOG_D x
+#define MODBUS_DEBUG(x) LOG_DEBUG x
+#define MODBUS_DELAY_DEBUG(x) LOG_DEBUG x
 /** 配置ModBus实例 **/
 /*** 参数 ***
 ** address: 设备地址

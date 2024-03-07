@@ -116,14 +116,14 @@ void dalloc(dl_heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
           heap_struct_ptr->alloc_info.allocations_num;
     }
   } else {
-    LOG_E("dalloc: Allocation failed");
+    LOG_ERROR("dalloc: Allocation failed");
     print_dalloc_info(heap_struct_ptr);
     *ptr = NULL;
     if (new_offset > heap_struct_ptr->total_size) {
-      LOG_E("dalloc: Heap size exceeded");
+      LOG_ERROR("dalloc: Heap size exceeded");
     }
     if (heap_struct_ptr->alloc_info.allocations_num > MAX_NUM_OF_ALLOCATIONS) {
-      LOG_E("dalloc: Max number of allocations exceeded: %lu",
+      LOG_ERROR("dalloc: Max number of allocations exceeded: %lu",
             (long unsigned int)heap_struct_ptr->alloc_info.allocations_num);
     }
   }
@@ -235,7 +235,7 @@ void dfree(dl_heap_t *heap_struct_ptr, void **ptr,
            validate_ptr_condition_t condition) {
   /* Check if heap_ptr is not assigned */
   if (heap_struct_ptr == NULL) {
-    LOG_E("Heap pointer is not assigned");
+    LOG_ERROR("Heap pointer is not assigned");
     return;
   }
 
@@ -243,7 +243,7 @@ void dfree(dl_heap_t *heap_struct_ptr, void **ptr,
 
   /* Try to find given ptr in ptr_info array */
   if (validate_ptr(heap_struct_ptr, ptr, condition, &ptr_index) != true) {
-    LOG_E("Try to free unexisting pointer");
+    LOG_ERROR("Try to free unexisting pointer");
     return;
   }
 
@@ -270,7 +270,7 @@ void replace_pointers(dl_heap_t *heap_struct_ptr, void **ptr_to_replace,
   uint32_t ptr_ind = 0;
   if (validate_ptr(heap_struct_ptr, ptr_to_replace, USING_PTR_ADDRESS,
                    &ptr_ind) != true) {
-    LOG_E("Can't replace pointers. No pointer found in buffer");
+    LOG_ERROR("Can't replace pointers. No pointer found in buffer");
     return;
   }
   *ptr_new = *ptr_to_replace;
@@ -292,7 +292,7 @@ bool drealloc(dl_heap_t *heap_struct_ptr, uint32_t size, void **ptr) {
   uint8_t *new_ptr = NULL;
   dalloc(heap_struct_ptr, size, (void **)&new_ptr);
   if (new_ptr == NULL) {
-    LOG_E("drealloc failed due to dalloc failed");
+    LOG_ERROR("drealloc failed due to dalloc failed");
     return false;
   }
 

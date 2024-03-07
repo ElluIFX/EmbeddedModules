@@ -28,7 +28,7 @@
 #else
 #define LIST_LOG(...)                          \
   if (!(list->cfg & ULIST_CFG_NO_ERROR_LOG)) { \
-    LOG_E(__VA_ARGS__);                        \
+    LOG_ERROR(__VA_ARGS__);                        \
   }
 #endif
 
@@ -66,7 +66,8 @@
  * @note  对于SLICE_END，返回list->num
  * @note  上述规则SLICE_*假定你进行的是正向迭代(start<=i++<end)
  */
-static ulist_offset_t convert_pylike_offset(ULIST list, ulist_offset_t index) {
+static inline ulist_offset_t convert_pylike_offset(ULIST list,
+                                                   ulist_offset_t index) {
   if (index == 0) return 0;
   if (index == SLICE_START) return 0;
   if (index == SLICE_END) return list->num;

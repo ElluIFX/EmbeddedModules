@@ -14,7 +14,7 @@ _INLINE void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel) {
 }
 
 __weak void Scheduler_SoftInt_Handler(uint8_t mainChannel, uint8_t subMask) {
-  LOG_LIMIT(100, "SoftInt %d:%d", mainChannel, subMask);
+  LOG_DEBUG_LIMIT(100, "SoftInt %d:%d", mainChannel, subMask);
 }
 
 _INLINE void SoftInt_Runner(void) {

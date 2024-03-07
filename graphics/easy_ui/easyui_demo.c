@@ -81,15 +81,15 @@ bool dialog = false;
 uiParamType testFloat = 0.68, testInt = 5, testUint = 34, testProgress = 0.0;
 
 void value_change(EasyUIItem_t *item) {
-  LOG_I("Value changed: %s = %f", item->title, *item->param);
+  LOG_INFO("Value changed: %s = %f", item->title, *item->param);
 }
 
 void state_change(EasyUIItem_t *item) {
-  LOG_I("State changed: %s = %d", item->title, *item->flag);
+  LOG_INFO("State changed: %s = %d", item->title, *item->flag);
 }
 
 void index_change(EasyUIItem_t *item) {
-  LOG_I("Index changed: %s = %d", item->title, *item->paramIndex);
+  LOG_INFO("Index changed: %s = %d", item->title, *item->paramIndex);
 }
 
 void EasyUIDemoInit(void) {
