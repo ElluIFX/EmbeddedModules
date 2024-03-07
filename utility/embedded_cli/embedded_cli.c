@@ -656,6 +656,18 @@ void embeddedCliReceiveChar(EmbeddedCli *cli, char c) {
   }
 }
 
+void embeddedCliReceiveBuffer(EmbeddedCli *cli, const char *buffer,
+                              size_t len) {
+  PREPARE_IMPL(cli);
+
+  for (size_t i = 0; i < len; ++i) {
+    if (!fifoBufPush(&impl->rxBuffer, buffer[i])) {
+      SET_FLAG(impl->flags, CLI_FLAG_OVERFLOW);
+      break;
+    }
+  }
+}
+
 static void printInvitation(EmbeddedCli *cli) {
   PREPARE_IMPL(cli);
   if (!IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)) {

@@ -232,6 +232,18 @@ EmbeddedCli *embeddedCliNewDefault(void);
 void embeddedCliReceiveChar(EmbeddedCli *cli, char c);
 
 /**
+ * Receive buffer and put it to internal buffer
+ * Actual processing is done inside embeddedCliProcess
+ * You can call this function from something like interrupt service routine,
+ * just make sure that you call it only from single place. Otherwise input
+ * might get corrupted
+ * @param cli
+ * @param buffer
+ * @param len
+ */
+void embeddedCliReceiveBuffer(EmbeddedCli *cli, const char *buffer, size_t len);
+
+/**
  * Process rx/tx buffers. Command callbacks are called from here
  * @param cli
  */
