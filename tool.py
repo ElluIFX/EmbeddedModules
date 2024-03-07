@@ -298,12 +298,12 @@ def module_wizard():
         con.print(f"[green]Kconfig file at: [yellow]{kconfig_file_path}")
 
 
-def generate_config_file(conf_name, kconfig_file, config_in, config_out, header_out):
+def generate_config_file(conf_name, kconfig_file, config_file, header_out):
     kconf = Kconfig(kconfig_file, warn=False, warn_to_stderr=False)
 
     # Load config
-    kconf.load_config(config_in)
-    kconf.write_config(config_out)
+    kconf.load_config(config_file)
+    kconf.write_config(config_file)
     kconf.write_autoconf(header_out)
 
     with open(header_out, "r+") as header_file:
@@ -331,23 +331,48 @@ def generate_config_file(conf_name, kconfig_file, config_in, config_out, header_
         header_file.write("}\n")
         header_file.write("#endif /* __cplusplus */\n\n")
         header_file.write(f"#endif /* _{conf_name}_H_ */\n")
+
+
+def prepare_config_file(config_file, output_dir):
+    if not output_dir:
+        return
+    if os.path.exists(os.path.join(output_dir, config_file)):
+        if os.path.exists(config_file):
+            os.remove(config_file)
+        shutil.copyfile(
+            os.path.join(output_dir, config_file),
+            config_file,
+        )
+
+
+def makeconfig(kconfig_file, config_file, header_file, output_dir):
+    generate_config_file("MODULES_CONFIG", kconfig_file, config_file, header_file)
+    config_old = f"{config_file}.old"
+    if output_dir:
+        shutil.copyfile(header_file, os.path.join(output_dir, header_file))
+        shutil.copyfile(config_file, os.path.join(output_dir, config_file))
+        os.remove(header_file)
+        os.remove(config_file)
+        if os.path.exists(config_old):
+            if os.path.exists(os.path.join(output_dir, config_old)):
+                os.remove(os.path.join(output_dir, config_old))
+            shutil.copyfile(config_old, os.path.join(output_dir, config_old))
+            os.remove(config_old)
     log("success", "config file make success")
 
 
-def menuconfig(kconfig_file="Kconfig", config_out=".config", header_dir=None):
+def menuconfig(kconfig_file, config_file, header_file, output_dir):
     log("info", "loading menuconfig")
     try:
         Kmenuconfig(Kconfig(kconfig_file))
     except Exception as e:
         log("error", f"run menuconfig failed, see error and output below:\n{e}")
         exit(1)
-    if not os.path.exists(config_out):
+    if not os.path.exists(config_file):
         log("warning", "menuconfig not complete (.config not found)")
         exit(1)
-    target = "modules_config.h"
-    if header_dir:
-        target = os.path.join(header_dir, target)
-    generate_config_file("MODULES_CONFIG", kconfig_file, config_out, config_out, target)
+    makeconfig(kconfig_file, config_file, header_file, output_dir)
+    log("success", "menuconfig success")
 
 
 if __name__ == "__main__":
@@ -382,29 +407,28 @@ if __name__ == "__main__":
         help="Specify the menuconfig output file, default is .config",
     )
     parser.add_argument(
-        "-d",
-        "--headerdir",
+        "-o",
+        "--output_dir",
         type=str,
-        default=os.getenv("MOD_HEADER_DIR"),
-        help="Specify the directory for the output header file, or use MOD_HEADER_DIR env variable",
+        default=os.getenv("MOD_OUTPUT_DIR"),
+        help="Specify the directory for the output files, or use MOD_OUTPUT_DIR env variable",
     )
     args = parser.parse_args()
 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    if args.headerdir:
-        if not os.path.isdir(args.headerdir):
-            log("error", "header dir must be a existed directory")
+    HEADER_FILE = "modules_config.h"
+
+    if args.output_dir:
+        if not os.path.isdir(args.output_dir):
+            log("error", "output dir must be a existed directory")
             exit(1)
     if args.menuconfig:
-        menuconfig(args.kconfig, args.config, args.headerdir)
+        prepare_config_file(args.config, args.output_dir)
+        menuconfig(args.kconfig, args.config, HEADER_FILE, args.output_dir)
     elif args.generate:
-        target = "modules_config.h"
-        if args.headerdir:
-            target = os.path.join(args.headerdir, target)
-        generate_config_file(
-            "MODULES_CONFIG", args.kconfig, args.config, args.config, target
-        )
+        prepare_config_file(args.config, args.output_dir)
+        makeconfig(args.kconfig, args.config, HEADER_FILE, args.output_dir)
     elif args.newmodule:
         module_wizard()
     else:

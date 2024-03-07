@@ -113,7 +113,7 @@ python tool.py -h
 ```
 
 ```shell
-usage: tool.py [-m] [-n] [-g] [-k KCONFIG] [-c CONFIG] [-d HEADERDIR]
+usage: tool.py [-m] [-n] [-g] [-k KCONFIG] [-c CONFIG] [-o OUTPUT_DIR]
 
 optional arguments:
   -m, --menuconfig      Run menuconfig
@@ -123,8 +123,8 @@ optional arguments:
                         Specify the kconfig file, default is Kconfig
   -c CONFIG, --config CONFIG
                         Specify the menuconfig output file, default is .config
-  -d HEADERDIR, --headerdir HEADERDIR
-                        Specify the directory for the output header file, or use MOD_HEADER_DIR env variable
+  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        Specify the directory for the output files, or use MOD_OUTPUT_DIR env variable
 ```
 
 使用Kconfig可视化配置并生成头文件:
