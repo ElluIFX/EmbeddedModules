@@ -62,9 +62,13 @@ extern __IO uint32_t uwTick;
 void SysTick_Handler(void) {
   kernel_tick(1);
 
+#if KERNEL_CFG_FREQ >= 1000
   static uint16_t tick_scaler = 0;
   if (++tick_scaler >= (KERNEL_CFG_FREQ / 1000)) {  // us -> ms
-    uwTick++;                                   // for HAL_Delay()
+    uwTick++;                                       // for HAL_Delay()
     tick_scaler = 0;
   }
+#else
+  uwTick += 1000 / KERNEL_CFG_FREQ;
+#endif
 }

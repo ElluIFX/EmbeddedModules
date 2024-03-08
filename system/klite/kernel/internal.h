@@ -37,7 +37,6 @@
 #define __weak __attribute__((weak))
 #endif
 
-
 struct tcb_list {
   struct tcb_node *head;
   struct tcb_node *tail;
@@ -65,13 +64,32 @@ struct tcb {
 extern struct tcb *sched_tcb_now;
 extern struct tcb *sched_tcb_next;
 
+// 平台实现: 进入临界区, 并执行需要在内核初始化前执行的操作
 void cpu_sys_init(void);
+
+// 平台实现: 执行内核初始化后的操作, 退出临界区, 退出后系统应直接进入调度
 void cpu_sys_start(void);
+
+// 平台实现: 系统空闲回调
+// @param time: 系统空闲时间, 单位tick
 void cpu_sys_sleep(uint32_t time);
+
+// 平台实现: 触发PendSV, 进行上下文切换
 void cpu_contex_switch(void);
+
+// 平台实现: 初始化线程上下文
+// @param stack_base: 栈基地址
+// @param stack_top: 栈顶地址
+// @param entry: 线程入口地址
+// @param arg: 线程参数
+// @param exit: 线程结束回调地址
 void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg,
                       void *exit);
+
+// 平台实现: 进入临界区
 void cpu_enter_critical(void);
+
+// 平台实现: 退出临界区
 void cpu_leave_critical(void);
 
 void sched_init(void);

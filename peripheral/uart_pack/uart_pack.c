@@ -265,16 +265,6 @@ static int itm_lwprintf_fn(int ch, lwprintf_t *lwobj) {
   return ch;
 }
 
-int ITM_Printf(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  lwprintf_t lwp_pub;
-  lwp_pub.out_fn = itm_lwprintf_fn;
-  int sendLen = lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
-  va_end(ap);
-  return sendLen;
-}
-
 int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, size_t len) {
   if (!len) return 0;
 #if UART_CFG_ENABLE_FIFO_TX
@@ -525,6 +515,48 @@ void HAL_UARTEx_TxEventCallback(UART_HandleTypeDef *huart) {
 }
 #endif  // UART_CFG_ENABLE_DMA_RX
 #endif  // UART_CFG_REWRITE_HANLDER
+
+int ITM_Printf(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  lwprintf_t lwp_pub;
+  lwp_pub.out_fn = itm_lwprintf_fn;
+  int sendLen = lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
+  va_end(ap);
+  return sendLen;
+}
+
+int ITM_Send(uint8_t port, uint8_t *data, size_t len) {
+  if (((ITM->TCR & ITM_TCR_ITMENA_Msk) != 0UL) && /* ITM enabled */
+      ((ITM->TER & (1 << port)) != 0UL))          /* ITM Port #0 enabled */
+  {
+    for (size_t i = 0UL; i < len; i++) {
+      while (ITM->PORT[port].u32 == 0UL) {
+        __NOP();
+      }
+      ITM->PORT[port].u8 = data[i];
+    }
+    return len;
+  }
+  return 0;
+}
+
+volatile int32_t ITM_RxBuffer = ITM_RXBUFFER_EMPTY;
+
+size_t ITM_Read(uint8_t *data, m_time_t timeout_ms) {
+  m_time_t start_time = m_time_ms();
+  size_t len = 0;
+  int32_t tmp;
+  while (m_time_ms() - start_time < timeout_ms) {
+    tmp = ITM_ReceiveChar();
+    if (tmp == -1) {
+      continue;
+    }
+    data[len++] = (uint8_t)tmp;
+    start_time = m_time_ms();
+  }
+  return len;
+}
 
 #if VOFA_CFG_ENABLE
 

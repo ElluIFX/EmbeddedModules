@@ -28,17 +28,19 @@
 	IMPORT  sched_tcb_next
 
 	EXPORT  PendSV_Handler
-	
+
 	AREA |.text|, CODE, READONLY, ALIGN=2
 	PRESERVE8
-	
+
 PendSV_Handler  PROC
 	CPSID       I
 	LDR         R0, =sched_tcb_now
 	LDR         R1, [R0]
 	CBZ         R1, POPSTACK
 	TST         LR, #0x10
+	IF      {FPU} != "SoftVFP" // FPU Enabled
 	VPUSHEQ     {S16-S31}
+	ENDIF
 	PUSH        {LR,R4-R11}
 	STR         SP, [R1]
 POPSTACK
@@ -49,11 +51,12 @@ POPSTACK
 	POP         {R4-R11}
 	POP         {LR}
 	TST         LR, #0x10
+	IF      {FPU} != "SoftVFP" // FPU Enabled
 	VPOPEQ      {S16-S31}
+	ENDIF
 	CPSIE       I
 	BX          LR
 	ALIGN
 	ENDP
 
 	END
-	

@@ -29,7 +29,7 @@
 #ifndef _CMB_CFG_H_
 #define _CMB_CFG_H_
 
-#include "log.h"
+#include "uart_pack.h"
 
 /* print line, must config by user */
 /* e.g., printf(__VA_ARGS__);printf("\r\n")  or  SEGGER_RTT_printf(0,

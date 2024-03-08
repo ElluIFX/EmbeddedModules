@@ -87,10 +87,10 @@ if UART_CFG_PRINTF_REDIRECT
     choice
         prompt "Printf Redirect To"
         default UART_CFG_PRINTF_USE_UART
+        config UART_CFG_PRINTF_BLOCK
+            bool "NULL (Disble printf)"
         config UART_CFG_PRINTF_USE_UART
             bool "UART"
-        config UART_CFG_PRINTF_BLOCK
-            bool "Block All Printf"
         config UART_CFG_PRINTF_USE_RTT
             bool "SEGGER RTT"
         config UART_CFG_PRINTF_USE_CDC

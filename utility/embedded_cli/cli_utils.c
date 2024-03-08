@@ -31,6 +31,19 @@
 #define SHOWKLITE 1
 #endif
 
+#if __FPU_PRESENT
+#if /* ARMCC */ (                                                   \
+    (defined(__CC_ARM) && defined(__TARGET_FPU_VFP)) /* Clang */ || \
+    (defined(__CLANG_ARM) && defined(__VFP_FP__) &&                 \
+     !defined(__SOFTFP__)) /* IAR */                                \
+    || (defined(__ICCARM__) && defined(__ARMVFP__)) /* GNU */ ||    \
+    (defined(__GNUC__) && defined(__VFP_FP__) && !defined(__SOFTFP__)))
+#define USE_FPU 1
+#else
+#define USE_FPU 0
+#endif
+#endif
+
 // Private Typedefs -------------------------
 
 // Private Macros ---------------------------
@@ -180,6 +193,10 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "After Boot"),
       TT_FmtStr(al, f1, f2, "%.2fs", (float)m_time_us() / 1000000), sep);
+#if __FPU_PRESENT
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "FPU"),
+                    TT_Str(al, f1, f2, USE_FPU ? "Enabled" : "Disabled"), sep);
+#endif
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Build Time"),
                     TT_Str(al, f1, f2, __DATE__ " " __TIME__), sep);
 #if MOD_CFG_USE_OS_KLITE  // klite
