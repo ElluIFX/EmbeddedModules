@@ -30,8 +30,32 @@
 #define TF_CKSUM_CUSTOM16 2  // Custom 16-bit checksum
 #define TF_CKSUM_CUSTOM32 3  // Custom 32-bit checksum
 
-#if __has_include("TF_Config.h")
-#include "TF_Config.h"
+#include "modules.h"
+
+#if KCONFIG_AVAILABLE
+#include "log.h"
+#define TF_Error(format, ...) LOG_ERROR("[TF] " format, ##__VA_ARGS__)
+typedef TF_TICKS_TYPE TF_TICKS;
+typedef TF_COUNT_TYPE TF_COUNT;
+#if TF_CKSUM_TYPE_NONE
+#define TF_CKSUM_TYPE TF_CKSUM_NONE
+#elif TF_CKSUM_TYPE_XOR
+#define TF_CKSUM_TYPE TF_CKSUM_XOR
+#elif TF_CKSUM_TYPE_CRC8
+#define TF_CKSUM_TYPE TF_CKSUM_CRC8
+#elif TF_CKSUM_TYPE_CRC16
+#define TF_CKSUM_TYPE TF_CKSUM_CRC16
+#elif TF_CKSUM_TYPE_CRC32
+#define TF_CKSUM_TYPE TF_CKSUM_CRC32
+#elif TF_CKSUM_TYPE_CUSTOM8
+#define TF_CKSUM_TYPE TF_CKSUM_CUSTOM8
+#elif TF_CKSUM_TYPE_CUSTOM16
+#define TF_CKSUM_TYPE TF_CKSUM_CUSTOM16
+#elif TF_CKSUM_TYPE_CUSTOM32
+#define TF_CKSUM_TYPE TF_CKSUM_CUSTOM32
+#else
+#error "Invalid checksum type"
+#endif
 #else
 #include "TF_Config.example.h"
 #endif

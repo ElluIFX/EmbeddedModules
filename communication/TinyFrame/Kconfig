@@ -1,0 +1,119 @@
+menu "TinyFrame Configuration"
+
+config TF_ID_BYTES
+    int "Part ID: Byte Num"
+    default 1
+    range 1 4
+    help
+      The number of bytes to use for the ID field in the TinyFrame protocol (must in 1, 2, 4).
+
+config TF_LEN_BYTES
+    int "Part Length: Byte Num"
+    default 2
+    range 1 4
+    help
+      The number of bytes to use for the Length field in the TinyFrame protocol (must in 1, 2, 4).
+
+config TF_TYPE_BYTES
+    int "Part Type: Byte Num"
+    default 1
+    range 1 4
+    help
+      The number of bytes to use for the Type field in the TinyFrame protocol (must in 1, 2, 4).
+
+config TF_USE_SOF_BYTE
+    bool "Part SOF: Enable"
+    default y
+    help
+      Use the Start of Frame byte in the TinyFrame protocol.
+
+config TF_SOF_BYTE
+    hex "Part SOF: Byte Value"
+    default 0x7E
+    range 0 255
+    depends on TF_USE_SOF_BYTE
+    help
+      The Start of Frame byte in the TinyFrame protocol.
+
+choice
+    prompt "Part CKSUM: Type"
+    default TF_CKSUM_TYPE_CRC16
+    config TF_CKSUM_TYPE_NONE
+        bool "None"
+    config TF_CKSUM_TYPE_XOR
+        bool "XOR"
+    config TF_CKSUM_TYPE_CRC8
+        bool "CRC-8"
+    config TF_CKSUM_TYPE_CRC16
+        bool "CRC-16"
+    config TF_CKSUM_TYPE_CRC32
+        bool "CRC-32"
+    config TF_CKSUM_TYPE_CUSTOM8
+        bool "Custom-8"
+    config TF_CKSUM_TYPE_CUSTOM16
+        bool "Custom-16"
+    config TF_CKSUM_TYPE_CUSTOM32
+        bool "Custom-32"
+endchoice
+
+
+config TF_TICKS_TYPE
+    string "Type of TF_TICKS"
+    default "uint32_t"
+    help
+      The type of TF_TICKS used for timeout tick counters - should be large enough for all used timeouts
+
+config TF_COUNT_TYPE
+    string "Type of TF_COUNT"
+    default "uint16_t"
+    help
+      The type of TF_COUNT used in loops iterating over listeners
+
+config TF_MAX_PAYLOAD_RX
+    int "Maximum RX Payload Size"
+    default 1024
+    help
+      Maximum received payload size (static buffer)
+      Larger payloads will be rejected.
+
+config TF_SENDBUF_LEN
+    int "Send Buffer Length"
+    default 128
+    help
+      Size of the sending buffer. Larger payloads will be split to pieces and sent
+      in multiple calls to the write function. This can be lowered to reduce RAM
+      usage.
+      fine TF_SENDBUF_LEN 128
+
+config TF_MAX_ID_LST
+    int "Frame ID Listeners"
+    default 10
+    help
+      Frame ID listeners (wait for response / multi-part message)
+
+config TF_MAX_TYPE_LST
+    int "Frame Type Listeners"
+    default 10
+    help
+      Frame Type listeners (wait for frame with a specific first payload byte)
+
+config TF_MAX_GEN_LST
+    int "General Listeners"
+    default 10
+    help
+      Generic listeners (fallback if no other listener catches it)
+
+config TF_PARSER_TIMEOUT_TICKS
+    int "Parser Timeout Ticks (ms)"
+    default 10
+    help
+      Timeout for receiving & parsing a frame
+
+config TF_USE_MUTEX
+    bool "Use Mutex"
+    default y
+    depends on !MOD_CFG_USE_OS_NONE
+    help
+      Use a mutex to protect the TinyFrame state. This is required if TinyFrame is used in a multi-threaded environment.
+
+endmenu

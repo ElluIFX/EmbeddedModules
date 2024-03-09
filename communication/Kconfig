@@ -1,3 +1,5 @@
 menu "Communication Modules"
 
+source "communication/**/Kconfig"
+
 endmenu
