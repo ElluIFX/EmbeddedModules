@@ -21,16 +21,21 @@
 | [minmea](./utility/minmea) | GPS NMEA解析器 | [link](https://github.com/ata4/minema) | |
 | [modbus](./communication/modbus) | Modbus协议 | [link](https://github.com/wql7013/ModBus) | |
 | [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 | [link](https://github.com/MightyPork/TinyFrame) | |
+| [xmodem](./communication/xmodem) | XMODEM协议 | [link](https://github.com/bsail/xmodem) | |
 
 | [DataStruct](./datastruct) | 数据结构 | repo | 备注 |
 |-|-|:-:|-|
 | [btree](./datastruct/btree) | B树 | [link](https://github.com/tidwall/btree.c) | |
 | [cstring](./datastruct/cstring) | C字符串 | [link](https://github.com/cloudwu/cstring) | |
+| [ctl](./datastruct/ctl) | 类型安全C模板容器库 | [link](https://github.com/rurban/ctl) | |
+| [dlist](./datastruct/dlist) | 双向链表 | [link](https://github.com/clibs/list) | |
+| [fifofast](./datastruct/fifofast) | 纯头文件快速FIFO | [link](https://github.com/nqtronix/fifofast) | |
 | [hashmap](./datastruct/hashmap) | 哈希表 | [link](https://github.com/tidwall/hashmap.c) | |
 | [json](./datastruct/json) | JSON解析 | [link](https://github.com/tidwall/json.c) | |
-| [lfbb](./datastruct/lfbb) | 二分循环缓冲区 | [link](https://github.com/DNedic/lfbb) | |
+| [lfbb](./datastruct/lfbb) | 二分无锁缓冲区 | [link](https://github.com/DNedic/lfbb) | |
 | [lfifo](./datastruct/lfifo) | 通用环形缓冲区 |*| 比lwrb更高效 |
-| [lwrb](./datastruct/lwrb) | 轻量级环形缓冲区 | [link](https://github.com/MaJerle/lwrb) | |
+| [linux_list](./datastruct/linux_list) | Linux-like链表 | [link](https://github.com/sysprog21/linux-list) | |
+| [lwrb](./datastruct/lwrb) | 轻量环形缓冲区 | [link](https://github.com/MaJerle/lwrb) | |
 | [pqueue](./datastruct/pqueue) | 优先队列 | [link](https://github.com/tidwall/pqueue.c) | |
 | [sds](./datastruct/sds) | 简单动态字符串 | [link](https://github.com/antirez/sds) | |
 | [udict](./datastruct/udict) | 通用字典 |*| 基于ulist |
@@ -41,8 +46,8 @@
 | [benchmark](./debug/benchmark) | CoreMark基准测试 | [link](https://github.com/eembc/coremark) | |
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯 | [link](https://github.com/armink/CmBacktrace) | |
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 | [link](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/) | |
-| [log](./debug/log) | 轻量级宏函数日志 |*| |
-| [minctest](./debug/minctest) | 轻量级单元测试 | [link](https://github.com/codeplea/minctest) | |
+| [log](./debug/log) | 纯头文件日志库 |*| |
+| [minctest](./debug/minctest) | 简易单元测试 | [link](https://github.com/codeplea/minctest) | |
 
 | [Graphics](./graphics) | 图形 | repo | 备注 |
 |-|-|:-:|-|
@@ -66,6 +71,7 @@
 | [key](./peripheral/key) | 通用按键 |*| 支持多种事件 |
 | [ll_i2c](./peripheral/ll_i2c) | LL库I2C | [link](https://github.com/jesstr/i2c_ll) | |
 | [motor](./peripheral/motor) | 直流电机闭环驱动 |*| |
+| [spif](./peripheral/spif) | SPI Flash驱动 | [link](https://github.com/nimaltd/spif) | |
 | [stepper](./peripheral/stepper) | 步进电机驱动 |*| |
 | [sw_i2c](./peripheral/sw_i2c) | 软件I2C | [link](https://github.com/liyanboy74/soft-i2c) | |
 | [sw_spi](./peripheral/sw_spi) | 软件SPI |N/A| |

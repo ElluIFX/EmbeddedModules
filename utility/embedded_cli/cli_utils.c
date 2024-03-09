@@ -111,7 +111,7 @@ static void list_klite(void) {
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", sfree));
     i++;
   }
-  TT_AddSeparator(tt, f1, f2, '-');
+  TT_AddSeparator(tt, TT_FMT1_GREEN, TT_FMT2_BOLD, '-');
   TT_Print(tt);
   TT_FreeTable(tt);
 }
