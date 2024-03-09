@@ -52,17 +52,18 @@ extern "C" {
 #define SPIF_Tick() m_time_ms()
 
 #define SPIF_DEBUG_DISABLE 0
-#define SPIF_DEBUG_MIN 1
-#define SPIF_DEBUG_FULL 2
+#define SPIF_DEBUG_ENABLE 1
 
 #define SPIF_PLATFORM_HAL 0
-#define SPIF_PLATFORM_HAL_DMA 1
+#define SPIF_PLATFORM_HAL_IT 1
+#define SPIF_PLATFORM_HAL_DMA 2
+#define SPIF_PLATFORM_HAL_DMA_WITH_DCACHE 3
 
 /*---------- SPIF_DEBUG  -----------*/
 #define SPIF_DEBUG SPIF_DEBUG_DISABLE
 
 /*---------- SPIF_PLATFORM  -----------*/
-#define SPIF_PLATFORM SPIF_PLATFORM_HAL_DMA
+#define SPIF_PLATFORM SPIF_PLATFORM_HAL_IT
 
 /***********************************************************************************************************/
 /***********************************************************************************************************/

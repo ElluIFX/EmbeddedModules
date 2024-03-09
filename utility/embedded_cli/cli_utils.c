@@ -192,7 +192,8 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       TT_FmtStr(al, f1, f2, "%.3f Mhz", (float)m_tick_clk / 1000000), sep);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "After Boot"),
-      TT_FmtStr(al, f1, f2, "%.2fs", (float)m_time_us() / 1000000), sep);
+      TT_FmtStr(al, f1, f2, "%.2fs", (float)((uint64_t)m_time_ms()) / 1000),
+      sep);
 #if __FPU_PRESENT
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "FPU"),
                     TT_Str(al, f1, f2, USE_FPU ? "Enabled" : "Disabled"), sep);

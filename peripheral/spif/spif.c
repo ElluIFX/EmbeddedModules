@@ -2,11 +2,11 @@
 #include "spif.h"
 #if SPIF_ENABLE
 
-#if SPIF_DEBUG == SPIF_DEBUG_DISABLE
-#define dprintf(...)
-#else
 #include "log.h"
-#define dprintf(...) LOG_DEBUG(__VA_ARGS__)
+#if SPIF_DEBUG != SPIF_DEBUG_DISABLE
+#define SDEBUG(...) LOG_DEBUG(__VA_ARGS__)
+#else
+#define SDEBUG(...)
 #endif
 
 #define SPIF_DUMMY_BYTE 0xA5
@@ -101,18 +101,32 @@ bool SPIF_TransmitReceive(SPIF_HandleTypeDef *Handle, uint8_t *Tx, uint8_t *Rx,
   if (HAL_SPI_TransmitReceive(Handle->HSpi, Tx, Rx, Size, Timeout) == HAL_OK) {
     retVal = true;
   } else {
-    dprintf("SPIF TIMEOUT");
+    LOG_ERROR("SPIF TIMEOUT");
   }
-#elif (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA)
+#elif (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA) ||           \
+    (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA_WITH_DCACHE) || \
+    (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
   uint32_t startTime = SPIF_Tick();
-  if (HAL_SPI_TransmitReceive_DMA(Handle->HSpi, Tx, Rx, Size) != HAL_OK) {
-    dprintf("SPIF TRANSFER ERROR");
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA_WITH_DCACHE)
+  SCB_CleanDCache_by_Addr((uint32_t *)Tx, ((Size + 31) / 32) * 32);
+#endif
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
+  if (HAL_SPI_TransmitReceive_IT(Handle->HSpi, Tx, Rx, Size) != HAL_OK)
+#else
+  if (HAL_SPI_TransmitReceive_DMA(Handle->HSpi, Tx, Rx, Size) != HAL_OK)
+#endif
+  {
+    LOG_ERROR("SPIF TRANSFER ERROR");
   } else {
     while (1) {
       SPIF_Delay(1);
       if (SPIF_Tick() - startTime >= Timeout) {
-        dprintf("SPIF TIMEOUT");
+        LOG_ERROR("SPIF TIMEOUT");
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
+        HAL_SPI_Abort_IT(Handle->HSpi);
+#else
         HAL_SPI_DMAStop(Handle->HSpi);
+#endif
         break;
       }
       if (HAL_SPI_GetState(Handle->HSpi) == HAL_SPI_STATE_READY) {
@@ -121,6 +135,10 @@ bool SPIF_TransmitReceive(SPIF_HandleTypeDef *Handle, uint8_t *Tx, uint8_t *Rx,
       }
     }
   }
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA_WITH_DCACHE)
+  if (retVal)
+    SCB_InvalidateDCache_by_Addr((uint32_t *)Rx, ((Size + 31) / 32) * 32);
+#endif
 #endif
   return retVal;
 }
@@ -134,18 +152,32 @@ bool SPIF_Transmit(SPIF_HandleTypeDef *Handle, uint8_t *Tx, size_t Size,
   if (HAL_SPI_Transmit(Handle->HSpi, Tx, Size, Timeout) == HAL_OK) {
     retVal = true;
   } else {
-    dprintf("SPIF TIMEOUT");
+    LOG_ERROR("SPIF TIMEOUT");
   }
-#elif (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA)
+#elif (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA) ||           \
+    (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA_WITH_DCACHE) || \
+    (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
   uint32_t startTime = SPIF_Tick();
-  if (HAL_SPI_Transmit_DMA(Handle->HSpi, Tx, Size) != HAL_OK) {
-    dprintf("SPIF TRANSFER ERROR");
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA_WITH_DCACHE)
+  SCB_CleanDCache_by_Addr((uint32_t *)Tx, ((Size + 31) / 32) * 32);
+#endif
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
+  if (HAL_SPI_Transmit_IT(Handle->HSpi, Tx, Size) != HAL_OK)
+#else
+  if (HAL_SPI_Transmit_DMA(Handle->HSpi, Tx, Size) != HAL_OK)
+#endif
+  {
+    LOG_ERROR("SPIF TRANSFER ERROR");
   } else {
     while (1) {
       SPIF_Delay(1);
       if (SPIF_Tick() - startTime >= Timeout) {
-        dprintf("SPIF TIMEOUT");
+        LOG_ERROR("SPIF TIMEOUT");
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
+        HAL_SPI_Abort_IT(Handle->HSpi);
+#else
         HAL_SPI_DMAStop(Handle->HSpi);
+#endif
         break;
       }
       if (HAL_SPI_GetState(Handle->HSpi) == HAL_SPI_STATE_READY) {
@@ -167,18 +199,29 @@ bool SPIF_Receive(SPIF_HandleTypeDef *Handle, uint8_t *Rx, size_t Size,
   if (HAL_SPI_Receive(Handle->HSpi, Rx, Size, Timeout) == HAL_OK) {
     retVal = true;
   } else {
-    dprintf("SPIF TIMEOUT");
+    LOG_ERROR("SPIF TIMEOUT");
   }
-#elif (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA)
+#elif (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA) ||           \
+    (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA_WITH_DCACHE) || \
+    (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
   uint32_t startTime = SPIF_Tick();
-  if (HAL_SPI_Receive_DMA(Handle->HSpi, Rx, Size) != HAL_OK) {
-    dprintf("SPIF TRANSFER ERROR");
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
+  if (HAL_SPI_Receive_IT(Handle->HSpi, Rx, Size) != HAL_OK)
+#else
+  if (HAL_SPI_Receive_DMA(Handle->HSpi, Rx, Size) != HAL_OK)
+#endif
+  {
+    LOG_ERROR("SPIF TRANSFER ERROR");
   } else {
     while (1) {
       SPIF_Delay(1);
       if (SPIF_Tick() - startTime >= Timeout) {
-        dprintf("SPIF TIMEOUT");
+        LOG_ERROR("SPIF TIMEOUT");
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_IT)
+        HAL_SPI_Abort_IT(Handle->HSpi);
+#else
         HAL_SPI_DMAStop(Handle->HSpi);
+#endif
         break;
       }
       if (HAL_SPI_GetState(Handle->HSpi) == HAL_SPI_STATE_READY) {
@@ -187,6 +230,10 @@ bool SPIF_Receive(SPIF_HandleTypeDef *Handle, uint8_t *Rx, size_t Size,
       }
     }
   }
+#if (SPIF_PLATFORM == SPIF_PLATFORM_HAL_DMA_WITH_DCACHE)
+  if (retVal)
+    SCB_InvalidateDCache_by_Addr((uint32_t *)Rx, ((Size + 31) / 32) * 32);
+#endif
 #endif
   return retVal;
 }
@@ -199,7 +246,7 @@ bool SPIF_WriteEnable(SPIF_HandleTypeDef *Handle) {
   SPIF_CsPin(Handle, 0);
   if (SPIF_Transmit(Handle, tx, 1, 100) == false) {
     retVal = false;
-    dprintf("SPIF_WriteEnable() Error");
+    LOG_ERROR("SPIF_WriteEnable() Error");
   }
   SPIF_CsPin(Handle, 1);
   return retVal;
@@ -213,7 +260,7 @@ bool SPIF_WriteDisable(SPIF_HandleTypeDef *Handle) {
   SPIF_CsPin(Handle, 0);
   if (SPIF_Transmit(Handle, tx, 1, 100) == false) {
     retVal = false;
-    dprintf("SPIF_WriteDisable() Error");
+    LOG_ERROR("SPIF_WriteDisable() Error");
   }
   SPIF_CsPin(Handle, 1);
   return retVal;
@@ -347,7 +394,7 @@ bool SPIF_WaitForWriting(SPIF_HandleTypeDef *Handle, uint32_t Timeout) {
   while (1) {
     SPIF_Delay(1);
     if (SPIF_Tick() - startTime >= Timeout) {
-      dprintf("SPIF_WaitForWriting() TIMEOUT");
+      LOG_ERROR("SPIF_WaitForWriting() TIMEOUT");
       break;
     }
     if ((SPIF_ReadReg1(Handle) & SPIF_STATUS1_BUSY) == 0) {
@@ -365,131 +412,132 @@ bool SPIF_FindChip(SPIF_HandleTypeDef *Handle) {
   uint8_t rx[4];
   bool retVal = false;
   do {
-    dprintf("SPIF_FindChip()");
+    SDEBUG("SPIF_FindChip()");
     SPIF_CsPin(Handle, 0);
     if (SPIF_TransmitReceive(Handle, tx, rx, 4, 100) == false) {
       SPIF_CsPin(Handle, 1);
       break;
     }
     SPIF_CsPin(Handle, 1);
-    dprintf("CHIP ID: 0x%02X%02X%02X", rx[1], rx[2], rx[3]);
+    SDEBUG("CHIP ID: 0x%02X%02X%02X", rx[1], rx[2], rx[3]);
     Handle->Manufactor = rx[1];
     Handle->MemType = rx[2];
     Handle->Size = rx[3];
 
-    dprintf("SPIF MANUFACTURE: ");
+    SDEBUG("SPIF MANUFACTURE: ");
     switch (Handle->Manufactor) {
       case SPIF_MANUFACTOR_WINBOND:
-        dprintf("WINBOND");
+        SDEBUG("WINBOND");
         break;
       case SPIF_MANUFACTOR_SPANSION:
-        dprintf("SPANSION");
+        SDEBUG("SPANSION");
         break;
       case SPIF_MANUFACTOR_MICRON:
-        dprintf("MICRON");
+        SDEBUG("MICRON");
         break;
       case SPIF_MANUFACTOR_MACRONIX:
-        dprintf("MACRONIX");
+        SDEBUG("MACRONIX");
         break;
       case SPIF_MANUFACTOR_ISSI:
-        dprintf("ISSI");
+        SDEBUG("ISSI");
         break;
       case SPIF_MANUFACTOR_GIGADEVICE:
-        dprintf("GIGADEVICE");
+        SDEBUG("GIGADEVICE");
         break;
       case SPIF_MANUFACTOR_AMIC:
-        dprintf("AMIC");
+        SDEBUG("AMIC");
         break;
       case SPIF_MANUFACTOR_SST:
-        dprintf("SST");
+        SDEBUG("SST");
         break;
       case SPIF_MANUFACTOR_HYUNDAI:
-        dprintf("HYUNDAI");
+        SDEBUG("HYUNDAI");
         break;
       case SPIF_MANUFACTOR_FUDAN:
-        dprintf("FUDAN");
+        SDEBUG("FUDAN");
         break;
       case SPIF_MANUFACTOR_ESMT:
-        dprintf("ESMT");
+        SDEBUG("ESMT");
         break;
       case SPIF_MANUFACTOR_INTEL:
-        dprintf("INTEL");
+        SDEBUG("INTEL");
         break;
       case SPIF_MANUFACTOR_SANYO:
-        dprintf("SANYO");
+        SDEBUG("SANYO");
         break;
       case SPIF_MANUFACTOR_FUJITSU:
-        dprintf("FUJITSU");
+        SDEBUG("FUJITSU");
         break;
       case SPIF_MANUFACTOR_EON:
-        dprintf("EON");
+        SDEBUG("EON");
         break;
       case SPIF_MANUFACTOR_PUYA:
-        dprintf("PUYA");
+        SDEBUG("PUYA");
         break;
       default:
         Handle->Manufactor = SPIF_MANUFACTOR_ERROR;
-        dprintf("ERROR");
+        SDEBUG("ERROR");
         break;
     }
-    dprintf(" - MEMTYPE: 0x%02X", Handle->MemType);
-    dprintf(" - SIZE: ");
+    SDEBUG(" - MEMTYPE: 0x%02X", Handle->MemType);
+    SDEBUG(" - SIZE: ");
     switch (Handle->Size) {
       case SPIF_SIZE_1MBIT:
         Handle->BlockCnt = 2;
-        dprintf("1 MBIT");
+        SDEBUG("1 MBIT");
         break;
       case SPIF_SIZE_2MBIT:
         Handle->BlockCnt = 4;
-        dprintf("2 MBIT");
+        SDEBUG("2 MBIT");
         break;
       case SPIF_SIZE_4MBIT:
         Handle->BlockCnt = 8;
-        dprintf("4 MBIT");
+        SDEBUG("4 MBIT");
         break;
       case SPIF_SIZE_8MBIT:
         Handle->BlockCnt = 16;
-        dprintf("8 MBIT");
+        SDEBUG("8 MBIT");
         break;
       case SPIF_SIZE_16MBIT:
         Handle->BlockCnt = 32;
-        dprintf("16 MBIT");
+        SDEBUG("16 MBIT");
         break;
       case SPIF_SIZE_32MBIT:
         Handle->BlockCnt = 64;
-        dprintf("32 MBIT");
+        SDEBUG("32 MBIT");
         break;
       case SPIF_SIZE_64MBIT:
         Handle->BlockCnt = 128;
-        dprintf("64 MBIT");
+        SDEBUG("64 MBIT");
         break;
       case SPIF_SIZE_128MBIT:
         Handle->BlockCnt = 256;
-        dprintf("128 MBIT");
+        SDEBUG("128 MBIT");
         break;
       case SPIF_SIZE_256MBIT:
         Handle->BlockCnt = 512;
-        dprintf("256 MBIT");
+        SDEBUG("256 MBIT");
         break;
       case SPIF_SIZE_512MBIT:
         Handle->BlockCnt = 1024;
-        dprintf("512 MBIT");
+        SDEBUG("512 MBIT");
         break;
       default:
         Handle->Size = SPIF_SIZE_ERROR;
-        dprintf("ERROR");
+        SDEBUG("ERROR");
         break;
     }
 
     Handle->SectorCnt = Handle->BlockCnt * 16;
     Handle->PageCnt = (Handle->SectorCnt * SPIF_SECTOR_SIZE) / SPIF_PAGE_SIZE;
-    dprintf("SPIF BLOCK CNT: %ld", Handle->BlockCnt);
-    dprintf("SPIF SECTOR CNT: %ld", Handle->SectorCnt);
-    dprintf("SPIF PAGE CNT: %ld", Handle->PageCnt);
-    dprintf("SPIF STATUS1: 0x%02X", SPIF_ReadReg1(Handle));
-    dprintf("SPIF STATUS2: 0x%02X", SPIF_ReadReg2(Handle));
-    dprintf("SPIF STATUS3: 0x%02X", SPIF_ReadReg3(Handle));
-    retVal = true;
+    SDEBUG("SPIF BLOCK CNT: %ld", Handle->BlockCnt);
+    SDEBUG("SPIF SECTOR CNT: %ld", Handle->SectorCnt);
+    SDEBUG("SPIF PAGE CNT: %ld", Handle->PageCnt);
+    SDEBUG("SPIF STATUS1: 0x%02X", SPIF_ReadReg1(Handle));
+    SDEBUG("SPIF STATUS2: 0x%02X", SPIF_ReadReg2(Handle));
+    SDEBUG("SPIF STATUS3: 0x%02X", SPIF_ReadReg3(Handle));
+    retVal = Handle->Manufactor != SPIF_MANUFACTOR_ERROR &&
+             Handle->Size != SPIF_SIZE_ERROR;
 
   } while (0);
 
@@ -507,29 +555,19 @@ bool SPIF_WriteFn(SPIF_HandleTypeDef *Handle, uint32_t PageNumber,
 #if SPIF_DEBUG != SPIF_DEBUG_DISABLE
     uint32_t dbgTime = SPIF_Tick();
 #endif
-    dprintf("SPIF_WritePage() START PAGE %ld", PageNumber);
+    SDEBUG("SPIF_WritePage() START PAGE %ld", PageNumber);
     if (PageNumber >= Handle->PageCnt) {
-      dprintf("SPIF_WritePage() ERROR PageNumber");
+      LOG_ERROR("SPIF_WritePage() ERROR PageNumber");
       break;
     }
     if (Offset >= SPIF_PAGE_SIZE) {
-      dprintf("SPIF_WritePage() ERROR Offset");
+      LOG_ERROR("SPIF_WritePage() ERROR Offset");
       break;
     }
     if (Size > maximum) {
       Size = maximum;
     }
     address = SPIF_PageToAddress(PageNumber) + Offset;
-#if SPIF_DEBUG == SPIF_DEBUG_FULL
-    dprintf("SPIF WRITING {0x%02X", Data[0]);
-    for (int i = 1; i < Size; i++) {
-      if (i % 8 == 0) {
-        dprintf("");
-      }
-      dprintf(", 0x%02X", Data[i]);
-    }
-    dprintf("}");
-#endif
     if (SPIF_WriteEnable(Handle) == false) {
       break;
     }
@@ -560,8 +598,8 @@ bool SPIF_WriteFn(SPIF_HandleTypeDef *Handle, uint32_t PageNumber,
     }
     SPIF_CsPin(Handle, 1);
     if (SPIF_WaitForWriting(Handle, 100)) {
-      dprintf("SPIF_WritePage() %d BYTES WITERN DONE AFTER %ld ms",
-              (uint16_t)Size, SPIF_Tick() - dbgTime);
+      SDEBUG("SPIF_WritePage() %d BYTES WITERN DONE AFTER %ld ms",
+             (uint16_t)Size, SPIF_Tick() - dbgTime);
       retVal = true;
     }
 
@@ -581,7 +619,7 @@ bool SPIF_ReadFn(SPIF_HandleTypeDef *Handle, uint32_t Address, uint8_t *Data,
 #if SPIF_DEBUG != SPIF_DEBUG_DISABLE
     uint32_t dbgTime = SPIF_Tick();
 #endif
-    dprintf("SPIF_ReadAddress() START ADDRESS %ld", Address);
+    SDEBUG("SPIF_ReadAddress() START ADDRESS %ld", Address);
     SPIF_CsPin(Handle, 0);
     if (Handle->BlockCnt >= 512) {
       tx[0] = SPIF_CMD_READDATA4ADD;
@@ -608,18 +646,8 @@ bool SPIF_ReadFn(SPIF_HandleTypeDef *Handle, uint32_t Address, uint8_t *Data,
       break;
     }
     SPIF_CsPin(Handle, 1);
-    dprintf("SPIF_ReadAddress() %d BYTES READ DONE AFTER %ld ms",
-            (uint16_t)Size, SPIF_Tick() - dbgTime);
-#if SPIF_DEBUG == SPIF_DEBUG_FULL
-    dprintf("{0x%02X", Data[0]);
-    for (int i = 1; i < Size; i++) {
-      if (i % 8 == 0) {
-        dprintf("");
-      }
-      dprintf(", 0x%02X", Data[i]);
-    }
-    dprintf("}");
-#endif
+    SDEBUG("SPIF_ReadAddress() %d BYTES READ DONE AFTER %ld ms", (uint16_t)Size,
+           SPIF_Tick() - dbgTime);
     retVal = true;
 
   } while (0);
@@ -637,7 +665,7 @@ bool SPIF_Init(SPIF_HandleTypeDef *Handle, SPI_HandleTypeDef *HSpi,
   do {
     if ((Handle == NULL) || (HSpi == NULL) || (Gpio == NULL) ||
         (Handle->Inited == 1)) {
-      dprintf("SPIF_Init() Error, Wrong Parameter");
+      LOG_ERROR("SPIF_Init() Error, Wrong Parameter");
       break;
     }
     memset(Handle, 0, sizeof(SPIF_HandleTypeDef));
@@ -655,7 +683,7 @@ bool SPIF_Init(SPIF_HandleTypeDef *Handle, SPI_HandleTypeDef *HSpi,
     retVal = SPIF_FindChip(Handle);
     if (retVal) {
       Handle->Inited = 1;
-      dprintf("SPIF_Init() Done");
+      SDEBUG("SPIF_Init() Done");
     }
 
   } while (0);
@@ -673,7 +701,7 @@ bool SPIF_EraseChip(SPIF_HandleTypeDef *Handle) {
 #if SPIF_DEBUG != SPIF_DEBUG_DISABLE
     uint32_t dbgTime = SPIF_Tick();
 #endif
-    dprintf("SPIF_EraseChip() START");
+    SDEBUG("SPIF_EraseChip() START");
     if (SPIF_WriteEnable(Handle) == false) {
       break;
     }
@@ -684,7 +712,7 @@ bool SPIF_EraseChip(SPIF_HandleTypeDef *Handle) {
     }
     SPIF_CsPin(Handle, 1);
     if (SPIF_WaitForWriting(Handle, Handle->BlockCnt * 1000)) {
-      dprintf("SPIF_EraseChip() DONE AFTER %ld ms", SPIF_Tick() - dbgTime);
+      SDEBUG("SPIF_EraseChip() DONE AFTER %ld ms", SPIF_Tick() - dbgTime);
       retVal = true;
     }
 
@@ -706,9 +734,9 @@ bool SPIF_EraseSector(SPIF_HandleTypeDef *Handle, uint32_t Sector) {
 #if SPIF_DEBUG != SPIF_DEBUG_DISABLE
     uint32_t dbgTime = SPIF_Tick();
 #endif
-    dprintf("SPIF_EraseSector() START SECTOR %ld", Sector);
+    SDEBUG("SPIF_EraseSector() START SECTOR %ld", Sector);
     if (Sector >= Handle->SectorCnt) {
-      dprintf("SPIF_EraseSector() ERROR Sector NUMBER");
+      LOG_ERROR("SPIF_EraseSector() ERROR Sector NUMBER");
       break;
     }
     if (SPIF_WriteEnable(Handle) == false) {
@@ -737,8 +765,7 @@ bool SPIF_EraseSector(SPIF_HandleTypeDef *Handle, uint32_t Sector) {
     }
     SPIF_CsPin(Handle, 1);
     if (SPIF_WaitForWriting(Handle, 1000)) {
-      dprintf("SPIF_EraseSector() DONE AFTER %ld ms",
-              SPIF_Tick() - dbgTime);
+      SDEBUG("SPIF_EraseSector() DONE AFTER %ld ms", SPIF_Tick() - dbgTime);
       retVal = true;
     }
 
@@ -760,9 +787,9 @@ bool SPIF_EraseBlock(SPIF_HandleTypeDef *Handle, uint32_t Block) {
 #if SPIF_DEBUG != SPIF_DEBUG_DISABLE
     uint32_t dbgTime = SPIF_Tick();
 #endif
-    dprintf("SPIF_EraseBlock() START PAGE %ld", Block);
+    SDEBUG("SPIF_EraseBlock() START PAGE %ld", Block);
     if (Block >= Handle->BlockCnt) {
-      dprintf("SPIF_EraseBlock() ERROR Block NUMBER");
+      SDEBUG("SPIF_EraseBlock() ERROR Block NUMBER");
       break;
     }
     if (SPIF_WriteEnable(Handle) == false) {
@@ -791,7 +818,7 @@ bool SPIF_EraseBlock(SPIF_HandleTypeDef *Handle, uint32_t Block) {
     }
     SPIF_CsPin(Handle, 1);
     if (SPIF_WaitForWriting(Handle, 3000)) {
-      dprintf("SPIF_EraseBlock() DONE AFTER %ld ms", SPIF_Tick() - dbgTime);
+      SDEBUG("SPIF_EraseBlock() DONE AFTER %ld ms", SPIF_Tick() - dbgTime);
       retVal = true;
     }
 

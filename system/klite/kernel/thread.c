@@ -122,7 +122,7 @@ void thread_stack_info(thread_t thread, size_t *stack_free,
 }
 
 void thread_set_priority(thread_t thread, uint32_t prio) {
-  if (prio >= __THREAD_PRIORITY_MAX__) return;
+  if (prio >= __THREAD_PRIORITY_MAX__) prio = __THREAD_PRIORITY_MAX__ - 1;
   cpu_enter_critical();
   sched_tcb_reset(thread, prio);
   thread->prio = prio;

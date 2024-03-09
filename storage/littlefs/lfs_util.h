@@ -30,6 +30,10 @@
 
 #ifndef LFS_NO_MALLOC
 #include <stdlib.h>
+
+#include "modules.h"
+#define LFS_MALLOC(size) m_alloc(size)
+#define LFS_FREE(ptr) m_free(ptr)
 #endif
 
 #ifdef __cplusplus
