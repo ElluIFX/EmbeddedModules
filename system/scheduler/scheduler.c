@@ -24,7 +24,9 @@ __weak void Scheduler_Idle_Callback(uint64_t idleTimeUs) {
 #if !MOD_CFG_USE_OS_NONE
   m_delay_us(idleTimeUs);
 #else  // 关闭CPU
+#if MOD_CFG_WFI_WHEN_SYSTEM_IDLE
   SysTick_Sleep(idleTimeUs);
+#endif
 #endif
 }
 

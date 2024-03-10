@@ -16,15 +16,13 @@ extern "C" {
  * @brief 获取系统时钟, 无单位
  * @retval uint64_t          系统时钟
  */
-_STATIC_INLINE uint64_t get_sys_tick(void) {
-  return (uint64_t)get_system_ticks();
-}
+_STATIC_INLINE uint64_t get_sys_tick(void) { return m_tick(); }
 
 /**
  * @brief 获取系统时钟频率, 单位为Hz
  * @retval uint64_t          系统时钟频率
  */
-_STATIC_INLINE uint64_t get_sys_freq(void) { return SystemCoreClock; }
+_STATIC_INLINE uint64_t get_sys_freq(void) { return m_tick_clk; }
 
 /**
  * @brief 获取系统时钟, 单位为us

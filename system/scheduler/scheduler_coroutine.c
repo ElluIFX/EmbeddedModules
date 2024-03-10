@@ -1,8 +1,7 @@
 #include "scheduler_coroutine.h"
 
-#include "scheduler_internal.h"
-
 #if SCH_CFG_ENABLE_COROUTINE
+#include "scheduler_internal.h"
 
 #pragma pack(1)
 typedef struct {        // 协程任务结构
@@ -14,6 +13,8 @@ typedef struct {        // 协程任务结构
   uint64_t max_cost;    // 协程最大执行时间(Tick)
   uint64_t total_cost;  // 协程总执行时间(Tick)
   float last_usage;     // 协程上次执行占用率
+  size_t stack_size;    // 协程动态栈大小
+  size_t last_stack;    // 协程上一个获取的栈大小
 #endif
 } scheduler_cortn_t;
 
@@ -74,7 +75,7 @@ _INLINE uint64_t Cortn_Runner(void) {
     if (cortn_handle_now->state == _CR_STATE_RUNNING ||
         (cortn_handle_now->state == _CR_STATE_SLEEPING &&
          now >= cortn_handle_now->sleepUntil)) {
-      cortn_handle_now->depth = 0;
+      cortn_handle_now->runDepth = 0;
       cortn_handle_now->sleepUntil = 0;
 #if SCH_CFG_DEBUG_REPORT
       uint64_t _sch_debug_task_tick = get_sys_tick();
@@ -111,8 +112,8 @@ uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args) {
       .hd =
           {
               .state = _CR_STATE_READY,
-              .depth = 0,
-              .callDepth = 0,
+              .runDepth = 0,
+              .actDepth = 0,
               .sleepUntil = 0,
               .msg = NULL,
               .name = name,
@@ -143,10 +144,20 @@ uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args) {
   return 1;
 }
 
-scheduler_cortn_t *get_cortn(const char *name) {
+static scheduler_cortn_t *get_cortn(const char *name) {
   if (cortnlist.num == 0) return NULL;
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (fast_strcmp(cortn->name, name)) {
+      return cortn;
+    }
+  }
+  return NULL;
+}
+
+static scheduler_cortn_t *get_cortn_by_handle(__cortn_handle_t *handle) {
+  if (cortnlist.num == 0) return NULL;
+  ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
+    if (&cortn->hd == handle) {
       return cortn;
     }
   }
@@ -191,8 +202,7 @@ uint8_t Sch_SendMsgToCortn(const char *name, void *msg) {
  * @return 协程名
  */
 _INLINE const char *__Internal_GetName(void) {
-  static const char main_name[] = "__main__";
-  if (cortn_handle_now == NULL) return main_name;
+  if (cortn_handle_now == NULL) return (const char *)"__main__";
   return cortn_handle_now->name;
 }
 
@@ -202,15 +212,22 @@ _INLINE const char *__Internal_GetName(void) {
  * @return 存储区指针
  */
 _INLINE void *__Internal_InitLocal(size_t size) {
-  if (size == 0) return NULL;
-  if (cortn_handle_now->data[cortn_handle_now->depth].local == NULL) {
+  if (size == 0) return (void *)0x01;
+  if (cortn_handle_now->data[cortn_handle_now->runDepth].local == NULL) {
     // 初始化局部变量存储区
-    cortn_handle_now->data[cortn_handle_now->depth].local = m_alloc(size);
-    if (cortn_handle_now->data[cortn_handle_now->depth].local == NULL)
+    cortn_handle_now->data[cortn_handle_now->runDepth].local = m_alloc(size);
+    if (cortn_handle_now->data[cortn_handle_now->runDepth].local == NULL)
       return NULL;
-    memset(cortn_handle_now->data[cortn_handle_now->depth].local, 0, size);
+    memset(cortn_handle_now->data[cortn_handle_now->runDepth].local, 0, size);
+#if SCH_CFG_DEBUG_REPORT
+    scheduler_cortn_t *cortn = get_cortn_by_handle(cortn_handle_now);
+    if (cortn != NULL) {
+      cortn->stack_size += size;
+      cortn->last_stack = size;
+    }
+#endif
   }
-  return cortn_handle_now->data[cortn_handle_now->depth].local;
+  return cortn_handle_now->data[cortn_handle_now->runDepth].local;
 }
 
 /**
@@ -218,18 +235,18 @@ _INLINE void *__Internal_InitLocal(size_t size) {
  * @return 是否允许进行调用
  */
 _INLINE uint8_t __Internal_AwaitEnter(void) {
-  cortn_handle_now->depth++;
-  if (cortn_handle_now->depth > cortn_handle_now->callDepth) {
+  cortn_handle_now->runDepth++;
+  if (cortn_handle_now->runDepth > cortn_handle_now->actDepth) {
     // 嵌套层级+1
     if (!ulist_append(&cortn_handle_now->dataList)) {
-      cortn_handle_now->depth--;
+      cortn_handle_now->runDepth--;
       return 0;
     }
     // 更新指针，初始化
     cortn_handle_now->data = cortn_handle_now->dataList.data;
-    cortn_handle_now->data[cortn_handle_now->depth].local = NULL;
-    cortn_handle_now->data[cortn_handle_now->depth].ptr = NULL;
-    cortn_handle_now->callDepth++;
+    cortn_handle_now->data[cortn_handle_now->runDepth].local = NULL;
+    cortn_handle_now->data[cortn_handle_now->runDepth].ptr = NULL;
+    cortn_handle_now->actDepth++;
   }
   return 1;
 }
@@ -239,20 +256,27 @@ _INLINE uint8_t __Internal_AwaitEnter(void) {
  * @return 嵌套协程已结束
  */
 _INLINE uint8_t __Internal_AwaitReturn(void) {
-  cortn_handle_now->depth--;
-  if (cortn_handle_now->data[cortn_handle_now->depth + 1].ptr != NULL) {
+  cortn_handle_now->runDepth--;
+  if (cortn_handle_now->data[cortn_handle_now->runDepth + 1].ptr != NULL) {
     // 嵌套协程未结束
     return 0;
   }
-  if (cortn_handle_now->data[cortn_handle_now->depth + 1].local != NULL) {
+  if (cortn_handle_now->data[cortn_handle_now->runDepth + 1].local != NULL) {
     // 释放局部变量存储区
-    m_free(cortn_handle_now->data[cortn_handle_now->depth + 1].local);
-    cortn_handle_now->data[cortn_handle_now->depth + 1].local = NULL;
+    m_free(cortn_handle_now->data[cortn_handle_now->runDepth + 1].local);
+    cortn_handle_now->data[cortn_handle_now->runDepth + 1].local = NULL;
+#if SCH_CFG_DEBUG_REPORT
+    scheduler_cortn_t *cortn = get_cortn_by_handle(cortn_handle_now);
+    if (cortn != NULL) {
+      cortn->stack_size -= cortn->last_stack;
+      cortn->last_stack = 0;
+    }
+#endif
   }
   // 嵌套层级-1
   ulist_delete(&cortn_handle_now->dataList, -1);
   cortn_handle_now->data = cortn_handle_now->dataList.data;
-  cortn_handle_now->callDepth--;
+  cortn_handle_now->actDepth--;
   return 1;
 }
 
@@ -269,7 +293,7 @@ _INLINE void __Internal_Delay(uint64_t delayUs) {
  * @brief (内部函数)协程消息等待
  * @param  msgPtr 消息指针
  */
-_INLINE void __Internal_AwaitMsg(__async__, void **msgPtr) {
+void __Internal_AwaitMsg(__async__, void **msgPtr) {
   ASYNC_NOLOCAL
   if (__chd__->msg == NULL) {
     __chd__->state = _CR_STATE_AWAITING;
@@ -432,7 +456,8 @@ void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
         TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-    const char *head3[] = {"No", "State", "Depth", "Tmax", "Usage", "Name"};
+    const char *head3[] = {"No",    "State", "Depth", "Tmax",
+                           "Usage", "Stack", "Name"};
     for (int i = 0; i < sizeof(head3) / sizeof(char *); i++)
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head3[i]));
     int i = 0;
@@ -450,7 +475,7 @@ void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
       TT_GridLine_AddItem(
           line, TT_Str(al, f1, f2, get_cortn_state_str(cortn->hd.state)));
       TT_GridLine_AddItem(line,
-                          TT_FmtStr(al, f1, f2, "%d", cortn->hd.callDepth));
+                          TT_FmtStr(al, f1, f2, "%d", cortn->hd.actDepth));
       TT_GridLine_AddItem(
           line, TT_FmtStr(al, f1, f2, "%.2f", tick_to_us(cortn->max_cost)));
       if ((cortn->last_usage != 0 && usage / cortn->last_usage > 2) ||
@@ -461,11 +486,19 @@ void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
       TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.3f", usage));
       f1 = TT_FMT1_GREEN;
       f2 = TT_FMT2_NONE;
+      TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", cortn->stack_size));
       TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%s", cortn->name));
 
       cortn->last_usage = usage;
       *other -= cortn->total_cost;
       i++;
+    }
+    if (mutexlist.num || barrierlist.num) {
+      TT_AddString(tt,
+                   TT_FmtStr(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_NONE,
+                             "Signals: Mutex: %d, Barrier: %d", mutexlist.num,
+                             barrierlist.num),
+                   -1);
     }
   }
 }
@@ -489,7 +522,7 @@ void cortn_cmd_func(EmbeddedCli *cli, char *args, void *context) {
         T_FMT(T_BOLD, T_GREEN) "Coroutines list:" T_FMT(T_RESET, T_GREEN));
     ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
       LOG_RAWLN("  %s: %p depth:%d state:%s", cortn->name, cortn->task,
-                cortn->hd.callDepth, get_cortn_state_str(cortn->hd.state));
+                cortn->hd.actDepth, get_cortn_state_str(cortn->hd.state));
     }
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d coroutines" T_RST,
               cortnlist.num);

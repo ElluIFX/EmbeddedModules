@@ -37,8 +37,8 @@ PendSV_Handler  PROC
 	LDR         R0, =sched_tcb_now
 	LDR         R1, [R0]
 	CBZ         R1, POPSTACK
-	TST         LR, #0x10
 	IF      {FPU} != "SoftVFP" ; FPU Enabled
+	TST         LR, #0x10
 	VPUSHEQ     {S16-S31}
 	ENDIF
 	PUSH        {LR,R4-R11}
@@ -49,9 +49,9 @@ POPSTACK
 	STR         R3, [R0]
 	LDR         SP, [R3]
 	POP         {R4-R11}
+	IF      {FPU} != "SoftVFP" ; FPU Enabled
 	POP         {LR}
 	TST         LR, #0x10
-	IF      {FPU} != "SoftVFP" ; FPU Enabled
 	VPOPEQ      {S16-S31}
 	ENDIF
 	CPSIE       I

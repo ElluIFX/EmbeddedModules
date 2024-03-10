@@ -41,11 +41,6 @@ extern const char *SDS_NOINIT;
 
 #include "modules.h"
 
-#define s_malloc m_alloc
-#define s_realloc m_realloc
-#define s_free m_free
-
-// #include <sys/types.h>
 typedef size_t ssize_t;
 
 typedef char *sds;

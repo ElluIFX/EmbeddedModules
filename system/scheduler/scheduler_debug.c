@@ -41,7 +41,6 @@ _INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
     TT_AddSeparator(tt, TT_FMT1_BLUE, TT_FMT2_BOLD, '-');
     TT_LineBreak(tt, 1);
     TT_Print(tt);
-    // TT_CursorBack(tt);
     TT_FreeTable(tt);
   }
   now = get_sys_tick() - now;  // 补偿打印LOG的时间

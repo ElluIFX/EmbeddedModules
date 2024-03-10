@@ -78,6 +78,14 @@ menu "System Configuration"
             bool "FreeRTOS"
             depends on MOD_CFG_USE_OS_FREERTOS
     endchoice
+
+    config MOD_CFG_WFI_WHEN_SYSTEM_IDLE
+        bool "Use WFI when system is idle"
+        help
+            If enabled, the system will enter WFI mode when there is no task to run.
+            This will save power, but may cause some peripherals to stop working and avoid Debugger from connecting.
+            Effects KLite RTOS and Scheduler by now.
+        default n
 endmenu
 
 # Sub-Modules

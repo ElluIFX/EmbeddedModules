@@ -23,7 +23,7 @@
 | [minmea](./utility/minmea) | GPS NMEA解析器 | [link](https://github.com/ata4/minema) | |
 | [modbus](./communication/modbus) | Modbus协议 | [link](https://github.com/wql7013/ModBus) | |
 | [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 | [link](https://github.com/MightyPork/TinyFrame) | |
-| [xmodem](./communication/xmodem) | XMODEM协议 | [link](https://github.com/bsail/xmodem) | |
+| [xymodem](./communication/xymodem) | X/YMODEM协议 | [link](https://github.com/LONGZR007/IAP-STM32) | |
 
 | [DataStruct](./datastruct) | 数据结构 | repo | 备注 |
 |-|-|:-:|-|

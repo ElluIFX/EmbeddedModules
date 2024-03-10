@@ -15,18 +15,23 @@ typedef struct {  // 协程句柄结构
 
 typedef struct {         // 协程句柄结构
   uint8_t state;         // 协程状态
-  ulist_t dataList;      // 协程数据列表
-  __cortn_data_t *data;  // 协程数据指针
-  uint8_t depth;         // 协程当前深度
-  uint8_t callDepth;     // 协程嵌套深度
+  ulist_t dataList;      // 协程数据列表(__cortn_data_t)
+  __cortn_data_t *data;  // 协程数据指针(指向当前深度)
+  uint8_t runDepth;      // 协程当前运行深度
+  uint8_t actDepth;      // 协程实际执行深度
   uint64_t sleepUntil;   // 等待态结束时间(us), 0表示暂停
   void *msg;             // 协程消息指针
   const char *name;      // 协程名
 } __cortn_handle_t;
 #pragma pack()
 
-#define __chd__ You_forgot___async__
-#define __async_check__ You_forgot_ASYNC_INIT
+// 试图报个用户友好的错误
+// 协程句柄兼参数检查
+#define __chd__ You_forgot___async___in_function_arguments
+// 初始化检查
+#define __async_check__ You_forgot_ASYNC_INIT_in_beginning_of_function
+// 拒绝多次初始化
+#define __crap__ Do_not_init_coroutine_more_than_once
 
 #define __async__ __cortn_handle_t *__chd__
 typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类型
@@ -39,14 +44,14 @@ extern void __Internal_Delay(uint64_t delayUs);
 extern uint8_t __Internal_AcquireMutex(const char *name);
 extern void __Internal_ReleaseMutex(const char *name);
 extern uint8_t __Internal_WaitBarrier(const char *name);
-static void __Internal_AwaitMsg(__async__, void **msgPtr);
+extern void __Internal_AwaitMsg(__async__, void **msgPtr);
 
-#define __ASYNC_INIT                                     \
-  __crap:;                                               \
-  void *__async_check__ = &&__crap;                      \
-  do {                                                   \
-    if ((__chd__->data[__chd__->depth].ptr) != 0)        \
-      goto *(void *)(__chd__->data[__chd__->depth].ptr); \
+#define __ASYNC_INIT                                        \
+  __crap__:;                                                \
+  void *__async_check__ = &&__crap__;                       \
+  do {                                                      \
+    if ((__chd__->data[__chd__->runDepth].ptr) != 0)        \
+      goto *(void *)(__chd__->data[__chd__->runDepth].ptr); \
   } while (0);
 
 #define __ASYNC_LOCAL_START struct _cr_local {
@@ -58,27 +63,27 @@ static void __Internal_AwaitMsg(__async__, void **msgPtr);
 
 #define __LOCAL(var) (_cr_local_p->var)
 
-#define __YIELD()                                    \
-  do {                                               \
-    __label__ l;                                     \
-    (__chd__->data[__chd__->depth].ptr) = (long)&&l; \
-    return;                                          \
-  l:;                                                \
-    (__chd__->data[__chd__->depth].ptr) = 0;         \
-    __async_check__ = __async_check__;               \
+#define __YIELD()                                       \
+  do {                                                  \
+    __label__ l;                                        \
+    (__chd__->data[__chd__->runDepth].ptr) = (long)&&l; \
+    return;                                             \
+  l:;                                                   \
+    (__chd__->data[__chd__->runDepth].ptr) = 0;         \
+    __async_check__ = __async_check__;                  \
   } while (0)
 
-#define __AWAIT(func_cmd, args...)                   \
-  do {                                               \
-    __label__ l;                                     \
-    (__chd__->data[__chd__->depth].ptr) = (long)&&l; \
-  l:;                                                \
-    if (__Internal_AwaitEnter()) {                   \
-      func_cmd(__chd__, ##args);                     \
-      if (!__Internal_AwaitReturn()) return;         \
-      (__chd__->data[__chd__->depth].ptr) = 0;       \
-    }                                                \
-    __async_check__ = __async_check__;               \
+#define __AWAIT(func_cmd, args...)                      \
+  do {                                                  \
+    __label__ l;                                        \
+    (__chd__->data[__chd__->runDepth].ptr) = (long)&&l; \
+  l:;                                                   \
+    if (__Internal_AwaitEnter()) {                      \
+      func_cmd(__chd__, ##args);                        \
+      if (!__Internal_AwaitReturn()) return;            \
+      (__chd__->data[__chd__->runDepth].ptr) = 0;       \
+    }                                                   \
+    __async_check__ = __async_check__;                  \
   } while (0)
 
 #define __AWAIT_DELAY_US(us)             \

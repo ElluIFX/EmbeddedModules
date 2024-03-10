@@ -9,6 +9,7 @@ choice
         bool "Bare Metal"
 
     config CMB_USING_OS_PLATFORM
+        depends on !MOD_CFG_USE_OS_NONE
         bool "OS"
 endchoice
 

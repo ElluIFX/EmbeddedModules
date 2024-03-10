@@ -31,6 +31,7 @@
  */
 
 #include "sds.h"
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
@@ -38,7 +39,12 @@
 #include <string.h>
 
 #include "log.h"
+
 #define assert LOG_ASSERT
+
+#define s_malloc m_alloc
+#define s_realloc m_realloc
+#define s_free m_free
 
 const char *SDS_NOINIT = "SDS_NOINIT";
 
@@ -520,6 +526,8 @@ sds sdsfromlonglong(long long value) {
   return sdsnewlen(buf, len);
 }
 
+#include "lwprintf.h"
+
 /* Like sdscatprintf() but gets va_list instead of being variadic. */
 sds sdscatvprintf(sds s, const char *fmt, va_list ap) {
   va_list cpy;
@@ -540,7 +548,8 @@ sds sdscatvprintf(sds s, const char *fmt, va_list ap) {
    * fit the string in the current buffer size. */
   while (1) {
     va_copy(cpy, ap);
-    bufstrlen = vsnprintf(buf, buflen, fmt, cpy);
+    // bufstrlen = vsnprintf(buf, buflen, fmt, cpy);
+    bufstrlen = lwvsnprintf(buf, buflen, fmt, cpy);
     va_end(cpy);
     if (bufstrlen < 0) {
       if (buf != staticbuf) s_free(buf);

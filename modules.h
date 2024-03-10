@@ -52,6 +52,9 @@ extern "C" {
 #define MOD_CFG_USE_OS_FREERTOS 0
 #define MOD_CFG_USE_OS_RTT 0
 
+// 是否在系统空闲时进入WFI
+#define MOD_CFG_WFI_WHEN_SYSTEM_IDLE 0
+
 #endif  // KCONFIG_AVAILABLE
 
 #if MOD_CFG_TIME_MATHOD_HAL
@@ -71,16 +74,16 @@ typedef uint32_t m_time_t;
 typedef int64_t m_time_t;
 #define m_time_t_max_value (INT64_MAX)
 #define Init_Module_Timebase() init_cycle_counter(1);
-#define m_time_ms() get_system_ms()
-#define m_time_us() get_system_us()
-#define m_time_ns() (get_system_us() * 1000)
-#define m_time_s() (get_system_ms() / 1000)
-#define m_tick() get_system_ticks()
+#define m_time_ms() ((uint64_t)get_system_ms())
+#define m_time_us() ((uint64_t)get_system_us())
+#define m_time_ns() (((uint64_t)get_system_us()) * 1000)
+#define m_time_s() (((uint64_t)get_system_ms()) / 1000)
+#define m_tick() ((uint64_t)get_system_ticks())
 #define m_tick_clk (SystemCoreClock)
 #define m_tick_per_ms(type) ((type)SystemCoreClock / 1000)
 #define m_tick_per_us(type) ((type)SystemCoreClock / 1000000)
 #else
-#error "MOD_TIME_MATHOD invalid"
+#error "MOD_CFG_TIME_MATHOD invalid"
 #endif  // MOD_CFG_TIME_MATHOD
 
 #if MOD_CFG_DELAY_MATHOD_HAL  // HAL
@@ -119,42 +122,56 @@ typedef int64_t m_time_t;
 #endif
 #define m_delay_s(x) rt_thread_delay((rt_tick_t)(x) * RT_TICK_PER_SECOND)
 #else
-#error "MOD_DELAY_MATHOD invalid"
+#error "MOD_CFG_DELAY_MATHOD invalid"
 #endif  // MOD_CFG_DELAY_MATHOD
 
 #if MOD_CFG_HEAP_MATHOD_STDLIB  // stdlib
 #include "stdlib.h"
+// You should configure CubeMX instead of using this!
+#define Init_Module_Heap(ptr, size) (YOU_SHOULD_CONFIGURE_CUBEMX_INSTEAD)
 #define m_alloc(size) malloc(size)
 #define m_free(ptr) free(ptr)
 #define m_realloc(ptr, size) realloc(ptr, size)
 #elif MOD_CFG_HEAP_MATHOD_LWMEM  // lwmem
 #define _MOD_USE_DALLOC 1
 #include "lwmem.h"
+#define Init_Module_Heap(ptr, size)                              \
+  do {                                                           \
+    static lwmem_region_t _regions[] = {{ptr, size}, {NULL, 0}}; \
+    lwmem_assignmem(_regions)                                    \
+  } while (0)
 #define m_alloc(size) lwmem_malloc(size)
 #define m_free(ptr) lwmem_free(ptr)
 #define m_realloc(ptr, size) lwmem_realloc(ptr, size)
 #elif MOD_CFG_HEAP_MATHOD_KLITE  // klite
 #include "kernel.h"
+// You should init klite instead of using this!
+#define Init_Module_Heap(ptr, size) (YOU_SHOULD_INIT_KLITE_INSTEAD)
 #define m_alloc(size) heap_alloc(size)
 #define m_free(ptr) heap_free((ptr))
 #define m_realloc(ptr, size) heap_realloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"
+// You should init freertos instead of using this!
+#define Init_Module_Heap(ptr, size) (YOU_SHOULD_INIT_FREERTOS_INSTEAD)
 #define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_HEAP4  // heap_4
 #include "heap_4.h"
+#define Init_Module_Heap(ptr, size) prvHeapInit(ptr, size)
 #define m_alloc(size) pvPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_RTT  // rtthread
 #include "rtthread.h"
+// You should init rtthread instead of using this!
+#define Init_Module_Heap(ptr, size) (YOU_SHOULD_INIT_RTTHREAD_INSTEAD)
 #define m_alloc(size) rt_malloc(size)
 #define m_free(ptr) rt_free(ptr)
 #define m_realloc(ptr, size) rt_realloc(ptr, size)
 #else
-#error "MOD_HEAP_MATHOD invalid"
+#error "MODCFG__HEAP_MATHOD invalid"
 #endif
 
 #if MOD_CFG_USE_OS_NONE  // none
@@ -185,7 +202,7 @@ typedef int64_t m_time_t;
 #define MOD_MUTEX_RELEASE(mutex) rt_mutex_release(mutex)
 #define MOD_MUTEX_FREE(mutex) rt_mutex_delete(mutex)
 #else
-#error "MOD_USE_OS invalid"
+#error "MOD_CFG_USE_OS invalid"
 #endif
 
 #ifndef __has_include

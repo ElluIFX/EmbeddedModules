@@ -53,9 +53,11 @@ void cpu_sys_start(void) {
 }
 
 void cpu_sys_sleep(uint32_t time) {
-  // Call wfi() can enter low power mode
-  // But SysTick may be stopped after call wfi() on some device.
-  // __wfi();
+// Call wfi() can enter low power mode
+// But SysTick may be stopped after call wfi() on some device.
+#if MOD_CFG_WFI_WHEN_SYSTEM_IDLE
+  __wfi();
+#endif
 }
 
 extern __IO uint32_t uwTick;
