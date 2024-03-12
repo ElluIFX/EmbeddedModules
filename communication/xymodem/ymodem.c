@@ -10,6 +10,7 @@
 
 #include "ymodem.h"
 
+#include <log.h>
 #include <string.h>
 
 /* 全局变量. */
@@ -138,7 +139,6 @@ y_uint16_t ymodem_receive(void) {
   y_receive_file_callback(&file_ptr);
   file_ptr = 0;
   ymodem_file_number |= (1 << 15);
-
   return ymodem_file_number;  // 文件接收出错,返回接收到的数里和错误信息
 }
 
@@ -457,7 +457,7 @@ static y_uint32_t get_recv_len(void) { return recv_len; }
  * @param   data_len: 数据的大小
  * @return  void.
  */
-void ymodem_data_recv(y_uint8_t *data, y_uint16_t data_len) {
+void ymodem_receive_buffer(y_uint8_t *data, y_uint16_t data_len) {
   if (recv_len + data_len >= Y_PROT_FRAME_LEN_RECV) recv_len = 0;
 
   memcpy(recv_buf + recv_len, data, data_len);
@@ -490,7 +490,7 @@ __weak int y_transmit_ch(y_uint8_t ch) {
  * @return  返回写入的结果，0：成功，-1：失败.
  */
 __weak int y_receive_nanme_size_callback(void **ptr, char *file_name,
-                                       y_uint32_t file_size) {
+                                         y_uint32_t file_size) {
   Y_UNUSED(ptr);
   Y_UNUSED(file_name);
   Y_UNUSED(file_size);
@@ -507,7 +507,7 @@ __weak int y_receive_nanme_size_callback(void **ptr, char *file_name,
  * @return  返回写入的结果，0：成功，-1：失败.
  */
 __weak int y_receive_file_data_callback(void **ptr, char *file_data,
-                                      y_uint32_t w_size) {
+                                        y_uint32_t w_size) {
   Y_UNUSED(ptr);
   Y_UNUSED(file_data);
   Y_UNUSED(w_size);

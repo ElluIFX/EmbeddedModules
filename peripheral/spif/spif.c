@@ -3,6 +3,7 @@
 #if SPIF_ENABLE
 
 #include "log.h"
+#include "modules.h"
 #if SPIF_DEBUG != SPIF_DEBUG_DISABLE
 #define SDEBUG(...) LOG_DEBUG(__VA_ARGS__)
 #else

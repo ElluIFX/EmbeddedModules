@@ -1,0 +1,820 @@
+/**
+ * @file fs_utils.c
+ * @brief 文件系统命令行工具
+ * @author Ellu (ellu.grif@gmail.com)
+ * @version 1.0.0
+ * @date 2024-03-11
+ *
+ * THINK DIFFERENTLY
+ */
+
+#include "fs_utils.h"
+
+#include "lfs.h"
+#include "sds.h"
+
+// Private Defines --------------------------
+
+#define FS_PRINTLN(...) LOG_RAWLN(__VA_ARGS__)
+#define FS_PRINT(...) LOG_RAW(__VA_ARGS__)
+
+#if FS_ENABLE_DEBUG
+#define FS_DEBUG(...) LOG_DEBUG(__VA_ARGS__)
+#else
+#define FS_DEBUG(...)
+#endif
+
+#if FS_ENABLE_YMODEM
+#include "ymodem.h"
+#endif
+
+#define FILE_COLOR T_WHITE
+#define DIR_COLOR T_CYAN
+#define ERROR_COLOR T_RED
+
+#define FS_ERROR(fmt, ...) \
+  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: " fmt T_RST, ##__VA_ARGS__)
+
+// Private Typedefs -------------------------
+
+// Private Macros ---------------------------
+
+// Private Variables ------------------------
+
+static EmbeddedCli *cli;
+static lfs_t *lfs;
+static lfs_file_t file;
+static lfs_dir_t dir;
+static struct lfs_info info;
+static sds path;
+static sds inv;
+
+// Public Variables -------------------------
+
+// Private Functions ------------------------
+
+static sds to_absolute_path(sds path_in) {
+  if (!path_in) return NULL;
+  int len;
+  sds temp = NULL;
+  sds new_path = NULL;
+  FS_DEBUG("path in: %s", path_in);
+  if (path_in[0] == '/') {
+    new_path = sdsnew(path_in);  // absolute path
+  } else {
+    new_path = sdsdup(path);  // relative path
+    if (new_path[sdslen(new_path) - 1] != '/') new_path = sdscat(new_path, "/");
+    new_path = sdscat(new_path, path_in);
+  }
+  FS_DEBUG("new path: %s", new_path);
+process_point:
+  // example: /xxx/yyy/../zzz
+  len = sdslen(new_path);
+  int last_slash = 0;
+  int last_last_slash = -1;
+  for (int i = 1; i < len - 1; i++) {
+    if (new_path[i] == '/') {
+      last_last_slash = last_slash;
+      last_slash = i;
+      continue;
+    }
+    if (new_path[i - 1] == '/' && new_path[i] == '.' &&
+        new_path[i + 1] == '.') {
+      if (last_last_slash == -1) {  // no parent dir
+        FS_ERROR("no parent dir");
+        goto error;
+      }
+      if (last_last_slash == 0) {
+        temp = sdsnew("/");
+      } else {
+        temp = sdsnewlen(new_path, last_last_slash);  // /xxx/yyy
+      }
+      if (new_path[i + 2] == '/' && new_path[i + 3] != '\0') {
+        if (last_last_slash > 0) temp = sdscat(temp, "/");  // /xxx/yyy/
+        temp = sdscat(temp, new_path + i + 3);              // /xxx/yyy/zzz
+      }
+      sdsfree(new_path);
+      new_path = temp;
+      goto process_point;
+    }
+    if (new_path[i - 1] == '/' && new_path[i] == '.' &&
+        new_path[i + 1] == '/') {                  // /xxx/./yyy just remove .
+      sds temp = sdsnewlen(new_path, last_slash);  // /xxx
+      if (new_path[i + 1] == '/' && new_path[i + 2] != '\0') {
+        temp = sdscat(temp, "/");               // /xxx/
+        temp = sdscat(temp, new_path + i + 2);  // /xxx/yyy
+      }
+      sdsfree(new_path);
+      new_path = temp;
+      goto process_point;
+    }
+  }
+  if (new_path[sdslen(new_path) - 1] == '.') sdsrange(new_path, 0, -2);
+  if (new_path[sdslen(new_path) - 1] == '/') sdsrange(new_path, 0, -2);
+  return new_path;
+error:
+  sdsfree(new_path);
+  return NULL;
+}
+
+static void ls_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  sds path_in = NULL;
+  sds new_path = NULL;
+  if (argc) {
+    path_in = sdsnew(embeddedCliGetToken(args, 1));
+    new_path = to_absolute_path(path_in);
+    sdsfree(path_in);
+    if (!new_path) return;
+    if (lfs_dir_open(lfs, &dir, new_path) != LFS_ERR_OK) {
+      FS_ERROR("dir %s not exist", new_path);
+      sdsfree(new_path);
+      return;
+    }
+    sdsfree(new_path);
+  } else {
+    if (lfs_dir_open(lfs, &dir, path) != LFS_ERR_OK) {
+      FS_ERROR("pwd %s not exist", path);
+      return;
+    }
+  }
+
+  lfs_dir_rewind(lfs, &dir);
+  FS_PRINTLN("Type   Size       Name");
+  FS_PRINTLN("----   --------   ----");
+  while (lfs_dir_read(lfs, &dir, &info) > 0) {
+    if (strcmp(path, "/") == 0 && strcmp(info.name, "..") == 0)
+      continue;  // skip .. in root
+    if (info.type == LFS_TYPE_REG) {
+      FS_PRINTLN(T_FMT(FILE_COLOR) "file   %-8d   %s" T_RST, info.size,
+                 info.name);
+    } else if (info.type == LFS_TYPE_DIR) {
+      FS_PRINTLN(T_FMT(DIR_COLOR) "dir    -          %s" T_RST, info.name);
+    }
+  }
+
+  lfs_dir_close(lfs, &dir);
+}
+
+static void cd_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  int len;
+  sds path_in = NULL;
+  sds new_path = NULL;
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 1) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  path_in = sdsnew(embeddedCliGetToken(args, 1));
+
+  new_path = to_absolute_path(path_in);
+  sdsfree(path_in);
+
+  if (!new_path) return;
+
+  if (lfs_dir_open(lfs, &dir, new_path) != LFS_ERR_OK) {
+    FS_ERROR("dir %s not exist", new_path);
+    sdsfree(new_path);
+    return;
+  } else {
+    lfs_dir_close(lfs, &dir);
+  }
+
+  // update path
+  sdsfree(path);
+  path = new_path;
+  // update invitation
+  sdsfree(inv);
+  inv = sdscat(sdsdup(path), " > ");
+  embeddedCliSetInvitation(cli, inv);
+  return;
+}
+
+static void mkdir_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 1) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  sds path_in = sdsnew(embeddedCliGetToken(args, 1));
+  sds new_path = to_absolute_path(path_in);
+  sdsfree(path_in);
+  if (!new_path) return;
+  FS_DEBUG("mkdir %s", new_path);
+  if (lfs_mkdir(lfs, new_path) != LFS_ERR_OK) {
+    FS_ERROR("mkdir %s failed", new_path);
+  }
+  sdsfree(new_path);
+}
+
+static int rm_dir_rec(sds dirname) {
+  sds temp;
+  lfs_dir_t dirnow;
+  struct lfs_info infonow;
+  int cnt = 0;
+  if (lfs_dir_open(lfs, &dirnow, dirname)) {
+    FS_ERROR("dir %s not exist", dirname);
+    return 0;
+  }
+  lfs_dir_rewind(lfs, &dirnow);
+  while (lfs_dir_read(lfs, &dirnow, &infonow) > 0) {
+    if (strcmp(infonow.name, ".") == 0 || strcmp(infonow.name, "..") == 0)
+      continue;
+    temp = sdsdup(dirname);
+    if (temp[sdslen(temp) - 1] != '/') temp = sdscat(temp, "/");
+    temp = sdscat(temp, infonow.name);
+    if (infonow.type == LFS_TYPE_REG) {
+      if (!lfs_remove(lfs, temp)) {
+        cnt++;
+        FS_PRINTLN("rm %s", temp);
+      } else {
+        FS_ERROR("rm %s failed", temp);
+      }
+    } else if (infonow.type == LFS_TYPE_DIR) {
+      cnt += rm_dir_rec(temp);
+    }
+    sdsfree(temp);
+  }
+  lfs_dir_close(lfs, &dirnow);
+  if (strcmp(dirname, "/") == 0) return cnt;
+  if (!lfs_remove(lfs, dirname)) {
+    cnt++;
+    FS_PRINTLN("rm %s", dirname);
+  } else {
+    FS_ERROR("rm %s failed", dirname);
+  }
+  return cnt;
+}
+
+static void rm_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  sds path_in = NULL;
+  sds new_path = NULL;
+  if (argc < 1) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  } else if (embeddedCliCheckToken(args, "-r", 1)) {
+    if (argc < 2) {
+      embeddedCliPrintCurrentHelp(cli);
+      return;
+    }
+    path_in = sdsnew(embeddedCliGetToken(args, 2));
+    new_path = to_absolute_path(path_in);
+    sdsfree(path_in);
+    if (!new_path) return;
+    int cnt = rm_dir_rec(new_path);
+    sdsfree(new_path);
+    FS_PRINTLN("removed %d files/dirs", cnt);
+    return;
+  }
+  path_in = sdsnew(embeddedCliGetToken(args, 1));
+  new_path = to_absolute_path(path_in);
+  sdsfree(path_in);
+  if (!new_path) return;
+  FS_DEBUG("rm %s", new_path);
+  if (lfs_remove(lfs, new_path) != LFS_ERR_OK) {
+    FS_ERROR("rm %s failed", new_path);
+  }
+  sdsfree(new_path);
+}
+
+static void tree_rec(sds dirname, int depth) {
+  sds temp;
+  lfs_dir_t dirnow;
+  struct lfs_info infonow;
+  if (lfs_dir_open(lfs, &dirnow, dirname)) {
+    FS_ERROR("dir %s not exist", dirname);
+    return;
+  }
+  lfs_dir_rewind(lfs, &dirnow);
+  while (lfs_dir_read(lfs, &dirnow, &infonow) > 0) {
+    if (strcmp(infonow.name, ".") == 0 || strcmp(infonow.name, "..") == 0)
+      continue;
+    for (int i = 0; i < depth; i++) {
+      FS_PRINT("|  ");
+    }
+    if (infonow.type == LFS_TYPE_REG) {
+      FS_PRINTLN("|--" T_FMT(FILE_COLOR) "%s" T_RST, infonow.name);
+    } else if (infonow.type == LFS_TYPE_DIR) {
+      FS_PRINTLN("|--" T_FMT(DIR_COLOR) "%s" T_RST, infonow.name);
+      temp = sdscat(sdsdup(dirname), "/");
+      temp = sdscat(temp, infonow.name);
+      tree_rec(temp, depth + 1);
+      sdsfree(temp);
+    }
+  }
+  lfs_dir_close(lfs, &dirnow);
+}
+
+static void tree_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  sds path_in = NULL;
+  sds new_path = NULL;
+  if (!argc) {
+    path_in = sdsnew(path);
+  } else {
+    path_in = sdsnew(embeddedCliGetToken(args, 1));
+  }
+  new_path = to_absolute_path(path_in);
+  sdsfree(path_in);
+  if (!new_path) return;
+  FS_PRINTLN(T_FMT(DIR_COLOR) "%s" T_RST, new_path);
+  tree_rec(new_path, 0);
+  sdsfree(new_path);
+}
+
+static void touch_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 1) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  sds path_in = sdsnew(embeddedCliGetToken(args, 1));
+  sds new_path = to_absolute_path(path_in);
+  sdsfree(path_in);
+  if (!new_path) return;
+  FS_DEBUG("touch %s", new_path);
+  if (lfs_file_open(lfs, &file, new_path, LFS_O_CREAT | LFS_O_WRONLY) !=
+      LFS_ERR_OK) {
+    FS_ERROR("touch %s failed", new_path);
+  }
+  lfs_file_close(lfs, &file);
+  sdsfree(new_path);
+}
+
+static void pwd_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  FS_PRINTLN("%s", path);
+}
+
+static int cp(sds src_path_in, sds dst_path_in, bool append) {
+  sds src_path = to_absolute_path(src_path_in);
+  sds dst_path = to_absolute_path(dst_path_in);
+  lfs_file_t src_file;
+  lfs_file_t dst_file;
+  sdsfree(src_path_in);
+  sdsfree(dst_path_in);
+  if (!src_path || !dst_path) {
+    sdsfree(src_path);
+    sdsfree(dst_path);
+    return 0;
+  }
+  FS_DEBUG("cp %s %s", src_path, dst_path);
+  if (lfs_file_open(lfs, &src_file, src_path, LFS_O_RDONLY) != LFS_ERR_OK) {
+    FS_ERROR("open src-file %s failed", src_path);
+    sdsfree(src_path);
+    sdsfree(dst_path);
+    return 0;
+  }
+  if (lfs_file_open(lfs, &dst_file, dst_path,
+                    append ? (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_APPEND)
+                           : (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_TRUNC)) !=
+      LFS_ERR_OK) {
+    FS_ERROR("open dst-file %s failed", dst_path);
+    sdsfree(src_path);
+    sdsfree(dst_path);
+    lfs_file_close(lfs, &src_file);
+    return 0;
+  }
+  sdsfree(src_path);
+  sdsfree(dst_path);
+  char rdbuf[128];
+  int written = 0;
+  while (1) {
+    int n = lfs_file_read(lfs, &src_file, rdbuf, sizeof(rdbuf));
+    if (n < 0) {
+      FS_ERROR("read src-file failed");
+      break;
+    }
+    if (n == 0) break;
+    if (lfs_file_write(lfs, &dst_file, rdbuf, n) < 0) {
+      FS_ERROR("write dst-file failed");
+      break;
+    }
+    written += n;
+  }
+  lfs_file_close(lfs, &src_file);
+  lfs_file_close(lfs, &dst_file);
+  return written;
+}
+
+static void cat_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 1) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  } else {
+    int sel = embeddedCliCheckToken(args, ">", 2) +
+              embeddedCliCheckToken(args, ">>", 2) * 2;
+    if (sel) {
+      if (argc < 3) {
+        embeddedCliPrintCurrentHelp(cli);
+        return;
+      }
+      sds src_path_in = sdsnew(embeddedCliGetToken(args, 1));
+      sds dst_path_in = sdsnew(embeddedCliGetToken(args, 3));
+      cp(src_path_in, dst_path_in, sel == 2);
+      sdsfree(src_path_in);
+      sdsfree(dst_path_in);
+      return;
+    }
+  }
+  sds path_in = sdsnew(embeddedCliGetToken(args, 1));
+  sds new_path = to_absolute_path(path_in);
+  sdsfree(path_in);
+  if (!new_path) return;
+  FS_DEBUG("cat %s", new_path);
+  if (lfs_file_open(lfs, &file, new_path, LFS_O_RDONLY) != LFS_ERR_OK) {
+    FS_ERROR("open file %s failed", new_path);
+    sdsfree(new_path);
+    return;
+  }
+  FS_PRINTLN("FILE: %s", new_path);
+  sdsfree(new_path);
+  const int max_width = 80;
+  char linebuf[max_width + 1];
+  int line_idx = 0;
+  char rdbuf[max_width * 2];
+  int line_no = 1;
+  bool header_printed = false;
+  while (1) {
+    int n = lfs_file_read(lfs, &file, rdbuf, sizeof(rdbuf));
+    if (n < 0) {
+      FS_ERROR("read file failed");
+      break;
+    }
+    if (n == 0) break;
+    for (int i = 0; i < n; i++) {
+      if (rdbuf[i] == '\n') {
+        linebuf[line_idx] = '\0';
+        if (!header_printed) {
+          FS_PRINT(T_FMT(T_GREEN) "%03d| " T_RST, line_no++);
+          header_printed = true;
+        }
+        FS_PRINTLN("%s", linebuf);
+        header_printed = false;
+        line_idx = 0;
+      } else if (rdbuf[i] == '\r') {
+        continue;
+      } else if (rdbuf[i] >= 32 && rdbuf[i] <= 126) {
+        linebuf[line_idx++] = rdbuf[i];
+      }
+      if (line_idx >= max_width) {
+        linebuf[line_idx] = '\0';
+        if (!header_printed) {
+          FS_PRINT(T_FMT(T_GREEN) "%03d| " T_RST, line_no++);
+          FS_PRINTLN("%s", linebuf);
+          FS_PRINT(T_FMT(T_GREEN) "   | " T_RST);
+          header_printed = true;
+        }
+        line_idx = 0;
+      }
+    }
+  }
+  if (!header_printed) {
+    FS_PRINT(T_FMT(T_GREEN) "%03d| " T_RST, line_no++);
+    header_printed = true;
+  }
+  if (line_idx) {
+    linebuf[line_idx] = '\0';
+    FS_PRINTLN("%s", linebuf);
+  } else {
+    FS_PRINTLN("");
+  }
+  lfs_file_close(lfs, &file);
+}
+
+static char *echo_buf = NULL;
+static int echo_size = 0;
+static int echo_written = 0;
+
+static char echo_handler(EmbeddedCli *cli, char data) {
+  // ctrl+d
+  if (data == 4) {
+    if (echo_size) {
+      if (lfs_file_write(lfs, &file, echo_buf, echo_size) < 0) {
+        FS_ERROR("write file failed");
+      } else {
+        echo_written += echo_size;
+      }
+    }
+    lfs_file_close(lfs, &file);
+    free(echo_buf);
+    echo_buf = NULL;
+    echo_size = 0;
+    LOG_RAWLN("");
+    LOG_RAWLN("Written %d bytes", echo_written);
+    embeddedCliResetSubHandler(cli);
+    return 0;
+  }
+  if (data == '\r') data = '\n';  // silly windows
+  echo_buf[echo_size++] = data;
+  if (echo_size == 128) {
+    if (lfs_file_write(lfs, &file, echo_buf, echo_size) < 0) {
+      FS_ERROR("write file failed");
+    } else {
+      echo_written += echo_size;
+    }
+    echo_size = 0;
+  }
+  return data;
+}
+
+static void echo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 1) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  bool append = false;
+  if (embeddedCliCheckToken(args, "-a", 1)) {
+    if (argc < 2) {
+      embeddedCliPrintCurrentHelp(cli);
+      return;
+    }
+    append = true;
+  }
+  sds path_in = sdsnew(embeddedCliGetToken(args, append ? 2 : 1));
+  sds new_path = to_absolute_path(path_in);
+  sdsfree(path_in);
+  if (!new_path) return;
+  FS_DEBUG("echo %s", new_path);
+  if (lfs_file_open(lfs, &file, new_path,
+                    append ? (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_APPEND)
+                           : (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_TRUNC)) !=
+      LFS_ERR_OK) {
+    FS_ERROR("open file %s failed", new_path);
+    sdsfree(new_path);
+    return;
+  }
+  if (!append) lfs_file_truncate(lfs, &file, 0);
+  sdsfree(new_path);
+  echo_buf = (char *)malloc(130);
+  echo_size = 0;
+  if (!echo_buf) {
+    FS_ERROR("failed to create buffer");
+    lfs_file_close(lfs, &file);
+    return;
+  }
+  FS_PRINTLN("Input content, end with Ctrl+D:");
+  embeddedCliSetSubHandler(cli, echo_handler);
+}
+
+static void cp_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 2) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  sds src_path_in = sdsnew(embeddedCliGetToken(args, 1));
+  sds dst_path_in = sdsnew(embeddedCliGetToken(args, 2));
+  int written = cp(src_path_in, dst_path_in, false);
+  sdsfree(src_path_in);
+  sdsfree(dst_path_in);
+  FS_PRINTLN("Copied %d bytes", written);
+}
+
+static void mv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 2) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  }
+  sds src_path_in = sdsnew(embeddedCliGetToken(args, 1));
+  sds dst_path_in = sdsnew(embeddedCliGetToken(args, 2));
+  sds src_path = to_absolute_path(src_path_in);
+  sds dst_path = to_absolute_path(dst_path_in);
+  sdsfree(src_path_in);
+  sdsfree(dst_path_in);
+  if (!src_path || !dst_path) {
+    sdsfree(src_path);
+    sdsfree(dst_path);
+    return;
+  }
+  FS_DEBUG("mv %s %s", src_path, dst_path);
+  if (lfs_rename(lfs, src_path, dst_path) != LFS_ERR_OK) {
+    FS_ERROR("rename %s to %s failed", src_path, dst_path);
+  }
+  sdsfree(src_path);
+  sdsfree(dst_path);
+  FS_PRINTLN("File moved");
+}
+
+static void format_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  int argc = embeddedCliGetTokenCount(args);
+  if (argc < 1 || !embeddedCliCheckToken(args, "-y", 1)) {
+    FS_ERROR("add -y to confirm");
+    return;
+  }
+  const struct lfs_config *cfg = lfs->cfg;
+  lfs_unmount(lfs);
+  if (lfs_format(lfs, cfg) != LFS_ERR_OK) {
+    FS_ERROR("format failed");
+    return;
+  }
+  if (lfs_mount(lfs, cfg) != LFS_ERR_OK) {
+    FS_ERROR("re-mount failed");
+    return;
+  }
+  FS_PRINTLN("File system formatted");
+}
+
+#if FS_ENABLE_YMODEM
+int y_transmit_ch(y_uint8_t ch) {
+  FS_PRINT("%c", ch);
+  return 0;
+}
+
+sds y_file_name = NULL;
+bool ymodem_active = false;
+
+int y_receive_nanme_size_callback(void **ptr, char *file_name,
+                                  y_uint32_t file_size) {
+  if (!y_file_name) {
+    sds path_in = sdsnew(file_name);
+    y_file_name = to_absolute_path(path_in);
+    sdsfree(path_in);
+    if (!y_file_name) return -1;
+  }
+  if (lfs_file_open(lfs, &file, y_file_name, LFS_O_WRONLY | LFS_O_CREAT) < 0) {
+    sdsfree(y_file_name);
+    y_file_name = NULL;
+    return -1;
+  }
+  return 0;
+}
+
+int y_receive_file_data_callback(void **ptr, char *file_data,
+                                 y_uint32_t w_size) {
+  if (lfs_file_write(lfs, &file, file_data, w_size) < 0) {
+    return -1;
+  }
+  return 0;
+}
+
+int y_receive_file_callback(void **ptr) {
+  lfs_file_close(lfs, &file);
+  return 0;
+}
+
+static void ymodem_sub_handler(EmbeddedCli *cli, char data) {
+  ymodem_receive_buffer((y_uint8_t *)&data, 1);
+}
+
+static void ymodem_recv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  if (argc < 1) {
+    y_file_name = NULL;
+  } else {
+    sds path_in = sdsnew(embeddedCliGetToken(args, 1));
+    if (y_file_name) sdsfree(y_file_name);
+    y_file_name = to_absolute_path(path_in);
+    sdsfree(path_in);
+    if (!y_file_name) return;
+    FS_PRINTLN("Specify file: %s", y_file_name);
+  }
+  FS_PRINTLN("YModem receive started, waiting for file...");
+  ymodem_active = true;
+  int cnt = ymodem_receive();
+  ymodem_active = false;
+  FS_PRINTLN("");
+  if (cnt == 0) {
+    FS_ERROR("YModem receive failed");
+  } else {
+    FS_PRINTLN("YModem receive finished, file saved to %s", y_file_name);
+  }
+  y_file_name = NULL;
+}
+
+#endif  // FS_ENABLE_YMODEM
+
+// Public Functions -------------------------
+
+void FSUtils_AddCmdToCli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
+  lfs = reg_lfs;
+  cli = reg_cli;
+  path = sdsnew("/");
+  inv = sdscat(sdsdup(path), " > ");
+  embeddedCliSetInvitation(cli, inv);
+  // register commands
+  static CliCommandBinding cd_cmd = {
+      .name = "cd",
+      .usage = "cd <dir>",
+      .help = "Change working directory",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = cd_cmd_func,
+  };
+  embeddedCliAddBinding(cli, cd_cmd);
+  static CliCommandBinding ls_cmd = {
+      .name = "ls",
+      .usage = "ls [dir]",
+      .help = "List files and directories",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = ls_cmd_func,
+  };
+  embeddedCliAddBinding(cli, ls_cmd);
+  static CliCommandBinding mkdir_cmd = {
+      .name = "mkdir",
+      .usage = "mkdir <dir>",
+      .help = "Create a directory",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = mkdir_cmd_func,
+  };
+  embeddedCliAddBinding(cli, mkdir_cmd);
+  static CliCommandBinding rm_cmd = {
+      .name = "rm",
+      .usage = "rm [-r recursive] <file|dir>",
+      .help = "Remove a file or directory",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = rm_cmd_func,
+  };
+  embeddedCliAddBinding(cli, rm_cmd);
+  static CliCommandBinding tree_cmd = {
+      .name = "tree",
+      .usage = "tree [dir]",
+      .help = "List files and directories in tree view",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = tree_cmd_func,
+  };
+  embeddedCliAddBinding(cli, tree_cmd);
+  static CliCommandBinding touch_cmd = {
+      .name = "touch",
+      .usage = "touch <file>",
+      .help = "Create a file",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = touch_cmd_func,
+  };
+  embeddedCliAddBinding(cli, touch_cmd);
+  static CliCommandBinding pwd_cmd = {
+      .name = "pwd",
+      .usage = "pwd",
+      .help = "Print working directory",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = pwd_cmd_func,
+  };
+  embeddedCliAddBinding(cli, pwd_cmd);
+  static CliCommandBinding cat_cmd = {
+      .name = "cat",
+      .usage = "cat <file> [> | >>] [file2]",
+      .help = "Print file content or redirect to another file",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = cat_cmd_func,
+  };
+  embeddedCliAddBinding(cli, cat_cmd);
+  static CliCommandBinding echo_cmd = {
+      .name = "echo",
+      .usage = "echo [-a append] <file>",
+      .help = "Write content to file",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = echo_cmd_func,
+  };
+  embeddedCliAddBinding(cli, echo_cmd);
+  static CliCommandBinding cp_cmd = {
+      .name = "cp",
+      .usage = "cp <src> <dst>",
+      .help = "Copy file",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = cp_cmd_func,
+  };
+  embeddedCliAddBinding(cli, cp_cmd);
+  static CliCommandBinding mv_cmd = {
+      .name = "mv",
+      .usage = "mv <src> <dst>",
+      .help = "Move file",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = mv_cmd_func,
+  };
+  embeddedCliAddBinding(cli, mv_cmd);
+  static CliCommandBinding format_cmd = {
+      .name = "format",
+      .usage = "format [-y]",
+      .help = "Format file system, -y is required to confirm",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = format_cmd_func,
+  };
+  embeddedCliAddBinding(cli, format_cmd);
+#if FS_ENABLE_YMODEM
+  static CliCommandBinding ymodem_recv_cmd = {
+      .name = "rb",
+      .usage = "rb <force_file_path>",
+      .help = "Receive binary file via YModem",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = ymodem_recv_cmd_func,
+  };
+  embeddedCliAddBinding(cli, ymodem_recv_cmd);
+#endif
+}
+
+// Source Code End --------------------------

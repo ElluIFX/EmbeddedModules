@@ -33,7 +33,7 @@ volatile static uint8_t heap_lock = 0;
 static struct tcb_list heap_tcb;
 static void heap_mutex_lock(void) {
   cpu_enter_critical();
-  if (heap_lock == 0) {
+  if (!heap_lock) {
     heap_lock = 1;
   } else {
     sched_tcb_wait(sched_tcb_now, &heap_tcb);

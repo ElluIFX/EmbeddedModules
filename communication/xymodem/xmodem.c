@@ -32,10 +32,12 @@ static x_uint32_t get_recv_len(void);
 /**
  * @brief   这个函数是Xmodem协议的基础.
  *          接收数据并处理数据.
- * @param   void
+ * @param   void *file_ptr: 文件指针.
  * @return  0:文件接收成功 -1:文件接收失败
  */
-int xmodem_receive(void) {
+int xmodem_receive(void *ptr) {
+  file_ptr = ptr;
+
   volatile xmodem_status status = X_OK;
   x_uint8_t error_number = 0u;
 
@@ -351,7 +353,7 @@ static x_uint32_t get_recv_len(void) { return recv_len; }
  * @param   data_len: 数据的大小
  * @return  void.
  */
-void xmodem_data_recv(x_uint8_t *data, x_uint16_t data_len) {
+void xmodem_receive_buffer(x_uint8_t *data, x_uint16_t data_len) {
   if (recv_len + data_len >= X_PROT_FRAME_LEN_RECV) recv_len = 0;
 
   memcpy(recv_buf + recv_len, data, data_len);
@@ -363,7 +365,7 @@ void xmodem_data_recv(x_uint8_t *data, x_uint16_t data_len) {
  * @param   void
  * @return  时间戳
  */
-__weak x_uint32_t x_get_tick(void) { return 0; }
+__weak x_uint32_t x_get_tick(void) { return m_time_ms(); }
 
 /**
  * @brief   Ymodem 发送一个字符的接口.
@@ -384,7 +386,7 @@ __weak int x_transmit_ch(x_uint8_t ch) {
  * @return  返回写入的结果，0：成功，-1：失败.
  */
 __weak int x_receive_file_data_callback(void **ptr, char *file_data,
-                                      x_uint32_t w_size) {
+                                        x_uint32_t w_size) {
   X_UNUSED(ptr);
   X_UNUSED(file_data);
   X_UNUSED(w_size);

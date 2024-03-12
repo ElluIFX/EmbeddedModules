@@ -1,14 +1,14 @@
 /**
- * @file cli_utils.h
- * @brief 终端命令集
+ * @file system_utils.h
+ * @brief 系统命令行工具
  * @author Ellu (ellu.grif@gmail.com)
  * @date 2024-03-02
  *
  * THINK DIFFERENTLY
  */
 
-#ifndef __CLI_UTILS_H__
-#define __CLI_UTILS_H__
+#ifndef __SYSTEM_UTILS_H__
+#define __SYSTEM_UTILS_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,10 +27,10 @@ extern "C" {
 
 // Exported Functions -----------------------
 
-extern void CliUtils_AddCmdToCli(EmbeddedCli *cli);
+extern void SystemUtils_AddCmdToCli(EmbeddedCli *cli);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __CLI_UTILS__ */
+#endif /* __SYSTEM_UTILS__ */

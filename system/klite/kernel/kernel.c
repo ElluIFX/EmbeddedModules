@@ -69,6 +69,21 @@ uint32_t kernel_idle_time(void) {
   return m_idle_thread ? thread_time(m_idle_thread) : 0;
 }
 
+volatile uint32_t kernel_sys_nesting;
+
+#include "led.h"
+#include "log.h"
+
+void kernel_enter_critical(void) {
+  cpu_enter_critical();
+  kernel_sys_nesting++;
+}
+
+void kernel_exit_critical(void) {
+  kernel_sys_nesting--;
+  cpu_leave_critical();
+}
+
 void kernel_tick(uint32_t time) {
   m_tick_count += time;
 #if KERNEL_CFG_HOOK_ENABLE

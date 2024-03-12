@@ -45,7 +45,7 @@ typedef uint32_t y_uint32_t;
 #if TIMEOUT_CONFIG
 #define Y_RECEIVE_TIMEOUT 0xFFFFFFu
 #else
-#define Y_RECEIVE_TIMEOUT 3000u
+#define Y_RECEIVE_TIMEOUT 1000u
 #endif
 
 /* 包头接收标志 */
@@ -87,14 +87,15 @@ typedef enum {
 /***************************** 对外函数 ***************************************/
 /* 用户调用 */
 y_uint16_t ymodem_receive(void);
-void ymodem_data_recv(y_uint8_t *data, y_uint16_t data_len);
+void ymodem_receive_buffer(y_uint8_t *data, y_uint16_t data_len);
 
 /* 用户需实现 */
 y_uint32_t y_get_tick(void);
 int y_transmit_ch(y_uint8_t ch);
 int y_receive_nanme_size_callback(void **ptr, char *file_name,
                                   y_uint32_t file_size);
-int y_receive_file_data_callback(void **ptr, char *file_data, y_uint32_t w_size);
+int y_receive_file_data_callback(void **ptr, char *file_data,
+                                 y_uint32_t w_size);
 int y_receive_file_callback(void **ptr);
 /***************************** 对外函数 ***************************************/
 

@@ -41,7 +41,9 @@ extern const char *SDS_NOINIT;
 
 #include "modules.h"
 
-typedef size_t ssize_t;
+#ifndef ssize_t
+typedef int32_t ssize_t;
+#endif
 
 typedef char *sds;
 

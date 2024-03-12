@@ -63,12 +63,7 @@ bool mutex_try_lock(mutex_t mutex) {
 
 void mutex_lock(mutex_t mutex) {
   cpu_enter_critical();
-  if (mutex->owner == NULL) {
-    mutex->lock++;
-    mutex->owner = sched_tcb_now;
-    cpu_leave_critical();
-    return;
-  }
+  if (mutex->owner == NULL) mutex->owner = sched_tcb_now;
   if (mutex->owner == sched_tcb_now) {
     mutex->lock++;
     cpu_leave_critical();

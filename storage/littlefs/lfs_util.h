@@ -34,6 +34,11 @@
 #include "modules.h"
 #define LFS_MALLOC(size) m_alloc(size)
 #define LFS_FREE(ptr) m_free(ptr)
+
+#if !MOD_CFG_USE_OS_NONE
+#define LFS_THREADSAFE 1
+#endif
+
 #endif
 
 #ifdef __cplusplus

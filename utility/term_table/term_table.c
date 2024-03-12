@@ -22,10 +22,10 @@
 #define tt_realloc(ptr, size) m_realloc(ptr, size)
 #define tt_free(ptr) m_free(ptr)
 
-const char* line_break = "\r\n\033[K";  // 换行并清除本行剩余部分
+static const char* line_break = "\033[K\r\n";  // 换行并清除本行剩余部分
 
-const int16_t WIDTH_UNKNOWN = -1;   // 未知宽度
-const int16_t WIDTH_DISABLED = -2;  // 禁用该宽度功能
+static const int16_t WIDTH_UNKNOWN = -1;   // 未知宽度
+static const int16_t WIDTH_DISABLED = -2;  // 禁用该宽度功能
 
 static uint16_t lastFmt1 = TT_FMT1_NONE;
 static uint16_t lastFmt2 = TT_FMT2_NONE;

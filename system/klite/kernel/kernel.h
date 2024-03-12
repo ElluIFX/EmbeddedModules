@@ -65,6 +65,16 @@ void kernel_init(void *heap_addr, uint32_t heap_size);
 void kernel_start(void);
 
 /**
+ * @brief 进入临界区, 禁止中断
+ */
+void kernel_enter_critical(void);
+
+/**
+ * @brief 退出临界区, 允许中断
+ */
+void kernel_exit_critical(void);
+
+/**
  * @retval KLite版本号, BIT[31:24]主版本号, BIT[23:16]次版本号, BIT[15:0]修订号
  */
 uint32_t kernel_version(void);

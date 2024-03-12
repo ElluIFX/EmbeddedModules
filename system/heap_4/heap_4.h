@@ -20,10 +20,10 @@
 #define xTaskResumeAll() ((void)0)
 
 #if MOD_CFG_USE_OS_KLITE
-#include "internal.h"
-#define taskENTER_CRITICAL() cpu_enter_critical()
+#include "kernel.h"
+#define taskENTER_CRITICAL() kernel_enter_critical()
 
-#define taskEXIT_CRITICAL() cpu_leave_critical()
+#define taskEXIT_CRITICAL() kernel_exit_critical()
 #else
 #define taskENTER_CRITICAL() ((void)0)
 

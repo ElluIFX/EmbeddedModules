@@ -63,6 +63,7 @@ struct tcb {
 
 extern struct tcb *sched_tcb_now;
 extern struct tcb *sched_tcb_next;
+extern volatile uint32_t kernel_sys_nesting;
 
 // 平台实现: 进入临界区, 并执行需要在内核初始化前执行的操作
 void cpu_sys_init(void);

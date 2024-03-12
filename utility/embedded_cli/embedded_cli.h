@@ -360,6 +360,26 @@ void embeddedCliEnterSubInterpreter(
  */
 void embeddedCliExitSubInterpreter(EmbeddedCli *cli);
 
+/**
+ * @brief Set invitation for cli
+ * @param cli
+ * @param invitation
+ */
+void embeddedCliSetInvitation(EmbeddedCli *cli, const char *invitation);
+
+/**
+ * @brief Set Sub-Hanlder for cli
+ * @param cli
+ * @param subHandler called when any raw data is received
+ */
+void embeddedCliSetSubHandler(EmbeddedCli *cli,
+                              char (*subHandler)(EmbeddedCli *cli, char data));
+
+/**
+ * @brief Reset Sub-Handler for cli
+ */
+void embeddedCliResetSubHandler(EmbeddedCli *cli);
+
 #ifdef __cplusplus
 }
 #endif

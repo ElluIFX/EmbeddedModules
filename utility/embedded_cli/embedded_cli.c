@@ -241,10 +241,20 @@ struct EmbeddedCliImpl {
   uint16_t cursorPos;
 
   /**
+   * Pointer to a sub handler to handle raw data inputted to cli
+   */
+  char (*subHandler)(EmbeddedCli *cli, char data);
+
+  /**
    * Pointer to a sub interpreter function. If set, this function will
    * handle all commands inputted to cli.
    */
   void (*subInterpreterOnCmd)(EmbeddedCli *cli, CliCommand *command);
+
+  /**
+   * Pointer to a function that is called when sub interpreter is exited
+   * Used to clean up resources, etc.
+   */
   void (*subInterpreterOnExit)(EmbeddedCli *cli);
 
   /**
@@ -546,7 +556,7 @@ EmbeddedCliConfig *embeddedCliDefaultConfig(void) {
   defaultConfig.historyBufferSize = 128;
   defaultConfig.cliBuffer = NULL;
   defaultConfig.cliBufferSize = 0;
-  defaultConfig.maxBindingCount = 16;
+  defaultConfig.maxBindingCount = 32;
   defaultConfig.enableAutoComplete = true;
   defaultConfig.enableColorOutput = true;
   defaultConfig.invitation = "CLI > ";
@@ -632,6 +642,8 @@ EmbeddedCli *embeddedCliNew(EmbeddedCliConfig *config) {
   impl->cursorPos = 0;
   impl->subInterpreterOnCmd = NULL;
   impl->subInterpreterInvitation = NULL;
+  impl->subInterpreterOnExit = NULL;
+  impl->subHandler = NULL;
 
   initInternalBindings(cli);
 
@@ -668,8 +680,28 @@ void embeddedCliReceiveBuffer(EmbeddedCli *cli, const char *buffer,
   }
 }
 
+void embeddedCliSetInvitation(EmbeddedCli *cli, const char *invitation) {
+  PREPARE_IMPL(cli);
+  impl->invitation = invitation;
+}
+
+void embeddedCliSetSubHandler(EmbeddedCli *cli,
+                              char (*subHandler)(EmbeddedCli *cli, char data)) {
+  PREPARE_IMPL(cli);
+  impl->subHandler = subHandler;
+  UNSET_U8FLAG(impl->flags, CLI_FLAG_INIT_COMPLETE);
+}
+
+void embeddedCliResetSubHandler(EmbeddedCli *cli) {
+  PREPARE_IMPL(cli);
+  impl->subHandler = NULL;
+}
+
 static void printInvitation(EmbeddedCli *cli) {
   PREPARE_IMPL(cli);
+  if (!IS_FLAG_SET(impl->flags, CLI_FLAG_INIT_COMPLETE)) {
+    return;  // no invitation before initialization is complete
+  }
   if (!IS_FLAG_SET(impl->flags, CLI_FLAG_SUB_INTERPRETER_ENABLED)) {
     writeToOutputColor(cli, impl->invitation, CLI_INVITATION_COLOR);
   } else {
@@ -711,6 +743,22 @@ void embeddedCliProcess(EmbeddedCli *cli) {
   if (cli->writeChar == NULL) return;
 
   PREPARE_IMPL(cli);
+
+  if (impl->subHandler != NULL) {
+    // if sub handler is set, it will handle all input
+    while (fifoBufAvailable(&impl->rxBuffer)) {
+      char c = fifoBufPop(&impl->rxBuffer);
+      c = impl->subHandler(cli, c);
+      if (c != '\0') {
+        if (c == '\r' || c == '\n') {
+          writeToOutput(cli, lineBreak);
+        } else {
+          cli->writeChar(cli, c);
+        }
+      }
+    }
+    return;
+  }
 
   if (!IS_FLAG_SET(impl->flags, CLI_FLAG_INIT_COMPLETE)) {
     SET_FLAG(impl->flags, CLI_FLAG_INIT_COMPLETE);

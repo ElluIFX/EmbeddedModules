@@ -1,6 +1,6 @@
 /**
- * @file cli_utils.c
- * @brief 终端命令集
+ * @file system_utils.c
+ * @brief 系统命令行工具
  * @author Ellu (ellu.grif@gmail.com)
  * @version 1.0.0
  * @date 2024-03-02
@@ -8,7 +8,7 @@
  * THINK DIFFERENTLY
  */
 
-#include "cli_utils.h"
+#include "system_utils.h"
 
 #include "log.h"
 #include "scheduler.h"
@@ -344,7 +344,7 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 
 // Public Functions -------------------------
 
-void CliUtils_AddCmdToCli(EmbeddedCli *cli) {
+void SystemUtils_AddCmdToCli(EmbeddedCli *cli) {
   static CliCommandBinding sysinfo_cmd = {
       .name = "sysinfo",
       .usage = "sysinfo",

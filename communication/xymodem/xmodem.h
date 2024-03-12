@@ -85,13 +85,14 @@ typedef enum {
 
 /***************************** 对外函数 ***************************************/
 /* 用户调用 */
-int xmodem_receive(void);
-void xmodem_data_recv(x_uint8_t *data, x_uint16_t data_len);
+int xmodem_receive(void *file_ptr);
+void xmodem_receive_buffer(x_uint8_t *data, x_uint16_t data_len);
 
 /* 用户需实现 */
 x_uint32_t x_get_tick(void);
 int x_transmit_ch(x_uint8_t ch);
-int x_receive_file_data_callback(void **ptr, char *file_data, x_uint32_t w_size);
+int x_receive_file_data_callback(void **ptr, char *file_data,
+                                 x_uint32_t w_size);
 int x_receive_file_callback(void **ptr);
 /***************************** 对外函数 ***************************************/
 
