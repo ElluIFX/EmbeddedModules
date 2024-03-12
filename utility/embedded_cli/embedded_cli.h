@@ -317,9 +317,27 @@ char *embeddedCliGetTokenVariable(char *tokenizedStr, uint16_t pos);
  * If no such token is found - 0 is returned.
  * @param tokenizedStr
  * @param token - token to find
- * @return position (increased by 1) or zero if no such token found
+ * @return position (from 1) or 0 if no such token found
  */
 uint16_t embeddedCliFindToken(const char *tokenizedStr, const char *token);
+
+/**
+ * @brief Find token starting with specified string in provided tokens string
+ * @param  tokenizedStr
+ * @param  token
+ * @retval position (from 1) or 0 if no such token found
+ */
+uint16_t embeddedCliFindTokenStartswith(const char *tokenizedStr,
+                                        const char *token);
+
+/**
+ * @brief Find token ending with specified string in provided tokens string
+ * @param  tokenizedStr
+ * @param  token
+ * @retval position (from 1) or 0 if no such token found
+ */
+uint16_t embeddedCliFindTokenEndswith(const char *tokenizedStr,
+                                      const char *token);
 
 /**
  * Check if tokenized string contains specified token at specified position
@@ -330,6 +348,27 @@ uint16_t embeddedCliFindToken(const char *tokenizedStr, const char *token);
  */
 bool embeddedCliCheckToken(const char *tokenizedStr, const char *token,
                            uint16_t pos);
+
+/**
+ * @brief Check if tokenized string starts with specified token at specified
+ * position
+ * @param  tokenizedStr
+ * @param  token
+ * @param  pos (counted from 1)
+ * @retval true if token at specified position starts with specified token
+ */
+bool embeddedCliCheckTokenStartswith(const char *tokenizedStr,
+                                     const char *token, uint16_t pos);
+
+/**
+ * Check if tokenized string ends with specified token at specified position
+ * @param  tokenizedStr
+ * @param  token
+ * @param  pos (counted from 1)
+ * @retval true if token at specified position ends with specified token
+ */
+bool embeddedCliCheckTokenEndswith(const char *tokenizedStr, const char *token,
+                                   uint16_t pos);
 
 /**
  * Return number of tokens in tokenized string
@@ -368,17 +407,33 @@ void embeddedCliExitSubInterpreter(EmbeddedCli *cli);
 void embeddedCliSetInvitation(EmbeddedCli *cli, const char *invitation);
 
 /**
- * @brief Set Sub-Hanlder for cli
+ * @brief Set Raw-Hanlder for cli
  * @param cli
- * @param subHandler called when any raw data is received
+ * @param rawHandler called when any raw data is received, return data to echo
  */
-void embeddedCliSetSubHandler(EmbeddedCli *cli,
-                              char (*subHandler)(EmbeddedCli *cli, char data));
+void embeddedCliSetRawHandler(EmbeddedCli *cli,
+                              char (*rawHandler)(EmbeddedCli *cli, char data));
 
 /**
- * @brief Reset Sub-Handler for cli
+ * @brief Reset Raw-Handler for cli
  */
-void embeddedCliResetSubHandler(EmbeddedCli *cli);
+void embeddedCliResetRawHandler(EmbeddedCli *cli);
+
+/**
+ * @brief Set Raw-Buffer-Handler for cli
+ * @param cli
+ * @param rawBufferHandler called when any raw data is received
+ */
+void embeddedCliSetRawBufferHandler(EmbeddedCli *cli,
+                                    void (*rawBufferHandler)(EmbeddedCli *cli,
+                                                             const char *buffer,
+                                                             size_t len));
+
+/**
+ * @brief Reset Raw-Buffer-Handler for cli
+ * @param cli
+ */
+void embeddedCliResetRawBufferHandler(EmbeddedCli *cli);
 
 #ifdef __cplusplus
 }

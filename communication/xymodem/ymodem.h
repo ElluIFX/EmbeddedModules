@@ -63,12 +63,13 @@ typedef uint32_t y_uint32_t;
 #define Y_PACKET_DATA_INDEX ((y_uint16_t)3u)
 
 /* 协议定义的字节. */
-#define Y_SOH ((y_uint8_t)0x01u) /**< 包头 (128 bytes). */
-#define Y_STX ((y_uint8_t)0x02u) /**< 包头 (1024 bytes). */
-#define Y_EOT ((y_uint8_t)0x04u) /**< 传输结束. */
-#define Y_ACK ((y_uint8_t)0x06u) /**< 应答. */
-#define Y_NAK ((y_uint8_t)0x15u) /**< 非应答. */
-#define Y_CAN ((y_uint8_t)0x18u) /**< 取消. */
+#define Y_SOH ((y_uint8_t)0x01u)    /**< 包头 (128 bytes). */
+#define Y_STX ((y_uint8_t)0x02u)    /**< 包头 (1024 bytes). */
+#define Y_EOT ((y_uint8_t)0x04u)    /**< 传输结束. */
+#define Y_ACK ((y_uint8_t)0x06u)    /**< 应答. */
+#define Y_NAK ((y_uint8_t)0x15u)    /**< 非应答. */
+#define Y_CAN ((y_uint8_t)0x18u)    /**< 取消. */
+#define Y_CTRL_C ((y_uint8_t)0x03u) /**< 中断. */
 #define Y_C ((y_uint8_t)0x43u) /**< ASCII“C”，要通知上位机，我们要用CRC16. */
 
 /* 功能的状态报告. */

@@ -29,8 +29,6 @@ extern "C" {
 
 // Exported Variables -----------------------
 
-extern bool ymodem_active;
-
 // Exported Functions -----------------------
 
 extern void FSUtils_AddCmdToCli(EmbeddedCli *cli, lfs_t *lfs);

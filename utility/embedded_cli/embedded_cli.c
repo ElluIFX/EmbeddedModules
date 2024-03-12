@@ -243,7 +243,12 @@ struct EmbeddedCliImpl {
   /**
    * Pointer to a sub handler to handle raw data inputted to cli
    */
-  char (*subHandler)(EmbeddedCli *cli, char data);
+  char (*rawHandler)(EmbeddedCli *cli, char data);
+
+  /**
+   * Pointer to a sub handler to handle raw data inputted to cli
+   */
+  void (*rawBufferHandler)(EmbeddedCli *cli, const char *buffer, size_t len);
 
   /**
    * Pointer to a sub interpreter function. If set, this function will
@@ -643,7 +648,8 @@ EmbeddedCli *embeddedCliNew(EmbeddedCliConfig *config) {
   impl->subInterpreterOnCmd = NULL;
   impl->subInterpreterInvitation = NULL;
   impl->subInterpreterOnExit = NULL;
-  impl->subHandler = NULL;
+  impl->rawHandler = NULL;
+  impl->rawBufferHandler = NULL;
 
   initInternalBindings(cli);
 
@@ -662,7 +668,10 @@ EmbeddedCli *embeddedCliNewDefault(void) {
 
 void embeddedCliReceiveChar(EmbeddedCli *cli, char c) {
   PREPARE_IMPL(cli);
-
+  if (impl->rawBufferHandler) {
+    impl->rawBufferHandler(cli, &c, 1);
+    return;
+  }
   if (!fifoBufPush(&impl->rxBuffer, c)) {
     SET_FLAG(impl->flags, CLI_FLAG_OVERFLOW);
   }
@@ -671,7 +680,10 @@ void embeddedCliReceiveChar(EmbeddedCli *cli, char c) {
 void embeddedCliReceiveBuffer(EmbeddedCli *cli, const char *buffer,
                               size_t len) {
   PREPARE_IMPL(cli);
-
+  if (impl->rawBufferHandler) {
+    impl->rawBufferHandler(cli, buffer, len);
+    return;
+  }
   for (size_t i = 0; i < len; ++i) {
     if (!fifoBufPush(&impl->rxBuffer, buffer[i])) {
       SET_FLAG(impl->flags, CLI_FLAG_OVERFLOW);
@@ -685,16 +697,30 @@ void embeddedCliSetInvitation(EmbeddedCli *cli, const char *invitation) {
   impl->invitation = invitation;
 }
 
-void embeddedCliSetSubHandler(EmbeddedCli *cli,
-                              char (*subHandler)(EmbeddedCli *cli, char data)) {
+void embeddedCliSetRawHandler(EmbeddedCli *cli,
+                              char (*rawHandler)(EmbeddedCli *cli, char data)) {
   PREPARE_IMPL(cli);
-  impl->subHandler = subHandler;
+  impl->rawHandler = rawHandler;
   UNSET_U8FLAG(impl->flags, CLI_FLAG_INIT_COMPLETE);
 }
 
-void embeddedCliResetSubHandler(EmbeddedCli *cli) {
+void embeddedCliResetRawHandler(EmbeddedCli *cli) {
   PREPARE_IMPL(cli);
-  impl->subHandler = NULL;
+  impl->rawHandler = NULL;
+}
+
+void embeddedCliSetRawBufferHandler(EmbeddedCli *cli,
+                                    void (*rawBufferHandler)(EmbeddedCli *cli,
+                                                             const char *buffer,
+                                                             size_t len)) {
+  PREPARE_IMPL(cli);
+  impl->rawBufferHandler = rawBufferHandler;
+  UNSET_U8FLAG(impl->flags, CLI_FLAG_INIT_COMPLETE);
+}
+
+void embeddedCliResetRawBufferHandler(EmbeddedCli *cli) {
+  PREPARE_IMPL(cli);
+  impl->rawBufferHandler = NULL;
 }
 
 static void printInvitation(EmbeddedCli *cli) {
@@ -744,11 +770,11 @@ void embeddedCliProcess(EmbeddedCli *cli) {
 
   PREPARE_IMPL(cli);
 
-  if (impl->subHandler != NULL) {
+  if (impl->rawHandler != NULL) {
     // if sub handler is set, it will handle all input
     while (fifoBufAvailable(&impl->rxBuffer)) {
       char c = fifoBufPop(&impl->rxBuffer);
-      c = impl->subHandler(cli, c);
+      c = impl->rawHandler(cli, c);
       if (c != '\0') {
         if (c == '\r' || c == '\n') {
           writeToOutput(cli, lineBreak);
@@ -757,6 +783,11 @@ void embeddedCliProcess(EmbeddedCli *cli) {
         }
       }
     }
+    return;
+  }
+
+  if (impl->rawBufferHandler != NULL) {
+    // if sub handler is set, it will handle all input
     return;
   }
 
@@ -913,6 +944,30 @@ char *embeddedCliGetTokenVariable(char *tokenizedStr, uint16_t pos) {
     return NULL;
 }
 
+void embeddedCliPrintCurrentHelp(EmbeddedCli *cli) {
+  PREPARE_IMPL(cli);
+  if (impl->currentBinding >= impl->bindingsCount) return;
+
+  printBindingUsage(cli, &impl->bindings[impl->currentBinding]);
+}
+
+bool embeddedCliCheckToken(const char *tokenizedStr, const char *token,
+                           uint16_t pos) {
+  return strcmp(embeddedCliGetToken(tokenizedStr, pos), token) == 0;
+}
+
+bool embeddedCliCheckTokenStartswith(const char *tokenizedStr,
+                                     const char *token, uint16_t pos) {
+  return strncmp(embeddedCliGetToken(tokenizedStr, pos), token,
+                 strlen(token)) == 0;
+}
+
+bool embeddedCliCheckTokenEndswith(const char *tokenizedStr, const char *token,
+                                   uint16_t pos) {
+  const char *t = embeddedCliGetToken(tokenizedStr, pos);
+  return strcmp(t + strlen(t) - strlen(token), token) == 0;
+}
+
 uint16_t embeddedCliFindToken(const char *tokenizedStr, const char *token) {
   if (tokenizedStr == NULL || token == NULL) return 0;
 
@@ -924,16 +979,24 @@ uint16_t embeddedCliFindToken(const char *tokenizedStr, const char *token) {
   return 0;
 }
 
-void embeddedCliPrintCurrentHelp(EmbeddedCli *cli) {
-  PREPARE_IMPL(cli);
-  if (impl->currentBinding >= impl->bindingsCount) return;
-
-  printBindingUsage(cli, &impl->bindings[impl->currentBinding]);
+uint16_t embeddedCliFindTokenStartswith(const char *tokenizedStr,
+                                        const char *token) {
+  if (tokenizedStr == NULL || token == NULL) return 0;
+  uint16_t size = embeddedCliGetTokenCount(tokenizedStr);
+  for (uint16_t i = 1; i <= size; ++i) {
+    if (embeddedCliCheckTokenStartswith(tokenizedStr, token, i)) return i;
+  }
+  return 0;
 }
 
-bool embeddedCliCheckToken(const char *tokenizedStr, const char *token,
-                           uint16_t pos) {
-  return strcmp(embeddedCliGetToken(tokenizedStr, pos), token) == 0;
+uint16_t embeddedCliFindTokenEndswith(const char *tokenizedStr,
+                                      const char *token) {
+  if (tokenizedStr == NULL || token == NULL) return 0;
+  uint16_t size = embeddedCliGetTokenCount(tokenizedStr);
+  for (uint16_t i = 1; i <= size; ++i) {
+    if (embeddedCliCheckTokenEndswith(tokenizedStr, token, i)) return i;
+  }
+  return 0;
 }
 
 uint16_t embeddedCliGetTokenCount(const char *tokenizedStr) {

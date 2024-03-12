@@ -123,6 +123,7 @@ y_uint16_t ymodem_receive(void) {
           break;
         /* Abort from host. */
         case Y_CAN:
+        case Y_CTRL_C:
           status = Y_ERROR;
           break;
         default:

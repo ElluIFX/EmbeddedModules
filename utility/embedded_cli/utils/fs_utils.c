@@ -503,7 +503,7 @@ static char echo_handler(EmbeddedCli *cli, char data) {
     echo_size = 0;
     LOG_RAWLN("");
     LOG_RAWLN("Written %d bytes", echo_written);
-    embeddedCliResetSubHandler(cli);
+    embeddedCliResetRawHandler(cli);
     return 0;
   }
   if (data == '\r') data = '\n';  // silly windows
@@ -556,7 +556,7 @@ static void echo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   FS_PRINTLN("Input content, end with Ctrl+D:");
-  embeddedCliSetSubHandler(cli, echo_handler);
+  embeddedCliSetRawHandler(cli, echo_handler);
 }
 
 static void cp_cmd_func(EmbeddedCli *cli, char *args, void *context) {
@@ -625,7 +625,6 @@ int y_transmit_ch(y_uint8_t ch) {
 }
 
 sds y_file_name = NULL;
-bool ymodem_active = false;
 
 int y_receive_nanme_size_callback(void **ptr, char *file_name,
                                   y_uint32_t file_size) {
@@ -635,7 +634,8 @@ int y_receive_nanme_size_callback(void **ptr, char *file_name,
     sdsfree(path_in);
     if (!y_file_name) return -1;
   }
-  if (lfs_file_open(lfs, &file, y_file_name, LFS_O_WRONLY | LFS_O_CREAT) < 0) {
+  if (lfs_file_open(lfs, &file, y_file_name,
+                    LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC) < 0) {
     sdsfree(y_file_name);
     y_file_name = NULL;
     return -1;
@@ -652,12 +652,12 @@ int y_receive_file_data_callback(void **ptr, char *file_data,
 }
 
 int y_receive_file_callback(void **ptr) {
-  lfs_file_close(lfs, &file);
+  if (y_file_name) lfs_file_close(lfs, &file);
   return 0;
 }
 
-static void ymodem_sub_handler(EmbeddedCli *cli, char data) {
-  ymodem_receive_buffer((y_uint8_t *)&data, 1);
+static void ymodem_sub_handler(EmbeddedCli *cli, const char *data, size_t len) {
+  ymodem_receive_buffer((y_uint8_t *)data, len);
 }
 
 static void ymodem_recv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
@@ -672,13 +672,13 @@ static void ymodem_recv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     if (!y_file_name) return;
     FS_PRINTLN("Specify file: %s", y_file_name);
   }
-  FS_PRINTLN("YModem receive started, waiting for file...");
-  ymodem_active = true;
+  FS_PRINTLN("YModem receive started, hit Ctrl+C to cancel");
+  embeddedCliSetRawBufferHandler(cli, ymodem_sub_handler);
   int cnt = ymodem_receive();
-  ymodem_active = false;
+  embeddedCliResetRawBufferHandler(cli);
   FS_PRINTLN("");
-  if (cnt == 0) {
-    FS_ERROR("YModem receive failed");
+  if (cnt == 0 || (cnt & (1 << 15))) {
+    FS_ERROR("YModem receive failed or canceled");
   } else {
     FS_PRINTLN("YModem receive finished, file saved to %s", y_file_name);
   }
@@ -770,8 +770,9 @@ void FSUtils_AddCmdToCli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   embeddedCliAddBinding(cli, cat_cmd);
   static CliCommandBinding echo_cmd = {
       .name = "echo",
-      .usage = "echo [-a append] <file>",
-      .help = "Write content to file",
+      .usage =
+          "echo [-a append | -iN insert at line N | -dN delete line N] <file>",
+      .help = "Write content to file or do limited editing",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = echo_cmd_func,

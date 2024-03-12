@@ -91,7 +91,7 @@ static void list_klite(void) {
   TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
   TT_ITEM_GRID_LINE line =
       TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-  const char *head[] = {"ID", "Pri", "Entry", "Usage", "Stack", "Free"};
+  const char *head[] = {"ID", "Pri", "Entry", "AvgUsage", "Stack", "Free"};
   for (int i = 0; i < sizeof(head) / sizeof(char *); i++)
     TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head[i]));
   int i = 0;
