@@ -51,6 +51,12 @@ config SCH_CFG_COMP_RANGE_US
     help
       The compensate range in us for the task scheduling.
 
+config SCH_CFG_PRI_ORDER_ASC
+    bool "Priority Order Ascending (Larger Priority First)"
+    default y
+    help
+      The priority order is ascending if enabled.
+
 config SCH_CFG_DEBUG_REPORT
     bool "Enable Debug Report"
     default n

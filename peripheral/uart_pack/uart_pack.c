@@ -78,7 +78,7 @@ int Uart_FifoTxInit(UART_HandleTypeDef *huart, uint8_t *buf, size_t bufSize) {
   ctrl->huart = huart;
   ctrl->sending = 0;
 #if !MOD_CFG_USE_OS_NONE
-  ctrl->mutex = MOD_MUTEX_CREATE();
+  ctrl->mutex = MOD_MUTEX_CREATE("uartTx");
 #endif
   return 0;
 }

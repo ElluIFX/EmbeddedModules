@@ -75,15 +75,18 @@
 /***********************************************************************************************************/
 
 void SPIF_Lock(SPIF_HandleTypeDef *Handle) {
-  while (Handle->Lock) {
-    SPIF_Delay(1);
-  }
-  Handle->Lock = 1;
+#if !MOD_CFG_USE_OS_NONE
+  MOD_MUTEX_ACQUIRE(Handle->Mutex);
+#endif
 }
 
 /***********************************************************************************************************/
 
-void SPIF_UnLock(SPIF_HandleTypeDef *Handle) { Handle->Lock = 0; }
+void SPIF_UnLock(SPIF_HandleTypeDef *Handle) {
+#if !MOD_CFG_USE_OS_NONE
+  MOD_MUTEX_RELEASE(Handle->Mutex);
+#endif
+}
 
 /***********************************************************************************************************/
 
@@ -673,6 +676,9 @@ bool SPIF_Init(SPIF_HandleTypeDef *Handle, SPI_HandleTypeDef *HSpi,
     Handle->HSpi = HSpi;
     Handle->Gpio = Gpio;
     Handle->Pin = Pin;
+#if !MOD_CFG_USE_OS_NONE
+    Handle->Mutex = MOD_MUTEX_CREATE("spif");
+#endif
     SPIF_CsPin(Handle, 1);
     /* wait for stable VCC */
     while (SPIF_Tick() < 20) {

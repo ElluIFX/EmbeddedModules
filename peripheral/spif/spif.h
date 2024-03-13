@@ -134,13 +134,14 @@ typedef struct {
   SPIF_SizeTypeDef Size;
   uint8_t Inited;
   uint8_t MemType;
-  uint8_t Lock;
   uint8_t Reserved;
   uint32_t Pin;
   uint32_t PageCnt;
   uint32_t SectorCnt;
   uint32_t BlockCnt;
-
+#if !MOD_CFG_USE_OS_NONE
+  MOD_MUTEX_HANDLE Mutex;
+#endif
 } SPIF_HandleTypeDef;
 
 /***********************************************************************************************************/

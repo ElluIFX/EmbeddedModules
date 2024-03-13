@@ -9,8 +9,8 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
       .name = "task",
       .usage =
           "task [-l list | -e enable | -d disable | -r delete | -f "
-          "setfreq | -p setpri | -E excute] "
-          "[taskname] [freq|pri]",
+          "setfreq | -p setpri | -E excute]"
+          " [freq | pri] <taskname>",
       .help = "Task control command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -25,7 +25,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
       .name = "event",
       .usage =
           "event [-l list | -e enable | -d disable | -r delete | -t trigger] "
-          "[eventname] [type] "
+          "<eventname> [type] "
           "[content]",
       .help = "Event control command (Scheduler)",
       .context = NULL,
@@ -39,7 +39,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
 #if SCH_CFG_ENABLE_COROUTINE
   static CliCommandBinding cortn_cmd = {
       .name = "cortn",
-      .usage = "cortn [-l list| -s stop] [name]",
+      .usage = "cortn [-l list | -k kill] <cortnname>",
       .help = "Coroutine control command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,

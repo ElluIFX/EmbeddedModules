@@ -32,9 +32,6 @@
 #define DIR_COLOR T_CYAN
 #define ERROR_COLOR T_RED
 
-#define FS_ERROR(fmt, ...) \
-  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: " fmt T_RST, ##__VA_ARGS__)
-
 // Private Typedefs -------------------------
 
 // Private Macros ---------------------------
@@ -52,6 +49,49 @@ static sds inv;
 // Public Variables -------------------------
 
 // Private Functions ------------------------
+
+static const char *get_error(int errno) {
+  switch (errno) {
+    case LFS_ERR_IO:
+      return "io error";
+    case LFS_ERR_CORRUPT:
+      return "file system corrupt";
+    case LFS_ERR_NOENT:
+      return "no such file or directory";
+    case LFS_ERR_EXIST:
+      return "file already exists";
+    case LFS_ERR_NOTDIR:
+      return "target is not a directory";
+    case LFS_ERR_ISDIR:
+      return "target is a directory";
+    case LFS_ERR_NOTEMPTY:
+      return "directory not empty";
+    case LFS_ERR_BADF:
+      return "bad file descriptor";
+    case LFS_ERR_FBIG:
+      return "file too large";
+    case LFS_ERR_INVAL:
+      return "invalid argument";
+    case LFS_ERR_NOSPC:
+      return "no space left on device";
+    case LFS_ERR_NOMEM:
+      return "no memory available";
+    case LFS_ERR_NOATTR:
+      return "no attribute";
+    case LFS_ERR_NAMETOOLONG:
+      return "name too long";
+    default:
+      return "unknown error";
+  }
+}
+
+#define FS_ERROR(fmt, ...) \
+  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: " fmt T_RST, ##__VA_ARGS__)
+#define FS_ERRORNO(errno) \
+  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: %s" T_RST, get_error(errno))
+#define FS_ERRORNOP(errno, path)                                             \
+  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: %s (for %s)" T_RST, get_error(errno), \
+            path)
 
 static sds to_absolute_path(sds path_in) {
   if (!path_in) return NULL;
@@ -81,7 +121,7 @@ process_point:
     if (new_path[i - 1] == '/' && new_path[i] == '.' &&
         new_path[i + 1] == '.') {
       if (last_last_slash == -1) {  // no parent dir
-        FS_ERROR("no parent dir");
+        FS_ERROR("no parent dir for root");
         goto error;
       }
       if (last_last_slash == 0) {
@@ -121,20 +161,21 @@ static void ls_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   size_t argc = embeddedCliGetTokenCount(args);
   sds path_in = NULL;
   sds new_path = NULL;
+  int errno;
   if (argc) {
     path_in = sdsnew(embeddedCliGetToken(args, 1));
     new_path = to_absolute_path(path_in);
     sdsfree(path_in);
     if (!new_path) return;
-    if (lfs_dir_open(lfs, &dir, new_path) != LFS_ERR_OK) {
-      FS_ERROR("dir %s not exist", new_path);
+    if ((errno = lfs_dir_open(lfs, &dir, new_path)) != LFS_ERR_OK) {
+      FS_ERRORNO(errno);
       sdsfree(new_path);
       return;
     }
     sdsfree(new_path);
   } else {
-    if (lfs_dir_open(lfs, &dir, path) != LFS_ERR_OK) {
-      FS_ERROR("pwd %s not exist", path);
+    if ((errno = lfs_dir_open(lfs, &dir, path)) != LFS_ERR_OK) {
+      FS_ERRORNO(errno);
       return;
     }
   }
@@ -158,6 +199,7 @@ static void ls_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 
 static void cd_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   int len;
+  int errno;
   sds path_in = NULL;
   sds new_path = NULL;
   size_t argc = embeddedCliGetTokenCount(args);
@@ -172,8 +214,8 @@ static void cd_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 
   if (!new_path) return;
 
-  if (lfs_dir_open(lfs, &dir, new_path) != LFS_ERR_OK) {
-    FS_ERROR("dir %s not exist", new_path);
+  if ((errno = lfs_dir_open(lfs, &dir, new_path)) != LFS_ERR_OK) {
+    FS_ERRORNO(errno);
     sdsfree(new_path);
     return;
   } else {
@@ -191,6 +233,7 @@ static void cd_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 }
 
 static void mkdir_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  int errno;
   size_t argc = embeddedCliGetTokenCount(args);
   if (argc < 1) {
     embeddedCliPrintCurrentHelp(cli);
@@ -201,8 +244,8 @@ static void mkdir_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   sdsfree(path_in);
   if (!new_path) return;
   FS_DEBUG("mkdir %s", new_path);
-  if (lfs_mkdir(lfs, new_path) != LFS_ERR_OK) {
-    FS_ERROR("mkdir %s failed", new_path);
+  if ((errno = lfs_mkdir(lfs, new_path)) != LFS_ERR_OK) {
+    FS_ERRORNO(errno);
   }
   sdsfree(new_path);
 }
@@ -211,9 +254,10 @@ static int rm_dir_rec(sds dirname) {
   sds temp;
   lfs_dir_t dirnow;
   struct lfs_info infonow;
+  int errno;
   int cnt = 0;
-  if (lfs_dir_open(lfs, &dirnow, dirname)) {
-    FS_ERROR("dir %s not exist", dirname);
+  if ((errno = lfs_dir_open(lfs, &dirnow, dirname)) != LFS_ERR_OK) {
+    FS_ERRORNO(errno);
     return 0;
   }
   lfs_dir_rewind(lfs, &dirnow);
@@ -224,11 +268,11 @@ static int rm_dir_rec(sds dirname) {
     if (temp[sdslen(temp) - 1] != '/') temp = sdscat(temp, "/");
     temp = sdscat(temp, infonow.name);
     if (infonow.type == LFS_TYPE_REG) {
-      if (!lfs_remove(lfs, temp)) {
+      if (!(errno = lfs_remove(lfs, temp))) {
         cnt++;
         FS_PRINTLN("rm %s", temp);
       } else {
-        FS_ERROR("rm %s failed", temp);
+        FS_ERRORNOP(errno, temp);
       }
     } else if (infonow.type == LFS_TYPE_DIR) {
       cnt += rm_dir_rec(temp);
@@ -237,11 +281,11 @@ static int rm_dir_rec(sds dirname) {
   }
   lfs_dir_close(lfs, &dirnow);
   if (strcmp(dirname, "/") == 0) return cnt;
-  if (!lfs_remove(lfs, dirname)) {
+  if (!(errno = lfs_remove(lfs, dirname))) {
     cnt++;
     FS_PRINTLN("rm %s", dirname);
   } else {
-    FS_ERROR("rm %s failed", dirname);
+    FS_ERRORNOP(errno, dirname);
   }
   return cnt;
 }
@@ -250,6 +294,7 @@ static void rm_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   size_t argc = embeddedCliGetTokenCount(args);
   sds path_in = NULL;
   sds new_path = NULL;
+  int errno;
   if (argc < 1) {
     embeddedCliPrintCurrentHelp(cli);
     return;
@@ -272,8 +317,8 @@ static void rm_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   sdsfree(path_in);
   if (!new_path) return;
   FS_DEBUG("rm %s", new_path);
-  if (lfs_remove(lfs, new_path) != LFS_ERR_OK) {
-    FS_ERROR("rm %s failed", new_path);
+  if ((errno = lfs_remove(lfs, new_path)) != LFS_ERR_OK) {
+    FS_ERRORNO(errno);
   }
   sdsfree(new_path);
 }
@@ -281,13 +326,14 @@ static void rm_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 static void tree_rec(sds dirname, int depth) {
   sds temp;
   lfs_dir_t dirnow;
+  int errno;
   struct lfs_info infonow;
-  if (lfs_dir_open(lfs, &dirnow, dirname)) {
-    FS_ERROR("dir %s not exist", dirname);
+  if ((errno = lfs_dir_open(lfs, &dirnow, dirname)) != LFS_ERR_OK) {
+    FS_ERRORNOP(errno, dirname);
     return;
   }
   lfs_dir_rewind(lfs, &dirnow);
-  while (lfs_dir_read(lfs, &dirnow, &infonow) > 0) {
+  while ((errno = lfs_dir_read(lfs, &dirnow, &infonow)) > 0) {
     if (strcmp(infonow.name, ".") == 0 || strcmp(infonow.name, "..") == 0)
       continue;
     for (int i = 0; i < depth; i++) {
@@ -302,6 +348,9 @@ static void tree_rec(sds dirname, int depth) {
       tree_rec(temp, depth + 1);
       sdsfree(temp);
     }
+  }
+  if (errno != LFS_ERR_OK) {
+    FS_ERRORNO(errno);
   }
   lfs_dir_close(lfs, &dirnow);
 }
@@ -331,14 +380,17 @@ static void touch_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   sds path_in = sdsnew(embeddedCliGetToken(args, 1));
   sds new_path = to_absolute_path(path_in);
+  int errno;
   sdsfree(path_in);
   if (!new_path) return;
   FS_DEBUG("touch %s", new_path);
-  if (lfs_file_open(lfs, &file, new_path, LFS_O_CREAT | LFS_O_WRONLY) !=
+  if ((errno = lfs_file_open(lfs, &file, new_path,
+                             LFS_O_CREAT | LFS_O_WRONLY | LFS_O_EXCL)) !=
       LFS_ERR_OK) {
-    FS_ERROR("touch %s failed", new_path);
+    FS_ERRORNO(errno);
+  } else {
+    lfs_file_close(lfs, &file);
   }
-  lfs_file_close(lfs, &file);
   sdsfree(new_path);
 }
 
@@ -353,45 +405,48 @@ static int cp(sds src_path_in, sds dst_path_in, bool append) {
   lfs_file_t dst_file;
   sdsfree(src_path_in);
   sdsfree(dst_path_in);
+  int errno;
   if (!src_path || !dst_path) {
     sdsfree(src_path);
     sdsfree(dst_path);
     return 0;
   }
   FS_DEBUG("cp %s %s", src_path, dst_path);
-  if (lfs_file_open(lfs, &src_file, src_path, LFS_O_RDONLY) != LFS_ERR_OK) {
-    FS_ERROR("open src-file %s failed", src_path);
+  if ((errno = lfs_file_open(lfs, &src_file, src_path, LFS_O_RDONLY)) !=
+      LFS_ERR_OK) {
+    FS_ERRORNOP(errno, src_path);
     sdsfree(src_path);
     sdsfree(dst_path);
     return 0;
   }
-  if (lfs_file_open(lfs, &dst_file, dst_path,
-                    append ? (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_APPEND)
-                           : (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_TRUNC)) !=
+  if ((errno = lfs_file_open(
+           lfs, &dst_file, dst_path,
+           append ? (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_APPEND)
+                  : (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_TRUNC))) !=
       LFS_ERR_OK) {
-    FS_ERROR("open dst-file %s failed", dst_path);
+    FS_ERRORNOP(errno, dst_path);
     sdsfree(src_path);
     sdsfree(dst_path);
     lfs_file_close(lfs, &src_file);
     return 0;
   }
-  sdsfree(src_path);
-  sdsfree(dst_path);
   char rdbuf[128];
   int written = 0;
   while (1) {
     int n = lfs_file_read(lfs, &src_file, rdbuf, sizeof(rdbuf));
     if (n < 0) {
-      FS_ERROR("read src-file failed");
+      FS_ERRORNOP(n, src_path);
       break;
     }
     if (n == 0) break;
-    if (lfs_file_write(lfs, &dst_file, rdbuf, n) < 0) {
-      FS_ERROR("write dst-file failed");
+    if ((n = lfs_file_write(lfs, &dst_file, rdbuf, n)) < 0) {
+      FS_ERRORNOP(n, dst_path);
       break;
     }
     written += n;
   }
+  sdsfree(src_path);
+  sdsfree(dst_path);
   lfs_file_close(lfs, &src_file);
   lfs_file_close(lfs, &dst_file);
   return written;
@@ -420,11 +475,13 @@ static void cat_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   sds path_in = sdsnew(embeddedCliGetToken(args, 1));
   sds new_path = to_absolute_path(path_in);
+  int errno;
   sdsfree(path_in);
   if (!new_path) return;
   FS_DEBUG("cat %s", new_path);
-  if (lfs_file_open(lfs, &file, new_path, LFS_O_RDONLY) != LFS_ERR_OK) {
-    FS_ERROR("open file %s failed", new_path);
+  if ((errno = lfs_file_open(lfs, &file, new_path, LFS_O_RDONLY)) !=
+      LFS_ERR_OK) {
+    FS_ERRORNO(errno);
     sdsfree(new_path);
     return;
   }
@@ -439,7 +496,7 @@ static void cat_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   while (1) {
     int n = lfs_file_read(lfs, &file, rdbuf, sizeof(rdbuf));
     if (n < 0) {
-      FS_ERROR("read file failed");
+      FS_ERRORNO(n);
       break;
     }
     if (n == 0) break;
@@ -489,16 +546,17 @@ static int echo_written = 0;
 
 static char echo_handler(EmbeddedCli *cli, char data) {
   // ctrl+d
+  int errno;
   if (data == 4) {
     if (echo_size) {
-      if (lfs_file_write(lfs, &file, echo_buf, echo_size) < 0) {
-        FS_ERROR("write file failed");
+      if ((errno = lfs_file_write(lfs, &file, echo_buf, echo_size)) < 0) {
+        FS_ERRORNO(errno);
       } else {
         echo_written += echo_size;
       }
     }
     lfs_file_close(lfs, &file);
-    free(echo_buf);
+    m_free(echo_buf);
     echo_buf = NULL;
     echo_size = 0;
     LOG_RAWLN("");
@@ -509,8 +567,8 @@ static char echo_handler(EmbeddedCli *cli, char data) {
   if (data == '\r') data = '\n';  // silly windows
   echo_buf[echo_size++] = data;
   if (echo_size == 128) {
-    if (lfs_file_write(lfs, &file, echo_buf, echo_size) < 0) {
-      FS_ERROR("write file failed");
+    if ((errno = lfs_file_write(lfs, &file, echo_buf, echo_size)) < 0) {
+      FS_ERRORNO(errno);
     } else {
       echo_written += echo_size;
     }
@@ -535,20 +593,22 @@ static void echo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   sds path_in = sdsnew(embeddedCliGetToken(args, append ? 2 : 1));
   sds new_path = to_absolute_path(path_in);
+  int errno;
   sdsfree(path_in);
   if (!new_path) return;
   FS_DEBUG("echo %s", new_path);
-  if (lfs_file_open(lfs, &file, new_path,
-                    append ? (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_APPEND)
-                           : (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_TRUNC)) !=
+  if ((errno = lfs_file_open(
+           lfs, &file, new_path,
+           append ? (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_APPEND)
+                  : (LFS_O_CREAT | LFS_O_WRONLY | LFS_O_TRUNC))) !=
       LFS_ERR_OK) {
-    FS_ERROR("open file %s failed", new_path);
+    FS_ERRORNO(errno);
     sdsfree(new_path);
     return;
   }
   if (!append) lfs_file_truncate(lfs, &file, 0);
   sdsfree(new_path);
-  echo_buf = (char *)malloc(130);
+  echo_buf = (char *)m_alloc(130);
   echo_size = 0;
   if (!echo_buf) {
     FS_ERROR("failed to create buffer");
@@ -556,6 +616,7 @@ static void echo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   FS_PRINTLN("Input content, end with Ctrl+D:");
+  echo_written = 0;
   embeddedCliSetRawHandler(cli, echo_handler);
 }
 
@@ -573,7 +634,21 @@ static void cp_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   FS_PRINTLN("Copied %d bytes", written);
 }
 
+static sds get_basename(sds path) {
+  int len = sdslen(path);
+  int last_slash = -1;
+  for (int i = len - 1; i >= 0; i--) {
+    if (path[i] == '/') {
+      last_slash = i;
+      break;
+    }
+  }
+  if (last_slash == -1) return sdsdup(path);
+  return sdsnewlen(path + last_slash + 1, len - last_slash - 1);
+}
+
 static void mv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  int errno;
   size_t argc = embeddedCliGetTokenCount(args);
   if (argc < 2) {
     embeddedCliPrintCurrentHelp(cli);
@@ -583,36 +658,52 @@ static void mv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   sds dst_path_in = sdsnew(embeddedCliGetToken(args, 2));
   sds src_path = to_absolute_path(src_path_in);
   sds dst_path = to_absolute_path(dst_path_in);
-  sdsfree(src_path_in);
-  sdsfree(dst_path_in);
   if (!src_path || !dst_path) {
-    sdsfree(src_path);
-    sdsfree(dst_path);
-    return;
+    goto free;
+  }
+  if (strncmp(src_path, dst_path, sdslen(src_path)) == 0) {
+    FS_ERROR("destination contains source");
+    goto free;
   }
   FS_DEBUG("mv %s %s", src_path, dst_path);
-  if (lfs_rename(lfs, src_path, dst_path) != LFS_ERR_OK) {
-    FS_ERROR("rename %s to %s failed", src_path, dst_path);
+  if ((errno = lfs_rename(lfs, src_path, dst_path)) != LFS_ERR_OK) {
+    if (errno == LFS_ERR_ISDIR) {
+      sds src_basename = get_basename(src_path);
+      if (dst_path[sdslen(dst_path) - 1] != '/') {
+        dst_path = sdscat(dst_path, "/");
+      }
+      dst_path = sdscat(dst_path, src_basename);
+      sdsfree(src_basename);
+      if ((errno = lfs_rename(lfs, src_path, dst_path)) != LFS_ERR_OK) {
+        FS_ERRORNO(errno);
+      }
+    } else {
+      FS_ERRORNO(errno);
+    }
   }
+free:
   sdsfree(src_path);
   sdsfree(dst_path);
-  FS_PRINTLN("File moved");
+  sdsfree(src_path_in);
+  sdsfree(dst_path_in);
+  return;
 }
 
 static void format_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   int argc = embeddedCliGetTokenCount(args);
+  int errno;
   if (argc < 1 || !embeddedCliCheckToken(args, "-y", 1)) {
     FS_ERROR("add -y to confirm");
     return;
   }
   const struct lfs_config *cfg = lfs->cfg;
   lfs_unmount(lfs);
-  if (lfs_format(lfs, cfg) != LFS_ERR_OK) {
-    FS_ERROR("format failed");
+  if ((errno = lfs_format(lfs, cfg)) != LFS_ERR_OK) {
+    FS_ERRORNO(errno);
     return;
   }
-  if (lfs_mount(lfs, cfg) != LFS_ERR_OK) {
-    FS_ERROR("re-mount failed");
+  if ((errno = lfs_mount(lfs, cfg)) != LFS_ERR_OK) {
+    FS_ERRORNO(errno);
     return;
   }
   FS_PRINTLN("File system formatted");
@@ -633,12 +724,10 @@ int y_receive_nanme_size_callback(void **ptr, char *file_name,
     y_file_name = to_absolute_path(path_in);
     sdsfree(path_in);
     if (!y_file_name) return -1;
-  }
-  if (lfs_file_open(lfs, &file, y_file_name,
-                    LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC) < 0) {
-    sdsfree(y_file_name);
-    y_file_name = NULL;
-    return -1;
+    if (lfs_file_open(lfs, &file, y_file_name,
+                      LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC) < 0) {
+      return -1;
+    }
   }
   return 0;
 }
@@ -670,6 +759,15 @@ static void ymodem_recv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     y_file_name = to_absolute_path(path_in);
     sdsfree(path_in);
     if (!y_file_name) return;
+    int errno;
+    if ((errno = lfs_file_open(lfs, &file, y_file_name,
+                               LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC)) !=
+        LFS_ERR_OK) {
+      FS_ERRORNO(errno);
+      sdsfree(y_file_name);
+      y_file_name = NULL;
+      return;
+    }
     FS_PRINTLN("Specify file: %s", y_file_name);
   }
   FS_PRINTLN("YModem receive started, hit Ctrl+C to cancel");
@@ -682,6 +780,7 @@ static void ymodem_recv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   } else {
     FS_PRINTLN("YModem receive finished, file saved to %s", y_file_name);
   }
+  sdsfree(y_file_name);
   y_file_name = NULL;
 }
 
@@ -771,7 +870,8 @@ void FSUtils_AddCmdToCli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   static CliCommandBinding echo_cmd = {
       .name = "echo",
       .usage =
-          "echo [-a append | -iN insert at line N | -dN delete line N] <file>",
+          "echo [-a append | -iN insert at line N | -dN delete line N] "
+          "<file>",
       .help = "Write content to file or do limited editing",
       .context = NULL,
       .autoTokenizeArgs = 1,

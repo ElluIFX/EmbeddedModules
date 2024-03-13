@@ -554,6 +554,7 @@ static void historyRemove(CliHistory *history, const char *str);
  * @return index of first char of specified token
  */
 static uint16_t getTokenPosition(const char *tokenizedStr, uint16_t pos);
+static uint16_t getPositivePos(const char *tokenizedStr, int16_t pos);
 
 EmbeddedCliConfig *embeddedCliDefaultConfig(void) {
   defaultConfig.rxBufferSize = 64;
@@ -926,8 +927,9 @@ void embeddedCliTokenizeArgs(char *args) {
   args[insertPos + 1] = '\0';
 }
 
-const char *embeddedCliGetToken(const char *tokenizedStr, uint16_t pos) {
-  uint16_t i = getTokenPosition(tokenizedStr, pos);
+const char *embeddedCliGetToken(const char *tokenizedStr, int16_t pos) {
+  uint16_t i =
+      getTokenPosition(tokenizedStr, getPositivePos(tokenizedStr, pos));
 
   if (i != CLI_TOKEN_NPOS)
     return &tokenizedStr[i];
@@ -935,8 +937,9 @@ const char *embeddedCliGetToken(const char *tokenizedStr, uint16_t pos) {
     return NULL;
 }
 
-char *embeddedCliGetTokenVariable(char *tokenizedStr, uint16_t pos) {
-  uint16_t i = getTokenPosition(tokenizedStr, pos);
+char *embeddedCliGetTokenVariable(char *tokenizedStr, int16_t pos) {
+  uint16_t i =
+      getTokenPosition(tokenizedStr, getPositivePos(tokenizedStr, pos));
 
   if (i != CLI_TOKEN_NPOS)
     return &tokenizedStr[i];
@@ -952,19 +955,23 @@ void embeddedCliPrintCurrentHelp(EmbeddedCli *cli) {
 }
 
 bool embeddedCliCheckToken(const char *tokenizedStr, const char *token,
-                           uint16_t pos) {
-  return strcmp(embeddedCliGetToken(tokenizedStr, pos), token) == 0;
+                           int16_t pos) {
+  return strcmp(embeddedCliGetToken(tokenizedStr,
+                                    getPositivePos(tokenizedStr, pos)),
+                token) == 0;
 }
 
 bool embeddedCliCheckTokenStartswith(const char *tokenizedStr,
-                                     const char *token, uint16_t pos) {
-  return strncmp(embeddedCliGetToken(tokenizedStr, pos), token,
-                 strlen(token)) == 0;
+                                     const char *token, int16_t pos) {
+  return strncmp(embeddedCliGetToken(tokenizedStr,
+                                     getPositivePos(tokenizedStr, pos)),
+                 token, strlen(token)) == 0;
 }
 
 bool embeddedCliCheckTokenEndswith(const char *tokenizedStr, const char *token,
-                                   uint16_t pos) {
-  const char *t = embeddedCliGetToken(tokenizedStr, pos);
+                                   int16_t pos) {
+  const char *t =
+      embeddedCliGetToken(tokenizedStr, getPositivePos(tokenizedStr, pos));
   return strcmp(t + strlen(t) - strlen(token), token) == 0;
 }
 
@@ -1298,7 +1305,7 @@ static void onHelp(EmbeddedCli *cli, char *tokens, void *context) {
       printBindingHelp(cli, &impl->bindings[i]);
     }
     writeToOutputColor(cli,
-                       " > Use \"help [cmd]\" or \"[cmd] -h\" for more info",
+                       " Tips: use \"help [cmd]\" or \"[cmd] -h\" for more info",
                        CLI_HELP_HEADER_COLOR);
     writeToOutput(cli, lineBreak);
   } else if (tokenCount == 1) {
@@ -1629,6 +1636,12 @@ static void historyRemove(CliHistory *history, const char *str) {
       (size_t)(history->bufferSize - (item + len + 1 - history->buf));
   // move everything to the right of found item
   memmove(item, &item[len + 1], remaining);
+}
+
+static uint16_t getPositivePos(const char *tokenizedStr, int16_t pos) {
+  if (pos < 0) pos = embeddedCliGetTokenCount(tokenizedStr) + pos + 1;
+  if (pos < 1) pos = 1;
+  return (uint16_t)pos;
 }
 
 static uint16_t getTokenPosition(const char *tokenizedStr, uint16_t pos) {

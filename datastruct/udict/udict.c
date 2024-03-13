@@ -25,7 +25,7 @@
 #if !MOD_CFG_USE_OS_NONE
 #define UDICT_LOCK()                                    \
   {                                                     \
-    if (!dict->mutex) dict->mutex = MOD_MUTEX_CREATE(); \
+    if (!dict->mutex) dict->mutex = MOD_MUTEX_CREATE("udict"); \
     MOD_MUTEX_ACQUIRE(dict->mutex);                     \
   }
 #define UDICT_UNLOCK() \
@@ -83,7 +83,7 @@ bool udict_init(UDICT dict) {
   dict->iter = 0;
   dict->dyn = false;
 #if !MOD_CFG_USE_OS_NONE
-  dict->mutex = MOD_MUTEX_CREATE();
+  dict->mutex = MOD_MUTEX_CREATE("udict");
 #endif
   return true;
 }

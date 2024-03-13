@@ -89,7 +89,7 @@ uint8_t Sch_CreateEvent(const char *name, event_func_t callback,
   return ulist_append_copy(&eventlist, &event);
 }
 
-__STATIC_INLINE scheduler_event_t *get_event(const char *name) {
+__STATIC_INLINE scheduler_event_t *find_event(const char *name) {
   if (eventlist.num == 0) return NULL;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) {
@@ -100,14 +100,14 @@ __STATIC_INLINE scheduler_event_t *get_event(const char *name) {
 }
 
 uint8_t Sch_DeleteEvent(const char *name) {
-  scheduler_event_t *event = get_event(name);
+  scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   ulist_remove(&eventlist, event);
   return 1;
 }
 
 uint8_t Sch_SetEventEnabled(const char *name, uint8_t enable) {
-  scheduler_event_t *event = get_event(name);
+  scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   event->enable = enable;
   return 1;
@@ -115,7 +115,7 @@ uint8_t Sch_SetEventEnabled(const char *name, uint8_t enable) {
 
 uint8_t Sch_TriggerEvent(const char *name, uint8_t arg_type, void *arg_ptr,
                          size_t arg_size) {
-  scheduler_event_t *event = get_event(name);
+  scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   if (!event->enable) return 0;
   scheduler_triggered_event_t triggered = {.task = event->task,
@@ -137,7 +137,7 @@ uint8_t Sch_TriggerEvent(const char *name, uint8_t arg_type, void *arg_ptr,
 
 uint8_t Sch_TriggerEventEx(const char *name, uint8_t arg_type,
                            const void *arg_ptr, size_t arg_size) {
-  scheduler_event_t *event = get_event(name);
+  scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   if (!event->enable) return 0;
   void *args = m_alloc(arg_size);
@@ -158,11 +158,11 @@ uint8_t Sch_TriggerEventEx(const char *name, uint8_t arg_type,
 }
 
 uint8_t Sch_IsEventExist(const char *name) {
-  return get_event(name) == NULL ? 0 : 1;
+  return find_event(name) == NULL ? 0 : 1;
 }
 
 uint8_t Sch_GetEventEnabled(const char *name) {
-  scheduler_event_t *event = get_event(name);
+  scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   return event->enable;
 }
@@ -269,8 +269,15 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   if (embeddedCliCheckToken(args, "-l", 1)) {
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Events list:" T_FMT(T_RESET, T_GREEN));
+    uint16_t max_len = 0;
+    uint16_t temp;
     ulist_foreach(&eventlist, scheduler_event_t, event) {
-      LOG_RAWLN("  %s: %p en:%d", event->name, event->task, event->enable);
+      temp = strlen(event->name);
+      if (temp > max_len) max_len = temp;
+    }
+    ulist_foreach(&eventlist, scheduler_event_t, event) {
+      LOG_RAWLN("  %-*s | entry:%p en:%d", max_len, event->name, event->task,
+                event->enable);
     }
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d events" T_RST, eventlist.num);
     return;

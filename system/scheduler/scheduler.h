@@ -30,6 +30,7 @@ extern "C" {
 #define SCH_CFG_COMP_RANGE_US 1000  // 任务调度自动补偿范围(us)
 #define SCH_CFG_STATIC_NAME 1       // 是否使用静态标识名
 #define SCH_CFG_STATIC_NAME_LEN 16  // 静态标识名长度
+#define SCH_CFG_PRI_ORDER_ASC 1  // 优先级升序排序(升序:值大的优先级高)
 
 #define SCH_CFG_DEBUG_REPORT 1  // 输出调度器统计信息(调试模式/低性能)
 #define SCH_CFG_DEBUG_PERIOD 5  // 调试报告打印周期(s)(超过10s的值可能导致溢出)

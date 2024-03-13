@@ -175,29 +175,37 @@ typedef int64_t m_time_t;
 #endif
 
 #if MOD_CFG_USE_OS_NONE  // none
-#define MOD_MUTEX_HANDLE void*
-#define MOD_MUTEX_CREATE() (NULL)
-#define MOD_MUTEX_ACQUIRE(mutex) ((void)0)
-#define MOD_MUTEX_RELEASE(mutex) ((void)0)
+#define MOD_MUTEX_HANDLE uint8_t
+#define MOD_MUTEX_CREATE(name) (0)
+#define MOD_MUTEX_ACQUIRE(mutex) \
+  do {                           \
+    while (mutex)                \
+      ;                          \
+    mutex = 1                    \
+  } while (0)
+#define MOD_MUTEX_RELEASE(mutex) \
+  do {                           \
+    mutex = 0                    \
+  } while (0)
 #define MOD_MUTEX_FREE(mutex) ((void)0)
 #elif MOD_CFG_USE_OS_KLITE  // klite
 #include "kernel.h"
 #define MOD_MUTEX_HANDLE mutex_t
-#define MOD_MUTEX_CREATE() mutex_create()
+#define MOD_MUTEX_CREATE(name) mutex_create()
 #define MOD_MUTEX_ACQUIRE(mutex) mutex_lock(mutex)
 #define MOD_MUTEX_RELEASE(mutex) mutex_unlock(mutex)
 #define MOD_MUTEX_FREE(mutex) mutex_delete(mutex)
 #elif MOD_CFG_USE_OS_FREERTOS  // freertos
 #include "FreeRTOS.h"
 #define MOD_MUTEX_HANDLE SemaphoreHandle_t
-#define MOD_MUTEX_CREATE() xSemaphoreCreateMutex()
+#define MOD_MUTEX_CREATE(name) xSemaphoreCreateMutex()
 #define MOD_MUTEX_ACQUIRE(mutex) xSemaphoreTake(mutex, portMAX_DELAY)
 #define MOD_MUTEX_RELEASE(mutex) xSemaphoreGive(mutex)
 #define MOD_MUTEX_FREE(mutex) vSemaphoreDelete(mutex)
 #elif MOD_CFG_USE_OS_RTT  // rtthread
 #include "rtthread.h"
 #define MOD_MUTEX_HANDLE rt_mutex_t
-#define MOD_MUTEX_CREATE() rt_mutex_create("mod_mutex", RT_IPC_FLAG_PRIO)
+#define MOD_MUTEX_CREATE(name) rt_mutex_create(name, RT_IPC_FLAG_PRIO)
 #define MOD_MUTEX_ACQUIRE(mutex) rt_mutex_take(mutex, RT_WAITING_FOREVER)
 #define MOD_MUTEX_RELEASE(mutex) rt_mutex_release(mutex)
 #define MOD_MUTEX_FREE(mutex) rt_mutex_delete(mutex)

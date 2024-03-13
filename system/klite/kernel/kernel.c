@@ -32,7 +32,7 @@
 #define KERNEL_VERSION_CODE MAKE_VERSION_CODE(5, 1, 0)
 
 static uint64_t m_tick_count;
-static thread_t m_idle_thread;
+thread_t m_idle_thread;
 void* kernel_heap_addr;
 
 void kernel_init(void* heap_addr, uint32_t heap_size) {

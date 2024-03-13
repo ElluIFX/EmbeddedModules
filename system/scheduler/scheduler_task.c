@@ -33,12 +33,16 @@ static ulist_t tasklist = {.data = NULL,
 static scheduler_task_t *pending_task = NULL;
 
 static int taskcmp(const void *a, const void *b) {
-  uint8_t priority1 = ((scheduler_task_t *)a)->priority;
-  uint8_t priority2 = ((scheduler_task_t *)b)->priority;
+  int priority1 = ((scheduler_task_t *)a)->priority;
+  int priority2 = ((scheduler_task_t *)b)->priority;
+#if SCH_CFG_PRI_ORDER_ASC
   return priority2 - priority1;  // 高优先级在前
+#else
+  return priority1 - priority2;  // 低优先级在前
+#endif
 }
 
-static scheduler_task_t *get_task(const char *name) {
+static scheduler_task_t *find_task(const char *name) {
   ulist_foreach(&tasklist, scheduler_task_t, task) {
     if (fast_strcmp(task->name, name)) return task;
   }
@@ -114,23 +118,23 @@ uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
 }
 
 uint8_t Sch_DeleteTask(const char *name) {
-  scheduler_task_t *p = get_task(name);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   ulist_remove(&tasklist, p);
   pending_task = get_next_task();
   return 1;
 }
 
-uint8_t Sch_IsTaskExist(const char *name) { return get_task(name) != NULL; }
+uint8_t Sch_IsTaskExist(const char *name) { return find_task(name) != NULL; }
 
 uint8_t Sch_GetTaskEnabled(const char *name) {
-  scheduler_task_t *p = get_task(name);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   return p->enable;
 }
 
 uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority) {
-  scheduler_task_t *p = get_task(name);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->priority = priority;
   resort_task();
@@ -139,14 +143,14 @@ uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority) {
 }
 
 uint8_t Sch_SetTaskArgs(const char *name, void *args) {
-  scheduler_task_t *p = get_task(name);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->args = args;
   return 1;
 }
 
 uint8_t Sch_DelayTask(const char *name, uint64_t delayUs, uint8_t fromNow) {
-  scheduler_task_t *p = get_task(name);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   if (fromNow)
     p->pendTime = us_to_tick(delayUs) + get_sys_tick();
@@ -159,7 +163,7 @@ uint8_t Sch_DelayTask(const char *name, uint64_t delayUs, uint8_t fromNow) {
 uint16_t Sch_GetTaskNum(void) { return tasklist.num; }
 
 uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable) {
-  scheduler_task_t *p = get_task(name);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->enable = enable;
   if (p->enable) p->pendTime = get_sys_tick();
@@ -168,7 +172,7 @@ uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable) {
 }
 
 uint8_t Sch_SetTaskFreq(const char *name, float freqHz) {
-  scheduler_task_t *p = get_task(name);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->period = (double)get_sys_freq() / (double)freqHz;
   if (!p->period) p->period = 1;
@@ -276,10 +280,16 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   if (embeddedCliCheckToken(args, "-l", 1)) {
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Tasks list:" T_FMT(T_RESET, T_GREEN));
+    uint16_t max_len = 0;
+    uint16_t temp;
     ulist_foreach(&tasklist, scheduler_task_t, task) {
-      LOG_RAWLN("  %s: %p pri:%d freq:%.1f en:%d", task->name, task->task,
-                task->priority, (float)get_sys_freq() / task->period,
-                task->enable);
+      temp = strlen(task->name);
+      if (temp > max_len) max_len = temp;
+    }
+    ulist_foreach(&tasklist, scheduler_task_t, task) {
+      LOG_RAWLN("  %-*s | entry:%p pri:%d en:%d freq:%.1f", max_len, task->name,
+                task->task, task->priority, task->enable,
+                (float)get_sys_freq() / task->period);
     }
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d tasks" T_RST, tasklist.num);
     return;
@@ -288,8 +298,8 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task name is required" T_RST);
     return;
   }
-  const char *name = embeddedCliGetToken(args, 2);
-  scheduler_task_t *p = get_task(name);
+  const char *name = embeddedCliGetToken(args, -1);
+  scheduler_task_t *p = find_task(name);
   if (p == NULL) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Task: %s not found" T_RST, name);
     return;
@@ -308,7 +318,11 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Frequency is required" T_RST);
       return;
     }
-    float freq = atof(embeddedCliGetToken(args, 3));
+    float freq = atof(embeddedCliGetToken(args, 2));
+    if (freq < 0.00001) {
+      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Frequency too low" T_RST);
+      return;
+    }
     Sch_SetTaskFreq(name, freq);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task: %s frequency set to %.2fHz" T_RST,
               name, freq);
@@ -317,7 +331,7 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
       return;
     }
-    uint8_t pri = atoi(embeddedCliGetToken(args, 3));
+    uint8_t pri = atoi(embeddedCliGetToken(args, 2));
     Sch_SetTaskPriority(name, pri);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Task: %s priority set to %d" T_RST, name,
               pri);

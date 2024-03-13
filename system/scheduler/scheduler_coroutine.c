@@ -144,7 +144,7 @@ uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args) {
   return 1;
 }
 
-static scheduler_cortn_t *get_cortn(const char *name) {
+static scheduler_cortn_t *find_cortn(const char *name) {
   if (cortnlist.num == 0) return NULL;
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (fast_strcmp(cortn->name, name)) {
@@ -154,7 +154,7 @@ static scheduler_cortn_t *get_cortn(const char *name) {
   return NULL;
 }
 
-static scheduler_cortn_t *get_cortn_by_handle(__cortn_handle_t *handle) {
+static scheduler_cortn_t *find_cortn_by_handle(__cortn_handle_t *handle) {
   if (cortnlist.num == 0) return NULL;
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (&cortn->hd == handle) {
@@ -165,7 +165,7 @@ static scheduler_cortn_t *get_cortn_by_handle(__cortn_handle_t *handle) {
 }
 
 uint8_t Sch_StopCortn(const char *name) {
-  scheduler_cortn_t *cortn = get_cortn(name);
+  scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   // 不允许在协程中删除自身
   if (cortn_handle_now == &cortn->hd) return 0;
@@ -179,17 +179,19 @@ uint8_t Sch_StopCortn(const char *name) {
 
 uint16_t Sch_GetCortnNum(void) { return cortnlist.num; }
 
-uint8_t Sch_IsCortnRunning(const char *name) { return get_cortn(name) != NULL; }
+uint8_t Sch_IsCortnRunning(const char *name) {
+  return find_cortn(name) != NULL;
+}
 
 uint8_t Sch_IsCortnWaitingMsg(const char *name) {
-  scheduler_cortn_t *cortn = get_cortn(name);
+  scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
   return cortn->hd.state == _CR_STATE_AWAITING;
 }
 
 uint8_t Sch_SendMsgToCortn(const char *name, void *msg) {
-  scheduler_cortn_t *cortn = get_cortn(name);
+  scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
   if (msg != NULL) cortn->hd.msg = msg;
@@ -220,7 +222,7 @@ _INLINE void *__Internal_InitLocal(size_t size) {
       return NULL;
     memset(cortn_handle_now->data[cortn_handle_now->runDepth].local, 0, size);
 #if SCH_CFG_DEBUG_REPORT
-    scheduler_cortn_t *cortn = get_cortn_by_handle(cortn_handle_now);
+    scheduler_cortn_t *cortn = find_cortn_by_handle(cortn_handle_now);
     if (cortn != NULL) {
       cortn->stack_size += size;
       cortn->last_stack = size;
@@ -266,7 +268,7 @@ _INLINE uint8_t __Internal_AwaitReturn(void) {
     m_free(cortn_handle_now->data[cortn_handle_now->runDepth + 1].local);
     cortn_handle_now->data[cortn_handle_now->runDepth + 1].local = NULL;
 #if SCH_CFG_DEBUG_REPORT
-    scheduler_cortn_t *cortn = get_cortn_by_handle(cortn_handle_now);
+    scheduler_cortn_t *cortn = find_cortn_by_handle(cortn_handle_now);
     if (cortn != NULL) {
       cortn->stack_size -= cortn->last_stack;
       cortn->last_stack = 0;
@@ -347,7 +349,7 @@ _INLINE void __Internal_ReleaseMutex(const char *name) {
   do {
     if (mutex->waitlist.num) {  // 等待队列不为空, 唤醒第一个协程
       const char **ptr = ulist_get(&mutex->waitlist, 0);
-      cortn = get_cortn(*ptr);
+      cortn = find_cortn(*ptr);
       if (cortn != NULL) cortn->hd.state = _CR_STATE_READY;
       ulist_delete(&mutex->waitlist, 0);
     } else {  // 等待队列为空, 释放锁
@@ -377,7 +379,7 @@ _STATIC_INLINE void release_barrier(scheduler_cortn_barrier_t *barrier) {
   scheduler_cortn_t *cortn;
   if (barrier->waitlist.num) {  // 等待队列不为空, 唤醒所有协程
     ulist_foreach(&barrier->waitlist, const char *, ptr) {
-      cortn = get_cortn(*ptr);
+      cortn = find_cortn(*ptr);
       if (cortn == NULL) continue;
       cortn->hd.state = _CR_STATE_READY;
     }
@@ -520,9 +522,16 @@ void cortn_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   if (embeddedCliCheckToken(args, "-l", 1)) {
     LOG_RAWLN(
         T_FMT(T_BOLD, T_GREEN) "Coroutines list:" T_FMT(T_RESET, T_GREEN));
+    uint16_t max_len = 0;
+    uint16_t temp;
     ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
-      LOG_RAWLN("  %s: %p depth:%d state:%s", cortn->name, cortn->task,
-                cortn->hd.actDepth, get_cortn_state_str(cortn->hd.state));
+      temp = strlen(cortn->name);
+      if (temp > max_len) max_len = temp;
+    }
+    ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
+      LOG_RAWLN("  %-*s | entry:%p depth:%d state:%s", max_len, cortn->name,
+                cortn->task, cortn->hd.actDepth,
+                get_cortn_state_str(cortn->hd.state));
     }
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d coroutines" T_RST,
               cortnlist.num);
@@ -544,9 +553,9 @@ void cortn_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Coroutine: %s not found" T_RST, name);
     return;
   }
-  if (embeddedCliCheckToken(args, "-s", 1)) {
+  if (embeddedCliCheckToken(args, "-k", 1)) {
     Sch_StopCortn(name);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Coroutine: %s stopped" T_RST, name);
+    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Coroutine: %s killed" T_RST, name);
   } else {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }

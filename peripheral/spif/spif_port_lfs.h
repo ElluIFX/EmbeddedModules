@@ -94,7 +94,7 @@ static const struct lfs_config cfg = {
 
 static bool spif_init_lfs(void) {
 #if LFS_THREADSAFE
-  lfs_mutex = MOD_MUTEX_CREATE();
+  lfs_mutex = MOD_MUTEX_CREATE("lfs");
 #endif
   if (!SPIF_Init(&hspif, &hspi2, FLASH_CS_GPIO_Port, FLASH_CS_Pin)) {
     LOG_ERROR("SPIF Driver Init Failed");

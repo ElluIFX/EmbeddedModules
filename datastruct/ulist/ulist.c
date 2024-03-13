@@ -36,7 +36,7 @@
 #define ULIST_LOCK()                                      \
   {                                                       \
     if (!(list->cfg & ULIST_CFG_NO_MUTEX)) {              \
-      if (!list->mutex) list->mutex = MOD_MUTEX_CREATE(); \
+      if (!list->mutex) list->mutex = MOD_MUTEX_CREATE("ulist"); \
       MOD_MUTEX_ACQUIRE(list->mutex);                     \
     }                                                     \
   }
@@ -195,7 +195,7 @@ bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
   }
 #if !MOD_CFG_USE_OS_NONE
   if (!(list->cfg & ULIST_CFG_NO_MUTEX))
-    list->mutex = MOD_MUTEX_CREATE();
+    list->mutex = MOD_MUTEX_CREATE("ulist");
   else
     list->mutex = NULL;
 #endif

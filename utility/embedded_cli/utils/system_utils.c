@@ -91,7 +91,7 @@ static void list_klite(void) {
   TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
   TT_ITEM_GRID_LINE line =
       TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-  const char *head[] = {"ID", "Pri", "Entry", "AvgUsage", "Stack", "Free"};
+  const char *head[] = {"ID", "Pri", "Entry", "Avg Usage", "Stack Avail"};
   for (int i = 0; i < sizeof(head) / sizeof(char *); i++)
     TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head[i]));
   int i = 0;
@@ -105,10 +105,12 @@ static void list_klite(void) {
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", i));
     TT_GridLine_AddItem(
         line, TT_FmtStr(al, f1, f2, "%d", thread_get_priority(thread)));
-    TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%p", thread->entry));
+    if (thread_get_priority(thread) == 0)
+      TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "Idle"));
+    else
+      TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%p", thread->entry));
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.4f%%", usage * 100));
-    TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", ssize));
-    TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", sfree));
+    TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d / %d", sfree, ssize));
     i++;
   }
   TT_AddSeparator(tt, TT_FMT1_GREEN, TT_FMT2_BOLD, '-');
@@ -130,13 +132,17 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Thread ID is required" T_RST);
     return;
   }
-  int id = atoi(embeddedCliGetToken(args, 2));
+  int id = atoi(embeddedCliGetToken(args, -1));
   thread_t *thread_p = (thread_t *)ulist_get(thread_list, id);
   if (!thread_p) {
     LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);
     return;
   }
   if (embeddedCliCheckToken(args, "-s", 1)) {
+    if (thread_get_priority(*thread_p) == 0) {
+      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Cannot suspend idle thread" T_RST);
+      return;
+    }
     thread_suspend(*thread_p);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Thread %d suspended" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
@@ -150,7 +156,7 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
       return;
     }
-    int pri = atoi(embeddedCliGetToken(args, 3));
+    int pri = atoi(embeddedCliGetToken(args, 2));
     if (pri < 0 || pri >= __THREAD_PRIORITY_MAX__) {
       LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority must be 0-%d",
                 __THREAD_PRIORITY_MAX__ - 1);
@@ -358,8 +364,8 @@ void SystemUtils_AddCmdToCli(EmbeddedCli *cli) {
   static CliCommandBinding klite_cmd = {
       .name = "klite",
       .usage =
-          "klite [-l list | -s suspend | -r resume | -d delete | -p priority] "
-          "[thread id] [priority]",
+          "klite [-l list | -s suspend | -r resume | -d delete | -p priority]"
+          " [priority] <thread id>",
       .help = "KLite RTOS control command",
       .context = NULL,
       .autoTokenizeArgs = 1,

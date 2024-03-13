@@ -302,7 +302,7 @@ void embeddedCliTokenizeArgs(char *args);
  * @param pos (counted from 1)
  * @return token
  */
-const char *embeddedCliGetToken(const char *tokenizedStr, uint16_t pos);
+const char *embeddedCliGetToken(const char *tokenizedStr, int16_t pos);
 
 /**
  * Same as embeddedCliGetToken but works on non-const buffer
@@ -310,7 +310,7 @@ const char *embeddedCliGetToken(const char *tokenizedStr, uint16_t pos);
  * @param pos (counted from 1)
  * @return token
  */
-char *embeddedCliGetTokenVariable(char *tokenizedStr, uint16_t pos);
+char *embeddedCliGetTokenVariable(char *tokenizedStr, int16_t pos);
 
 /**
  * Find token in provided tokens string and return its position (counted from 1)
@@ -347,7 +347,7 @@ uint16_t embeddedCliFindTokenEndswith(const char *tokenizedStr,
  * @return true if token is at specified position, false otherwise
  */
 bool embeddedCliCheckToken(const char *tokenizedStr, const char *token,
-                           uint16_t pos);
+                           int16_t pos);
 
 /**
  * @brief Check if tokenized string starts with specified token at specified
@@ -358,7 +358,7 @@ bool embeddedCliCheckToken(const char *tokenizedStr, const char *token,
  * @retval true if token at specified position starts with specified token
  */
 bool embeddedCliCheckTokenStartswith(const char *tokenizedStr,
-                                     const char *token, uint16_t pos);
+                                     const char *token, int16_t pos);
 
 /**
  * Check if tokenized string ends with specified token at specified position
@@ -368,7 +368,7 @@ bool embeddedCliCheckTokenStartswith(const char *tokenizedStr,
  * @retval true if token at specified position ends with specified token
  */
 bool embeddedCliCheckTokenEndswith(const char *tokenizedStr, const char *token,
-                                   uint16_t pos);
+                                   int16_t pos);
 
 /**
  * Return number of tokens in tokenized string
