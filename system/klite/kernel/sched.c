@@ -155,6 +155,26 @@ struct tcb *sched_tcb_wake_from(struct tcb_list *list) {
 void sched_switch(void) {
   struct tcb *tcb;
   tcb = m_list_ready[m_prio_highest].head->tcb;
+#if KERNEL_CFG_STACK_OVERFLOW_GUARD
+  uint8_t *stack = (uint8_t *)(tcb + 1);
+  // check 32 bytes of stack overflow magic value
+  if (*(stack + 2) != STACK_MAGIC_VALUE || *(stack + 6) != STACK_MAGIC_VALUE ||
+      *(stack + 10) != STACK_MAGIC_VALUE ||
+      *(stack + 14) != STACK_MAGIC_VALUE ||
+      *(stack + 18) != STACK_MAGIC_VALUE ||
+      *(stack + 22) != STACK_MAGIC_VALUE ||
+      *(stack + 26) != STACK_MAGIC_VALUE ||
+      *(stack + 31) != STACK_MAGIC_VALUE) {
+#if KERNEL_CFG_STACKOF_BEHAVIOR_SUSPEND
+    sched_tcb_remove(tcb);
+    tcb = m_list_ready[m_prio_highest].head->tcb;
+#elif KERNEL_CFG_STACKOF_BEHAVIOR_SYSRESET
+    NVIC_SystemReset();
+#elif KERNEL_CFG_STACKOF_BEHAVIOR_HARDFLT
+    ((void (*)(void))0x10)();
+#endif
+  }
+#endif
   list_remove(tcb->list_sched, &tcb->node_sched);
   if (tcb->list_sched->head == NULL) {
     m_prio_bitmap &= ~(1 << tcb->prio);

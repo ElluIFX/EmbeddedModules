@@ -33,11 +33,17 @@
 #include "modules.h"
 
 #if !KCONFIG_AVAILABLE
+
 #define KERNEL_CFG_FREQ 100000       // 内核时基频率(赫兹)
 #define KERNEL_CFG_HOOK_ENABLE 1     // 内核钩子使能
 #define KERNEL_CFG_HEAP_USE_BARE 0   // 使用裸机基础内存管理器
 #define KERNEL_CFG_HEAP_USE_LWMEM 0  // 使用lwmem内存管理器
 #define KERNEL_CFG_HEAP_USE_HEAP4 1  // 使用heap4内存管理器
+
+#define KERNEL_CFG_STACK_OVERFLOW_GUARD 1       // 栈溢出保护
+#define KERNEL_CFG_STACKOF_BEHAVIOR_SYSRESET 1  // 栈溢出时系统复位
+#define KERNEL_CFG_STACKOF_BEHAVIOR_SUSPEND 0   // 栈溢出时挂起线程
+#define KERNEL_CFG_STACKOF_BEHAVIOR_HARDFLT 0  // 栈溢出时访问0x10触发异常
 
 #endif
 

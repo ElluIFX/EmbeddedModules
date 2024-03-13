@@ -149,6 +149,10 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     thread_resume(*thread_p);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Thread %d resumed" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
+    if (thread_get_priority(*thread_p) == 0) {
+      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Cannot delete idle thread" T_RST);
+      return;
+    }
     thread_delete(*thread_p);
     LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Thread %d deleted" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-p", 1)) {

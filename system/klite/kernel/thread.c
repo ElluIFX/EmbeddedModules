@@ -46,7 +46,7 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
   }
   stack_base = (uint8_t *)(tcb + 1);
   memset(tcb, 0, sizeof(struct tcb));
-  memset(stack_base, 0xCC, stack_size);
+  memset(stack_base, STACK_MAGIC_VALUE, stack_size);
   tcb->prio = prio;
   tcb->stack = cpu_contex_init(stack_base, stack_base + stack_size,
                                (void *)entry, arg, (void *)thread_exit);
@@ -116,7 +116,7 @@ void thread_stack_info(thread_t thread, size_t *stack_free,
                        size_t *stack_size) {
   uint32_t free = 0;
   uint8_t *stack = (uint8_t *)(thread + 1);
-  while (*stack++ == 0xCC) free++;
+  while (*stack++ == STACK_MAGIC_VALUE) free++;
   *stack_free = free;
   *stack_size = thread->stack_size;
 }
