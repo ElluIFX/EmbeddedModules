@@ -39,17 +39,17 @@ void softint_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (argc < 2) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "2 parameters are required" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "2 parameters are required" T_RST);
     return;
   }
   uint8_t ch = atoi(embeddedCliGetToken(args, 1));
   uint8_t sub = atoi(embeddedCliGetToken(args, 2));
   if (ch > 7 || sub > 7) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "(Sub-)Channel must be 0~7" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "(Sub-)Channel must be 0~7" T_RST);
     return;
   }
   Sch_TriggerSoftInt(ch, sub);
-  LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "SoftInt: %d-%d triggered" T_RST, ch, sub);
+  PRINTLN(T_FMT(T_BOLD, T_GREEN) "SoftInt: %d-%d triggered" T_RST, ch, sub);
 }
 #endif  // SCH_CFG_ENABLE_TERMINAL
 #endif  // SCH_CFG_ENABLE_SOFTINT

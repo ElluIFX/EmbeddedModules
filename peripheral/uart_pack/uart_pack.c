@@ -88,7 +88,7 @@ void Uart_FifoTxDeInit(UART_HandleTypeDef *huart) {
     if (ctrl->huart == huart) {
       HAL_UART_DMAStop(ctrl->huart);
       HAL_UART_AbortTransmit_IT(ctrl->huart);
-      MOD_MUTEX_FREE(ctrl->mutex);
+      MOD_MUTEX_DELETE(ctrl->mutex);
       m_free(ctrl->lfbb.data);
       ulist_remove(&fifo_tx_list, ctrl);
       return;
@@ -257,12 +257,6 @@ void printft_flush(UART_HandleTypeDef *huart) {
   while (UART_CFG_NOT_READY) {
     __NOP();
   }
-}
-
-static int itm_lwprintf_fn(int ch, lwprintf_t *lwobj) {
-  if (ch == '\0') return 0;
-  ITM_SendChar(ch);
-  return ch;
 }
 
 int Uart_Send(UART_HandleTypeDef *huart, const uint8_t *data, size_t len) {
@@ -515,6 +509,12 @@ void HAL_UARTEx_TxEventCallback(UART_HandleTypeDef *huart) {
 }
 #endif  // UART_CFG_ENABLE_DMA_RX
 #endif  // UART_CFG_REWRITE_HANLDER
+
+static int itm_lwprintf_fn(int ch, lwprintf_t *lwobj) {
+  if (ch == '\0') return 0;
+  ITM_SendChar(ch);
+  return ch;
+}
 
 int ITM_Printf(const char *fmt, ...) {
   va_list ap;

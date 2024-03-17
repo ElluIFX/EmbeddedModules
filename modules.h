@@ -96,13 +96,13 @@ typedef int64_t m_time_t;
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif MOD_CFG_DELAY_MATHOD_KLITE  // klite
 #include "kernel.h"
-#define m_delay_us(x) thread_sleep((uint64_t)(x) / (1000000 / KERNEL_CFG_FREQ))
+#define m_delay_us(x) thread_sleep((uint32_t)(x) / (1000000 / KERNEL_CFG_FREQ))
 #if KERNEL_CFG_FREQ >= 1000
-#define m_delay_ms(x) thread_sleep((uint64_t)(x) * (KERNEL_CFG_FREQ / 1000))
+#define m_delay_ms(x) thread_sleep((uint32_t)(x) * (KERNEL_CFG_FREQ / 1000))
 #else
-#define m_delay_ms(x) thread_sleep((uint64_t)(x) / (1000 / KERNEL_CFG_FREQ))
+#define m_delay_ms(x) thread_sleep((uint32_t)(x) / (1000 / KERNEL_CFG_FREQ))
 #endif
-#define m_delay_s(x) thread_sleep((uint64_t)(x) * KERNEL_CFG_FREQ)
+#define m_delay_s(x) thread_sleep((uint32_t)(x) * KERNEL_CFG_FREQ)
 #elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"                // period = 1ms
 #include "task.h"
@@ -175,7 +175,7 @@ typedef int64_t m_time_t;
 #endif
 
 #if MOD_CFG_USE_OS_NONE  // none
-#define MOD_MUTEX_HANDLE uint8_t
+#define MOD_MUTEX_HANDLE volatile uint8_t
 #define MOD_MUTEX_CREATE(name) (0)
 #define MOD_MUTEX_ACQUIRE(mutex) \
   do {                           \
@@ -183,32 +183,94 @@ typedef int64_t m_time_t;
       ;                          \
     mutex = 1                    \
   } while (0)
-#define MOD_MUTEX_RELEASE(mutex) \
-  do {                           \
-    mutex = 0                    \
+static inline bool _MOD_MUTEX_TRY_ACQUIRE(MOD_MUTEX_HANDLE *mutex,
+                                          uint32_t ms) {
+  m_time_t start = m_time_ms();
+  while (*mutex) {
+    if (m_time_ms() - start > ms) {
+      return false;
+    }
+  }
+  *mutex = 1;
+  return true;
+}
+#define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) _MOD_MUTEX_TRY_ACQUIRE(&mutex, ms)
+#define MOD_MUTEX_RELEASE(mutex) mutex = 0
+#define MOD_MUTEX_DELETE(mutex) ((void)0)
+
+#define MOD_SEM_HANDLE volatile uint8_t
+#define MOD_SEM_CREATE(name, init) (init)
+#define MOD_SEM_TAKE(sem) \
+  do {                    \
+    while (!sem)          \
+      ;                   \
+    sem--                 \
   } while (0)
-#define MOD_MUTEX_FREE(mutex) ((void)0)
+static inline bool _MOD_SEM_TRY_TAKE(MOD_SEM_HANDLE *sem, uint32_t ms) {
+  m_time_t start = m_time_ms();
+  while (!*sem) {
+    if (m_time_ms() - start > ms) {
+      return false;
+    }
+  }
+  (*sem)--;
+  return true;
+}
+#define MOD_SEM_TRY_TAKE(sem, ms) _MOD_SEM_TRY_TAKE(&sem, ms)
+#define MOD_SEM_GIVE(sem) (sem++)
+#define MOD_SEM_VALUE(sem) (sem)
+#define MOD_SEM_DELETE(sem) ((void)0)
 #elif MOD_CFG_USE_OS_KLITE  // klite
 #include "kernel.h"
 #define MOD_MUTEX_HANDLE mutex_t
 #define MOD_MUTEX_CREATE(name) mutex_create()
 #define MOD_MUTEX_ACQUIRE(mutex) mutex_lock(mutex)
+#define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
+  mutex_timed_lock(mutex, kernel_ms_to_ticks(ms))
 #define MOD_MUTEX_RELEASE(mutex) mutex_unlock(mutex)
-#define MOD_MUTEX_FREE(mutex) mutex_delete(mutex)
+#define MOD_MUTEX_DELETE(mutex) mutex_delete(mutex)
+
+#define MOD_SEM_HANDLE sem_t
+#define MOD_SEM_CREATE(name, init) sem_create(init)
+#define MOD_SEM_TAKE(sem) sem_wait(sem)
+#define MOD_SEM_TRY_TAKE(sem, ms) sem_timed_wait(sem, kernel_ms_to_ticks(ms))
+#define MOD_SEM_GIVE(sem) sem_post(sem)
+#define MOD_SEM_VALUE(sem) sem_value(sem)
+#define MOD_SEM_DELETE(sem) sem_delete(sem)
 #elif MOD_CFG_USE_OS_FREERTOS  // freertos
 #include "FreeRTOS.h"
 #define MOD_MUTEX_HANDLE SemaphoreHandle_t
 #define MOD_MUTEX_CREATE(name) xSemaphoreCreateMutex()
 #define MOD_MUTEX_ACQUIRE(mutex) xSemaphoreTake(mutex, portMAX_DELAY)
+#define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
+  xSemaphoreTake(mutex, pdMS_TO_TICKS(ms))
 #define MOD_MUTEX_RELEASE(mutex) xSemaphoreGive(mutex)
-#define MOD_MUTEX_FREE(mutex) vSemaphoreDelete(mutex)
+#define MOD_MUTEX_DELETE(mutex) vSemaphoreDelete(mutex)
+
+#define MOD_SEM_HANDLE SemaphoreHandle_t
+#define MOD_SEM_CREATE(name, init) xSemaphoreCreateCounting(0xFFFF, init)
+#define MOD_SEM_TAKE(sem) xSemaphoreTake(sem, portMAX_DELAY)
+#define MOD_SEM_TRY_TAKE(sem, ms) xSemaphoreTake(sem, pdMS_TO_TICKS(ms))
+#define MOD_SEM_GIVE(sem) xSemaphoreGive(sem)
+#define MOD_SEM_VALUE(sem) uxSemaphoreGetCount(sem)
+#define MOD_SEM_DELETE(sem) vSemaphoreDelete(sem)
 #elif MOD_CFG_USE_OS_RTT  // rtthread
 #include "rtthread.h"
 #define MOD_MUTEX_HANDLE rt_mutex_t
 #define MOD_MUTEX_CREATE(name) rt_mutex_create(name, RT_IPC_FLAG_PRIO)
 #define MOD_MUTEX_ACQUIRE(mutex) rt_mutex_take(mutex, RT_WAITING_FOREVER)
+#define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
+  rt_mutex_take(mutex, rt_tick_from_millisecond(ms))
 #define MOD_MUTEX_RELEASE(mutex) rt_mutex_release(mutex)
-#define MOD_MUTEX_FREE(mutex) rt_mutex_delete(mutex)
+#define MOD_MUTEX_DELETE(mutex) rt_mutex_delete(mutex)
+
+#define MOD_SEM_HANDLE rt_sem_t
+#define MOD_SEM_CREATE(name, init) rt_sem_create(name, init, RT_IPC_FLAG_PRIO)
+#define MOD_SEM_TAKE(sem) rt_sem_take(sem, RT_WAITING_FOREVER)
+#define MOD_SEM_TRY_TAKE(sem, ms) rt_sem_take(sem, rt_tick_from_millisecond(ms))
+#define MOD_SEM_GIVE(sem) rt_sem_release(sem)
+#define MOD_SEM_VALUE(sem) rt_sem_get(sem)
+#define MOD_SEM_DELETE(sem) rt_sem_delete(sem)
 #else
 #error "MOD_CFG_USE_OS invalid"
 #endif

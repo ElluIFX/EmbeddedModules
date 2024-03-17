@@ -15,8 +15,8 @@
 
 // Private Defines --------------------------
 
-#define FS_PRINTLN(...) LOG_RAWLN(__VA_ARGS__)
-#define FS_PRINT(...) LOG_RAW(__VA_ARGS__)
+#define FS_PRINTLN(...) PRINTLN(__VA_ARGS__)
+#define FS_PRINT(...) PRINT(__VA_ARGS__)
 
 #if FS_ENABLE_DEBUG
 #define FS_DEBUG(...) LOG_DEBUG(__VA_ARGS__)
@@ -86,12 +86,11 @@ static const char *get_error(int errno) {
 }
 
 #define FS_ERROR(fmt, ...) \
-  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: " fmt T_RST, ##__VA_ARGS__)
+  PRINTLN(T_FMT(ERROR_COLOR) "error: " fmt T_RST, ##__VA_ARGS__)
 #define FS_ERRORNO(errno) \
-  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: %s" T_RST, get_error(errno))
-#define FS_ERRORNOP(errno, path)                                             \
-  LOG_RAWLN(T_FMT(ERROR_COLOR) "error: %s (for %s)" T_RST, get_error(errno), \
-            path)
+  PRINTLN(T_FMT(ERROR_COLOR) "error: %s" T_RST, get_error(errno))
+#define FS_ERRORNOP(errno, path) \
+  PRINTLN(T_FMT(ERROR_COLOR) "error: %s (for %s)" T_RST, get_error(errno), path)
 
 static sds to_absolute_path(sds path_in) {
   if (!path_in) return NULL;
@@ -504,7 +503,7 @@ static void cat_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       if (rdbuf[i] == '\n') {
         linebuf[line_idx] = '\0';
         if (!header_printed) {
-          FS_PRINT(T_FMT(T_GREEN) "%03d| " T_RST, line_no++);
+          FS_PRINT(T_FMT(T_GREEN) "%04d|" T_RST, line_no++);
           header_printed = true;
         }
         FS_PRINTLN("%s", linebuf);
@@ -518,7 +517,7 @@ static void cat_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       if (line_idx >= max_width) {
         linebuf[line_idx] = '\0';
         if (!header_printed) {
-          FS_PRINT(T_FMT(T_GREEN) "%03d| " T_RST, line_no++);
+          FS_PRINT(T_FMT(T_GREEN) "%04d|" T_RST, line_no++);
           FS_PRINTLN("%s", linebuf);
           FS_PRINT(T_FMT(T_GREEN) "   | " T_RST);
           header_printed = true;
@@ -528,7 +527,7 @@ static void cat_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     }
   }
   if (!header_printed) {
-    FS_PRINT(T_FMT(T_GREEN) "%03d| " T_RST, line_no++);
+    FS_PRINT(T_FMT(T_GREEN) "%04d|" T_RST, line_no++);
     header_printed = true;
   }
   if (line_idx) {
@@ -540,14 +539,78 @@ static void cat_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   lfs_file_close(lfs, &file);
 }
 
+static void hexdump_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  size_t argc = embeddedCliGetTokenCount(args);
+  int width = 8;
+  if (argc < 1) {
+    embeddedCliPrintCurrentHelp(cli);
+    return;
+  } else if (embeddedCliCheckToken(args, "-w", 1)) {
+    if (argc < 3) {
+      embeddedCliPrintCurrentHelp(cli);
+      return;
+    }
+    width = atoi(embeddedCliGetToken(args, 2));
+    width = width > 0 ? width : 16;
+    width = width < 128 ? width : 128;
+  }
+  sds path_in = sdsnew(embeddedCliGetToken(args, -1));
+  sds new_path = to_absolute_path(path_in);
+  int errno;
+  sdsfree(path_in);
+  if (!new_path) return;
+  FS_DEBUG("hexdump %s", new_path);
+  if ((errno = lfs_file_open(lfs, &file, new_path, LFS_O_RDONLY)) !=
+      LFS_ERR_OK) {
+    FS_ERRORNO(errno);
+    sdsfree(new_path);
+    return;
+  }
+  FS_PRINTLN("FILE: %s", new_path);
+  sdsfree(new_path);
+  char *rdbuf = (char *)m_alloc(width);
+  if (!rdbuf) {
+    FS_ERROR("failed to allocate buffer");
+    lfs_file_close(lfs, &file);
+    return;
+  }
+  int pos = 0;
+  while (1) {
+    int n = lfs_file_read(lfs, &file, rdbuf, width);
+    if (n < 0) {
+      FS_ERRORNO(n);
+      break;
+    }
+    if (n == 0) break;
+    FS_PRINT(T_FMT(T_GREEN) "0x%04X " T_RST, pos);
+    for (int i = 0; i < n; i++) {  // print hex
+      FS_PRINT("%02X ", (unsigned char)rdbuf[i]);
+    }
+    for (int i = n; i < width; i++) {  // padding
+      FS_PRINT("   ");
+    }
+    FS_PRINT(T_FMT(T_GREEN) "| " T_RST);
+    for (int i = 0; i < n; i++) {  // print ascii
+      if (rdbuf[i] >= 32 && rdbuf[i] <= 126) {
+        FS_PRINT("%c", rdbuf[i]);
+      } else {
+        FS_PRINT(T_FMT(T_BLUE) "." T_RST);
+      }
+    }
+    FS_PRINTLN("");
+    pos += n;
+  }
+  lfs_file_close(lfs, &file);
+  m_free(rdbuf);
+}
+
 static char *echo_buf = NULL;
 static int echo_size = 0;
 static int echo_written = 0;
 
 static char echo_handler(EmbeddedCli *cli, char data) {
-  // ctrl+d
   int errno;
-  if (data == 4) {
+  if (data == 4) {  // ctrl+d
     if (echo_size) {
       if ((errno = lfs_file_write(lfs, &file, echo_buf, echo_size)) < 0) {
         FS_ERRORNO(errno);
@@ -559,14 +622,14 @@ static char echo_handler(EmbeddedCli *cli, char data) {
     m_free(echo_buf);
     echo_buf = NULL;
     echo_size = 0;
-    LOG_RAWLN("");
-    LOG_RAWLN("Written %d bytes", echo_written);
+    PRINTLN("");
+    PRINTLN("Written %d bytes", echo_written);
     embeddedCliResetRawHandler(cli);
     return 0;
   }
   if (data == '\r') data = '\n';  // silly windows
   echo_buf[echo_size++] = data;
-  if (echo_size == 128) {
+  if (echo_size == 32) {
     if ((errno = lfs_file_write(lfs, &file, echo_buf, echo_size)) < 0) {
       FS_ERRORNO(errno);
     } else {
@@ -606,9 +669,8 @@ static void echo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     sdsfree(new_path);
     return;
   }
-  if (!append) lfs_file_truncate(lfs, &file, 0);
   sdsfree(new_path);
-  echo_buf = (char *)m_alloc(130);
+  echo_buf = (char *)m_alloc(36);
   echo_size = 0;
   if (!echo_buf) {
     FS_ERROR("failed to create buffer");
@@ -692,8 +754,8 @@ free:
 static void format_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   int argc = embeddedCliGetTokenCount(args);
   int errno;
-  if (argc < 1 || !embeddedCliCheckToken(args, "-y", 1)) {
-    FS_ERROR("add -y to confirm");
+  if (argc < 1 || !embeddedCliCheckToken(args, "--confirm", 1)) {
+    embeddedCliPrintCurrentHelp(cli);
     return;
   }
   const struct lfs_config *cfg = lfs->cfg;
@@ -749,7 +811,7 @@ static void ymodem_sub_handler(EmbeddedCli *cli, const char *data, size_t len) {
   ymodem_receive_buffer((y_uint8_t *)data, len);
 }
 
-static void ymodem_recv_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+static void rb_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   size_t argc = embeddedCliGetTokenCount(args);
   if (argc < 1) {
     y_file_name = NULL;
@@ -843,7 +905,7 @@ void FSUtils_AddCmdToCli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   static CliCommandBinding touch_cmd = {
       .name = "touch",
       .usage = "touch <file>",
-      .help = "Create a file",
+      .help = "Create a empty file",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = touch_cmd_func,
@@ -867,6 +929,15 @@ void FSUtils_AddCmdToCli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
       .func = cat_cmd_func,
   };
   embeddedCliAddBinding(cli, cat_cmd);
+  static CliCommandBinding hexdump_cmd = {
+      .name = "hexdump",
+      .usage = "hexdump [-w width] <file>",
+      .help = "Print file content in hex",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = hexdump_cmd_func,
+  };
+  embeddedCliAddBinding(cli, hexdump_cmd);
   static CliCommandBinding echo_cmd = {
       .name = "echo",
       .usage =
@@ -898,23 +969,23 @@ void FSUtils_AddCmdToCli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   embeddedCliAddBinding(cli, mv_cmd);
   static CliCommandBinding format_cmd = {
       .name = "format",
-      .usage = "format [-y]",
-      .help = "Format file system, -y is required to confirm",
+      .usage = "format [--confirm]",
+      .help = "Format file system, confirm is required",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = format_cmd_func,
   };
   embeddedCliAddBinding(cli, format_cmd);
 #if FS_ENABLE_YMODEM
-  static CliCommandBinding ymodem_recv_cmd = {
+  static CliCommandBinding rb_cmd = {
       .name = "rb",
       .usage = "rb <force_file_path>",
       .help = "Receive binary file via YModem",
       .context = NULL,
       .autoTokenizeArgs = 1,
-      .func = ymodem_recv_cmd_func,
+      .func = rb_cmd_func,
   };
-  embeddedCliAddBinding(cli, ymodem_recv_cmd);
+  embeddedCliAddBinding(cli, rb_cmd);
 #endif
 }
 

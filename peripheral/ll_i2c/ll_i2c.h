@@ -16,92 +16,153 @@ extern "C" {
 #endif
 #include "modules.h"
 
-#define _LL_IIC_CONVERT_SLAVEADDR 0 // 转换从机地址(自动<<1)
+#if !KCONFIG_AVAILABLE
+#define LL_IIC_CFG_CONVERT_7BIT_ADDR 0  // 转换从机地址(自动<<1)
+#define LL_IIC_CFG_USE_IT 0             // 使用中断
+#define LL_I2C_CFG_SEM_TIMEOUT_MS 1000  // 信号量超时时间
+#define LL_I2C_CFG_POLL_TIMEOUT_MS 5    // 轮询响应超时时间
 
-#define _LL_IIC_SPEED_FREQ      400000 // I2C 频率
-#define _LL_IIC_BYTE_TIMEOUT_US ((10 ^ 6) / (_LL_IIC_SPEED_FREQ / 9) + 1)
-#define _LL_IIC_BYTE_TIMEOUT_MS (_LL_IIC_BYTE_TIMEOUT_US / 1000 + 1)
+#endif
+
+typedef struct {
+  uint8_t *data;      // 数据指针
+  uint32_t len;       // 数据长度
+  uint8_t is_tx : 1;  // 写入/读取
+  uint8_t stop : 1;   // 是否产生STOP
+} ll_i2c_msg_t;
+
+/**
+ * @brief I2C 初始化
+ * @param  i2c       I2Cx 句柄
+ */
+extern void ll_i2c_init(I2C_TypeDef *i2c);
+
+/**
+ * @brief I2C 多消息事务
+ * @param  i2c       I2Cx 句柄
+ * @param  addr      从机地址
+ * @param  msg       消息数组指针
+ * @param  msg_len   消息数组个数
+ * @retval bool      是否成功
+ */
+extern bool ll_i2c_transaction(I2C_TypeDef *i2c, uint8_t addr,
+                               ll_i2c_msg_t *msg, uint32_t msg_len);
 
 /**
  * @brief I2C 直写数据
- * @param  I2Cx   I2C 句柄
- * @param  data   数据
+ * @param  i2c        I2Cx 句柄
+ * @param  addr       从机地址
+ * @param  data       数据指针
+ * @param  data_len   数据长度
+ * @return bool       是否成功
  */
-extern bool LL_IIC_WriteData(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,
-                             uint8_t *pdata, uint8_t rcnt);
+extern bool ll_i2c_write_raw(I2C_TypeDef *i2c, uint8_t addr, uint8_t *data,
+                             uint32_t data_len);
 
 /**
  * @brief I2C 直读数据
- * @param  I2Cx   I2C 句柄
- * @return uint8_t 读取的数据
+ * @param  i2c        I2Cx 句柄
+ * @param  addr       从机地址
+ * @param  data       数据指针
+ * @param  data_len   数据长度
+ * @return bool       是否成功
  */
-extern bool LL_IIC_ReadData(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,
-                            uint8_t *pdata, uint8_t rcnt);
+extern bool ll_i2c_read_raw(I2C_TypeDef *i2c, uint8_t addr, uint8_t *data,
+                            uint32_t data_len);
 
 /**
  * @brief I2C 读取数据到缓冲区, 8位地址
- * @param  I2Cx   I2C 句柄
- * @param  SlaveAddr 从机地址
- * @param  RegAddr   寄存器地址
- * @param  pdata     数据指针
- * @param  rcnt      数据长度
+ * @param  i2c       I2Cx 句柄
+ * @param  addr      从机地址
+ * @param  reg       寄存器地址
+ * @param  data      数据指针
+ * @param  data_len  数据长度
  * @return bool      是否成功
  */
-extern bool LL_IIC_Read8addr(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,
-                             uint8_t RegAddr, uint8_t *pdata, uint8_t rcnt);
+extern bool ll_i2c_read(I2C_TypeDef *i2c, uint8_t addr, uint8_t reg,
+                        uint8_t *data, uint32_t data_len);
 
 /**
  * @brief I2C 读取数据到缓冲区, 16位地址
- * @param  I2Cx   I2C 句柄
- * @param  SlaveAddr 从机地址
- * @param  RegAddr   寄存器地址
- * @param  pdata     数据指针
- * @param  rcnt      数据长度
+ * @param  i2c       I2Cx 句柄
+ * @param  addr      从机地址
+ * @param  reg       寄存器地址
+ * @param  data      数据指针
+ * @param  data_len  数据长度
  * @retval bool      是否成功
  */
-extern bool LL_IIC_Read16addr(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,
-                              uint16_t RegAddr, uint8_t *pdata, uint8_t rcnt);
+extern bool ll_i2c_read_16addr(I2C_TypeDef *i2c, uint8_t addr, uint16_t reg,
+                               uint8_t *data, uint32_t data_len);
 
 /**
  * @brief I2C 写入缓冲区数据, 8位地址
- * @param  I2Cx   I2C 句柄
- * @param  SlaveAddr 从机地址
- * @param  RegAddr   寄存器地址
- * @param  pdata     数据指针
- * @param  rcnt      数据长度
+ * @param  i2c       I2Cx 句柄
+ * @param  addr      从机地址
+ * @param  reg       寄存器地址
+ * @param  data      数据指针
+ * @param  data_len  数据长度
  * @return bool      是否成功
  */
-extern bool LL_IIC_Write8addr(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,
-                              uint8_t RegAddr, uint8_t *pdata, uint8_t rcnt);
+extern bool ll_i2c_write(I2C_TypeDef *i2c, uint8_t addr, uint8_t reg,
+                         uint8_t *data, uint32_t data_len);
 
 /**
  * @brief I2C 写入缓冲区数据, 16位地址
- * @param  I2Cx   I2C 句柄
- * @param  SlaveAddr 从机地址
- * @param  RegAddr   寄存器地址
- * @param  pdata     数据指针
- * @param  rcnt      数据长度
+ * @param  i2c       I2Cx 句柄
+ * @param  addr      从机地址
+ * @param  reg       寄存器地址
+ * @param  data      数据指针
+ * @param  data_len  数据长度
  * @return bool      是否成功
  */
-extern bool LL_IIC_Write16addr(I2C_TypeDef *I2Cx, uint8_t SlaveAddr,
-                               uint16_t RegAddr, uint8_t *pdata, uint8_t rcnt);
+extern bool ll_i2c_write_16addr(I2C_TypeDef *i2c, uint8_t addr, uint16_t reg,
+                                uint8_t *data, uint32_t data_len);
 
 /**
  * @brief I2C 检查从机是否存在
- * @param  I2Cx  I2C 句柄
- * @param  SlaveAddr 从机地址
+ * @param  i2c       I2Cx 句柄
+ * @param  addr      从机地址
  * @retval bool      是否存在
  */
-extern bool LL_IIC_CheckSlaveAddr(I2C_TypeDef *I2Cx, uint8_t SlaveAddr);
+extern bool ll_i2c_check_addr(I2C_TypeDef *i2c, uint8_t addr);
 
 /**
  * @brief I2C 总线扫描
- * @param  I2Cx  I2C 句柄
+ * @param  i2c       I2Cx 句柄
  * @param  addr_list 从机地址列表指针(NULL则不保存)
  * @param  addr_cnt  从机地址数量指针(NULL则不保存)
  */
-extern void LL_IIC_BusScan(I2C_TypeDef *I2Cx, uint8_t *addr_list,
-                           uint8_t *addr_cnt);
+extern void ll_i2c_bus_scan(I2C_TypeDef *i2c, uint8_t *addr_list,
+                            uint8_t *addr_cnt);
+/**
+ * @brief I2C 打印寄存器
+ *
+ * @param  i2c      I2Cx 句柄
+ * @param  addr     从机地址
+ * @param  start    起始寄存器地址
+ * @param  stop     结束寄存器地址
+ */
+extern void ll_i2c_dump(I2C_TypeDef *i2c, uint8_t addr, uint8_t start,
+                        uint8_t stop);
+
+/**
+ * @brief I2C 事件中断服务函数
+ * @param  i2c 中断源      I2Cx 句柄
+ */
+extern void i2c_ev_handler(I2C_TypeDef *i2c);
+
+/**
+ * @brief I2C 错误中断服务函数
+ * @param  i2c 中断源      I2Cx 句柄
+ */
+extern int i2c_er_handler(I2C_TypeDef *i2c);
+
+/**
+ * @brief I2C 组合中断服务函数(ev+er)
+ * @param  i2c 中断源      I2Cx 句柄
+ */
+extern void i2c_combine_handler(I2C_TypeDef *i2c);
+
 #ifdef __cplusplus
 }
 #endif

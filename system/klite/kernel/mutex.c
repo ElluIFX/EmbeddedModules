@@ -61,6 +61,29 @@ bool mutex_try_lock(mutex_t mutex) {
   return false;
 }
 
+bool mutex_timed_lock(mutex_t mutex, uint32_t timeout) {
+  cpu_enter_critical();
+  if (mutex->owner == NULL) {
+    mutex->lock++;
+    mutex->owner = sched_tcb_now;
+    cpu_leave_critical();
+    return true;
+  }
+  if (mutex->owner == sched_tcb_now) {
+    mutex->lock++;
+    cpu_leave_critical();
+    return true;
+  }
+  if (timeout == 0) {
+    cpu_leave_critical();
+    return false;
+  }
+  sched_tcb_timed_wait(sched_tcb_now, &mutex->list, timeout);
+  sched_switch();
+  cpu_leave_critical();
+  return sched_tcb_now->timeout;
+}
+
 void mutex_lock(mutex_t mutex) {
   cpu_enter_critical();
   if (mutex->owner == NULL) mutex->owner = sched_tcb_now;

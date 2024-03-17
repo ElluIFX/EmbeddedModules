@@ -76,6 +76,9 @@ choice
         bool "English"
 
     config CMB_PRINT_USE_CHINESE
-        bool "Chinese"
+        bool "Chinese (GBK)"
+
+    config CMB_PRINT_USE_CHINESE_UTF8
+        bool "Chinese (UTF-8)"
 endchoice
 endmenu

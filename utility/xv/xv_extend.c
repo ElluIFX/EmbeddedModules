@@ -266,7 +266,7 @@ static void xve_on_cmd(EmbeddedCli *cli, CliCommand *command) {
     }
     udict_set_copy(dict, "ans", &value, sizeof(value));
   }
-  LOG_RAWLN("%s", result);
+  PRINTLN("%s", result);
   m_free(result);
 }
 
@@ -274,20 +274,20 @@ static void xve_on_exit(EmbeddedCli *cli) {
   xv_cleanup();
   udict_free((UDICT)env.udata);
   env.udata = NULL;
-  LOG_RAWLN("Xv: Interpreter cleaned up");
+  PRINTLN("Xv: Interpreter cleaned up");
 }
 
 static void xve_enter(EmbeddedCli *cli, char *args, void *context) {
   if (strlen(args) > 0) {
     struct xv value = xv_eval(args, &env);
     char *result = xv_string(value);
-    LOG_RAWLN("%s", result);
+    PRINTLN("%s", result);
     m_free(result);
     return;
   }
   env.udata = (void *)udict_new();
   embeddedCliEnterSubInterpreter(cli, xve_on_cmd, xve_on_exit, "XV > ");
-  LOG_RAWLN("Xv: Interpreter initialized");
+  PRINTLN("Xv: Interpreter initialized");
 }
 
 void XVExtend_AddCmdToCli(EmbeddedCli *cli) {

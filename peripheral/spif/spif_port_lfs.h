@@ -60,13 +60,11 @@ static MOD_MUTEX_HANDLE lfs_mutex;
 
 static int sh_lfslock(const struct lfs_config *c) {
   MOD_MUTEX_ACQUIRE(lfs_mutex);
-  // kernel_enter_critical();
   return 0;
 }
 
 static int sh_lfsunlock(const struct lfs_config *c) {
   MOD_MUTEX_RELEASE(lfs_mutex);
-  // kernel_exit_critical();
   return 0;
 }
 #endif
@@ -92,13 +90,13 @@ static const struct lfs_config cfg = {
     .block_cycles = 500,
 };
 
-static bool spif_init_lfs(void) {
+static uint8_t spif_init_lfs(void) {
 #if LFS_THREADSAFE
   lfs_mutex = MOD_MUTEX_CREATE("lfs");
 #endif
   if (!SPIF_Init(&hspif, &hspi2, FLASH_CS_GPIO_Port, FLASH_CS_Pin)) {
     LOG_ERROR("SPIF Driver Init Failed");
-    return false;
+    return 0;
   }
   LOG_PASS("SPIF Driver Initialized");
   int err = lfs_mount(&lfs, &cfg);
@@ -108,11 +106,11 @@ static bool spif_init_lfs(void) {
     err = lfs_mount(&lfs, &cfg);
     if (err) {
       LOG_ERROR("lfs_mount failed again: %d", err);
-      return false;
+      return 0;
     }
   }
   LOG_PASS("LittleFS Mounted");
-  return true;
+  return 1;
 }
 
 #ifdef __cplusplus

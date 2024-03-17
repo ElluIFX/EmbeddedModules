@@ -131,7 +131,7 @@ void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
   sched_tcb_sleep(tcb, timeout);
 }
 
-static void sched_tcb_wake_up(struct tcb *tcb) {
+static inline void sched_tcb_wake_up(struct tcb *tcb) {
   if (tcb->list_wait) {
     list_remove(tcb->list_wait, &tcb->node_wait);
     tcb->list_wait = NULL;
@@ -203,7 +203,7 @@ void sched_preempt(bool round_robin) {
   }
 }
 
-static void sched_timeout(uint32_t elapse) {
+static inline void sched_timeout(uint32_t elapse) {
   struct tcb *tcb;
   struct tcb_node *node;
   struct tcb_node *next;

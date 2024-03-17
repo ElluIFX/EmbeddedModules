@@ -15,237 +15,86 @@
 #include "log.h"
 
 #define _INLINE __attribute__((always_inline))
-#if _LL_IIC_CONVERT_SLAVEADDR
+
+#if LL_IIC_CFG_CONVERT_7BIT_ADDR
 #define SLAVEADDR(addr) ((addr) << 1)
 #else
 #define SLAVEADDR(addr) (addr)
 #endif
 
-typedef enum {
-  I2C_TRANSMITTER,
-  I2C_RECEIVER,
-  I2C_RECEIVER_RESTART
-} i2c_direction_t;
+void ll_i2c_internal_init(I2C_TypeDef* i2c);
 
-static void I2Cx_CheckError(I2C_TypeDef* I2Cx) {
-  if (LL_I2C_IsActiveFlag_BERR(I2Cx) || LL_I2C_IsActiveFlag_ARLO(I2Cx) ||
-      LL_I2C_IsActiveFlag_OVR(I2Cx)) {
-    LL_I2C_ClearFlag_BERR(I2Cx);
-    LL_I2C_ClearFlag_ARLO(I2Cx);
-    LL_I2C_ClearFlag_OVR(I2Cx);
-    LL_I2C_Disable(I2Cx);
-    LL_I2C_Enable(I2Cx);
-  }
+bool ll_i2c_internal_read(I2C_TypeDef* i2c, uint8_t addr, uint16_t reg,
+                          uint8_t reg_len, uint8_t* data, uint32_t data_len);
+
+bool ll_i2c_internal_write(I2C_TypeDef* i2c, uint8_t addr, uint16_t WriteAddr,
+                           uint8_t reg_len, uint8_t* data, uint32_t data_len);
+
+bool ll_i2c_internal_check_addr(I2C_TypeDef* i2c, uint8_t addr);
+bool ll_i2c_internal_transaction(I2C_TypeDef* i2c, uint8_t addr,
+                                 ll_i2c_msg_t* msg, uint32_t msg_len);
+
+_INLINE void ll_i2c_init(I2C_TypeDef* i2c) { ll_i2c_internal_init(i2c); }
+_INLINE bool ll_i2c_transaction(I2C_TypeDef* i2c, uint8_t addr,
+                                ll_i2c_msg_t* msg, uint32_t msg_len) {
+  return ll_i2c_internal_transaction(i2c, SLAVEADDR(addr), msg, msg_len);
+}
+_INLINE bool ll_i2c_write_raw(I2C_TypeDef* i2c, uint8_t addr, uint8_t* data,
+                              uint32_t data_len) {
+  return ll_i2c_internal_write(i2c, SLAVEADDR(addr), 0, 0, data, data_len);
+}
+_INLINE bool ll_i2c_read_raw(I2C_TypeDef* i2c, uint8_t addr, uint8_t* data,
+                             uint32_t data_len) {
+  return ll_i2c_internal_read(i2c, SLAVEADDR(addr), 0, 0, data, data_len);
+}
+_INLINE bool ll_i2c_read(I2C_TypeDef* i2c, uint8_t addr, uint8_t reg,
+                         uint8_t* data, uint32_t data_len) {
+  return ll_i2c_internal_read(i2c, SLAVEADDR(addr), reg, 1, data, data_len);
+}
+_INLINE bool ll_i2c_read_16addr(I2C_TypeDef* i2c, uint8_t addr, uint16_t reg,
+                                uint8_t* data, uint32_t data_len) {
+  return ll_i2c_internal_read(i2c, SLAVEADDR(addr), reg, 2, data, data_len);
+}
+_INLINE bool ll_i2c_write(I2C_TypeDef* i2c, uint8_t addr, uint8_t reg,
+                          uint8_t* data, uint32_t data_len) {
+  return ll_i2c_internal_write(i2c, SLAVEADDR(addr), reg, 1, data, data_len);
+}
+_INLINE bool ll_i2c_write_16addr(I2C_TypeDef* i2c, uint8_t addr, uint16_t reg,
+                                 uint8_t* data, uint32_t data_len) {
+  return ll_i2c_internal_write(i2c, SLAVEADDR(addr), reg, 2, data, data_len);
+}
+_INLINE bool ll_i2c_check_addr(I2C_TypeDef* i2c, uint8_t addr) {
+  return ll_i2c_internal_check_addr(i2c, SLAVEADDR(addr));
 }
 
-static bool I2Cx_StartTransmission(I2C_TypeDef* I2Cx, i2c_direction_t Direction,
-                                   uint8_t SlaveAddr, uint8_t TransferSize) {
-  uint32_t Timeout = _LL_IIC_BYTE_TIMEOUT_MS;
-  uint32_t Request;
-
-  switch (Direction) {
-    case I2C_TRANSMITTER:
-      Request = LL_I2C_GENERATE_START_WRITE;
-      break;
-    case I2C_RECEIVER:
-      Request = LL_I2C_GENERATE_START_READ;
-      break;
-    case I2C_RECEIVER_RESTART:
-      Request = LL_I2C_GENERATE_RESTART_7BIT_READ;
-      break;
-    default:
-      return false;
-  }
-
-  LL_I2C_HandleTransfer(I2Cx, SlaveAddr, LL_I2C_ADDRSLAVE_7BIT, TransferSize,
-                        LL_I2C_MODE_SOFTEND, Request);
-
-  while (!LL_I2C_IsActiveFlag_TXIS(I2Cx) && !LL_I2C_IsActiveFlag_RXNE(I2Cx)) {
-    if (LL_I2C_IsActiveFlag_NACK(I2Cx)) {
-      LL_I2C_ClearFlag_NACK(I2Cx);
-      return false;
-    }
-    if (LL_SYSTICK_IsActiveCounterFlag()) {
-      if (Timeout-- == 0) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-static bool I2Cx_SendByte(I2C_TypeDef* I2Cx, uint8_t byte) {
-  uint32_t Timeout = _LL_IIC_BYTE_TIMEOUT_MS;
-
-  LL_I2C_TransmitData8(I2Cx, byte);
-  while (!LL_I2C_IsActiveFlag_TXIS(I2Cx) && !LL_I2C_IsActiveFlag_TC(I2Cx)) {
-    /* Break if ACK failed */
-    if (LL_I2C_IsActiveFlag_NACK(I2Cx)) {
-      LL_I2C_ClearFlag_NACK(I2Cx);
-      return false;
-    }
-    if (LL_SYSTICK_IsActiveCounterFlag()) {
-      if (Timeout-- == 0) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-static bool I2Cx_ReceiveByte(I2C_TypeDef* I2Cx, uint8_t* Byte) {
-  uint32_t Timeout = _LL_IIC_BYTE_TIMEOUT_MS;
-
-  if (!Byte) return false;
-
-  while (!LL_I2C_IsActiveFlag_RXNE(I2Cx) && !LL_I2C_IsActiveFlag_TC(I2Cx)) {
-    if (LL_SYSTICK_IsActiveCounterFlag()) {
-      if (Timeout-- == 0) {
-        return false;
-      }
-    }
-  }
-
-  *Byte = LL_I2C_ReceiveData8(I2Cx);
-
-  return true;
-}
-
-static void I2Cx_StopTransmission(I2C_TypeDef* I2Cx) {
-  /* Send STOP bit */
-  LL_I2C_GenerateStopCondition(I2Cx);
-}
-
-static bool I2Cx_ReadData(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                          uint16_t ReadAddr, uint8_t AddrLen, uint8_t* pBuffer,
-                          uint8_t NumBytesToRead) {
-  if (!pBuffer || !NumBytesToRead) {
-    return false;
-  }
-
-  SlaveAddr = SLAVEADDR(SlaveAddr);
-
-  if (AddrLen) {
-    if (!I2Cx_StartTransmission(I2Cx, I2C_TRANSMITTER, SlaveAddr, AddrLen)) {
-      return false;
-    }
-    if (AddrLen == 2 && !I2Cx_SendByte(I2Cx, ReadAddr >> 8)) {
-      I2Cx_StopTransmission(I2Cx);
-      return false;
-    }
-    if (!I2Cx_SendByte(I2Cx, ReadAddr & 0xFF)) {
-      I2Cx_StopTransmission(I2Cx);
-      return false;
-    }
-  }
-
-  if (!I2Cx_StartTransmission(I2Cx,
-                              AddrLen ? I2C_RECEIVER_RESTART : I2C_RECEIVER,
-                              SlaveAddr, NumBytesToRead)) {
-    return false;
-  }
-
-  while (NumBytesToRead--) {
-    if (!I2Cx_ReceiveByte(I2Cx, pBuffer++)) {
-      I2Cx_StopTransmission(I2Cx);
-      return false;
-    }
-    if (NumBytesToRead == 0) {
-      /* Send STOP after the last byte */
-      I2Cx_StopTransmission(I2Cx);
-    }
-  }
-
-  return true;
-}
-
-static bool I2Cx_WriteData(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                           uint16_t WriteAddr, uint8_t AddrLen,
-                           uint8_t* pBuffer, uint8_t NumBytesToWrite) {
-  bool Result = true;
-
-  if (!pBuffer || !NumBytesToWrite) {
-    return false;
-  }
-
-  SlaveAddr = SLAVEADDR(SlaveAddr);
-
-  if (!I2Cx_StartTransmission(I2Cx, I2C_TRANSMITTER, SlaveAddr,
-                              AddrLen + NumBytesToWrite)) {
-    return false;
-  }
-
-  if (AddrLen == 2 && !I2Cx_SendByte(I2Cx, WriteAddr >> 8)) {
-    I2Cx_StopTransmission(I2Cx);
-    return false;
-  }
-  if (AddrLen >= 1 && !I2Cx_SendByte(I2Cx, WriteAddr & 0xFF)) {
-    I2Cx_StopTransmission(I2Cx);
-    return false;
-  }
-
-  while (NumBytesToWrite--) {
-    if (!I2Cx_SendByte(I2Cx, *pBuffer++)) {
-      Result = false;
-      break;
-    }
-  }
-  I2Cx_StopTransmission(I2Cx);
-
-  return Result;
-}
-
-_INLINE bool LL_IIC_WriteData(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                               uint8_t* pdata, uint8_t rcnt) {
-  return I2Cx_WriteData(I2Cx, SlaveAddr, 0, 0, pdata, rcnt);
-}
-_INLINE bool LL_IIC_ReadData(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                              uint8_t* pdata, uint8_t rcnt) {
-  return I2Cx_ReadData(I2Cx, SlaveAddr, 0, 0, pdata, rcnt);
-}
-_INLINE bool LL_IIC_Read8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                               uint8_t RegAddr, uint8_t* pdata, uint8_t rcnt) {
-  return I2Cx_ReadData(I2Cx, SlaveAddr, RegAddr, 1, pdata, rcnt);
-}
-_INLINE bool LL_IIC_Read16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                                uint16_t RegAddr, uint8_t* pdata,
-                                uint8_t rcnt) {
-  return I2Cx_ReadData(I2Cx, SlaveAddr, RegAddr, 2, pdata, rcnt);
-}
-_INLINE bool LL_IIC_Write8addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                                uint8_t RegAddr, uint8_t* pdata, uint8_t rcnt) {
-  return I2Cx_WriteData(I2Cx, SlaveAddr, RegAddr, 1, pdata, rcnt);
-}
-_INLINE bool LL_IIC_Write16addr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr,
-                                 uint16_t RegAddr, uint8_t* pdata,
-                                 uint8_t rcnt) {
-  return I2Cx_WriteData(I2Cx, SlaveAddr, RegAddr, 2, pdata, rcnt);
-}
-bool LL_IIC_CheckSlaveAddr(I2C_TypeDef* I2Cx, uint8_t SlaveAddr) {
-  if (!I2Cx_StartTransmission(I2Cx, I2C_TRANSMITTER, SLAVEADDR(SlaveAddr), 1)) {
-    return false;
-  }
-  I2Cx_SendByte(I2Cx, 0x00);
-  I2Cx_StopTransmission(I2Cx);
-  return true;
-}
-
-void LL_IIC_BusScan(I2C_TypeDef* I2Cx, uint8_t* addr_list, uint8_t* addr_cnt) {
-  uint8_t temp;
+void ll_i2c_bus_scan(I2C_TypeDef* i2c, uint8_t* addr_list, uint8_t* addr_cnt) {
   if (addr_cnt) *addr_cnt = 0;
-  LOG_RAWLN(T_FMT(T_YELLOW) "> LL I2C Bus Scan Start");
+  PRINTLN(T_FMT(T_YELLOW) "> LL I2C Bus Scan Start");
   for (uint8_t i = 1; i < 128; i++) {
-    // dummy read for waking up some device
-    LL_IIC_Read8addr(I2Cx, i << 1, 0, &temp, 1);
-    if (LL_IIC_CheckSlaveAddr(I2Cx, i << 1)) {
-      LOG_RAWLN(T_FMT(T_CYAN) "- Found Device: 0x%02X", i);
+    if (ll_i2c_internal_check_addr(i2c, i << 1)) {
+      PRINTLN(T_FMT(T_CYAN) "- Found Device: 0x%02X (0x%02X)", i, i << 1);
       if (addr_list) *addr_list++ = i;
       if (addr_cnt) (*addr_cnt)++;
     }
   }
-  LOG_RAWLN(T_FMT(T_YELLOW) "> LL I2C Bus Scan End" T_FMT(T_RESET));
+  PRINTLN(T_FMT(T_YELLOW) "> LL I2C Bus Scan End" T_FMT(T_RESET));
+}
+
+void ll_i2c_dump(I2C_TypeDef* i2c, uint8_t addr, uint8_t start, uint8_t stop) {
+#define ITEM_PL 8
+  uint8_t data[ITEM_PL] = {0};
+  PRINTLN(T_FMT(T_YELLOW) "> I2C/0x%02X Reg Data", addr >> 1);
+  uint8_t line = (stop - start) / ITEM_PL;
+  for (uint8_t i = 0; i < line; i++) {
+    ll_i2c_read(i2c, addr, start, data, ITEM_PL);
+    PRINT(T_FMT(T_CYAN) "0x%02X:" T_FMT(T_RESET), start);
+    for (uint8_t j = 0; j < (i == line ? (stop - start) : ITEM_PL); j++) {
+      PRINT(" %02X", data[j]);
+    }
+    PRINTLN();
+    start += ITEM_PL;
+  }
+  PRINTLN(T_FMT(T_YELLOW) "> Dump Reg End");
 }
 
 #endif /* __has_include("i2c.h") */

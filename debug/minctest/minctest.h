@@ -73,48 +73,48 @@ static size_t _ltests = 0;
 static size_t _lfails = 0;
 
 /* Display the test results. */
-#define lresults()                                                          \
-  do {                                                                      \
-    if (_lfails == 0) {                                                     \
-      LOG_RAWLN("ALL TESTS PASSED (%zu/%zu)", _ltests, _ltests);            \
-    } else {                                                                \
-      LOG_RAWLN("SOME TESTS FAILED (%zu/%zu)", _ltests - _lfails, _ltests); \
-    }                                                                       \
+#define lresults()                                                        \
+  do {                                                                    \
+    if (_lfails == 0) {                                                   \
+      PRINTLN("ALL TESTS PASSED (%zu/%zu)", _ltests, _ltests);            \
+    } else {                                                              \
+      PRINTLN("SOME TESTS FAILED (%zu/%zu)", _ltests - _lfails, _ltests); \
+    }                                                                     \
   } while (0)
 
 /* Run a test. Name can be any string to print out, test is the function name to
  * call. */
-#define lrun(name, test)                                     \
-  do {                                                       \
-    const size_t ts = _ltests;                               \
-    const size_t fs = _lfails;                               \
-    const m_time_t start = m_time_us();                      \
-    LOG_RAWLN("Test: %s", name);                             \
-    test();                                                  \
-    LOG_RAWLN(" -- pass: %-4zu fail: %-4zu cost: %ldus",     \
-              (_ltests - ts) - (_lfails - fs), _lfails - fs, \
-              (m_time_us() - start));                        \
+#define lrun(name, test)                                   \
+  do {                                                     \
+    const size_t ts = _ltests;                             \
+    const size_t fs = _lfails;                             \
+    const m_time_t start = m_time_us();                    \
+    PRINTLN("Test: %s", name);                             \
+    test();                                                \
+    PRINTLN(" -- pass: %-4zu fail: %-4zu cost: %ldus",     \
+            (_ltests - ts) - (_lfails - fs), _lfails - fs, \
+            (m_time_us() - start));                        \
   } while (0)
 
 /* Assert a true statement. */
-#define lassert(test)                                        \
-  do {                                                       \
-    ++_ltests;                                               \
-    if (!(test)) {                                           \
-      ++_lfails;                                             \
-      LOG_RAWLN(" %s:%d (assert fail)", __FILE__, __LINE__); \
-    }                                                        \
+#define lassert(test)                                      \
+  do {                                                     \
+    ++_ltests;                                             \
+    if (!(test)) {                                         \
+      ++_lfails;                                           \
+      PRINTLN(" %s:%d (assert fail)", __FILE__, __LINE__); \
+    }                                                      \
   } while (0)
 
 /* Prototype to assert equal. */
-#define _lequal_base(equality, a, b, format)                                  \
-  do {                                                                        \
-    ++_ltests;                                                                \
-    if (!(equality)) {                                                        \
-      ++_lfails;                                                              \
-      LOG_RAWLN(" %s:%d (" format " != " format ")", __FILE__, __LINE__, (a), \
-                (b));                                                         \
-    }                                                                         \
+#define _lequal_base(equality, a, b, format)                                \
+  do {                                                                      \
+    ++_ltests;                                                              \
+    if (!(equality)) {                                                      \
+      ++_lfails;                                                            \
+      PRINTLN(" %s:%d (" format " != " format ")", __FILE__, __LINE__, (a), \
+              (b));                                                         \
+    }                                                                       \
   } while (0)
 
 /* Assert two integers are equal. */

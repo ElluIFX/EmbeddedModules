@@ -122,7 +122,7 @@ uint64_t kernel_tick_count64(void);
  * @retval 返回ms对应的Tick数
  * @brief 计算ms对应的Tick数
  */
-static inline uint32_t kernel_ms_to_tick(uint32_t ms) {
+static inline uint32_t kernel_ms_to_ticks(uint32_t ms) {
   return ((uint64_t)ms * KERNEL_CFG_FREQ) / 1000;
 }
 
@@ -131,7 +131,7 @@ static inline uint32_t kernel_ms_to_tick(uint32_t ms) {
  * @retval 返回Tick对应的毫秒数
  * @brief 计算Tick对应的毫秒数
  */
-static inline uint32_t kernel_tick_to_ms(uint32_t tick) {
+static inline uint32_t kernel_ticks_to_ms(uint32_t tick) {
   return ((uint64_t)tick * 1000) / KERNEL_CFG_FREQ;
 }
 
@@ -140,7 +140,7 @@ static inline uint32_t kernel_tick_to_ms(uint32_t tick) {
  * @retval 返回us对应的Tick数
  * @brief 计算us对应的Tick数
  */
-static inline uint32_t kernel_us_to_tick(uint32_t us) {
+static inline uint32_t kernel_us_to_ticks(uint32_t us) {
   return ((uint64_t)us * KERNEL_CFG_FREQ) / 1000000;
 }
 
@@ -149,7 +149,7 @@ static inline uint32_t kernel_us_to_tick(uint32_t us) {
  * @retval 返回Tick对应的微秒数
  * @brief 计算Tick对应的微秒数
  */
-static inline uint32_t kernel_tick_to_us(uint32_t tick) {
+static inline uint32_t kernel_ticks_to_us(uint32_t tick) {
   return ((uint64_t)tick * 1000000) / KERNEL_CFG_FREQ;
 }
 
@@ -353,6 +353,13 @@ uint32_t sem_timed_wait(sem_t sem, uint32_t timeout);
  */
 uint32_t sem_value(sem_t sem);
 
+/**
+ * @param sem 信号量标识符
+ * @param value 信号量计数值
+ * @brief 重置信号量计数值
+ */
+void sem_reset(sem_t sem, uint32_t value);
+
 /******************************************************************************
  * event
  ******************************************************************************/
@@ -438,6 +445,14 @@ void mutex_unlock(mutex_t mutex);
  * @brief 此函数是mutex_lock的非阻塞版本
  */
 bool mutex_try_lock(mutex_t mutex);
+
+/**
+ * @param mutex 互斥锁标识符
+ * @param timeout 超时时间（Tick）
+ * @retval 如果锁定成功则返回true, 失败则返回false
+ * @brief 此函数是mutex_lock的定时版本
+ */
+bool mutex_timed_lock(mutex_t mutex, uint32_t timeout);
 
 /******************************************************************************
  * condition variable

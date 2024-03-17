@@ -108,20 +108,19 @@ static void i2c_check_not_ack(sw_iic_t *dev) {
   wait_i2c();
 }
 
-static void i2c_slave_address(sw_iic_t *dev, uint8_t SlaveAddr,
-                              uint8_t readwrite) {
+static void i2c_slave_address(sw_iic_t *dev, uint8_t addr, uint8_t readwrite) {
   int x;
 
   if (readwrite) {
-    SlaveAddr |= I2C_READ;
+    addr |= I2C_READ;
   } else {
-    SlaveAddr &= ~I2C_READ;
+    addr &= ~I2C_READ;
   }
 
   scl_low();
 
   for (x = 7; x >= 0; x--) {
-    sda_out(SlaveAddr & (1 << x));
+    sda_out(addr & (1 << x));
     wait_i2c();
     i2c_clk_data_out();
   }
@@ -161,7 +160,7 @@ static void i2c_send_ack(sw_iic_t *dev) {
  * @param dev Pointer to the software I2C device structure.
  * @note The required GPIO pins must be enabled in CubeMX first.
  */
-void SW_IIC_Init(sw_iic_t *dev) {
+void sw_i2c_init(sw_iic_t *dev) {
   if (!dev->waitTime) dev->waitTime = DEFAULT_WAIT_TIME;
   if (!dev->waitTimeLong) dev->waitTimeLong = DEFAULT_WAIT_TIME_LONG;
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -183,7 +182,7 @@ void SW_IIC_Init(sw_iic_t *dev) {
  * @param dev Pointer to the software I2C device structure.
  * @param data The byte of data to write.
  */
-void SW_IIC_WriteData(sw_iic_t *dev, uint8_t data) {
+void sw_i2c_write_byte(sw_iic_t *dev, uint8_t data) {
   int x;
   scl_low();
   for (x = 7; x >= 0; x--) {
@@ -199,7 +198,7 @@ void SW_IIC_WriteData(sw_iic_t *dev, uint8_t data) {
  * @param dev Pointer to the software I2C device structure.
  * @return The byte of data read from the I2C bus.
  */
-uint8_t SW_IIC_ReadData(sw_iic_t *dev) {
+uint8_t sw_i2c_read_byte(sw_iic_t *dev) {
   uint8_t x;
   uint8_t readdata = 0;
   sda_in_mode(dev);
@@ -219,14 +218,14 @@ uint8_t SW_IIC_ReadData(sw_iic_t *dev) {
  * @brief Reads multiple bytes of data from the I2C bus using software I2C.
  *
  * @param dev Pointer to the software I2C device structure.
- * @param SlaveAddr The slave address of the I2C device to read from.
- * @param RegAddr The register address to start reading from.
+ * @param addr The slave address of the I2C device to read from.
+ * @param reg The register address to start reading from.
  * @param pdata Pointer to the buffer to store the read data.
  * @param rcnt The number of bytes to read.
  * @return 1 if the read was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Read8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
-                          uint8_t *pdata, uint8_t rcnt) {
+uint8_t sw_i2c_read(sw_iic_t *dev, uint8_t addr, uint8_t reg, uint8_t *pdata,
+                    uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
 
@@ -234,30 +233,30 @@ uint8_t SW_IIC_Read8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
 
   i2c_port_initial();
   i2c_start_condition(dev);
-  i2c_slave_address(dev, SlaveAddr, WRITE_CMD);
+  i2c_slave_address(dev, addr, WRITE_CMD);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
-  i2c_register_address(dev, RegAddr);
+  i2c_register_address(dev, reg);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
   i2c_start_condition(dev);
-  i2c_slave_address(dev, SlaveAddr, READ_CMD);
+  i2c_slave_address(dev, addr, READ_CMD);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   if (rcnt > 1) {
     for (index = 0; index < (rcnt - 1); index++) {
       wait_i2c();
-      pdata[index] = SW_IIC_ReadData(dev);
+      pdata[index] = sw_i2c_read_byte(dev);
       i2c_send_ack(dev);
     }
   }
   wait_i2c();
-  pdata[rcnt - 1] = SW_IIC_ReadData(dev);
+  pdata[rcnt - 1] = sw_i2c_read_byte(dev);
   i2c_check_not_ack(dev);
   i2c_stop_condition(dev);
 
@@ -268,13 +267,13 @@ uint8_t SW_IIC_Read8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
  * @brief Reads multiple bytes of data from the I2C bus using software I2C.
  *
  * @param dev Pointer to the software I2C device structure.
- * @param SlaveAddr The slave address of the I2C device to read from.
- * @param RegAddr The register address to start reading from.
+ * @param addr The slave address of the I2C device to read from.
+ * @param reg The register address to start reading from.
  * @param pdata Pointer to the buffer to store the read data.
  * @param rcnt The number of bytes to read.
  * @return 1 if the read was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Read16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
+uint8_t sw_i2c_read_16addr(sw_iic_t *dev, uint8_t addr, uint16_t reg,
                            uint8_t *pdata, uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
@@ -284,19 +283,19 @@ uint8_t SW_IIC_Read16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
   i2c_port_initial();
   i2c_start_condition(dev);
   // 写ID
-  i2c_slave_address(dev, SlaveAddr, WRITE_CMD);
+  i2c_slave_address(dev, addr, WRITE_CMD);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
   // 写高八位地址
-  i2c_register_address(dev, (uint8_t)(RegAddr >> 8));
+  i2c_register_address(dev, (uint8_t)(reg >> 8));
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
   // 写低八位地址
-  i2c_register_address(dev, (uint8_t)RegAddr);
+  i2c_register_address(dev, (uint8_t)reg);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
@@ -304,7 +303,7 @@ uint8_t SW_IIC_Read16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
   // 重启I2C总线
   i2c_start_condition(dev);
   // 读ID
-  i2c_slave_address(dev, SlaveAddr, READ_CMD);
+  i2c_slave_address(dev, addr, READ_CMD);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
@@ -312,12 +311,12 @@ uint8_t SW_IIC_Read16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
   if (rcnt > 1) {
     for (index = 0; index < (rcnt - 1); index++) {
       wait_i2c();
-      pdata[index] = SW_IIC_ReadData(dev);
+      pdata[index] = sw_i2c_read_byte(dev);
       i2c_send_ack(dev);
     }
   }
   wait_i2c();
-  pdata[rcnt - 1] = SW_IIC_ReadData(dev);
+  pdata[rcnt - 1] = sw_i2c_read_byte(dev);
   i2c_check_not_ack(dev);
   i2c_stop_condition(dev);
 
@@ -328,14 +327,14 @@ uint8_t SW_IIC_Read16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
  * @brief Writes multiple bytes of data to the I2C bus using software I2C.
  *
  * @param dev Pointer to the software I2C device structure.
- * @param SlaveAddr The slave address of the I2C device to write to.
- * @param RegAddr The register address to start writing to.
+ * @param addr The slave address of the I2C device to write to.
+ * @param reg The register address to start writing to.
  * @param pdata Pointer to the buffer containing the data to write.
  * @param rcnt The number of bytes to write.
  * @return 1 if the write was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Write8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
-                           uint8_t *pdata, uint8_t rcnt) {
+uint8_t sw_i2c_write(sw_iic_t *dev, uint8_t addr, uint8_t reg, uint8_t *pdata,
+                     uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
 
@@ -343,18 +342,18 @@ uint8_t SW_IIC_Write8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
 
   i2c_port_initial();
   i2c_start_condition(dev);
-  i2c_slave_address(dev, SlaveAddr, WRITE_CMD);
+  i2c_slave_address(dev, addr, WRITE_CMD);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
-  i2c_register_address(dev, RegAddr);
+  i2c_register_address(dev, reg);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
   for (index = 0; index < rcnt; index++) {
-    SW_IIC_WriteData(dev, pdata[index]);
+    sw_i2c_write_byte(dev, pdata[index]);
     if (!i2c_check_ack(dev)) {
       returnack = 0;
     }
@@ -368,13 +367,13 @@ uint8_t SW_IIC_Write8addr(sw_iic_t *dev, uint8_t SlaveAddr, uint8_t RegAddr,
  * @brief Writes multiple bytes of data to the I2C bus using software I2C.
  *
  * @param dev Pointer to the software I2C device structure.
- * @param SlaveAddr The slave address of the I2C device to write to.
- * @param RegAddr The register address to start writing to.
+ * @param addr The slave address of the I2C device to write to.
+ * @param reg The register address to start writing to.
  * @param pdata Pointer to the buffer containing the data to write.
  * @param rcnt The number of bytes to write.
  * @return 1 if the write was successful, 0 otherwise.
  */
-uint8_t SW_IIC_Write16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
+uint8_t sw_i2c_write_16addr(sw_iic_t *dev, uint8_t addr, uint16_t reg,
                             uint8_t *pdata, uint8_t rcnt) {
   uint8_t returnack = 1;
   uint8_t index;
@@ -384,26 +383,26 @@ uint8_t SW_IIC_Write16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
   i2c_port_initial();
   i2c_start_condition(dev);
   // 写ID
-  i2c_slave_address(dev, SlaveAddr, WRITE_CMD);
+  i2c_slave_address(dev, addr, WRITE_CMD);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
   // 写高八位地址
-  i2c_register_address(dev, (uint8_t)(RegAddr >> 8));
+  i2c_register_address(dev, (uint8_t)(reg >> 8));
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
   // 写低八位地址
-  i2c_register_address(dev, (uint8_t)RegAddr);
+  i2c_register_address(dev, (uint8_t)reg);
   if (!i2c_check_ack(dev)) {
     returnack = 0;
   }
   wait_i2c();
   // 写数据
   for (index = 0; index < rcnt; index++) {
-    SW_IIC_WriteData(dev, pdata[index]);
+    sw_i2c_write_byte(dev, pdata[index]);
     if (!i2c_check_ack(dev)) {
       returnack = 0;
     }
@@ -417,13 +416,13 @@ uint8_t SW_IIC_Write16addr(sw_iic_t *dev, uint8_t SlaveAddr, uint16_t RegAddr,
  * @brief Checks if a slave device is present on the I2C bus using software I2C.
  *
  * @param dev Pointer to the software I2C device structure.
- * @param SlaveAddr The slave address of the device to check.
+ * @param addr The slave address of the device to check.
  * @return 1 if the device is present, 0 otherwise.
  */
-uint8_t SW_IIC_CheckSlaveAddr(sw_iic_t *dev, uint8_t SlaveAddr) {
+uint8_t sw_i2c_check_slave(sw_iic_t *dev, uint8_t addr) {
   uint8_t returnack = 1;
   i2c_start_condition(dev);
-  i2c_slave_address(dev, SlaveAddr, WRITE_CMD);
+  i2c_slave_address(dev, addr, WRITE_CMD);
   if (!i2c_check_ack(dev)) {
     i2c_stop_condition(dev);
     returnack = 0;
@@ -439,18 +438,18 @@ uint8_t SW_IIC_CheckSlaveAddr(sw_iic_t *dev, uint8_t SlaveAddr) {
  * @param addr_list Pointer to the buffer to store the list of addresses found.
  * @param addr_cnt Pointer to the variable to store the number of addresses
  */
-void SW_IIC_BusScan(sw_iic_t *dev, uint8_t *addr_list, uint8_t *addr_cnt) {
+void sw_i2c_bus_scan(sw_iic_t *dev, uint8_t *addr_list, uint8_t *addr_cnt) {
   uint8_t temp;
   if (addr_cnt) *addr_cnt = 0;
-  LOG_RAWLN(T_FMT(T_YELLOW) "> SW I2C Bus Scan Start");
+  PRINTLN(T_FMT(T_YELLOW) "> SW I2C Bus Scan Start");
   for (uint8_t i = 1; i < 128; i++) {
     // dummy read for waking up some device
-    SW_IIC_Read8addr(dev, i << 1, 0, &temp, 1);
-    if (SW_IIC_CheckSlaveAddr(dev, i << 1)) {
-      LOG_RAWLN(T_FMT(T_CYAN) "- Found Device: 0x%02X", i);
+    sw_i2c_read(dev, i << 1, 0, &temp, 1);
+    if (sw_i2c_check_slave(dev, i << 1)) {
+      PRINTLN(T_FMT(T_CYAN) "- Found Device: 0x%02X", i);
       if (addr_list) *addr_list++ = i;
       if (addr_cnt) (*addr_cnt)++;
     }
   }
-  LOG_RAWLN(T_FMT(T_YELLOW) "> SW I2C Bus Scan End" T_FMT(T_RESET));
+  PRINTLN(T_FMT(T_YELLOW) "> SW I2C Bus Scan End" T_FMT(T_RESET));
 }

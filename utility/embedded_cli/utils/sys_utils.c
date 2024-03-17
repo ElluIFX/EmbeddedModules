@@ -8,7 +8,7 @@
  * THINK DIFFERENTLY
  */
 
-#include "system_utils.h"
+#include "sys_utils.h"
 
 #include "log.h"
 #include "scheduler.h"
@@ -129,48 +129,48 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (argc < 2) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Thread ID is required" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Thread ID is required" T_RST);
     return;
   }
   int id = atoi(embeddedCliGetToken(args, -1));
   thread_t *thread_p = (thread_t *)ulist_get(thread_list, id);
   if (!thread_p) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);
     return;
   }
   if (embeddedCliCheckToken(args, "-s", 1)) {
     if (thread_get_priority(*thread_p) == 0) {
-      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Cannot suspend idle thread" T_RST);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot suspend idle thread" T_RST);
       return;
     }
     thread_suspend(*thread_p);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Thread %d suspended" T_RST, id);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d suspended" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
     thread_resume(*thread_p);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Thread %d resumed" T_RST, id);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d resumed" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
     if (thread_get_priority(*thread_p) == 0) {
-      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Cannot delete idle thread" T_RST);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot delete idle thread" T_RST);
       return;
     }
     thread_delete(*thread_p);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Thread %d deleted" T_RST, id);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d deleted" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-p", 1)) {
     if (argc < 3) {
-      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
       return;
     }
     int pri = atoi(embeddedCliGetToken(args, 2));
     if (pri < 0 || pri >= __THREAD_PRIORITY_MAX__) {
-      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Priority must be 0-%d",
-                __THREAD_PRIORITY_MAX__ - 1);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "Priority must be 0-%d",
+              __THREAD_PRIORITY_MAX__ - 1);
       return;
     }
     thread_set_priority(*thread_p, pri);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Thread %d priority set to %d" T_RST, id,
-              pri);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d priority set to %d" T_RST, id,
+            pri);
   } else {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Invalid command" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Invalid command" T_RST);
   }
 }
 #endif

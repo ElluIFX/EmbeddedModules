@@ -39,6 +39,8 @@
 #define LFS_THREADSAFE 1
 #endif
 
+#define LFS_NO_ASSERT 1
+
 #endif
 
 #ifdef __cplusplus

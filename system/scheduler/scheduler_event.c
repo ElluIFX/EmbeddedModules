@@ -268,7 +268,7 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "-l", 1)) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Events list:" T_FMT(T_RESET, T_GREEN));
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Events list:" T_FMT(T_RESET, T_GREEN));
     uint16_t max_len = 0;
     uint16_t temp;
     ulist_foreach(&eventlist, scheduler_event_t, event) {
@@ -276,14 +276,14 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       if (temp > max_len) max_len = temp;
     }
     ulist_foreach(&eventlist, scheduler_event_t, event) {
-      LOG_RAWLN("  %-*s | entry:%p en:%d", max_len, event->name, event->task,
-                event->enable);
+      PRINTLN("  %-*s | entry:%p en:%d", max_len, event->name, event->task,
+              event->enable);
     }
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Total %d events" T_RST, eventlist.num);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Total %d events" T_RST, eventlist.num);
     return;
   }
   if (argc < 2) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Event name is required" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Event name is required" T_RST);
     return;
   }
   const char *name = embeddedCliGetToken(args, 2);
@@ -295,30 +295,30 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     }
   }
   if (p == NULL) {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Event: %s not found" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Event: %s not found" T_RST, name);
     return;
   }
   if (embeddedCliCheckToken(args, "-e", 1)) {
     Sch_SetEventEnabled(name, ENABLE);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event: %s enabled" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s enabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
     Sch_SetEventEnabled(name, DISABLE);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event: %s disabled" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s disabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
     Sch_DeleteEvent(name);
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event: %s deleted" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s deleted" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-t", 1)) {
     if (argc < 4) {
-      LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Event need argument (type/content)" T_RST,
-                name);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "Event need argument (type/content)" T_RST,
+              name);
       return;
     }
     Sch_TriggerEvent(name, atoi(embeddedCliGetToken(args, 3)),
                      (void *)embeddedCliGetToken(args, 4),
                      strlen(embeddedCliGetToken(args, 4)));
-    LOG_RAWLN(T_FMT(T_BOLD, T_GREEN) "Event: %s triggered" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s triggered" T_RST, name);
   } else {
-    LOG_RAWLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }
 }
 #endif  // SCH_CFG_ENABLE_TERMINAL

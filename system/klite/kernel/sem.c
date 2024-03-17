@@ -34,7 +34,7 @@ struct sem {
 
 sem_t sem_create(uint32_t value) {
   struct sem *sem;
-  sem = heap_alloc( sizeof(struct sem));
+  sem = heap_alloc(sizeof(struct sem));
   if (sem != NULL) {
     memset(sem, 0, sizeof(struct sem));
     sem->value = value;
@@ -42,7 +42,7 @@ sem_t sem_create(uint32_t value) {
   return (sem_t)sem;
 }
 
-void sem_delete(sem_t sem) { heap_free( sem); }
+void sem_delete(sem_t sem) { heap_free(sem); }
 
 void sem_post(sem_t sem) {
   cpu_enter_critical();
@@ -64,6 +64,12 @@ void sem_wait(sem_t sem) {
   }
   sched_tcb_wait(sched_tcb_now, &sem->list);
   sched_switch();
+  cpu_leave_critical();
+}
+
+void sem_reset(sem_t sem, uint32_t value) {
+  cpu_enter_critical();
+  sem->value = value;
   cpu_leave_critical();
 }
 

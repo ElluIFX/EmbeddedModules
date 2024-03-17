@@ -28,17 +28,17 @@
 #else
 #define LIST_LOG(...)                          \
   if (!(list->cfg & ULIST_CFG_NO_ERROR_LOG)) { \
-    LOG_ERROR(__VA_ARGS__);                        \
+    LOG_ERROR(__VA_ARGS__);                    \
   }
 #endif
 
 #if !MOD_CFG_USE_OS_NONE
-#define ULIST_LOCK()                                      \
-  {                                                       \
-    if (!(list->cfg & ULIST_CFG_NO_MUTEX)) {              \
+#define ULIST_LOCK()                                             \
+  {                                                              \
+    if (!(list->cfg & ULIST_CFG_NO_MUTEX)) {                     \
       if (!list->mutex) list->mutex = MOD_MUTEX_CREATE("ulist"); \
-      MOD_MUTEX_ACQUIRE(list->mutex);                     \
-    }                                                     \
+      MOD_MUTEX_ACQUIRE(list->mutex);                            \
+    }                                                            \
   }
 #define ULIST_UNLOCK()                       \
   {                                          \
@@ -226,7 +226,7 @@ void ulist_free(ULIST list) {
     _ulist_free(list->data);
   }
 #if !MOD_CFG_USE_OS_NONE
-  if (list->mutex) MOD_MUTEX_FREE(list->mutex);
+  if (list->mutex) MOD_MUTEX_DELETE(list->mutex);
 #endif
   if (list->dyn) _ulist_free(list);
 }

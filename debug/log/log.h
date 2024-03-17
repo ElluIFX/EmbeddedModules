@@ -21,6 +21,8 @@ extern "C" {
 #include "uart_pack.h"
 #endif
 
+#include "log_color.h"
+
 /****************************    日志设置     ***********************/
 #if !KCONFIG_AVAILABLE  // 由Kconfig配置
 // 调试日志设置
@@ -28,28 +30,31 @@ extern "C" {
 #define LOG_CFG_ENABLE_TIMESTAMP 1  // 调试日志是否添加时间戳
 #define LOG_CFG_ENABLE_COLOR 1      // 调试日志是否按等级添加颜色
 #define LOG_CFG_ENABLE_FUNC_LINE 0  // 调试日志是否添加函数名和行号
-#define LOG_CFG_ENABLE_ASSERT 1     // 是否开启ASSERT
+#define LOG_CFG_ENABLE_ALIAS 0      // 调试日志是否支持别名(如LOG_E)
+#define LOG_CFG_ENABLE_HOOK 0       // 调试日志是否支持输出钩子
 // 调试日志等级
-#define LOG_CFG_ENABLE_TRACE 1  // 是否输出TRACE日志
-#define LOG_CFG_ENABLE_DEBUG 1  // 是否输出DEBUG日志
-#define LOG_CFG_ENABLE_PASS 1   // 是否输出PASS日志
-#define LOG_CFG_ENABLE_INFO 1   // 是否输出INFO日志
-#define LOG_CFG_ENABLE_WARN 1   // 是否输出WARN日志
-#define LOG_CFG_ENABLE_ERROR 1  // 是否输出ERROR日志
-#define LOG_CFG_ENABLE_FATAL 1  // 是否输出FATAL日志
+#define LOG_CFG_ENABLE_TRACE 1   // 是否输出TRACE日志
+#define LOG_CFG_ENABLE_DEBUG 1   // 是否输出DEBUG日志
+#define LOG_CFG_ENABLE_PASS 1    // 是否输出PASS日志
+#define LOG_CFG_ENABLE_INFO 1    // 是否输出INFO日志
+#define LOG_CFG_ENABLE_WARN 1    // 是否输出WARN日志
+#define LOG_CFG_ENABLE_ERROR 1   // 是否输出ERROR日志
+#define LOG_CFG_ENABLE_FATAL 1   // 是否输出FATAL日志
+#define LOG_CFG_ENABLE_ASSERT 1  // 是否输出ASSERT日志
 // 日志输出
 #define LOG_CFG_PRINTF printf  // 日志输出函数 (必须为类printf函数)
 #define LOG_CFG_TIMESTAMP_FUNC \
   ((float)((uint64_t)m_time_ms()) / 1000)  // 时间戳获取
 #define LOG_CFG_TIMESTAMP_FMT "%.3fs"      // 时间戳格式
-
 #if 0
-#define LOG_CFG_PREFIX "\r"          // 日志前缀 (移动光标到行首)
-#define LOG_CFG_SUFFIX "\033[K\r\n"  // 日志后缀 (清空光标到行尾并换行)
+#define LOG_CFG_PREFIX "\r"      // 日志前缀 (移动光标到行首)
+#define LOG_CFG_SUFFIX "\033[K"  // 日志后缀 (清空光标到行尾)
 #else
-#define LOG_CFG_PREFIX ""      // 日志前缀
-#define LOG_CFG_SUFFIX "\r\n"  // 日志后缀 (仅换行)
+#define LOG_CFG_PREFIX ""
+#define LOG_CFG_SUFFIX ""
 #endif
+
+#define LOG_CFG_NEWLINE "\r\n"  // 换行符
 
 // 日志等级颜色
 #define LOG_CFG_R_COLOR T_BLUE     // 追踪日志
@@ -75,87 +80,35 @@ extern "C" {
 #endif  // KCONFIG_AVAILABLE
 /*********************************************************************/
 
-// 终端颜色代码
-#define T_BLACK "30"
-#define T_RED "31"
-#define T_GREEN "32"
-#define T_YELLOW "33"
-#define T_BLUE "34"
-#define T_MAGENTA "35"
-#define T_CYAN "36"
-#define T_WHITE "37"
-// 扩展颜色代码
-#define T_GRAY "90"
-#define T_LRED "91"
-#define T_LGREEN "92"
-#define T_LYELLOW "93"
-#define T_LBLUE "94"
-#define T_LMAGENTA "95"
-#define T_LCYAN "96"
-#define T_LWHITE "97"
-// 终端背景代码
-#define T_BLACK_BK "40"
-#define T_RED_BK "41"
-#define T_GREEN_BK "42"
-#define T_YELLOW_BK "43"
-#define T_BLUE_BK "44"
-#define T_MAGENTA_BK "45"
-#define T_CYAN_BK "46"
-#define T_WHITE_BK "47"
-// 终端格式代码
-#define T_RESET "0"
-#define T_BOLD "1"
-#define T_LIGHT "2"
-#define T_ITALIC "3"
-#define T_UNDERLINE "4"
-#define T_BLINK "5"
-#define T_REVERSE "7"
-#define T_HIDE "8"
-#define T_CROSS "9"
-
-#if LOG_CFG_ENABLE_COLOR
-#define __T_FMT1(fmt) "\033[" fmt "m"
-#define __T_FMT2(fmt1, fmt2) "\033[" fmt1 ";" fmt2 "m"
-#define __T_FMT3(fmt1, fmt2, fmt3) "\033[" fmt1 ";" fmt2 ";" fmt3 "m"
-#define __T_FMT4(fmt1, fmt2, fmt3, fmt4) \
-  "\033[" fmt1 ";" fmt2 ";" fmt3 ";" fmt4 "m"
-#else
-#define __T_FMT1(fmt) ""
-#define __T_FMT2(fmt1, fmt2) ""
-#define __T_FMT3(fmt1, fmt2, fmt3) ""
-#define __T_FMT4(fmt1, fmt2, fmt3, fmt4) ""
-#endif  // LOG_CFG_ENABLE_COLOR
-
 /**
- * @brief 设定终端输出格式, 可以混合使用
- * @note 颜色: T_BLACK/T_RED/T_GREEN/T_YELLOW/T_BLUE/T_MAGENTA/T_CYAN/T_WHITE
- * @note 背景: 在颜色后加 _BK
- * @note 格式: T_RESET/T_BOLD/T_UNDERLINE/T_BLINK/T_REVERSE/T_HIDE
+ * @brief 原始日志输出(直接调用LOG_CFG_PRINTF)
  */
-#define T_FMT(...)           \
-  EVAL(__T_FMT, __VA_ARGS__) \
-  (__VA_ARGS__)
-#define T_RST T_FMT(T_RESET)
-
-#ifndef __FUNCTION__
-#define __FUNCTION__ __func__
-#endif
+#define PRINT(fmt, args...) LOG_CFG_PRINTF(fmt, ##args)
+/**
+ * @brief 原始日志输出并换行(直接调用LOG_CFG_PRINTF)
+ */
+#define PRINTLN(fmt, args...) LOG_CFG_PRINTF(fmt LOG_CFG_NEWLINE, ##args)
 
 #if LOG_CFG_ENABLE
-#define __LOG_FINAL(pre, ts, fl, level, color, suf, fmt, args...) \
-  LOG_CFG_PRINTF(pre T_FMT(color) "[" level "]" T_RST ":" ts fl fmt suf, ##args)
+#if !LOG_CFG_ENABLE_HOOK
+#define __LOG_FINAL(pre, ts, fl, level, color, suf, fmt, args...)    \
+  LOG_CFG_PRINTF(pre T_FMT(color) "[" level "]" T_RST                \
+                                  ":" ts fl fmt suf LOG_CFG_NEWLINE, \
+                 ##args)
+#else  // LOG_CFG_ENABLE_HOOK
 /**
- * @brief 原始日志输出
+ * @brief 日志输出钩子
+ * @param  fmt              格式化字符串(不包含换行符)
  */
-#define LOG_RAW(fmt, args...) LOG_CFG_PRINTF(fmt, ##args)
-/**
- * @brief 原始日志输出并换行
- */
-#define LOG_RAWLN(fmt, args...) LOG_CFG_PRINTF(fmt LOG_CFG_SUFFIX, ##args)
-#else
-#define __LOG_FINAL(pre, ts, fl, level, color, suf, fmt, args...) ((void)0)
-#define LOG_RAW(fmt, args...) ((void)0)
-#define LOG_RAWLN(fmt, args...) ((void)0)
+extern void log_hook(const char *fmt, ...);
+#define __LOG_FINAL(pre, ts, fl, level, color, suf, fmt, args...)      \
+  do {                                                                 \
+    LOG_CFG_PRINTF(pre T_FMT(color) "[" level "]" T_RST                \
+                                    ":" ts fl fmt suf LOG_CFG_NEWLINE, \
+                   ##args);                                            \
+    log_hook(pre "[" level "]:" ts fl fmt suf, ##args);                \
+  } while (0)
+#endif  // LOG_CFG_ENABLE_HOOK
 #endif  // LOG_CFG_ENABLE
 
 #if LOG_CFG_ENABLE_TIMESTAMP
@@ -168,6 +121,9 @@ extern "C" {
 #endif  // LOG_CFG_ENABLE_TIMESTAMP
 
 #if LOG_CFG_ENABLE_FUNC_LINE
+#ifndef __FUNCTION__
+#define __FUNCTION__ __func__
+#endif
 #define __LOG_FL(pre, level, color, suf, fmt, args...)                      \
   __LOG_TS(pre, "[%s:%d]:", level, color, suf, fmt, __FUNCTION__, __LINE__, \
            ##args)
@@ -346,7 +302,7 @@ extern "C" {
 /**
  * @brief 输出换行
  */
-#define LOG_ENDL() LOG_RAW(LOG_CFG_SUFFIX)
+#define LOG_ENDL() PRINT(LOG_CFG_SUFFIX)
 
 #define __ASSERT_PRINT(text, args...)                                         \
   __LOG(LOG_CFG_PREFIX, LOG_CFG_A_STR, LOG_CFG_A_COLOR, LOG_CFG_SUFFIX, text, \

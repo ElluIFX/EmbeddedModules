@@ -4,6 +4,7 @@
 #define LFS_STDLIB_H
 
 #include "lfs.h"
+#include "lwprintf.h"
 #include "modules.h"
 
 #ifdef __cplusplus
@@ -147,6 +148,23 @@ static inline int __fputs(const char *s, FILE *file) {
     return EOF;
   }
 }
+
+static int __fprintf_lwfunc(int ch, lwprintf_t *lwobj) {
+  FILE *file = (FILE *)(lwobj->arg);
+  return __fputc(ch, file);
+}
+
+static inline int __fprintf(FILE *file, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  lwprintf_t lwp_pub;
+  lwp_pub.out_fn = __fprintf_lwfunc;
+  lwp_pub.arg = file;
+  int ret = lwprintf_vprintf_ex(&lwp_pub, format, args);
+  va_end(args);
+  return ret;
+}
+
 #undef fopen
 #undef fclose
 #undef fread
@@ -163,6 +181,7 @@ static inline int __fputs(const char *s, FILE *file) {
 #undef fgets
 #undef fputc
 #undef fputs
+#undef fprintf
 #define fopen(path, mode) __fopen(path, mode)
 #define fclose(file) __fclose(file)
 #define fread(ptr, size, nmemb, file) __fread(ptr, size, nmemb, file)
@@ -179,6 +198,7 @@ static inline int __fputs(const char *s, FILE *file) {
 #define fgets(s, size, file) __fgets(s, size, file)
 #define fputc(c, file) __fputc(c, file)
 #define fputs(s, file) __fputs(s, file)
+#define fprintf(file, format, ...) __fprintf(file, format, __VA_ARGS__)
 
 #ifdef __cplusplus
 }

@@ -779,7 +779,7 @@ void embeddedCliProcess(EmbeddedCli *cli) {
       if (c != '\0') {
         if (c == '\r' || c == '\n') {
           writeToOutput(cli, lineBreak);
-        } else {
+        } else if (c >= 32 && c <= 126) {
           cli->writeChar(cli, c);
         }
       }
@@ -1304,9 +1304,9 @@ static void onHelp(EmbeddedCli *cli, char *tokens, void *context) {
     for (int i = 0; i < impl->bindingsCount; ++i) {
       printBindingHelp(cli, &impl->bindings[i]);
     }
-    writeToOutputColor(cli,
-                       " Tips: use \"help [cmd]\" or \"[cmd] -h\" for more info",
-                       CLI_HELP_HEADER_COLOR);
+    writeToOutputColor(
+        cli, " Tips: use \"help [cmd]\" or \"[cmd] -h\" for more info",
+        CLI_HELP_HEADER_COLOR);
     writeToOutput(cli, lineBreak);
   } else if (tokenCount == 1) {
     // try find command

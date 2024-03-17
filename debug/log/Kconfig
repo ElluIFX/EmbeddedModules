@@ -171,9 +171,24 @@ if LOG_CFG_ENABLE
 
         config LOG_CFG_SUFFIX
             string "Log Suffix"
-            default "\"\\r\\n\""
+            default "\"\""
             help
             The suffix to use for the log output.
-            e.g. "\033[K\r\n" to clear the line and move the cursor to the beginning of the next line.
+            e.g. "\033[K" to clear the line and move the cursor to the beginning of the next line.
+
+        config LOG_CFG_NEWLINE
+            string "Log Newline"
+            default "\"\\r\\n\""
+            help
+            The newline to use for the log output.
+            e.g. "\r\n" to move the cursor to the beginning of the next line.
+
+        config LOG_CFG_ENABLE_HOOK
+            bool "Enable Log Hook"
+            default n
+            help
+            Enable this option to add a hook for the log output.
+            e.g. to send the log output to a file.
+            To use this, you should define a function: void log_hook(const char *fmt, ...)
     endmenu
 endif

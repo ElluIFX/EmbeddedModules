@@ -23,10 +23,10 @@
 #define _udict_memcmp memcmp
 
 #if !MOD_CFG_USE_OS_NONE
-#define UDICT_LOCK()                                    \
-  {                                                     \
+#define UDICT_LOCK()                                           \
+  {                                                            \
     if (!dict->mutex) dict->mutex = MOD_MUTEX_CREATE("udict"); \
-    MOD_MUTEX_ACQUIRE(dict->mutex);                     \
+    MOD_MUTEX_ACQUIRE(dict->mutex);                            \
   }
 #define UDICT_UNLOCK() \
   { MOD_MUTEX_RELEASE(dict->mutex); }
@@ -111,7 +111,7 @@ void udict_clear(UDICT dict) {
 void udict_free(UDICT dict) {
   ulist_free(&dict->nodes);
 #if !MOD_CFG_USE_OS_NONE
-  if (dict->mutex) MOD_MUTEX_FREE(dict->mutex);
+  if (dict->mutex) MOD_MUTEX_DELETE(dict->mutex);
 #endif
   if (dict->dyn) _udict_free(dict);
 }
@@ -254,9 +254,9 @@ void udict_print(UDICT dict, const char* name) {
   if (!dict || !dict->size) {
     return;
   }
-  LOG_RAWLN("dict(%s) = {", name);
+  PRINTLN("dict(%s) = {", name);
   ulist_foreach(&dict->nodes, udict_node_t, node) {
-    LOG_RAWLN("  %s: %p,", node->key, node->value);
+    PRINTLN("  %s: %p,", node->key, node->value);
   }
-  LOG_RAWLN("}");
+  PRINTLN("}");
 }

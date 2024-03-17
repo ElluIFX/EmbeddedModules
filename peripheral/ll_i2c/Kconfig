@@ -1,0 +1,33 @@
+menu "LL I2C Library Configuration"
+
+config LL_IIC_CFG_CONVERT_7BIT_ADDR
+    bool "Convert 7-bit address to 8-bit address"
+    default n
+    help
+      addr => (addr << 1)
+
+config LL_IIC_CFG_USE_IT
+    bool "Use interrupt mode (For RTOS)"
+    default y
+    depends on !MOD_CFG_USE_OS_NONE
+    help
+      This option is used to enable interrupt mode for I2C communication.
+      If you want to use I2C communication in RTOS, you should enable this option for better performance.
+      After enable, I2Cx_EV_Handler and I2Cx_ER_Handler should be manually added to the HAL I2C IRQ Handler.
+
+config LL_I2C_CFG_POLL_TIMEOUT_MS
+    int "Poll response timeout (ms)"
+    depends on !LL_IIC_CFG_USE_IT
+    default 5
+    help
+      Timeout for polling response from I2C peripheral.
+
+config LL_I2C_CFG_SEM_TIMEOUT_MS
+    int "Interrupt sync timeout (ms)"
+    depends on LL_IIC_CFG_USE_IT
+    default 1000
+    help
+      Timeout for waiting interrupt sync semaphore.
+      for both waiting other task release the interrupt and waiting I2C communication complete.
+
+endmenu

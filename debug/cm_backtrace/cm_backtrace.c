@@ -635,8 +635,8 @@ static uint32_t statck_del_fpu_regs(uint32_t fault_handler_lr, uint32_t sp) {
  * @param fault_handler_sp the stack pointer on fault handler
  */
 void cm_backtrace_fault(uint32_t fault_handler_lr, uint32_t fault_handler_sp) {
-  uint32_t stack_pointer = fault_handler_sp, saved_regs_addr = stack_pointer,
-           tcb_stack_pointer = 0;
+  uint32_t stack_pointer = fault_handler_sp, tcb_stack_pointer = 0;
+  volatile uint32_t saved_regs_addr = stack_pointer;
   const char *regs_name[] = {"R0 ", "R1 ", "R2 ", "R3 ",
                              "R12", "LR ", "PC ", "PSR"};
 

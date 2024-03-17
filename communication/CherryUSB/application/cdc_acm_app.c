@@ -135,7 +135,7 @@ void usbd_event_handler(uint8_t event) {
 }
 
 void usbd_cdc_acm_bulk_out(uint8_t ep, uint32_t nbytes) {
-  // USB_LOG_RAW("actual out len:%d\r\n", nbytes);
+  // USB_PRINT("actual out len:%d\r\n", nbytes);
   // user code to process the input data
   cdc_acm_data_recv_callback(cdc_read_buf, nbytes);
   // start next read
@@ -143,7 +143,7 @@ void usbd_cdc_acm_bulk_out(uint8_t ep, uint32_t nbytes) {
 }
 
 void usbd_cdc_acm_bulk_in(uint8_t ep, uint32_t nbytes) {
-  // USB_LOG_RAW("actual in len:%d\r\n", nbytes);
+  // USB_PRINT("actual in len:%d\r\n", nbytes);
   if ((nbytes % CDC_MAX_MPS) == 0 && nbytes) {
     /* send zlp */
     usbd_ep_start_write(CDC_IN_EP, NULL, 0);
