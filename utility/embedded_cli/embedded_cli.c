@@ -1176,6 +1176,9 @@ static void parseCommand(EmbeddedCli *cli) {
   // we keep two last bytes in cmd buffer reserved so cmdSize is always by 2
   // less than cmdMaxSize
   impl->cmdBuffer[impl->cmdSize + 1] = '\0';
+  if (cmdArgs == NULL) {
+    cmdArgs = &impl->cmdBuffer[impl->cmdSize + 1];
+  }
 
   if (cmdName == NULL) return;
 

@@ -17,6 +17,16 @@ extern "C" {
 #include "lfifo.h"
 #include "modules.h"
 
+#if UART_CFG_ENABLE_CDC
+#if UART_CFG_CDC_USE_CUBEMX
+#if !__has_include("usbd_cdc_if.h")
+#undef UART_CFG_ENABLE_CDC
+#warning \
+    "usbd_cdc_if.h not found, CDC support disabled, enable it in CubeMX first"
+#endif
+#endif
+#endif
+
 /**
  * @brief  USB CDC FIFO发送/接收初始化
  * @param  txBuf           发送缓冲区（NULL则尝试动态分配）
@@ -27,38 +37,38 @@ extern "C" {
  * @param  cbkInIRQ        回调函数是否在中断中执行
  * @retval lfifo_t         接收LFIFO句柄, NULL:失败
  */
-lfifo_t *CDC_FifoTxRxInit(uint8_t *txBuf, size_t txBufSize, uint8_t *rxBuf,
-                          size_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
-                          uint8_t cbkInIRQ);
+lfifo_t *cdc_fifo_init(uint8_t *txBuf, size_t txBufSize, uint8_t *rxBuf,
+                       size_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
+                       uint8_t cbkInIRQ);
 
 /**
  * @brief USB CDC 发送格式化字符串
  */
-extern int CDC_Printf(char *fmt, ...);
+extern int cdc_printf(char *fmt, ...);
 
 /**
  * @brief USB CDC 发送数据
  * @param  buf              数据指针
  * @param  len              数据长度
  */
-extern void CDC_Send(uint8_t *buf, size_t len);
+extern void cdc_write(uint8_t *buf, size_t len);
 
 /**
  * @brief USB是否已连接
  * @retval uint8_t          1:已连接 0:未连接
  */
-extern uint8_t CDC_Connected(void);
+extern uint8_t cdc_is_connected(void);
 
 /**
  * @brief USB CDC 阻塞等待连接
  * @param  timeout_ms       超时时间(ms)
  */
-extern void CDC_WaitConnect(int timeout_ms);
+extern void cdc_wait_for_connect(int timeout_ms);
 
 /**
  * @brief USB CDC 等待发送完成
  */
-extern void CDC_WaitTxFinish(void);
+extern void cdc_flush(void);
 
 #ifdef __cplusplus
 }

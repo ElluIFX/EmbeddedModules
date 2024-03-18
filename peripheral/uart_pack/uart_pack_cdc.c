@@ -126,9 +126,9 @@ static inline uint8_t cdc_idle(void) { return cdc_acm_idle(); }
 #error "Please select a USB CDC implementation"
 #endif
 
-lfifo_t *CDC_FifoTxRxInit(uint8_t *txBuf, size_t txBufSize, uint8_t *rxBuf,
-                          size_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
-                          uint8_t cbkInIRQ) {
+lfifo_t *cdc_fifo_init(uint8_t *txBuf, size_t txBufSize, uint8_t *rxBuf,
+                       size_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
+                       uint8_t cbkInIRQ) {
   if (!txBuf) {
     if (LFifo_Init(&usb_cdc.txFifo, txBufSize) != 0) return NULL;
   } else {
@@ -151,7 +151,7 @@ void cdc_check_callback(void) {
   }
 }
 
-void CDC_Send(uint8_t *buf, size_t len) {
+void cdc_write(uint8_t *buf, size_t len) {
   if (!cdc_connected()) return;
   size_t wr;
   wr = LFifo_Write(&usb_cdc.txFifo, buf, len);
@@ -180,7 +180,7 @@ static int cdc_lwprintf_fn(int ch, lwprintf_t *lwobj) {
   return -1;
 }
 
-int CDC_Printf(char *fmt, ...) {
+int cdc_printf(char *fmt, ...) {
   static lwprintf_t lw_cdc = {.out_fn = cdc_lwprintf_fn, .arg = NULL};
   va_list ap;
   va_start(ap, fmt);
@@ -189,7 +189,7 @@ int CDC_Printf(char *fmt, ...) {
   return sendLen;
 }
 
-void CDC_WaitTxFinish(void) {
+void cdc_flush(void) {
   m_time_t _cdc_start_time = m_time_ms();
   while (!cdc_idle() || !LFifo_IsEmpty(&usb_cdc.txFifo)) {
     if (!cdc_connected()) return;
@@ -198,7 +198,7 @@ void CDC_WaitTxFinish(void) {
   }
 }
 
-void CDC_WaitConnect(int timeout_ms) {
+void cdc_wait_for_connect(int timeout_ms) {
   m_time_t _cdc_start_time = m_time_ms();
   while (!cdc_connected()) {
     if (timeout_ms > 0 && m_time_ms() - _cdc_start_time > timeout_ms) return;
@@ -206,5 +206,5 @@ void CDC_WaitConnect(int timeout_ms) {
   }
 }
 
-uint8_t CDC_Connected(void) { return cdc_connected(); }
+uint8_t cdc_is_connected(void) { return cdc_connected(); }
 #endif  // UART_CFG_ENABLE_CDC

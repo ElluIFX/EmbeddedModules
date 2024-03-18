@@ -17,13 +17,13 @@ typedef void (*cl_func_t)(void *args);
  * @param  args             任务参数
  * @retval uint8_t          是否成功
  */
-extern uint8_t Sch_CallLater(cl_func_t func, uint64_t delayUs, void *args);
+extern uint8_t sch_call_later(cl_func_t func, uint64_t delayUs, void *args);
 
 /**
  * @brief 取消所有对应函数的延时调用任务
  * @param func              任务函数指针
  */
-extern void Sch_CancelCallLater(cl_func_t func);
+extern void sch_cancel_call_later(cl_func_t func);
 #endif  // SCH_CFG_ENABLE_CALLLATER
 #ifdef __cplusplus
 }

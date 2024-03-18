@@ -24,14 +24,14 @@ typedef struct {
   uint16_t csPin;
 } sw_spi_t;
 
-extern void SW_SPI_Init(sw_spi_t* spidev);
-extern void SW_SPI_Transmit(sw_spi_t* spidev, uint8_t* data, uint32_t length);
-extern void SW_SPI_Receive(sw_spi_t* spidev, uint8_t* data, uint32_t length);
-extern void SW_SPI_TransmitReceive(sw_spi_t* spidev, uint8_t* txData,
-                                   uint8_t* rxData, uint32_t length);
-extern void SW_SPI_TransmitThenReceive(sw_spi_t* spidev, uint8_t* txData,
-                                       uint16_t nbTx, uint8_t* rxData,
-                                       uint16_t nbRx);
+extern void sw_spi_init(sw_spi_t* spidev);
+extern void sw_spi_transmit(sw_spi_t* spidev, uint8_t* data, uint32_t length);
+extern void sw_spi_receive(sw_spi_t* spidev, uint8_t* data, uint32_t length);
+extern void sw_spi_transmit_receive(sw_spi_t* spidev, uint8_t* txData,
+                                    uint8_t* rxData, uint32_t length);
+extern void sw_spi_transmit_then_receive(sw_spi_t* spidev, uint8_t* txData,
+                                         uint16_t nbTx, uint8_t* rxData,
+                                         uint16_t nbRx);
 
 #ifdef __cplusplus
 }

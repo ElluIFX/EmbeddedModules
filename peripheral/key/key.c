@@ -59,7 +59,7 @@ static void key_push_event(key_dev_t *key_dev, uint16_t event) {
   key_dev->event_fifo.value[key_dev->event_fifo.wr++] = event;
   key_dev->event_fifo.wr %= KEY_BUF_SIZE;
   if (key_dev->event_fifo.wr == key_dev->event_fifo.rd) {  // 缓冲区溢出
-    key_dev->event_fifo.rd++;
+    key_dev->event_fifo.rd++;  // 丢弃最早的事件
     key_dev->event_fifo.rd %= KEY_BUF_SIZE;
   }
 }
@@ -423,23 +423,11 @@ static void key_state_hold_up_shake(key_dev_t *key_dev, uint8_t key_idx,
   }
 }
 
-const key_setting_t default_key_setting = {
-    .check_period_ms = 10,
-    .shake_filter_ms = 20,
-    .simple_event = 1,
-    .complex_event = 1,
-    .multi_max = 6,
-    .long_ms = 300,
-    .hold_ms = 800,
-    .multi_ms = 200,
-    .repeat_wait_ms = 600,
-    .repeat_send_ms = 100,
-    .repeat_send_speedup = 4,
-    .repeat_send_min_ms = 10,
-};
-
-key_dev_t *Key_Init(key_dev_t *key_dev, uint8_t (*read_func)(uint8_t idx),
-                    uint8_t num, void (*callback)(uint8_t key, uint8_t event)) {
+key_dev_t *key_init_with_setting(key_dev_t *key_dev,
+                                 key_read_e (*read_func)(uint8_t id),
+                                 uint8_t num,
+                                 void (*callback)(uint8_t key, uint8_t event),
+                                 key_setting_t setting) {
   if (!read_func || !num) {
     return NULL;
   }
@@ -450,7 +438,7 @@ key_dev_t *Key_Init(key_dev_t *key_dev, uint8_t (*read_func)(uint8_t idx),
   key_dev->read_func = read_func;
   key_dev->callback = callback;
   key_dev->key_num = num;
-  key_dev->setting = default_key_setting;
+  key_dev->setting = setting;
   key_dev->event_fifo.rd = 0;
   key_dev->event_fifo.wr = 0;
   for (uint8_t i = 0; i < num; i++) {
@@ -461,7 +449,13 @@ key_dev_t *Key_Init(key_dev_t *key_dev, uint8_t (*read_func)(uint8_t idx),
   return key_dev;
 }
 
-uint16_t Key_Read(key_dev_t *key_dev) {
+key_dev_t *key_init(key_dev_t *key_dev, key_read_e (*read_func)(uint8_t id),
+                    uint8_t num, void (*callback)(uint8_t key, uint8_t event)) {
+  return key_init_with_setting(key_dev, read_func, num, callback,
+                               (key_setting_t)default_key_setting);
+}
+
+uint16_t key_read_event(key_dev_t *key_dev) {
   if (key_dev->event_fifo.wr == key_dev->event_fifo.rd) {
     return KEY_EVENT_NULL;
   } else {
@@ -471,18 +465,18 @@ uint16_t Key_Read(key_dev_t *key_dev) {
   }
 }
 
-void Key_Tick(key_dev_t *key_dev) {
+void key_tick(key_dev_t *key_dev) {
   for (uint8_t i = 0; i < key_dev->key_num; i++) {
     key_dev->key_arr[i].state(key_dev, i, key_dev->read_func(i));
   }
 }
 
-uint8_t Key_ReadRaw(key_dev_t *key_dev, uint8_t key) {
+uint8_t key_read_raw(key_dev_t *key_dev, uint8_t key) {
   return key_dev->key_arr[key].state != key_state_down_check ? KEY_READ_DOWN
                                                              : KEY_READ_UP;
 }
 
-const char *Key_GetEventName(uint16_t event) {
+const char *key_get_event_name(uint16_t event) {
   switch (event & 0xFF) {
     case KEY_EVENT_NULL:
       return "NULL";

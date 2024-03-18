@@ -27,7 +27,7 @@ extern "C" {
 
 // Exported Functions -----------------------
 
-extern void SystemUtils_AddCmdToCli(EmbeddedCli *cli);
+extern void system_utils_add_command_to_cli(EmbeddedCli *cli);
 
 #ifdef __cplusplus
 }

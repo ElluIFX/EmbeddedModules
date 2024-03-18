@@ -66,7 +66,7 @@ static inline scheduler_task_t *get_next_task(void) {
   return next;
 }
 
-_INLINE uint64_t Task_Runner(void) {
+_INLINE uint64_t task_runner(void) {
   if (!pending_task) return UINT64_MAX;
   uint64_t now = get_sys_tick();
   if (now < pending_task->pendTime) {
@@ -99,8 +99,8 @@ _INLINE uint64_t Task_Runner(void) {
   return 0;
 }
 
-uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
-                       uint8_t enable, uint8_t priority, void *args) {
+uint8_t sch_create_task(const char *name, task_func_t func, float freqHz,
+                        uint8_t enable, uint8_t priority, void *args) {
   scheduler_task_t task = {
       .task = func,
       .enable = enable,
@@ -117,7 +117,7 @@ uint8_t Sch_CreateTask(const char *name, task_func_t func, float freqHz,
   return 1;
 }
 
-uint8_t Sch_DeleteTask(const char *name) {
+uint8_t sch_delete_task(const char *name) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   ulist_remove(&tasklist, p);
@@ -125,15 +125,15 @@ uint8_t Sch_DeleteTask(const char *name) {
   return 1;
 }
 
-uint8_t Sch_IsTaskExist(const char *name) { return find_task(name) != NULL; }
+uint8_t sch_get_task_exist(const char *name) { return find_task(name) != NULL; }
 
-uint8_t Sch_GetTaskEnabled(const char *name) {
+uint8_t sch_get_task_enabled(const char *name) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   return p->enable;
 }
 
-uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority) {
+uint8_t sch_set_task_priority(const char *name, uint8_t priority) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->priority = priority;
@@ -142,14 +142,14 @@ uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority) {
   return 1;
 }
 
-uint8_t Sch_SetTaskArgs(const char *name, void *args) {
+uint8_t sch_set_task_args(const char *name, void *args) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->args = args;
   return 1;
 }
 
-uint8_t Sch_DelayTask(const char *name, uint64_t delayUs, uint8_t fromNow) {
+uint8_t sch_delay_task(const char *name, uint64_t delayUs, uint8_t fromNow) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   if (fromNow)
@@ -160,9 +160,9 @@ uint8_t Sch_DelayTask(const char *name, uint64_t delayUs, uint8_t fromNow) {
   return 1;
 }
 
-uint16_t Sch_GetTaskNum(void) { return tasklist.num; }
+uint16_t sch_get_task_num(void) { return tasklist.num; }
 
-uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable) {
+uint8_t sch_set_task_enabled(const char *name, uint8_t enable) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->enable = enable;
@@ -171,7 +171,7 @@ uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable) {
   return 1;
 }
 
-uint8_t Sch_SetTaskFreq(const char *name, float freqHz) {
+uint8_t sch_set_task_freq(const char *name, float freqHz) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
   p->period = (double)get_sys_freq() / (double)freqHz;
@@ -187,9 +187,9 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t *other) {
     TT_FMT1 f1 = TT_FMT1_BLUE;
     TT_FMT2 f2 = TT_FMT2_BOLD;
     TT_ALIGN al = TT_ALIGN_LEFT;
-    TT_AddTitle(tt,
-                TT_FmtStr(al, f1, f2, "[ Task Report / %d ]", Sch_GetTaskNum()),
-                '-');
+    TT_AddTitle(
+        tt, TT_FmtStr(al, f1, f2, "[ task Report / %d ]", sch_get_task_num()),
+        '-');
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
         TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
@@ -279,7 +279,7 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "-l", 1)) {
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Tasks list:" T_FMT(T_RESET, T_GREEN));
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "tasks list:" T_FMT(T_RESET, T_GREEN));
     uint16_t max_len = 0;
     uint16_t temp;
     ulist_foreach(&tasklist, scheduler_task_t, task) {
@@ -295,48 +295,48 @@ void task_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (argc < 2) {
-    PRINTLN(T_FMT(T_BOLD, T_RED) "Task name is required" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "task name is required" T_RST);
     return;
   }
   const char *name = embeddedCliGetToken(args, -1);
   scheduler_task_t *p = find_task(name);
   if (p == NULL) {
-    PRINTLN(T_FMT(T_BOLD, T_RED) "Task: %s not found" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "task: %s not found" T_RST, name);
     return;
   }
   if (embeddedCliCheckToken(args, "-e", 1)) {
-    Sch_SetTaskEnabled(name, ENABLE);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Task: %s enabled" T_RST, name);
+    sch_set_task_enabled(name, ENABLE);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "task: %s enabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
-    Sch_SetTaskEnabled(name, DISABLE);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Task: %s disabled" T_RST, name);
+    sch_set_task_enabled(name, DISABLE);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "task: %s disabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
-    Sch_DeleteTask(name);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Task: %s deleted" T_RST, name);
+    sch_delete_task(name);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "task: %s deleted" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-f", 1)) {
     if (argc < 3) {
-      PRINTLN(T_FMT(T_BOLD, T_RED) "Frequency is required" T_RST);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "_frequency is required" T_RST);
       return;
     }
     float freq = atof(embeddedCliGetToken(args, 2));
     if (freq < 0.00001) {
-      PRINTLN(T_FMT(T_BOLD, T_RED) "Frequency too low" T_RST);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "_frequency too low" T_RST);
       return;
     }
-    Sch_SetTaskFreq(name, freq);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Task: %s frequency set to %.2fHz" T_RST,
+    sch_set_task_freq(name, freq);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "task: %s frequency set to %.2fHz" T_RST,
             name, freq);
   } else if (embeddedCliCheckToken(args, "-p", 1)) {
     if (argc < 3) {
-      PRINTLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
+      PRINTLN(T_FMT(T_BOLD, T_RED) "_priority is required" T_RST);
       return;
     }
     uint8_t pri = atoi(embeddedCliGetToken(args, 2));
-    Sch_SetTaskPriority(name, pri);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Task: %s priority set to %d" T_RST, name,
+    sch_set_task_priority(name, pri);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "task: %s priority set to %d" T_RST, name,
             pri);
   } else if (embeddedCliCheckToken(args, "-E", 1)) {
-    PRINTLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting Task: %s" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_YELLOW) "Force excuting task: %s" T_RST, name);
     p->task(p->args);
   } else {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);

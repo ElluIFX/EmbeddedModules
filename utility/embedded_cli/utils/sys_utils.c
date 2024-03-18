@@ -243,15 +243,15 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   kv = TT_AddKVPair(tt, 0);
 #if SCH_CFG_ENABLE_TASK
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Task Num"),
-                    TT_FmtStr(al, f1, f2, "%d", Sch_GetTaskNum()), sep);
+                    TT_FmtStr(al, f1, f2, "%d", sch_get_task_num()), sep);
 #endif  // SCH_CFG_ENABLE_TASK
 #if SCH_CFG_ENABLE_EVENT
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Event Num"),
-                    TT_FmtStr(al, f1, f2, "%d", Sch_GetEventNum()), sep);
+                    TT_FmtStr(al, f1, f2, "%d", sch_get_event_num()), sep);
 #endif  // SCH_CFG_ENABLE_EVENT
 #if SCH_CFG_ENABLE_COROUTINE
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Coroutine Num"),
-                    TT_FmtStr(al, f1, f2, "%d", Sch_GetCortnNum()), sep);
+                    TT_FmtStr(al, f1, f2, "%d", sch_get_cortn_num()), sep);
 #endif  // SCH_CFG_ENABLE_COROUTINE
 #endif  // SCHEDULER
 #if SHOWLWMEM
@@ -354,7 +354,7 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 
 // Public Functions -------------------------
 
-void SystemUtils_AddCmdToCli(EmbeddedCli *cli) {
+void system_utils_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding sysinfo_cmd = {
       .name = "sysinfo",
       .usage = "sysinfo",

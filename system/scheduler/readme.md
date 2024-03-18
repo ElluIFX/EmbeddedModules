@@ -58,7 +58,7 @@ Scheduler是一个多功能的时分调度器，它可以在裸机环境下实�
 > 包含scheduler.h时会自动包含所有子模块的头文件。
 
 ```C
-uint64_t Scheduler_Run(const uint8_t block)
+uint64_t scheduler_run(const uint8_t block)
 ```
 
 - 功能：整个调度器的主入口，所有的子模块都在此处实际执行目标函数。
@@ -66,20 +66,20 @@ uint64_t Scheduler_Run(const uint8_t block)
 - 参数：
   - `block`：是否阻塞：
     - `0`：不阻塞，执行完所有的任务后立即返回。
-    - `1`：阻塞，内部建立SuperLoop，空闲时会调用`Scheduler_Idle_Callback()`函数。
+    - `1`：阻塞，内部建立SuperLoop，空闲时会调用`scheduler_idle_handler()`函数。
 - 限制：需确保该函数所在线程的栈空间充足。
 
 ```C
-weak void Scheduler_Idle_Callback(uint64_t idleTimeUs)
+weak void scheduler_idle_handler(uint64_t idleTimeUs)
 ```
 
-- 功能：空闲回调函数，当`Scheduler_Run()`函数的`block`参数为`1`时，当调度器空闲时会调用此函数。
+- 功能：空闲回调函数，当`scheduler_run()`函数的`block`参数为`1`时，当调度器空闲时会调用此函数。
 - 参数：
   - `idleTimeUs`：距离下一次调度的时间(us)，函数应在此时间内返回。
 - 注意：弱函数，用户可以在自己的代码中重写此函数并实现低功耗等逻辑。
 
 ```C
-void Sch_AddCmdToCli(EmbeddedCli *cli)
+void sch_add_command_to_cli(EmbeddedCli *cli)
 ```
 
 - 功能：将调度器相关的命令集添加到`embedded-cli`中。
@@ -97,7 +97,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli)
 任务可以被理解为一个高精度的软件定时器，它可以在调度器中以指定的频率调用一个函数，且可以在运行时动态修改调度频率、优先级、启用状态等参数。
 
 ```C
-uint8_t Sch_CreateTask(const char *name, sch_func_t func, float freqHz, uint8_t enable, uint8_t priority, void *args)
+uint8_t sch_create_task(const char *name, sch_func_t func, float freqHz, uint8_t enable, uint8_t priority, void *args)
 ```
 
 - 功能：创建一个任务。
@@ -111,28 +111,28 @@ uint8_t Sch_CreateTask(const char *name, sch_func_t func, float freqHz, uint8_t 
   - `args`：任务参数，会传递给任务函数。
 
 ```C
-uint8_t Sch_DeleteTask(const char *name)
+uint8_t sch_delete_task(const char *name)
 ```
 
 - 功能：删除任务。
 - 返回：1：成功，0：失败（未找到任务）。
 
 ```C
-uint8_t Sch_IsTaskExist(const char *name)
+uint8_t sch_get_task_exist(const char *name)
 ```
 
 - 功能：判断任务是否存在。
 - 返回：0：不存在，1：存在。
 
 ```C
-uint16_t Sch_GetTaskNum(void)
+uint16_t sch_get_task_num(void)
 ```
 
 - 功能：获取任务数量。
 - 返回：任务数量。
 
 ```C
-uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable)
+uint8_t sch_set_task_enabled(const char *name, uint8_t enable)
 ```
 
 - 功能：设置任务的启用状态。
@@ -142,14 +142,14 @@ uint8_t Sch_SetTaskEnabled(const char *name, uint8_t enable)
   - `enable`：0：不启用，1：启用。
 
 ```C
-uint8_t Sch_GetTaskEnabled(const char *name)
+uint8_t sch_get_task_enabled(const char *name)
 ```
 
 - 功能：获取任务的启用状态。
 - 返回：0：未启用或未找到任务，1：启用。
 
 ```C
-uint8_t Sch_SetTaskFreq(const char *name, float freqHz)
+uint8_t sch_set_task_freq(const char *name, float freqHz)
 ```
 
 - 功能：设置任务的调度频率。
@@ -159,7 +159,7 @@ uint8_t Sch_SetTaskFreq(const char *name, float freqHz)
   - `freqHz`：任务调度频率(Hz)，>0。
 
 ```C
-uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority)
+uint8_t sch_set_task_priority(const char *name, uint8_t priority)
 ```
 
 - 功能：设置任务的优先级。
@@ -169,7 +169,7 @@ uint8_t Sch_SetTaskPriority(const char *name, uint8_t priority)
   - `priority`：任务优先级，0：最低，255：最高。
 
 ```C
-uint8_t Sch_SetTaskArgs(const char *name, void *args)
+uint8_t sch_set_task_args(const char *name, void *args)
 ```
 
 - 功能：设置任务的参数。
@@ -179,7 +179,7 @@ uint8_t Sch_SetTaskArgs(const char *name, void *args)
   - `args`：任务参数，会传递给任务函数。
 
 ```C
-uint8_t Sch_DelayTask(const char *name, uint64_t delayUs,
+uint8_t sch_delay_task(const char *name, uint64_t delayUs,
                              uint8_t fromNow)
 ```
 
@@ -195,7 +195,7 @@ uint8_t Sch_DelayTask(const char *name, uint64_t delayUs,
 事件是一种异步回调机制，通过注册一个统一的事件回调函数，可以实现调用方与功能实现的解耦，且异步执行保证了函数不会在调用方的上下文中执行，从而避免了调用方的上下文被破坏。
 
 ```C
-uint8_t Sch_CreateEvent(const char *name, sch_func_t callback,
+uint8_t sch_create_event(const char *name, sch_func_t callback,
                                uint8_t enable)
 ```
 
@@ -207,28 +207,28 @@ uint8_t Sch_CreateEvent(const char *name, sch_func_t callback,
   - `enable`：创建后是否启用，0：不启用，1：启用。
 
 ```C
-uint8_t Sch_DeleteEvent(const char *name)
+uint8_t sch_delete_event(const char *name)
 ```
 
 - 功能：删除事件。
 - 返回：1：成功，0：失败（未找到事件）。
 
 ```C
-uint8_t Sch_IsEventExist(const char *name)
+uint8_t sch_get_event_exist(const char *name)
 ```
 
 - 功能：判断事件是否存在。
 - 返回：0：不存在，1：存在。
 
 ```C
-uint16_t Sch_GetEventNum(void)
+uint16_t sch_get_event_num(void)
 ```
 
 - 功能：获取事件数量。
 - 返回：事件数量。
 
 ```C
-uint8_t Sch_SetEventEnabled(const char *name, uint8_t enable)
+uint8_t sch_set_event_enabled(const char *name, uint8_t enable)
 ```
 
 - 功能：设置事件的启用状态。
@@ -238,14 +238,14 @@ uint8_t Sch_SetEventEnabled(const char *name, uint8_t enable)
   - `enable`：0：不启用，1：启用。
 
 ```C
-uint8_t Sch_GetEventEnabled(const char *name)
+uint8_t sch_get_event_enabled(const char *name)
 ```
 
 - 功能：获取事件的启用状态。
 - 返回：0：未启用或未找到事件，1：启用。
 
 ```C
-uint8_t Sch_TriggerEvent(const char *name, void *args)
+uint8_t sch_trigger_event(const char *name, void *args)
 ```
 
 - 功能：触发事件。
@@ -256,7 +256,7 @@ uint8_t Sch_TriggerEvent(const char *name, void *args)
 - 注意：事件是异步执行，必须注意所传递的参数的生命周期，禁止传递临时数据指针。
 
 ```C
-uint8_t Sch_TriggerEventEx(const char *name, const void *arg_ptr, uint16_t arg_size)
+uint8_t sch_trigger_event_ex(const char *name, const void *arg_ptr, uint16_t arg_size)
 ```
 
 - 功能：触发事件并为参数创建临时拷贝。
@@ -276,7 +276,7 @@ uint8_t Sch_TriggerEventEx(const char *name, const void *arg_ptr, uint16_t arg_s
 首先，介绍如何定义一个协程：
 
 ```C
-void Coroutine_MainFunc(__async__, void *args) // __async__宏必须在函数声明中第一个参数的位置
+void coroutine_main(__async__, void *args) // __async__宏必须在函数声明中第一个参数的位置
 {
     // 声明一个无局部变量协程
     ASYNC_NOLOCAL // 此宏必须在函数内部第一行
@@ -292,7 +292,7 @@ void Coroutine_MainFunc(__async__, void *args) // __async__宏必须在函数声
 上述代码创建了一个协程的`主函数`，协程的`主函数`返回值必须是`void`类型，参数为`__async__`和`void*`，该协程未用到局部变量，下面介绍如何使用局部变量：
 
 ```C
-void Coroutine_MainFunc(__async__, void *args)
+void coroutine_main(__async__, void *args)
 {
     // 声明为有局部变量协程
     ASYNC_LOCAL_START // 此宏必须在函数内部第一行
@@ -360,28 +360,28 @@ void Coroutine_MainFunc(__async__, void *args)
     >`协程子函数` 与 `协程主函数` 不同，除了__async__外的其他参数可以为任意类型和数量，但仍然必须返回`void`，因此数据的传入传出都需要通过参数指针来实现。下面给出一个例子：
 
     ```C
-    void RecieveData(__async__, uint8_t *buf, uint16_t len)
+    void receive_array(__async__, uint8_t *buf, uint16_t len)
     {
         ASYNC_LOCAL_START
         uint16_t i;
         ASYNC_LOCAL_END
-        AcquireTransfer();
+        XXXAcquireTransfer();
         while (LOCAL(i) < len) {
-          while (!TransferDataReady()) {
+          while (!XXXTransferDataReady()) {
               AWAIT_DELAY(1);
           }
-          buf[LOCAL(i)++] = GetTransferData();
+          buf[LOCAL(i)++] = XXXGetTransferData();
         }
-        ReleaseTransfer();
+        XXXReleaseTransfer();
     }
 
-    void Coroutine_MainFunc(__async__, void *args) {
+    void coroutine_main(__async__, void *args) {
       ASYNC_LOCAL_START
       uint8_t buf[32];
       ASYNC_LOCAL_END
 
       while (1) {
-        AWAIT(RecieveData, LOCAL(buf), 32);
+        AWAIT(receive_array, LOCAL(buf), 32);
         printf("Recieved: %s\r\n", LOCAL(buf));
       }
     }
@@ -432,7 +432,7 @@ void Coroutine_MainFunc(__async__, void *args)
     - 参数：
       - `name`：协程名。
       - `msg`：消息指针。
-    - 等价：`Sch_SendMsgToCortn`
+    - 等价：`sch_send_msg_to_cortn`
 
 12. `AWAIT_ACQUIRE_MUTEX(mutex_name)`
 
@@ -457,14 +457,14 @@ void Coroutine_MainFunc(__async__, void *args)
 
     > 屏障是一种同步机制，它可以让多个协程在某个点上同步，当到达屏障点的协程个数达到目标时，所有协程同时被唤醒。
     >
-    > 屏障刚建立时目标值为0xffff，调用`Sch_SetCortnBarrierTarget`来修改目标值，当目标值为0时，屏障失效。
+    > 屏障刚建立时目标值为0xffff，调用`sch_set_cortn_barrier_target`来修改目标值，当目标值为0时，屏障失效。
 
 15. `ASYNC_RELEASE_BARRIER(barr_name)`
 
     - 功能：手动释放屏障，立即返回。
     - 参数：
       - `barr_name`：屏障名。
-    - 等价：`Sch_CortnBarrierRelease`
+    - 等价：`sch_release_cortn_barrier`
 
 16. `ASYNC_SET_BARRIER_TARGET(barr_name, target)`
 
@@ -472,7 +472,7 @@ void Coroutine_MainFunc(__async__, void *args)
     - 参数：
       - `barr_name`：屏障名。
       - `target`：目标值。
-    - 等价：`Sch_SetCortnBarrierTarget`
+    - 等价：`sch_set_cortn_barrier_target`
 
 17. `ASYNC_RUN(name, func, args)`
 
@@ -481,7 +481,7 @@ void Coroutine_MainFunc(__async__, void *args)
       - `name`：协程名, **不可重复**。
       - `func`：协程函数指针，必须是`协程主函数`。
       - `args`：协程参数指针。
-    - 等价：`Sch_RunCortn`
+    - 等价：`sch_run_cortn`
 
 18. `AWAIT_JOIN(name)`
 
@@ -492,7 +492,7 @@ void Coroutine_MainFunc(__async__, void *args)
 #### 5.4.3. 函数API （一般在正常函数中调用）
 
 ```C
-uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args)
+uint8_t sch_run_cortn(const char *name, cortn_func_t func, void *args)
 ```
 
 - 功能：运行一个协程。
@@ -503,7 +503,7 @@ uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args)
   - `args`：协程参数指针。
 
 ```C
-uint8_t Sch_StopCortn(const char *name)
+uint8_t sch_stop_cortn(const char *name)
 ```
 
 - 功能：停止一个协程。
@@ -511,28 +511,28 @@ uint8_t Sch_StopCortn(const char *name)
 - 限制：不允许在任何协程中停止自身，这种情况下请直接return。
 
 ```C
-uint8_t Sch_IsCortnRunning(const char *name)
+uint8_t sch_get_cortn_running(const char *name)
 ```
 
 - 功能：查询指定协程是否正在运行
 - 返回：0：未运行，1：正在运行。
 
 ```C
-uint16_t Sch_GetCortnNum(void)
+uint16_t sch_get_cortn_num(void)
 ```
 
 - 功能：获取协程数量。
 - 返回：协程数量。
 
 ```C
-uint8_t Sch_IsCortnWaitingMsg(const char *name)
+uint8_t sch_get_cortn_waiting_msg(const char *name)
 ```
 
 - 功能：判断协程是否正在等待消息。
 - 返回：0：不在等待，1：正在等待。
 
 ```C
-uint8_t Sch_SendMsgToCortn(const char *name, void *msg)
+uint8_t sch_send_msg_to_cortn(const char *name, void *msg)
 ```
 
 - 功能：发送消息给指定协程并唤醒。
@@ -543,21 +543,21 @@ uint8_t Sch_SendMsgToCortn(const char *name, void *msg)
 - 警告: 该函数是异步的，需要注意消息的生命周期，禁止传递临时数据指针。
 
 ```C
-uint8_t Sch_CortnBarrierRelease(const char *name)
+uint8_t sch_release_cortn_barrier(const char *name)
 ```
 
 - 功能：手动释放协程屏障。
 - 返回：1：成功，0：失败（屏障未建立）。
 
 ```C
-uint16_t Sch_GetCortnBarrierWaitingNum(const char *name)
+uint16_t sch_get_cortn_barrier_num(const char *name)
 ```
 
 - 功能：获取协程屏障等待数量。
 - 返回：等待数量。
 
 ```C
-uint8_t Sch_SetCortnBarrierTarget(const char *name, uint16_t target)
+uint8_t sch_set_cortn_barrier_target(const char *name, uint16_t target)
 ```
 
 - 功能：设置协程屏障目标值。
@@ -572,7 +572,7 @@ uint8_t Sch_SetCortnBarrierTarget(const char *name, uint16_t target)
 延时调用可以用于实现延时关机之类的低频率功能，不要高频率地使用。
 
 ```C
-uint8_t Sch_CallLater(sch_func_t func, uint64_t delayUs, void *args)
+uint8_t sch_call_later(sch_func_t func, uint64_t delayUs, void *args)
 ```
 
 - 功能：延时调用一个函数。
@@ -584,7 +584,7 @@ uint8_t Sch_CallLater(sch_func_t func, uint64_t delayUs, void *args)
 - 注意：该函数是异步的，需要注意参数的生命周期，禁止传递临时数据指针。
 
 ```C
-void Sch_CancelCallLater(sch_func_t func)
+void sch_cancel_call_later(sch_func_t func)
 ```
 
 - 功能：取消对指定函数的所有延时调用。
@@ -594,7 +594,7 @@ void Sch_CancelCallLater(sch_func_t func)
 软中断可用于将硬件中断中的调用延迟到调度器中执行，以避免中断嵌套。
 
 ```C
-void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel)
+void sch_trigger_soft_int(uint8_t mainChannel, uint8_t subChannel)
 ```
 
 - 功能：触发软中断。
@@ -603,7 +603,7 @@ void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel)
   - `subChannel`：子通道号，0~7。
 
 ```C
-weak void Scheduler_SoftInt_Handler(uint8_t mainChannel, uint8_t subMask)
+weak void scheduler_soft_int_handler(uint8_t mainChannel, uint8_t subMask)
 ```
 
 - 功能：软中断处理函数，由用户实现。

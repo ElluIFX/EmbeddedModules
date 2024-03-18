@@ -27,15 +27,16 @@ typedef struct {       // 用户任务结构
  * @param func 任务函数
  * @param periodMs 任务调度周期(ms)
  */
-#define SCH_TASK(func, periodMs)                                              \
-  __attribute__((used)) scheduler_task_t _sch_task_item_##func _SCH_CFG_SECTION( \
-      "1") = {func, (periodMs), 0}
+#define SCH_TASK(func, periodMs)                                   \
+  __attribute__((used))                                            \
+  scheduler_task_t _sch_task_item_##func _SCH_CFG_SECTION("1") = { \
+      func, (periodMs), 0}
 
 /**
  * @brief 时分调度器主函数
  * @param  block            是否阻塞
  **/
-extern void SchedulerLite_Run(const uint8_t block);
+extern void scheduler_lite_run(const uint8_t block);
 
 #ifdef __cplusplus
 }

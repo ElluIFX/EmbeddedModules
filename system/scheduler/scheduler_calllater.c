@@ -18,7 +18,7 @@ static ulist_t clist = {.data = NULL,
                         .isize = sizeof(scheduler_call_later_t),
                         .cfg = ULIST_CFG_NO_SHRINK | ULIST_CFG_NO_AUTO_FREE};
 
-_INLINE uint64_t CallLater_Runner(void) {
+_INLINE uint64_t call_later_runner(void) {
   static uint64_t last_active_us = 0;
   if (!clist.num) {
     if (clist.cap &&
@@ -43,13 +43,13 @@ _INLINE uint64_t CallLater_Runner(void) {
   return sleep_us;
 }
 
-uint8_t Sch_CallLater(cl_func_t func, uint64_t delayUs, void *args) {
+uint8_t sch_call_later(cl_func_t func, uint64_t delayUs, void *args) {
   scheduler_call_later_t task = {
       .task = func, .runTimeUs = get_sys_us() + delayUs, .args = args};
   return ulist_append_copy(&clist, &task);
 }
 
-void Sch_CancelCallLater(cl_func_t func) {
+void sch_cancel_call_later(cl_func_t func) {
   ulist_foreach(&clist, scheduler_call_later_t, callLater_p) {
     if (callLater_p->task == func) {
       ulist_remove(&clist, callLater_p);

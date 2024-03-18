@@ -18,7 +18,7 @@
 #define DATA_SETUP_TIME 4
 #define CLK_SETUP_TIME 4
 
-static void SW_SPI_InternalTransmit(sw_spi_t* spidev, uint8_t* data,
+static void sw_spi_internal_transmit(sw_spi_t* spidev, uint8_t* data,
                                     uint32_t length) {
   while (length--) {
     for (uint8_t i = 0; i < 8; i++) {
@@ -37,7 +37,7 @@ static void SW_SPI_InternalTransmit(sw_spi_t* spidev, uint8_t* data,
   }
 }
 
-static void SW_SPI_InternalReceive(sw_spi_t* spidev, uint8_t* data,
+static void sw_spi_internal_receive(sw_spi_t* spidev, uint8_t* data,
                                    uint32_t length) {
   SSLow(spidev->sclkPort, spidev->sclkPin);
   SSDelay(DATA_SETUP_TIME);
@@ -58,7 +58,7 @@ static void SW_SPI_InternalReceive(sw_spi_t* spidev, uint8_t* data,
 /**
  * @brief 初始化软件SPI
  */
-void SW_SPI_Init(sw_spi_t* spidev) {
+void sw_spi_init(sw_spi_t* spidev) {
   SSHigh(spidev->csPort, spidev->csPin);
   SSHigh(spidev->mosiPort, spidev->mosiPin);
   SSHigh(spidev->sclkPort, spidev->sclkPin);
@@ -67,30 +67,30 @@ void SW_SPI_Init(sw_spi_t* spidev) {
 /**
  * @brief 传输数据
  */
-void SW_SPI_Transmit(sw_spi_t* spidev, uint8_t* data, uint32_t length) {
+void sw_spi_transmit(sw_spi_t* spidev, uint8_t* data, uint32_t length) {
   if (length == 0) return;
 
   SSLow(spidev->csPort, spidev->csPin);
-  SW_SPI_InternalTransmit(spidev, data, length);
+  sw_spi_internal_transmit(spidev, data, length);
   SSHigh(spidev->csPort, spidev->csPin);
 }
 
 /**
  * @brief 接收数据
  */
-void SW_SPI_Receive(sw_spi_t* spidev, uint8_t* data, uint32_t length) {
+void sw_spi_receive(sw_spi_t* spidev, uint8_t* data, uint32_t length) {
   if (length == 0) return;
 
   SSLow(spidev->csPort, spidev->csPin);
-  SW_SPI_InternalReceive(spidev, data, length);
+  sw_spi_internal_receive(spidev, data, length);
   SSHigh(spidev->csPort, spidev->csPin);
 }
 
 /**
  * @brief 传输的同时接收数据
  */
-void SW_SPI_TransmitReceive(sw_spi_t* spidev, uint8_t* txData, uint8_t* rxData,
-                            uint32_t length) {
+void sw_spi_transmit_receive(sw_spi_t* spidev, uint8_t* txData, uint8_t* rxData,
+                             uint32_t length) {
   if (length == 0) return;
   SSLow(spidev->csPort, spidev->csPin);
   while (length--) {
@@ -117,14 +117,15 @@ void SW_SPI_TransmitReceive(sw_spi_t* spidev, uint8_t* txData, uint8_t* rxData,
 /**
  * @brief 先传输数据，再接收数据
  */
-void SW_SPI_TransmitThenReceive(sw_spi_t* spidev, uint8_t* txData,
-                                uint16_t nbTx, uint8_t* rxData, uint16_t nbRx) {
+void sw_spi_transmit_then_receive(sw_spi_t* spidev, uint8_t* txData,
+                                  uint16_t nbTx, uint8_t* rxData,
+                                  uint16_t nbRx) {
   SSLow(spidev->csPort, spidev->csPin);
   if (nbTx != 0) {
-    SW_SPI_InternalTransmit(spidev, txData, nbTx);
+    sw_spi_internal_transmit(spidev, txData, nbTx);
   }
   if (nbRx != 0) {
-    SW_SPI_InternalTransmit(spidev, rxData, nbRx);
+    sw_spi_internal_transmit(spidev, rxData, nbRx);
   }
   SSHigh(spidev->csPort, spidev->csPin);
 }

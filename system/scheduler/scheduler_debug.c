@@ -1,7 +1,7 @@
 #include "scheduler_internal.h"
 
 #if SCH_CFG_DEBUG_REPORT
-_INLINE uint8_t DebugInfo_Runner(uint64_t sleep_us) {
+_INLINE uint8_t debug_info_runner(uint64_t sleep_us) {
   static uint8_t first_print = 1;
   static uint64_t last_print = 0;
   static uint64_t sleep_sum = 0;

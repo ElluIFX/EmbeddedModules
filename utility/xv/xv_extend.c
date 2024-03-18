@@ -239,6 +239,17 @@ static void xve_on_cmd(EmbeddedCli *cli, CliCommand *command) {
     xv_cleanup();
     udict_clear((UDICT)env.udata);
     return;
+  } else if (strcmpn(str, "del", 3)) {
+    char *varname = str + 4;
+    while (*varname == ' ') varname++;
+    if (*varname == 0) return;
+    UDICT dict = (UDICT)env.udata;
+    if (!udict_has_key(dict, varname)) {
+      PRINTLN("Xv: Variable '%s' not found", varname);
+      return;
+    }
+    udict_delete(dict, varname);
+    return;
   }
 
   str[strlen(str)] = ' ';  // \0 -> ' '
@@ -290,7 +301,7 @@ static void xve_enter(EmbeddedCli *cli, char *args, void *context) {
   PRINTLN("Xv: Interpreter initialized");
 }
 
-void XVExtend_AddCmdToCli(EmbeddedCli *cli) {
+void xv_ex_add_command_to_cli(EmbeddedCli *cli) {
   env.ref = xve_get_ref;
   static CliCommandBinding xv_cmd = {
       .name = "xv",
@@ -303,7 +314,7 @@ void XVExtend_AddCmdToCli(EmbeddedCli *cli) {
   embeddedCliAddBinding(cli, xv_cmd);
 }
 
-void XVExtend_AddUserFunc(const char *name, XvExtFunc func) {
+void xv_ex_add_user_func(const char *name, XvExtFunc func) {
   if (!xve_userfunc_dict) xve_userfunc_dict = udict_new();
   udict_set(xve_userfunc_dict, name, (void *)func);
 }

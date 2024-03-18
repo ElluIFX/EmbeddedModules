@@ -43,7 +43,7 @@ static ulist_t triggered_eventlist = {
     .isize = sizeof(scheduler_triggered_event_t),
     .cfg = ULIST_CFG_NO_SHRINK | ULIST_CFG_NO_AUTO_FREE};
 
-_INLINE void Event_Runner(void) {
+_INLINE void event_runner(void) {
   static uint64_t last_event_us = 0;
   if (!triggered_eventlist.num) {
     if (triggered_eventlist.cap &&
@@ -75,8 +75,8 @@ _INLINE void Event_Runner(void) {
   last_event_us = get_sys_us();
 }
 
-uint8_t Sch_CreateEvent(const char *name, event_func_t callback,
-                        uint8_t enable) {
+uint8_t sch_create_event(const char *name, event_func_t callback,
+                         uint8_t enable) {
   if (!name || !callback) return 0;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
     if (fast_strcmp(event->name, name)) return 0;
@@ -99,22 +99,22 @@ __STATIC_INLINE scheduler_event_t *find_event(const char *name) {
   return NULL;
 }
 
-uint8_t Sch_DeleteEvent(const char *name) {
+uint8_t sch_delete_event(const char *name) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   ulist_remove(&eventlist, event);
   return 1;
 }
 
-uint8_t Sch_SetEventEnabled(const char *name, uint8_t enable) {
+uint8_t sch_set_event_enabled(const char *name, uint8_t enable) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   event->enable = enable;
   return 1;
 }
 
-uint8_t Sch_TriggerEvent(const char *name, uint8_t arg_type, void *arg_ptr,
-                         size_t arg_size) {
+uint8_t sch_trigger_event(const char *name, uint8_t arg_type, void *arg_ptr,
+                          size_t arg_size) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   if (!event->enable) return 0;
@@ -135,8 +135,8 @@ uint8_t Sch_TriggerEvent(const char *name, uint8_t arg_type, void *arg_ptr,
   return 1;
 }
 
-uint8_t Sch_TriggerEventEx(const char *name, uint8_t arg_type,
-                           const void *arg_ptr, size_t arg_size) {
+uint8_t sch_trigger_event_ex(const char *name, uint8_t arg_type,
+                             const void *arg_ptr, size_t arg_size) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   if (!event->enable) return 0;
@@ -157,17 +157,17 @@ uint8_t Sch_TriggerEventEx(const char *name, uint8_t arg_type,
   return ret;
 }
 
-uint8_t Sch_IsEventExist(const char *name) {
+uint8_t sch_get_event_exist(const char *name) {
   return find_event(name) == NULL ? 0 : 1;
 }
 
-uint8_t Sch_GetEventEnabled(const char *name) {
+uint8_t sch_get_event_enabled(const char *name) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   return event->enable;
 }
 
-uint16_t Sch_GetEventNum(void) { return eventlist.num; }
+uint16_t sch_get_event_num(void) { return eventlist.num; }
 
 #if SCH_CFG_DEBUG_REPORT
 void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
@@ -176,13 +176,13 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
     TT_FMT2 f2 = TT_FMT2_BOLD;
     TT_ALIGN al = TT_ALIGN_LEFT;
     TT_AddTitle(
-        tt, TT_FmtStr(al, f1, f2, "[ Event Report / %d ]", Sch_GetEventNum()),
+        tt, TT_FmtStr(al, f1, f2, "[ event Report / %d ]", sch_get_event_num()),
         '-');
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
         TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
     const char *head2[] = {"No",    "Tri",   "Run",   "Tmax",
-                           "Usage", "LTavg", "LTmax", "Event"};
+                           "Usage", "LTavg", "LTmax", "event"};
     for (int i = 0; i < sizeof(head2) / sizeof(char *); i++)
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head2[i]));
     int i = 0;
@@ -268,7 +268,7 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "-l", 1)) {
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Events list:" T_FMT(T_RESET, T_GREEN));
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "events list:" T_FMT(T_RESET, T_GREEN));
     uint16_t max_len = 0;
     uint16_t temp;
     ulist_foreach(&eventlist, scheduler_event_t, event) {
@@ -283,7 +283,7 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (argc < 2) {
-    PRINTLN(T_FMT(T_BOLD, T_RED) "Event name is required" T_RST);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "event name is required" T_RST);
     return;
   }
   const char *name = embeddedCliGetToken(args, 2);
@@ -295,28 +295,28 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     }
   }
   if (p == NULL) {
-    PRINTLN(T_FMT(T_BOLD, T_RED) "Event: %s not found" T_RST, name);
+    PRINTLN(T_FMT(T_BOLD, T_RED) "event: %s not found" T_RST, name);
     return;
   }
   if (embeddedCliCheckToken(args, "-e", 1)) {
-    Sch_SetEventEnabled(name, ENABLE);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s enabled" T_RST, name);
+    sch_set_event_enabled(name, ENABLE);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s enabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
-    Sch_SetEventEnabled(name, DISABLE);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s disabled" T_RST, name);
+    sch_set_event_enabled(name, DISABLE);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s disabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
-    Sch_DeleteEvent(name);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s deleted" T_RST, name);
+    sch_delete_event(name);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s deleted" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-t", 1)) {
     if (argc < 4) {
-      PRINTLN(T_FMT(T_BOLD, T_RED) "Event need argument (type/content)" T_RST,
+      PRINTLN(T_FMT(T_BOLD, T_RED) "event need argument (type/content)" T_RST,
               name);
       return;
     }
-    Sch_TriggerEvent(name, atoi(embeddedCliGetToken(args, 3)),
-                     (void *)embeddedCliGetToken(args, 4),
-                     strlen(embeddedCliGetToken(args, 4)));
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Event: %s triggered" T_RST, name);
+    sch_trigger_event(name, atoi(embeddedCliGetToken(args, 3)),
+                      (void *)embeddedCliGetToken(args, 4),
+                      strlen(embeddedCliGetToken(args, 4)));
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s triggered" T_RST, name);
   } else {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);
   }

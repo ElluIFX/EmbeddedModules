@@ -19,7 +19,7 @@ static void SysTick_Sleep(uint32_t us) {
   SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
 }
 
-__weak void Scheduler_Idle_Callback(uint64_t idleTimeUs) {
+__weak void scheduler_idle_handler(uint64_t idleTimeUs) {
   if (idleTimeUs > 1000) idleTimeUs = 1000;  // 最多休眠1ms以保证事件的及时响应
 #if !MOD_CFG_USE_OS_NONE
   m_delay_us(idleTimeUs);
@@ -30,39 +30,39 @@ __weak void Scheduler_Idle_Callback(uint64_t idleTimeUs) {
 #endif
 }
 
-uint64_t _INLINE Scheduler_Run(const uint8_t block) {
+uint64_t _INLINE scheduler_run(const uint8_t block) {
 // #define CHECK(rslp, name) LOG_DEBUG_LIMIT(1000, #name " rslp=%d", rslp)
 #define CHECK(rslp, name) ((void)0)
   uint64_t mslp, rslp;
   do {
     mslp = UINT64_MAX;
 #if SCH_CFG_ENABLE_SOFTINT
-    SoftInt_Runner();
+    soft_int_runner();
 #endif
 #if SCH_CFG_ENABLE_TASK
-    rslp = Task_Runner();
-    CHECK(rslp, Task);
+    rslp = task_runner();
+    CHECK(rslp, task);
     if (rslp < mslp) mslp = rslp;
 #endif
 #if SCH_CFG_ENABLE_COROUTINE
-    rslp = Cortn_Runner();
-    CHECK(rslp, Cortn);
+    rslp = cortn_runner();
+    CHECK(rslp, cortn);
     if (rslp < mslp) mslp = rslp;
 #endif
 #if SCH_CFG_ENABLE_CALLLATER
-    rslp = CallLater_Runner();
-    CHECK(rslp, CallLater);
+    rslp = call_later_runner();
+    CHECK(rslp, call_later);
     if (rslp < mslp) mslp = rslp;
 #endif
 #if SCH_CFG_ENABLE_EVENT
-    Event_Runner();
+    event_runner();
 #endif
     if (mslp == UINT64_MAX) mslp = 1000;  // 没有任何任务
 #if SCH_CFG_DEBUG_REPORT
-    if (DebugInfo_Runner(mslp)) continue;
+    if (debug_info_runner(mslp)) continue;
 #endif
     if (block && mslp) {
-      Scheduler_Idle_Callback(mslp);
+      scheduler_idle_handler(mslp);
     }
   } while (block);
   return mslp;

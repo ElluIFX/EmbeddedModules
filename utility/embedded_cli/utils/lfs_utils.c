@@ -1,6 +1,6 @@
 /**
- * @file fs_utils.c
- * @brief 文件系统命令行工具
+ * @file lfs_utils.c
+ * @brief LFS文件系统命令行工具
  * @author Ellu (ellu.grif@gmail.com)
  * @version 1.0.0
  * @date 2024-03-11
@@ -8,7 +8,7 @@
  * THINK DIFFERENTLY
  */
 
-#include "fs_utils.h"
+#include "lfs_utils.h"
 
 #include "lfs.h"
 #include "sds.h"
@@ -850,7 +850,7 @@ static void rb_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 
 // Public Functions -------------------------
 
-void FSUtils_AddCmdToCli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
+void lfs_utils_add_command_to_cli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   lfs = reg_lfs;
   cli = reg_cli;
   path = sdsnew("/");

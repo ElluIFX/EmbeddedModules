@@ -37,12 +37,12 @@
 #define HEAD_ZERO 12
 #define TAIL_ZERO 12
 
-HAL_StatusTypeDef Strip_Init(LEDStrip_t *strip, uint16_t length,
-                             SPI_HandleTypeDef *hspi) {
+HAL_StatusTypeDef ws2812_init(ws2812_strip_t *strip, uint16_t length,
+                              SPI_HandleTypeDef *hspi) {
   if (hspi == NULL) hspi = strip->hspi;
   if (strip->buffer != NULL || strip->length != 0) {
     LOG_W("LED REINIT");  // 最好手动调用Strip_DeInit再重新初始化
-    Strip_DeInit(strip);
+    ws2812_deinit(strip);
   }
   strip->buffer = m_alloc(BUF_LEN(length) + HEAD_ZERO + TAIL_ZERO);
   if (strip->buffer == NULL) {
@@ -54,18 +54,18 @@ HAL_StatusTypeDef Strip_Init(LEDStrip_t *strip, uint16_t length,
 #if HEAD_ZERO || TAIL_ZERO
   memset(strip->buffer, 0, BUF_LEN(length) + HEAD_ZERO + TAIL_ZERO);
 #endif
-  Strip_Set_Range(strip, 0, length - 1, 0x000000);
+  ws2812_set_range(strip, 0, length - 1, 0x000000);
   return HAL_OK;
 }
 
-void Strip_DeInit(LEDStrip_t *strip) {
+void ws2812_deinit(ws2812_strip_t *strip) {
   if (strip->buffer != NULL) {
     m_free(strip->buffer);
   }
   strip->length = 0;
 }
 
-void Strip_Set(LEDStrip_t *strip, uint16_t index, uint32_t color) {
+void ws2812_set(ws2812_strip_t *strip, uint16_t index, uint32_t color) {
   if (index >= strip->length || (!strip->buffer)) return;  // overrun check
   uint8_t *buf = strip->buffer + index * BIT_LEN * 3 + HEAD_ZERO;
 #if IS_GRB_FORMAT
@@ -86,25 +86,25 @@ void Strip_Set(LEDStrip_t *strip, uint16_t index, uint32_t color) {
   }
 }
 
-void Strip_Set_Range(LEDStrip_t *strip, uint16_t start, uint16_t end,
-                     uint32_t RGBcolor) {
+void ws2812_set_range(ws2812_strip_t *strip, uint16_t start, uint16_t end,
+                      uint32_t RGBcolor) {
   if (!strip->length) return;
   if (end >= strip->length) end = strip->length - 1;
   for (uint16_t i = start; i <= end; i++) {
-    Strip_Set(strip, i, RGBcolor);
+    ws2812_set(strip, i, RGBcolor);
   }
 }
 
-void Strip_Clear(LEDStrip_t *strip) {
-  Strip_Set_Range(strip, 0, strip->length - 1, 0x000000);
+void ws2812_clear(ws2812_strip_t *strip) {
+  ws2812_set_range(strip, 0, strip->length - 1, 0x000000);
 }
 
-uint8_t Strip_IsBusy(LEDStrip_t *strip) {
+uint8_t ws2812_is_busy(ws2812_strip_t *strip) {
   return (HAL_SPI_GetState(strip->hspi) != HAL_SPI_STATE_READY ||
           HAL_DMA_GetState(strip->hspi->hdmatx) != HAL_DMA_STATE_READY);
 }
 
-void Strip_Send_Blocking(LEDStrip_t *strip) {
+void ws2812_send_blocking(ws2812_strip_t *strip) {
   if (!strip->length || !strip->buffer) return;
   while (HAL_SPI_GetState(strip->hspi) != HAL_SPI_STATE_READY) {
     __NOP();
@@ -113,7 +113,7 @@ void Strip_Send_Blocking(LEDStrip_t *strip) {
                    BUF_LEN(strip->length) + HEAD_ZERO + TAIL_ZERO, 100);
 }
 
-HAL_StatusTypeDef Strip_Send(LEDStrip_t *strip) {
+HAL_StatusTypeDef ws2812_send(ws2812_strip_t *strip) {
   if (!strip->length || !strip->buffer) return HAL_ERROR;
   if (HAL_SPI_GetState(strip->hspi) != HAL_SPI_STATE_READY ||
       HAL_DMA_GetState(strip->hspi->hdmatx) != HAL_DMA_STATE_READY) {
@@ -125,7 +125,7 @@ HAL_StatusTypeDef Strip_Send(LEDStrip_t *strip) {
   return HAL_OK;
 }
 
-HAL_StatusTypeDef Strip_SendPart(LEDStrip_t *strip, uint16_t num) {
+HAL_StatusTypeDef ws2812_send_part(ws2812_strip_t *strip, uint16_t num) {
   if (!strip->length || !strip->buffer) return HAL_ERROR;
   if (num > strip->length) num = strip->length;
   if (HAL_SPI_GetState(strip->hspi) != HAL_SPI_STATE_READY ||
@@ -139,7 +139,7 @@ HAL_StatusTypeDef Strip_SendPart(LEDStrip_t *strip, uint16_t num) {
 }
 
 // R,G,B range 0-255, H range 0-360, S,V range 0-100
-uint32_t HSV_To_RGB(float h, uint8_t s, uint8_t v) {
+uint32_t hsv2rgb(float h, uint8_t s, uint8_t v) {
   uint8_t r, g, b;
 
 #if 0  // S,V range 0-100

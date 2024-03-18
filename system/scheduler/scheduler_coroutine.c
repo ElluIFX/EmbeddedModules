@@ -56,13 +56,13 @@ static ulist_t barrierlist = {
 
 static __cortn_handle_t *cortn_handle_now = NULL;
 
-_INLINE uint64_t Cortn_Runner(void) {
+_INLINE uint64_t cortn_runner(void) {
   if (!cortnlist.num) return UINT64_MAX;
   uint64_t sleep_us = UINT64_MAX;
   uint64_t now = get_sys_us();
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (cortn->hd.state == _CR_STATE_STOPPED) {
-      Sch_StopCortn(cortn->name);
+      sch_stop_cortn(cortn->name);
       return 0;  // 指针已被释放
     } else if (cortn->hd.state == _CR_STATE_READY) {
       cortn->hd.state = _CR_STATE_RUNNING;  // 就绪态转运行态
@@ -105,7 +105,7 @@ _INLINE uint64_t Cortn_Runner(void) {
   return sleep_us;
 }
 
-uint8_t Sch_RunCortn(const char *name, cortn_func_t func, void *args) {
+uint8_t sch_run_cortn(const char *name, cortn_func_t func, void *args) {
   scheduler_cortn_t cortn = {
       .task = func,
       .args = args,
@@ -164,7 +164,7 @@ static scheduler_cortn_t *find_cortn_by_handle(__cortn_handle_t *handle) {
   return NULL;
 }
 
-uint8_t Sch_StopCortn(const char *name) {
+uint8_t sch_stop_cortn(const char *name) {
   scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   // 不允许在协程中删除自身
@@ -177,20 +177,20 @@ uint8_t Sch_StopCortn(const char *name) {
   return 1;
 }
 
-uint16_t Sch_GetCortnNum(void) { return cortnlist.num; }
+uint16_t sch_get_cortn_num(void) { return cortnlist.num; }
 
-uint8_t Sch_IsCortnRunning(const char *name) {
+uint8_t sch_get_cortn_running(const char *name) {
   return find_cortn(name) != NULL;
 }
 
-uint8_t Sch_IsCortnWaitingMsg(const char *name) {
+uint8_t sch_get_cortn_waiting_msg(const char *name) {
   scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
   return cortn->hd.state == _CR_STATE_AWAITING;
 }
 
-uint8_t Sch_SendMsgToCortn(const char *name, void *msg) {
+uint8_t sch_send_msg_to_cortn(const char *name, void *msg) {
   scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
@@ -203,7 +203,7 @@ uint8_t Sch_SendMsgToCortn(const char *name, void *msg) {
  * @brief (内部函数)获取当前协程名
  * @return 协程名
  */
-_INLINE const char *__Internal_GetName(void) {
+_INLINE const char *__cortn_internal_get_name(void) {
   if (cortn_handle_now == NULL) return (const char *)"__main__";
   return cortn_handle_now->name;
 }
@@ -213,7 +213,7 @@ _INLINE const char *__Internal_GetName(void) {
  * @param  size 存储区大小
  * @return 存储区指针
  */
-_INLINE void *__Internal_InitLocal(size_t size) {
+_INLINE void *__cortn_internal_init_local(size_t size) {
   if (size == 0) return (void *)0x01;
   if (cortn_handle_now->data[cortn_handle_now->runDepth].local == NULL) {
     // 初始化局部变量存储区
@@ -236,7 +236,7 @@ _INLINE void *__Internal_InitLocal(size_t size) {
  * @brief (内部函数)协程嵌套调用准备
  * @return 是否允许进行调用
  */
-_INLINE uint8_t __Internal_AwaitEnter(void) {
+_INLINE uint8_t __cortn_internal_await_enter(void) {
   cortn_handle_now->runDepth++;
   if (cortn_handle_now->runDepth > cortn_handle_now->actDepth) {
     // 嵌套层级+1
@@ -257,7 +257,7 @@ _INLINE uint8_t __Internal_AwaitEnter(void) {
  * @brief (内部函数)协程嵌套调用返回
  * @return 嵌套协程已结束
  */
-_INLINE uint8_t __Internal_AwaitReturn(void) {
+_INLINE uint8_t __cortn_internal_await_return(void) {
   cortn_handle_now->runDepth--;
   if (cortn_handle_now->data[cortn_handle_now->runDepth + 1].ptr != NULL) {
     // 嵌套协程未结束
@@ -286,7 +286,7 @@ _INLINE uint8_t __Internal_AwaitReturn(void) {
  * @brief (内部函数)协程延时
  * @param  delayUs 延时时间(us)
  */
-_INLINE void __Internal_Delay(uint64_t delayUs) {
+_INLINE void __cortn_internal_delay(uint64_t delayUs) {
   cortn_handle_now->sleepUntil = get_sys_us() + delayUs;
   cortn_handle_now->state = _CR_STATE_SLEEPING;
 }
@@ -295,7 +295,7 @@ _INLINE void __Internal_Delay(uint64_t delayUs) {
  * @brief (内部函数)协程消息等待
  * @param  msgPtr 消息指针
  */
-void __Internal_AwaitMsg(__async__, void **msgPtr) {
+void __cortn_internal_await_msg(__async__, void **msgPtr) {
   ASYNC_NOLOCAL
   if (__chd__->msg == NULL) {
     __chd__->state = _CR_STATE_AWAITING;
@@ -324,7 +324,7 @@ _STATIC_INLINE scheduler_cortn_mutex_t *get_mutex(const char *name) {
  * @param  name 锁名
  * @return 1: 获取成功跳过等待, 0: 需要等待
  */
-_INLINE uint8_t __Internal_AcquireMutex(const char *name) {
+_INLINE uint8_t __cortn_internal_acq_mutex(const char *name) {
   scheduler_cortn_mutex_t *mutex = get_mutex(name);
   if (mutex == NULL) return 0;
   if (mutex->locked) {  // 锁已被占用, 添加到等待队列
@@ -342,7 +342,7 @@ _INLINE uint8_t __Internal_AcquireMutex(const char *name) {
  * @brief (内部函数)协程互斥锁释放
  * @param  name 锁名
  */
-_INLINE void __Internal_ReleaseMutex(const char *name) {
+_INLINE void __cortn_internal_rel_mutex(const char *name) {
   scheduler_cortn_t *cortn = NULL;
   scheduler_cortn_mutex_t *mutex = get_mutex(name);
   if (mutex == NULL) return;
@@ -387,14 +387,14 @@ _STATIC_INLINE void release_barrier(scheduler_cortn_barrier_t *barrier) {
   }
 }
 
-uint8_t Sch_CortnBarrierRelease(const char *name) {
+uint8_t sch_release_cortn_barrier(const char *name) {
   scheduler_cortn_barrier_t *barrier = get_barrier(name, 0);
   if (barrier == NULL) return 0;
   release_barrier(barrier);
   return 1;
 }
 
-uint8_t Sch_SetCortnBarrierTarget(const char *name, uint16_t target) {
+uint8_t sch_set_cortn_barrier_target(const char *name, uint16_t target) {
   scheduler_cortn_barrier_t *barrier = get_barrier(name, 1);
   if (barrier == NULL) return 0;
   barrier->target = target;
@@ -404,7 +404,7 @@ uint8_t Sch_SetCortnBarrierTarget(const char *name, uint16_t target) {
   return 1;
 }
 
-uint16_t Sch_GetCortnBarrierWaitingNum(const char *name) {
+uint16_t sch_get_cortn_barrier_num(const char *name) {
   scheduler_cortn_barrier_t *barrier = get_barrier(name, 0);
   if (barrier == NULL) return 0;
   return barrier->waitlist.num;
@@ -415,7 +415,7 @@ uint16_t Sch_GetCortnBarrierWaitingNum(const char *name) {
  * @param  name 屏障名
  * @return 1: 到达屏障, 0: 等待屏障
  */
-uint8_t __Internal_WaitBarrier(const char *name) {
+uint8_t __cortn_internal_await_bar(const char *name) {
   scheduler_cortn_barrier_t *barrier = get_barrier(name, 1);
   if (barrier == NULL) return 0;
   if (barrier->waitlist.num + 1 >= barrier->target) {
@@ -453,7 +453,7 @@ void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
     TT_ALIGN al = TT_ALIGN_LEFT;
     TT_AddTitle(
         tt,
-        TT_FmtStr(al, f1, f2, "[ Coroutine Report / %d ]", Sch_GetCortnNum()),
+        TT_FmtStr(al, f1, f2, "[ Coroutine Report / %d ]", sch_get_cortn_num()),
         '-');
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
@@ -552,7 +552,7 @@ void cortn_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "-k", 1)) {
-    Sch_StopCortn(name);
+    sch_stop_cortn(name);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Coroutine: %s killed" T_RST, name);
   } else {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);

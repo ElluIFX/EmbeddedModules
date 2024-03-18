@@ -36,15 +36,15 @@ typedef struct {         // 协程句柄结构
 #define __async__ __cortn_handle_t *__chd__
 typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类型
 
-extern const char *__Internal_GetName(void);
-extern void *__Internal_InitLocal(size_t size);
-extern uint8_t __Internal_AwaitEnter(void);
-extern uint8_t __Internal_AwaitReturn(void);
-extern void __Internal_Delay(uint64_t delayUs);
-extern uint8_t __Internal_AcquireMutex(const char *name);
-extern void __Internal_ReleaseMutex(const char *name);
-extern uint8_t __Internal_WaitBarrier(const char *name);
-extern void __Internal_AwaitMsg(__async__, void **msgPtr);
+extern const char *__cortn_internal_get_name(void);
+extern void *__cortn_internal_init_local(size_t size);
+extern uint8_t __cortn_internal_await_enter(void);
+extern uint8_t __cortn_internal_await_return(void);
+extern void __cortn_internal_delay(uint64_t delayUs);
+extern uint8_t __cortn_internal_acq_mutex(const char *name);
+extern void __cortn_internal_rel_mutex(const char *name);
+extern uint8_t __cortn_internal_await_bar(const char *name);
+extern void __cortn_internal_await_msg(__async__, void **msgPtr);
 
 #define __ASYNC_INIT                                        \
   __crap__:;                                                \
@@ -55,10 +55,10 @@ extern void __Internal_AwaitMsg(__async__, void **msgPtr);
   } while (0);
 
 #define __ASYNC_LOCAL_START struct _cr_local {
-#define __ASYNC_LOCAL_END                                        \
-  }                                                              \
-  *_cr_local_p = __Internal_InitLocal(sizeof(struct _cr_local)); \
-  if (_cr_local_p == NULL) return;                               \
+#define __ASYNC_LOCAL_END                                               \
+  }                                                                     \
+  *_cr_local_p = __cortn_internal_init_local(sizeof(struct _cr_local)); \
+  if (_cr_local_p == NULL) return;                                      \
   ASYNC_INIT
 
 #define __LOCAL(var) (_cr_local_p->var)
@@ -78,9 +78,9 @@ extern void __Internal_AwaitMsg(__async__, void **msgPtr);
     __label__ l;                                        \
     (__chd__->data[__chd__->runDepth].ptr) = (long)&&l; \
   l:;                                                   \
-    if (__Internal_AwaitEnter()) {                      \
+    if (__cortn_internal_await_enter()) {               \
       func_cmd(__chd__, ##args);                        \
-      if (!__Internal_AwaitReturn()) return;            \
+      if (!__cortn_internal_await_return()) return;     \
       (__chd__->data[__chd__->runDepth].ptr) = 0;       \
     }                                                   \
     __async_check__ = __async_check__;                  \
@@ -88,7 +88,7 @@ extern void __Internal_AwaitMsg(__async__, void **msgPtr);
 
 #define __AWAIT_DELAY_US(us)             \
   do {                                   \
-    __Internal_Delay(us);                \
+    __cortn_internal_delay(us);          \
     __chd__->state = _CR_STATE_SLEEPING; \
     YIELD();                             \
   } while (0)
@@ -103,18 +103,18 @@ extern void __Internal_AwaitMsg(__async__, void **msgPtr);
     AWAIT_DELAY(delayMs);                  \
   } while (!(cond))
 
-#define __AWAIT_ACQUIRE_MUTEX(mutex_name)       \
-  do {                                          \
-    if (!__Internal_AcquireMutex(mutex_name)) { \
-      __chd__->state = _CR_STATE_AWAITING;      \
-      YIELD();                                  \
-    }                                           \
+#define __AWAIT_ACQUIRE_MUTEX(mutex_name)          \
+  do {                                             \
+    if (!__cortn_internal_acq_mutex(mutex_name)) { \
+      __chd__->state = _CR_STATE_AWAITING;         \
+      YIELD();                                     \
+    }                                              \
   } while (0)
 
-#define __AWAIT_BARRIER(barr_name)            \
-  do {                                        \
-    if (!__Internal_WaitBarrier(barr_name)) { \
-      __chd__->state = _CR_STATE_AWAITING;    \
-      YIELD();                                \
-    }                                         \
+#define __AWAIT_BARRIER(barr_name)                \
+  do {                                            \
+    if (!__cortn_internal_await_bar(barr_name)) { \
+      __chd__->state = _CR_STATE_AWAITING;        \
+      YIELD();                                    \
+    }                                             \
   } while (0)

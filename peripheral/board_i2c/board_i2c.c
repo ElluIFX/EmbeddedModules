@@ -15,7 +15,7 @@
 #if BOARD_I2C_CFG_USE_SW_IIC
 #include "sw_i2c.h"
 
-static sw_iic_t _i2c_dev = {
+static sw_i2c_t _i2c_dev = {
     .sclPort = BOARD_I2C_CFG_SW_SCL_PORT,
     .sclPin = BOARD_I2C_CFG_SW_SCL_PIN,
     .sdaPort = BOARD_I2C_CFG_SW_SDA_PORT,
@@ -74,7 +74,7 @@ _INLINE void i2c_read_words(uint8_t addr, uint8_t reg, uint16_t *data,
 }
 
 _INLINE uint8_t i2c_check_slave(uint8_t addr) {
-  return sw_i2c_check_slave(&_i2c_dev, addr);
+  return sw_i2c_check_addr(&_i2c_dev, addr);
 }
 
 #elif BOARD_I2C_CFG_USE_LL_I2C

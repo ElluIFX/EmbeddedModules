@@ -13,7 +13,7 @@ extern "C" {
  * @param  mainChannel     主通道(0-7)
  * @param  subChannel      子通道(0-7)
  */
-extern void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel);
+extern void sch_trigger_soft_int(uint8_t mainChannel, uint8_t subChannel);
 
 /**
  * @brief 软中断回调函数
@@ -21,7 +21,7 @@ extern void Sch_TriggerSoftInt(uint8_t mainChannel, uint8_t subChannel);
  * @param  subMask        8个子通道掩码(1 << subChannel)
  * @note  调度器自动调用, 由用户实现
  */
-extern void Scheduler_SoftInt_Handler(uint8_t mainChannel, uint8_t subMask);
+extern void scheduler_soft_int_handler(uint8_t mainChannel, uint8_t subMask);
 
 #endif  // SCH_CFG_ENABLE_SOFTINT
 

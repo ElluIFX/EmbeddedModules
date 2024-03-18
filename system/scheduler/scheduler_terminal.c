@@ -3,7 +3,7 @@
 #if SCH_CFG_ENABLE_TERMINAL
 #include "term_table.h"
 
-void Sch_AddCmdToCli(EmbeddedCli *cli) {
+void sch_add_command_to_cli(EmbeddedCli *cli) {
 #if SCH_CFG_ENABLE_TASK
   static CliCommandBinding sch_cmd = {
       .name = "task",
@@ -11,7 +11,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
           "task [-l list | -e enable | -d disable | -r delete | -f "
           "setfreq | -p setpri | -E excute]"
           " [freq | pri] <taskname>",
-      .help = "Task control command (Scheduler)",
+      .help = "task control command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = task_cmd_func,
@@ -27,7 +27,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
           "event [-l list | -e enable | -d disable | -r delete | -t trigger] "
           "<eventname> [type] "
           "[content]",
-      .help = "Event control command (Scheduler)",
+      .help = "event control command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = event_cmd_func,
@@ -53,7 +53,7 @@ void Sch_AddCmdToCli(EmbeddedCli *cli) {
   static CliCommandBinding softint_cmd = {
       .name = "softint",
       .usage = "softint [channel] [sub-channel]",
-      .help = "SoftInt manual trigger command (Scheduler)",
+      .help = "soft_int manual trigger command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = softint_cmd_func,

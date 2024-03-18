@@ -149,19 +149,19 @@ extern void ll_i2c_dump(I2C_TypeDef *i2c, uint8_t addr, uint8_t start,
  * @brief I2C 事件中断服务函数
  * @param  i2c 中断源      I2Cx 句柄
  */
-extern void i2c_ev_handler(I2C_TypeDef *i2c);
+extern void ll_i2c_event_irq(I2C_TypeDef *i2c);
 
 /**
  * @brief I2C 错误中断服务函数
  * @param  i2c 中断源      I2Cx 句柄
  */
-extern int i2c_er_handler(I2C_TypeDef *i2c);
+extern int ll_i2c_error_irq(I2C_TypeDef *i2c);
 
 /**
  * @brief I2C 组合中断服务函数(ev+er)
  * @param  i2c 中断源      I2Cx 句柄
  */
-extern void i2c_combine_handler(I2C_TypeDef *i2c);
+extern void ll_i2c_combine_irq(I2C_TypeDef *i2c);
 
 #ifdef __cplusplus
 }

@@ -133,7 +133,7 @@ static void i2c_master_mode_end(i2c_interface_t* iface, const bool from_isr) {
   }
 }
 
-void i2c_ev_handler(I2C_TypeDef* i2c) {
+void ll_i2c_event_irq(I2C_TypeDef* i2c) {
   i2c_interface_t* iface = get_iface(i2c);
   if (!iface) {
     return;
@@ -193,7 +193,7 @@ end:
   i2c_master_mode_end(iface, true);
 }
 
-int i2c_er_handler(I2C_TypeDef* i2c) {
+int ll_i2c_error_irq(I2C_TypeDef* i2c) {
   i2c_interface_t* iface = get_iface(i2c);
   if (!iface) {
     return -1;
@@ -229,9 +229,9 @@ end:
   return -1;
 }
 
-void i2c_combine_handler(I2C_TypeDef* i2c) {
-  if (!i2c_er_handler(i2c)) {
-    i2c_ev_handler(i2c);
+void ll_i2c_combine_irq(I2C_TypeDef* i2c) {
+  if (!ll_i2c_error_irq(i2c)) {
+    ll_i2c_event_irq(i2c);
   }
 }
 
@@ -461,8 +461,8 @@ bool ll_i2c_internal_check_addr(I2C_TypeDef* i2c, uint8_t addr) {
 
 #endif /* __has_include("i2c.h") */
 #else
-void i2c_ev_handler(I2C_TypeDef* i2c) {}
-int i2c_er_handler(I2C_TypeDef* i2c) { return 0; }
-void i2c_combine_handler(I2C_TypeDef* i2c) {}
+void ll_i2c_event_irq(I2C_TypeDef* i2c) {}
+int ll_i2c_error_irq(I2C_TypeDef* i2c) { return 0; }
+void ll_i2c_combine_irq(I2C_TypeDef* i2c) {}
 
 #endif /* LL_IIC_CFG_USE_IT */

@@ -1,13 +1,13 @@
 menu "Scheduler Configuration"
 
 config SCH_CFG_ENABLE_TASK
-    bool "Enable Task Support"
+    bool "Enable task Support"
     default y
     help
       Enable the task support in the scheduler.
 
 config SCH_CFG_ENABLE_EVENT
-    bool "Enable Event Support"
+    bool "Enable event Support"
     default y
     help
       Enable the event support in the scheduler.
@@ -19,7 +19,7 @@ config SCH_CFG_ENABLE_COROUTINE
       Enable the coroutine support in the scheduler.
 
 config SCH_CFG_ENABLE_CALLLATER
-    bool "Enable CallLater Support"
+    bool "Enable call_later Support"
     default y
     help
       Enable the call later support in the scheduler.
@@ -45,14 +45,14 @@ config SCH_CFG_STATIC_NAME_LEN
       The max length of the static name (-1 for \0).
 
 config SCH_CFG_COMP_RANGE_US
-    int "Task Auto Compensate Range (us)"
+    int "task Auto Compensate Range (us)"
     default 1000
     range 0 10000
     help
       The compensate range in us for the task scheduling.
 
 config SCH_CFG_PRI_ORDER_ASC
-    bool "Priority Order Ascending (Larger Priority First)"
+    bool "_priority Order Ascending (Larger _priority First)"
     default y
     help
       The priority order is ascending if enabled.

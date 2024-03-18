@@ -6,7 +6,7 @@
 
 typedef struct xv (*XvExtFunc)(struct xv this, struct xv ident, void *udata);
 
-extern void XVExtend_AddCmdToCli(EmbeddedCli *cli);
-extern void XVExtend_AddUserFunc(const char *name, XvExtFunc func);
+extern void xv_ex_add_command_to_cli(EmbeddedCli *cli);
+extern void xv_ex_add_user_func(const char *name, XvExtFunc func);
 
 #endif

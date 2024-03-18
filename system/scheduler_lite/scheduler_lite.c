@@ -14,7 +14,7 @@ scheduler_task_t _sch_task_start_ _SCH_CFG_SECTION("0.end") = {NULL, 0, 0};
 __attribute__((used))
 scheduler_task_t _sch_task_end_ _SCH_CFG_SECTION("1.end") = {NULL, 0, 0};
 
-__attribute__((always_inline)) void SchedulerLite_Run(const uint8_t block) {
+__attribute__((always_inline)) void scheduler_lite_run(const uint8_t block) {
   static scheduler_task_t *schTaskList = NULL;
   m_time_t now;
   if (NULL == schTaskList) {
