@@ -11,6 +11,7 @@
 #include "ll_i2c.h"
 
 #if __has_include("i2c.h")
+
 #include "i2c.h"
 #include "log.h"
 

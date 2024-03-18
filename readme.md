@@ -40,6 +40,7 @@
 | [lwrb](./datastruct/lwrb) | 轻量环形缓冲区 | [link](https://github.com/MaJerle/lwrb) | |
 | [pqueue](./datastruct/pqueue) | 优先队列 | [link](https://github.com/tidwall/pqueue.c) | |
 | [sds](./datastruct/sds) | 简单动态字符串 | [link](https://github.com/antirez/sds) | |
+| [struct2json](./datastruct/struct2json) | C结构体与JSON快速互转库 | [link](https://github.com/armink/struct2json) | |
 | [udict](./datastruct/udict) | 通用字典 |*| 基于ulist |
 | [ulist](./datastruct/ulist) | 通用内存连续列表 |*| |
 
@@ -82,13 +83,14 @@
 
 | [Storage](./storage) | 存储 | repo | 备注 |
 |-|-|:-:|-|
+| [easyflash](./storage/easyflash) | 轻量级Flash数据库 | [link](https://github.com/armink/EasyFlash) | |
 | [littlefs](./storage/littlefs) | LittleFS | [link](https://github.com/littlefs-project/littlefs) | |
 | [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 | [link](https://github.com/Jiu-xiao/MiniFlashDB) | 魔改 |
 
 | [System](./system) | 系统 | repo | 备注 |
 |-|-|:-:|-|
 | [dalloc](./system/dalloc) | 动态指针管理内存分配器 | [link](https://github.com/SkyEng1neering/dalloc) | |
-| [heap_4](./system/heap_4) | FreeRTOS堆4 | [link](https://www.freertos.org/a00111.html) | |
+| [heap4](./system/heap4) | FreeRTOS堆4 | [link](https://www.freertos.org/a00111.html) | |
 | [klite](./system/klite) | 基础实时内核 | [link](https://gitee.com/kerndev/klite) | 轻量高性能,推荐 |
 | [lwmem](./system/lwmem) | 轻量级内存管理 | [link](https://github.com/MaJerle/lwmem) | 性能远不如heap4|
 | [rtthread_nano](./system/rtthread_nano) | RT-Thread Nano | [link](https://github.com/RT-Thread/rtthread-nano) | |

@@ -157,8 +157,8 @@ typedef int64_t m_time_t;
 #define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
-#elif MOD_CFG_HEAP_MATHOD_HEAP4  // heap_4
-#include "heap_4.h"
+#elif MOD_CFG_HEAP_MATHOD_HEAP4  // heap4
+#include "heap4.h"
 #define Init_Module_Heap(ptr, size) prvHeapInit(ptr, size)
 #define m_alloc(size) pvPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)

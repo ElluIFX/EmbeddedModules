@@ -10,10 +10,15 @@
 
 #include "ll_i2c.h"
 
-#if !LL_IIC_CFG_USE_IT
-#if __has_include("i2c.h")
+#if !LL_IIC_CFG_USE_IT && __has_include("i2c.h")
+
 #include "i2c.h"
 #include "log.h"
+#if 0 /* 1: enable trace log */
+#define I2C_TRACE(fmt, ...) LOG_TRACE("I2C: " fmt, ##__VA_ARGS__)
+#else
+#define I2C_TRACE(fmt, ...)
+#endif
 
 typedef enum {
   I2C_TRANSMITTER,
@@ -304,5 +309,4 @@ bool ll_i2c_internal_check_addr(I2C_TypeDef* i2c, uint8_t addr) {
   return ll_i2c_internal_read(i2c, addr, 0, 0, &temp, 1);
 }
 
-#endif /* __has_include("i2c.h") */
 #endif /* !LL_IIC_CFG_USE_IT */

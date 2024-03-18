@@ -311,6 +311,7 @@ extern void log_hook(const char *fmt, ...);
 #endif
 
 #if LOG_CFG_ENABLE_ASSERT
+#if !LOG_ASSERT_FAILED_BLOCK
 #define __ASSERT_0(expr)   \
   if (!(expr)) {           \
     __ASSERT_COMMON(expr); \
@@ -319,7 +320,21 @@ extern void log_hook(const char *fmt, ...);
   if (!(expr)) {                           \
     __ASSERT_PRINT(text, ##args);          \
   }
-#else
+#else  // LOG_ASSERT_FAILED_BLOCK
+#define __ASSERT_0(expr)   \
+  if (!(expr)) {           \
+    __ASSERT_COMMON(expr); \
+    while (1) {            \
+    }                      \
+  }
+#define __ASSERT_MORE(expr, text, args...) \
+  if (!(expr)) {                           \
+    __ASSERT_PRINT(text, ##args);          \
+    while (1) {                            \
+    }                                      \
+  }
+#endif  // LOG_ASSERT_FAILED_BLOCK
+#else   // LOG_CFG_ENABLE_ASSERT
 #define __ASSERT_0(text) ((void)0)
 #define __ASSERT_MORE(expr, text, args...) ((void)0)
 #endif
@@ -345,7 +360,7 @@ extern void log_hook(const char *fmt, ...);
     __ASSERT_PRINT(text, ##args);                   \
     cmd;                                            \
   }
-#else
+#else  // LOG_CFG_ENABLE_ASSERT
 #define __ASSERT_CMD_0(expr, cmd) \
   if (!(expr)) {                  \
     cmd;                          \
@@ -354,7 +369,7 @@ extern void log_hook(const char *fmt, ...);
   if (!(expr)) {                                    \
     cmd;                                            \
   }
-#endif
+#endif  // LOG_CFG_ENABLE_ASSERT
 
 #define __ASSERT_CMD_1 __ASSERT_CMD_MORE
 #define __ASSERT_CMD_2 __ASSERT_CMD_MORE
@@ -370,6 +385,7 @@ extern void log_hook(const char *fmt, ...);
  * @brief 断言日志
  * @param  expr             断言表达式
  * @param  text             断言失败时输出的文本(可选, 支持格式化)
+ * @note 如果启用LOG_ASSERT_FAILED_BLOCK, 断言失败时将进入死循环
  * @note 变体: LOG_ASSERT_CMD - 断言失败时执行命令
  */
 #define LOG_ASSERT(expr, ...)  \

@@ -35,10 +35,20 @@
  * See heap_1.c, heap_2.c and heap_3.c for alternative implementations, and the
  * memory management pages of https://www.FreeRTOS.org for more information.
  */
-#include "heap_4.h"
+#include "heap4.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+/*               CONFIGURATION                */
+
+#define configUSE_MALLOC_FAILED_HOOK 0
+
+#define configHEAP_CLEAR_MEMORY_ON_FREE 0
+
+#define portBYTE_ALIGNMENT 0x04
+
+#define portBYTE_ALIGNMENT_MASK (portBYTE_ALIGNMENT - 1)
 
 /* Block sizes must not get too small. */
 #define heapMINIMUM_BLOCK_SIZE ((size_t)(xHeapStructSize << 1))
@@ -48,6 +58,33 @@
 
 /* Max value that fits in a size_t type. */
 #define heapSIZE_MAX (~((size_t)0))
+
+/*               PORTING FOR NON-FREERTOS                */
+
+#define vTaskSuspendAll() ((void)0)
+
+#define xTaskResumeAll() ((void)0)
+
+#if MOD_CFG_USE_OS_KLITE
+#include "kernel.h"
+#define taskENTER_CRITICAL() kernel_enter_critical()
+
+#define taskEXIT_CRITICAL() kernel_exit_critical()
+#else
+#define taskENTER_CRITICAL() ((void)0)
+
+#define taskEXIT_CRITICAL() ((void)0)
+#endif
+
+#define traceMALLOC(pvReturn, xWantedSize) ((void)0)
+
+#define traceFREE(pv, xSize) ((void)0)
+
+#define configASSERT(x) ((void)0)
+
+#define portPOINTER_SIZE_TYPE size_t
+
+#define portMAX_DELAY UINT32_MAX
 
 /* Check if multiplying a and b will result in overflow. */
 #define heapMULTIPLY_WILL_OVERFLOW(a, b) \
@@ -73,8 +110,8 @@
 
 /*-----------------------------------------------------------*/
 
-PRIVILEGED_DATA static uint8_t* ucHeap;
-PRIVILEGED_DATA static size_t ucHeapSize = 0U;
+static uint8_t* ucHeap;
+static size_t ucHeapSize = 0U;
 
 /* Define the linked list structure.  This is used to link free blocks in order
  * of their memory address. */
@@ -91,8 +128,7 @@ typedef struct A_BLOCK_LINK {
  * the block in front it and/or the block behind it if the memory blocks are
  * adjacent to each other.
  */
-static void prvInsertBlockIntoFreeList(BlockLink_t* pxBlockToInsert)
-    PRIVILEGED_FUNCTION;
+static void prvInsertBlockIntoFreeList(BlockLink_t* pxBlockToInsert);
 
 /*-----------------------------------------------------------*/
 
@@ -103,15 +139,15 @@ static const size_t xHeapStructSize =
     ~((size_t)portBYTE_ALIGNMENT_MASK);
 
 /* Create a couple of list links to mark the start and end of the list. */
-PRIVILEGED_DATA static BlockLink_t xStart;
-PRIVILEGED_DATA static BlockLink_t* pxEnd = NULL;
+static BlockLink_t xStart;
+static BlockLink_t* pxEnd = NULL;
 
 /* Keeps track of the number of calls to allocate and free memory as well as the
  * number of free bytes remaining, but says nothing about fragmentation. */
-PRIVILEGED_DATA static size_t xFreeBytesRemaining = 0U;
-PRIVILEGED_DATA static size_t xMinimumEverFreeBytesRemaining = 0U;
-PRIVILEGED_DATA static size_t xNumberOfSuccessfulAllocations = 0;
-PRIVILEGED_DATA static size_t xNumberOfSuccessfulFrees = 0;
+static size_t xFreeBytesRemaining = 0U;
+static size_t xMinimumEverFreeBytesRemaining = 0U;
+static size_t xNumberOfSuccessfulAllocations = 0;
+static size_t xNumberOfSuccessfulFrees = 0;
 
 /*-----------------------------------------------------------*/
 
@@ -137,10 +173,7 @@ void* pvPortMalloc(size_t xWantedSize) {
       } else {
         xWantedSize = 0;
       }
-    } else {
-      mtCOVERAGE_TEST_MARKER();
     }
-
     /* Check the block size we are trying to allocate is not so large that the
      * top bit is set.  The top bit of the block size member of the BlockLink_t
      * structure is used to determine who owns the block - the application or
@@ -188,33 +221,20 @@ void* pvPortMalloc(size_t xWantedSize) {
 
             /* Insert the new block into the list of free blocks. */
             prvInsertBlockIntoFreeList(pxNewBlockLink);
-          } else {
-            mtCOVERAGE_TEST_MARKER();
           }
-
           xFreeBytesRemaining -= pxBlock->xBlockSize;
 
           if (xFreeBytesRemaining < xMinimumEverFreeBytesRemaining) {
             xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
-          } else {
-            mtCOVERAGE_TEST_MARKER();
           }
-
           /* The block is being returned - it is allocated and owned
            * by the application and has no "next" block. */
           heapALLOCATE_BLOCK(pxBlock);
           pxBlock->pxNextFreeBlock = NULL;
           xNumberOfSuccessfulAllocations++;
-        } else {
-          mtCOVERAGE_TEST_MARKER();
         }
-      } else {
-        mtCOVERAGE_TEST_MARKER();
       }
-    } else {
-      mtCOVERAGE_TEST_MARKER();
     }
-
     traceMALLOC(pvReturn, xWantedSize);
   }
   (void)xTaskResumeAll();
@@ -224,8 +244,6 @@ void* pvPortMalloc(size_t xWantedSize) {
     if (pvReturn == NULL) {
       extern void vApplicationMallocFailedHook(void);
       vApplicationMallocFailedHook();
-    } else {
-      mtCOVERAGE_TEST_MARKER();
     }
   }
 #endif /* if ( configUSE_MALLOC_FAILED_HOOK == 1 ) */
@@ -272,11 +290,7 @@ void vPortFree(void* pv) {
           xNumberOfSuccessfulFrees++;
         }
         (void)xTaskResumeAll();
-      } else {
-        mtCOVERAGE_TEST_MARKER();
       }
-    } else {
-      mtCOVERAGE_TEST_MARKER();
     }
   }
 }
@@ -303,10 +317,7 @@ void* pvPortRealloc(void* pv, size_t xWantedSize) {
         xWantedSize +=
             (portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK));
         configASSERT((xWantedSize & portBYTE_ALIGNMENT_MASK) == 0);
-      } else {
-        mtCOVERAGE_TEST_MARKER();
       }
-
       if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining)) {
         if (pv == NULL) {
           pvReturn = pvPortMalloc(xWantedSize);
@@ -359,12 +370,7 @@ void* pvPortRealloc(void* pv, size_t xWantedSize) {
                   (~heapBLOCK_ALLOCATED_BITMASK) - xHeapStructSize));
           vPortFree(pv);  // 释放源地址空间
         }
-
-      } else {
-        mtCOVERAGE_TEST_MARKER();
       }
-    } else {
-      mtCOVERAGE_TEST_MARKER();
     }
   }
   (void)xTaskResumeAll();
@@ -475,10 +481,7 @@ static void prvInsertBlockIntoFreeList(BlockLink_t* pxBlockToInsert) /*  */
   if ((puc + pxIterator->xBlockSize) == (uint8_t*)pxBlockToInsert) {
     pxIterator->xBlockSize += pxBlockToInsert->xBlockSize;
     pxBlockToInsert = pxIterator;
-  } else {
-    mtCOVERAGE_TEST_MARKER();
   }
-
   /* Do the block being inserted, and the block it is being inserted before
    * make a contiguous block of memory? */
   puc = (uint8_t*)pxBlockToInsert;
@@ -503,8 +506,6 @@ static void prvInsertBlockIntoFreeList(BlockLink_t* pxBlockToInsert) /*  */
    * to itself. */
   if (pxIterator != pxBlockToInsert) {
     pxIterator->pxNextFreeBlock = pxBlockToInsert;
-  } else {
-    mtCOVERAGE_TEST_MARKER();
   }
 }
 /*-----------------------------------------------------------*/

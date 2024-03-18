@@ -12,14 +12,14 @@
 
 #include "ll_i2c.h"
 
-#if LL_IIC_CFG_USE_IT
-#if __has_include("i2c.h")
+#if LL_IIC_CFG_USE_IT && __has_include("i2c.h")
+
 #include "i2c.h"
 #include "log.h"
 #if 0 /* 1: enable trace log */
-#define I2C_TRA(fmt, ...) LOG_TRACE("I2C: " fmt, ##__VA_ARGS__)
+#define I2C_TRACE(fmt, ...) LOG_TRACE("I2C: " fmt, ##__VA_ARGS__)
 #else
-#define I2C_TRA(fmt, ...)
+#define I2C_TRACE(fmt, ...)
 #endif
 
 typedef struct i2c_interface {
@@ -83,10 +83,10 @@ static void i2c_interface_init(I2C_TypeDef* i2c) {
 static void i2c_transfer_init(I2C_TypeDef* i2c, uint32_t msg_len, uint32_t addr,
                               uint32_t transfer, bool reload) {
   if (LL_I2C_IsEnabledReloadMode(i2c)) {
-    I2C_TRA("reload %d", msg_len);
+    I2C_TRACE("reload %d", msg_len);
     LL_I2C_SetTransferSize(i2c, msg_len);
   } else {
-    I2C_TRA("load %d", msg_len);
+    I2C_TRACE("load %d", msg_len);
     LL_I2C_SetMasterAddressingMode(i2c, LL_I2C_ADDRESSING_MODE_7BIT);
     LL_I2C_SetSlaveAddr(i2c, (uint32_t)(addr));
 
@@ -143,13 +143,13 @@ void ll_i2c_event_irq(I2C_TypeDef* i2c) {
     /* Send next byte */
     if (LL_I2C_IsActiveFlag_TXIS(i2c)) {
       LL_I2C_TransmitData8(i2c, *iface->buf);
-      I2C_TRA("TX:%X", *iface->buf);
+      I2C_TRACE("TX:%X", *iface->buf);
     }
 
     /* Receive next byte */
     if (LL_I2C_IsActiveFlag_RXNE(i2c)) {
       *iface->buf = LL_I2C_ReceiveData8(i2c);
-      I2C_TRA("RX:%X", *iface->buf);
+      I2C_TRACE("RX:%X", *iface->buf);
     }
 
     iface->buf++;
@@ -158,7 +158,7 @@ void ll_i2c_event_irq(I2C_TypeDef* i2c) {
 
   /* NACK received */
   if (LL_I2C_IsActiveFlag_NACK(i2c)) {
-    I2C_TRA("NACK");
+    I2C_TRACE("NACK");
     LL_I2C_ClearFlag_NACK(i2c);
     iface->nack = 1U;
     /*
@@ -171,7 +171,7 @@ void ll_i2c_event_irq(I2C_TypeDef* i2c) {
 
   /* STOP received */
   if (LL_I2C_IsActiveFlag_STOP(i2c)) {
-    I2C_TRA("STOP");
+    I2C_TRACE("STOP");
     LL_I2C_ClearFlag_STOP(i2c);
     LL_I2C_DisableReloadMode(i2c);
     goto end;
@@ -179,7 +179,7 @@ void ll_i2c_event_irq(I2C_TypeDef* i2c) {
 
   /* Transfer Complete or Transfer Complete Reload */
   if (LL_I2C_IsActiveFlag_TC(i2c) || LL_I2C_IsActiveFlag_TCR(i2c)) {
-    I2C_TRA("%s", LL_I2C_IsActiveFlag_TC(i2c) ? "TC" : "TCR");
+    I2C_TRACE("%s", LL_I2C_IsActiveFlag_TC(i2c) ? "TC" : "TCR");
     /* Issue stop condition if necessary */
     if (iface->stop) {
       LL_I2C_GenerateStopCondition(i2c);
@@ -201,7 +201,7 @@ int ll_i2c_error_irq(I2C_TypeDef* i2c) {
   // /* I2C Over-Run/Under-Run */
   // if (LL_I2C_IsActiveFlag_OVR(i2c)) {
   //   /* Clear OVR flag */
-  //   I2C_TRA("OVR");
+  //   I2C_TRACE("OVR");
   //   LL_I2C_ClearFlag_OVR(i2c);
   // }
 
@@ -209,7 +209,7 @@ int ll_i2c_error_irq(I2C_TypeDef* i2c) {
   if (LL_I2C_IsActiveFlag_BERR(i2c)) {
     /* Clear BERR flag */
     LL_I2C_ClearFlag_BERR(i2c);
-    I2C_TRA("ERR");
+    I2C_TRACE("ERR");
     iface->error = 1;
     goto end;
   }
@@ -218,7 +218,7 @@ int ll_i2c_error_irq(I2C_TypeDef* i2c) {
   if (LL_I2C_IsActiveFlag_ARLO(i2c)) {
     /* Clear ARLO flag */
     LL_I2C_ClearFlag_ARLO(i2c);
-    I2C_TRA("ARLO");
+    I2C_TRACE("ARLO");
     iface->arblost = 1;
     goto end;
   }
@@ -281,19 +281,19 @@ static int i2c_transfer(I2C_TypeDef* i2c, uint8_t addr, bool reload, bool stop,
   }
 
   if (is_timeout) {
-    I2C_TRA("timeout");
+    I2C_TRACE("timeout");
     return -1;
   }
   if (iface->arblost) {
-    I2C_TRA("arbitration lost");
+    I2C_TRACE("arbitration lost");
     return -2;
   }
   if (iface->nack) {
-    I2C_TRA("NACK");
+    I2C_TRACE("NACK");
     return -3;
   }
   if (iface->error) {
-    I2C_TRA("error");
+    I2C_TRACE("error");
     return -4;
   }
 
@@ -321,13 +321,13 @@ bool ll_i2c_internal_read(I2C_TypeDef* i2c, uint8_t addr, uint16_t reg,
 
   if (reg_len == 2) {
     uint8_t addr2[2] = {reg >> 8, reg & 0xFF};
-    I2C_TRA("send addr 2");
+    I2C_TRACE("send addr 2");
     if (0 != i2c_transfer(i2c, addr, false, false, true, addr2, 2)) {
       goto error;
     }
   } else if (reg_len == 1) {
     uint8_t addr1 = reg & 0xFF;
-    I2C_TRA("send addr 1");
+    I2C_TRACE("send addr 1");
     if (0 != i2c_transfer(i2c, addr, false, false, true, &addr1, 1)) {
       goto error;
     }
@@ -335,7 +335,7 @@ bool ll_i2c_internal_read(I2C_TypeDef* i2c, uint8_t addr, uint16_t reg,
 
   do {
     msg_len = data_len > STM32_I2C_MAX_SIZE ? STM32_I2C_MAX_SIZE : data_len;
-    I2C_TRA("read data %d", msg_len);
+    I2C_TRACE("read data %d", msg_len);
     if (0 != i2c_transfer(i2c, addr, (data_len - msg_len) > 0,
                           (data_len - msg_len) == 0, false, data, msg_len)) {
       goto error;
@@ -368,13 +368,13 @@ bool ll_i2c_internal_write(I2C_TypeDef* i2c, uint8_t addr, uint16_t reg,
 
   if (reg_len == 2) {
     uint8_t addr2[2] = {reg >> 8, reg & 0xFF};
-    I2C_TRA("send addr 2");
+    I2C_TRACE("send addr 2");
     if (0 != i2c_transfer(i2c, addr, true, false, true, addr2, 2)) {
       goto error;
     }
   } else if (reg_len == 1) {
     uint8_t addr1 = reg & 0xFF;
-    I2C_TRA("send addr 1");
+    I2C_TRACE("send addr 1");
     if (0 != i2c_transfer(i2c, addr, true, false, true, &addr1, 1)) {
       goto error;
     }
@@ -382,7 +382,7 @@ bool ll_i2c_internal_write(I2C_TypeDef* i2c, uint8_t addr, uint16_t reg,
 
   do {
     msg_len = data_len > STM32_I2C_MAX_SIZE ? STM32_I2C_MAX_SIZE : data_len;
-    I2C_TRA("write data %d", msg_len);
+    I2C_TRACE("write data %d", msg_len);
     if (0 != i2c_transfer(i2c, addr, (data_len - msg_len) > 0,
                           (data_len - msg_len) == 0, true, data, msg_len)) {
       goto error;
@@ -459,10 +459,10 @@ bool ll_i2c_internal_check_addr(I2C_TypeDef* i2c, uint8_t addr) {
   return ret;
 }
 
-#endif /* __has_include("i2c.h") */
 #else
+
 void ll_i2c_event_irq(I2C_TypeDef* i2c) {}
 int ll_i2c_error_irq(I2C_TypeDef* i2c) { return 0; }
 void ll_i2c_combine_irq(I2C_TypeDef* i2c) {}
 
-#endif /* LL_IIC_CFG_USE_IT */
+#endif /* LL_IIC_CFG_USE_IT && __has_include("i2c.h") */

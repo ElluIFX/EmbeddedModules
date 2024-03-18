@@ -27,7 +27,7 @@
 #include "internal.h"
 #include "kernel.h"
 #if KERNEL_CFG_HEAP_USE_HEAP4
-#include "heap_4.h"
+#include "heap4.h"
 
 volatile static uint8_t heap_lock = 0;
 static struct tcb_list heap_tcb;

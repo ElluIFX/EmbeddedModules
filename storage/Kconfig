@@ -1,3 +1,5 @@
 menu "Storage Modules"
 
+source "storage/**/Kconfig"
+
 endmenu

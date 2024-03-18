@@ -69,7 +69,7 @@ static int sh_lfsunlock(const struct lfs_config *c) {
 }
 #endif
 
-static const struct lfs_config cfg = {
+static struct lfs_config cfg = {
     // block device operations
     .read = spif_block_device_read,
     .prog = spif_block_device_prog,
@@ -81,10 +81,11 @@ static const struct lfs_config cfg = {
 #endif
 
     // block device configuration
+    .block_size = 0,   // set by spif
+    .block_count = 0,  // set by spif
+
     .read_size = 16,
     .prog_size = 16,
-    .block_size = 4096,
-    .block_count = 128,
     .cache_size = 16,
     .lookahead_size = 16,
     .block_cycles = 500,
@@ -99,6 +100,10 @@ static uint8_t spif_init_lfs(void) {
     return 0;
   }
   LOG_PASS("SPIF Driver Initialized");
+  cfg.block_size = SPIF_SECTOR_SIZE;
+  cfg.block_count = hspif.SectorCnt;
+  LOG_DEBUG("LFS Block Size: %d, Block Count: %d", cfg.block_size,
+            cfg.block_count);
   int err = lfs_mount(&lfs, &cfg);
   if (err) {
     LOG_ERROR("lfs_mount failed: %d, formatting", err);

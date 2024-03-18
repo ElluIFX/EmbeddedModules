@@ -1,0 +1,88 @@
+menu "EasyFlash Configuration"
+
+config EF_BIG_ENDIAN
+    bool "Big Endian"
+    default n
+    help
+      MCU Endian Configuration, default is Little Endian Order
+
+config EF_USING_ENV
+    bool "Using ENV Feature"
+    default y
+    help
+      using ENV function, default is NG (Next Generation) mode start from V4.0
+
+if EF_USING_ENV
+
+config EF_ENV_AUTO_UPDATE
+    bool "Auto Update ENV"
+    default n
+    help
+      Auto update ENV to latest default when current ENV version number is changed.
+
+config EF_ENV_VER_NUM
+    int "ENV Version Number"
+    default 0
+    help
+      ENV version number, default is 0
+
+config EF_USING_IAP
+    bool "Using IAP Feature"
+    default n
+    help
+      using IAP function
+
+config EF_USING_LOG
+    bool "Using LOG Feature"
+    default n
+    help
+      using save log function
+
+config EF_ERASE_MIN_SIZE
+    hex "Erase Min Size"
+    default 0x1000
+    help
+      The minimum size of flash erasure. May be a flash sector size
+
+config EF_WRITE_GRAN
+    hex "Write Granularity"
+    default 0x1
+    help
+      the flash write granularity, unit: bit
+      only support 1(nor flash)/ 8(stm32f4)/ 32(stm32f1)
+
+config EF_READ_BUF_SIZE
+    hex "Read Buffer Size"
+    default 0x20
+    help
+      Larger numbers can improve first-time speed of alloc_env but require more stack space
+
+config EF_START_ADDR
+    hex "Start Address"
+    default 0x0
+    help
+      The start address of easyflash area
+
+config EF_ENV_AREA_SIZE
+    hex "ENV Area Size"
+    default 0x0 if !EF_USING_ENV
+    default 0x2000
+    help
+      It's at least one empty sector for GC. So it's definition must more then or equal 2 * flash sector size.
+
+config EF_LOG_AREA_SIZE
+    hex "LOG Area Size"
+    default 0x0 if !EF_USING_LOG
+    default 0x1000
+    help
+      saved log area size
+
+config EF_DEBUG_ENABLE
+    bool "Print Debug"
+    default n
+    help
+      Print debug information
+
+endif
+
+endmenu

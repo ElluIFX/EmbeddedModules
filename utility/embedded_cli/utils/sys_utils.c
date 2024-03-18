@@ -21,7 +21,7 @@
 #define SHOWLWMEM 1
 #elif (MOD_CFG_HEAP_MATHOD_HEAP4 || \
        (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_CFG_HEAP_USE_HEAP4))
-#include "heap_4.h"
+#include "heap4.h"
 #define SHOWHEAP4 1
 #elif (MOD_CFG_HEAP_MATHOD_RTT)
 #define SHOWRTTHREAD 1

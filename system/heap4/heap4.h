@@ -3,49 +3,6 @@
 
 #include "modules.h"
 
-/*               CONFIGURATION                */
-
-#define configUSE_MALLOC_FAILED_HOOK 0
-
-#define configHEAP_CLEAR_MEMORY_ON_FREE 0
-
-#define portBYTE_ALIGNMENT 0x04
-
-#define portBYTE_ALIGNMENT_MASK (portBYTE_ALIGNMENT - 1)
-
-/*               PORTING FOR NON-FREERTOS                */
-
-#define vTaskSuspendAll() ((void)0)
-
-#define xTaskResumeAll() ((void)0)
-
-#if MOD_CFG_USE_OS_KLITE
-#include "kernel.h"
-#define taskENTER_CRITICAL() kernel_enter_critical()
-
-#define taskEXIT_CRITICAL() kernel_exit_critical()
-#else
-#define taskENTER_CRITICAL() ((void)0)
-
-#define taskEXIT_CRITICAL() ((void)0)
-#endif
-
-#define traceMALLOC(pvReturn, xWantedSize) ((void)0)
-
-#define traceFREE(pv, xSize) ((void)0)
-
-#define configASSERT(x) ((void)0)
-
-#define PRIVILEGED_DATA
-
-#define PRIVILEGED_FUNCTION
-
-#define portPOINTER_SIZE_TYPE size_t
-
-#define portMAX_DELAY UINT32_MAX
-
-#define mtCOVERAGE_TEST_MARKER() ((void)0)
-
 /*               TYPEDEF                */
 
 typedef struct HeapStats {
