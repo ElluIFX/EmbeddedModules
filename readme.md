@@ -71,9 +71,9 @@
 | [board_led](./peripheral/board_led) | 板级LED包装层 |*| |
 | [i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |*| |
 | [key](./peripheral/key) | 通用按键 |*| 支持多种事件 |
-| [ll_i2c](./peripheral/ll_i2c) | LL库I2C | [link](https://github.com/jesstr/i2c_ll) | |
-| [motor](./peripheral/motor) | 直流电机闭环驱动 |*| |
-| [spif](./peripheral/spif) | SPI Flash驱动 | [link](https://github.com/nimaltd/spif) | |
+| [ll_i2c](./peripheral/ll_i2c) | LL库I2C | * | 包含中断/轮询 |
+| [motor](./peripheral/motor) | 直流电机闭环驱动 | * | |
+| [spif](./peripheral/spif) | SPI Flash通用驱动 | [link](https://github.com/nimaltd/spif) | |
 | [stepper](./peripheral/stepper) | 步进电机驱动 |*| |
 | [sw_i2c](./peripheral/sw_i2c) | 软件I2C | [link](https://github.com/liyanboy74/soft-i2c) | |
 | [sw_spi](./peripheral/sw_spi) | 软件SPI |N/A| |
