@@ -64,7 +64,7 @@ void Stepper_Set_Speed(step_ctrl_t *step, double speed) {
     prescaler /= 2;
     period *= 2;
   }
-  // LOG_D("Stepper_Set_Speed: speed = %f, pwmFreq = %f, PSC = %d, ARR = %d",
+  // LOG_DEBUG("Stepper_Set_Speed: speed = %f, pwmFreq = %f, PSC = %d, ARR = %d",
   // speed,
   //       pulsePerSec, prescaler, period);
   __HAL_TIM_SET_PRESCALER(step->timMaster, prescaler - 1);
@@ -90,7 +90,7 @@ void Stepper_IT_Handler(step_ctrl_t *step, TIM_HandleTypeDef *htim) {
           HAL_TIM_Base_Stop_IT(step->timSlave);
           step->rotating = 0;
           step->angle = step->angleTarget;
-          LOG_D("[STEP] Stop");
+          LOG_DEBUG("[STEP] Stop");
           return;
         } else {  // 从定时器溢出
           step->slaveTimITCnt--;
@@ -128,14 +128,14 @@ void Stepper_Rotate(step_ctrl_t *step, double angle) {
   step->angleTarget = (double)targetPulse * 360 / STEPPER_PULSE_PER_ROUND;
   step->angleTarget = step->dir ? step->angle + step->angleTarget
                                 : step->angle - step->angleTarget;
-  // LOG_D("Stepper_Rotate: angle = %f, pulse = %ld, dir = %d, angleT = %f",
+  // LOG_DEBUG("Stepper_Rotate: angle = %f, pulse = %ld, dir = %d, angleT = %f",
   // angle,
   //       targetPulse, step->dir, step->angleTarget);
   step->slaveTimITCnt = targetPulse / (STEPPER_SLAVE_TIM_MAX_CNT + 1);
   if (step->slaveTimITCnt > 0) {
     step->slaveTimReload = targetPulse % (STEPPER_SLAVE_TIM_MAX_CNT + 1);
     targetPulse = STEPPER_SLAVE_TIM_MAX_CNT;
-    // LOG_D("Stepper_Rotate: slaveTim ITCnt = %d, Reload = %d",
+    // LOG_DEBUG("Stepper_Rotate: slaveTim ITCnt = %d, Reload = %d",
     // step->slaveTimITCnt,
     //       step->slaveTimReload);
   }
@@ -177,7 +177,7 @@ void Stepper_Stop(step_ctrl_t *step) {
   step->angle = Stepper_Get_Angle(step);
   __HAL_TIM_SET_COUNTER(step->timSlave, 0);
   step->rotating = 0;
-  LOG_D("[STEP] Manual stop");
+  LOG_DEBUG("[STEP] Manual stop");
 }
 
 /**

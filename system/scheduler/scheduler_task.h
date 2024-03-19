@@ -16,7 +16,7 @@ typedef void (*task_func_t)(void *args);  // 任务函数指针类型
  * @param  func             任务函数指针
  * @param  freqHz           任务调度频率
  * @param  enable           初始化时是否使能
- * @param  priority         任务优先级(越大优先级越高)
+ * @param  priority         任务优先级
  * @param  args             任务参数
  * @retval uint8_t          是否成功
  */

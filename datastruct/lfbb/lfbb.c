@@ -50,6 +50,22 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
+#if LFBB_DISABLE_ATOMIC
+#define LFBB_INIT(var, val) (var) = (val)
+#define LFBB_LOAD(var, type) (var)
+#define LFBB_STORE(var, val, type) (var) = (val)
+#define _LFBB_MEMORDER_ACQ 0
+#define _LFBB_MEMORDER_REL 0
+#define _LFBB_MEMORDER_RELEX 0
+#else
+#define LFBB_INIT(var, val) atomic_init(&(var), (val))
+#define LFBB_LOAD(var, type) atomic_load_explicit(&(var), (type))
+#define LFBB_STORE(var, val, type) atomic_store_explicit(&(var), (val), (type))
+#define _LFBB_MEMORDER_ACQ __ATOMIC_ACQUIRE
+#define _LFBB_MEMORDER_REL __ATOMIC_RELEASE
+#define _LFBB_MEMORDER_RELEX __ATOMIC_RELAXED
+#endif  // LFBB_DISABLE_ATOMIC
+
 /******************** FUNCTION PROTOTYPES *********************/
 
 static size_t CalcFree(size_t w, size_t r, size_t size);
@@ -63,9 +79,9 @@ void LFBB_Init(LFBB_Inst_Type *inst, uint8_t *data_array, const size_t size) {
 
   inst->data = data_array;
   inst->size = size;
-  inst->r = 0U;
-  inst->w = 0U;
-  inst->i = 0U;
+  LFBB_INIT(inst->r, 0U);
+  LFBB_INIT(inst->w, 0U);
+  LFBB_INIT(inst->i, 0U);
   inst->write_wrapped = false;
   inst->read_wrapped = false;
 }
@@ -75,8 +91,8 @@ uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, const size_t free_required) {
   assert(inst->data != NULL);
 
   /* Preload variables with adequate memory ordering */
-  const size_t w = atomic_load_explicit(&inst->w, memory_order_relaxed);
-  const size_t r = atomic_load_explicit(&inst->r, memory_order_acquire);
+  const lfbb_atomic_size_t w = LFBB_LOAD(inst->w, _LFBB_MEMORDER_RELEX);
+  const lfbb_atomic_size_t r = LFBB_LOAD(inst->r, _LFBB_MEMORDER_ACQ);
   const size_t size = inst->size;
 
   const size_t free = CalcFree(w, r, size);
@@ -103,8 +119,8 @@ uint8_t *LFBB_WriteAcquireAlt(LFBB_Inst_Type *inst, size_t *available) {
   assert(inst->data != NULL);
 
   /* Preload variables with adequate memory ordering */
-  const size_t w = atomic_load_explicit(&inst->w, memory_order_relaxed);
-  const size_t r = atomic_load_explicit(&inst->r, memory_order_acquire);
+  const lfbb_atomic_size_t w = LFBB_LOAD(inst->w, _LFBB_MEMORDER_RELEX);
+  const lfbb_atomic_size_t r = LFBB_LOAD(inst->r, _LFBB_MEMORDER_ACQ);
   const size_t size = inst->size;
 
   const size_t free = CalcFree(w, r, size);
@@ -132,8 +148,8 @@ void LFBB_WriteRelease(LFBB_Inst_Type *inst, const size_t written) {
   assert(inst->data != NULL);
 
   /* Preload variables with adequate memory ordering */
-  size_t w = atomic_load_explicit(&inst->w, memory_order_relaxed);
-  size_t i = atomic_load_explicit(&inst->i, memory_order_relaxed);
+  lfbb_atomic_size_t w = LFBB_LOAD(inst->w, _LFBB_MEMORDER_RELEX);
+  lfbb_atomic_size_t i = LFBB_LOAD(inst->i, _LFBB_MEMORDER_RELEX);
 
   /* If the write wrapped set the invalidate index and reset write index*/
   if (inst->write_wrapped) {
@@ -159,8 +175,8 @@ void LFBB_WriteRelease(LFBB_Inst_Type *inst, const size_t written) {
   }
 
   /* Store the indexes with adequate memory ordering */
-  atomic_store_explicit(&inst->i, i, memory_order_relaxed);
-  atomic_store_explicit(&inst->w, w, memory_order_release);
+  LFBB_STORE(inst->i, i, _LFBB_MEMORDER_RELEX);
+  LFBB_STORE(inst->w, w, _LFBB_MEMORDER_REL);
 }
 
 uint8_t *LFBB_ReadAcquire(LFBB_Inst_Type *inst, size_t *available) {
@@ -169,8 +185,8 @@ uint8_t *LFBB_ReadAcquire(LFBB_Inst_Type *inst, size_t *available) {
   assert(available != NULL);
 
   /* Preload variables with adequate memory ordering */
-  const size_t r = atomic_load_explicit(&inst->r, memory_order_relaxed);
-  const size_t w = atomic_load_explicit(&inst->w, memory_order_acquire);
+  const lfbb_atomic_size_t r = LFBB_LOAD(inst->r, _LFBB_MEMORDER_RELEX);
+  const lfbb_atomic_size_t w = LFBB_LOAD(inst->w, _LFBB_MEMORDER_ACQ);
 
   /* When read and write indexes are equal, the buffer is empty */
   if (r == w) {
@@ -185,7 +201,7 @@ uint8_t *LFBB_ReadAcquire(LFBB_Inst_Type *inst, size_t *available) {
   }
 
   /* Read index reached the invalidate index, make the read wrap */
-  const size_t i = atomic_load_explicit(&inst->i, memory_order_relaxed);
+  const lfbb_atomic_size_t i = LFBB_LOAD(inst->i, _LFBB_MEMORDER_RELEX);
   if (r == i) {
     inst->read_wrapped = true;
     *available = w;
@@ -207,7 +223,7 @@ void LFBB_ReadRelease(LFBB_Inst_Type *inst, const size_t read) {
     inst->read_wrapped = false;
     r = 0U;
   } else {
-    r = atomic_load_explicit(&inst->r, memory_order_relaxed);
+    r = LFBB_LOAD(inst->r, _LFBB_MEMORDER_RELEX);
   }
 
   /* Increment the read index and wrap to 0 if needed */
@@ -217,7 +233,7 @@ void LFBB_ReadRelease(LFBB_Inst_Type *inst, const size_t read) {
   }
 
   /* Store the indexes with adequate memory ordering */
-  atomic_store_explicit(&inst->r, r, memory_order_release);
+  LFBB_STORE(inst->r, r, _LFBB_MEMORDER_REL);
 }
 
 /********************* PRIVATE FUNCTIONS **********************/

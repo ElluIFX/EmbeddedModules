@@ -15,6 +15,7 @@
 #define FIFO_STORE(var, val, type) (var) = (val)
 #define _FIFO_MEMORDER_ACQ 0
 #define _FIFO_MEMORDER_REL 0
+#define _FIFO_MEMORDER_RELEX 0
 #else
 #define FIFO_INIT(var, val) atomic_init(&(var), (val))
 #define FIFO_LOAD(var, type) atomic_load_explicit(&(var), (type))

@@ -27,19 +27,16 @@ extern "C" {
 #endif  // !KCONFIG_AVAILABLE
 
 #if LFIFO_CFG_DISABLE_ATOMIC
-#define FIFO_INIT(var, val) (var) = (val)
-#define FIFO_LOAD(var, type) (var)
-#define FIFO_STORE(var, val, type) (var) = (val)
-typedef uint16_t fifo_atomic_size_t;
+typedef uint32_t fifo_atomic_size_t;
 #else
 #ifndef __cplusplus
 #include <stdalign.h>
 #include <stdatomic.h>
 #include <stdbool.h>
-typedef atomic_uint_fast16_t fifo_atomic_size_t;
+typedef atomic_uint_fast32_t fifo_atomic_size_t;
 #else
 #include <atomic>
-typedef std::atomic_uint_fast16_t fifo_atomic_size_t;
+typedef std::atomic_uint_fast32_t fifo_atomic_size_t;
 #endif  // __cplusplus
 #endif  // LFIFO_CFG_DISABLE_ATOMIC
 
