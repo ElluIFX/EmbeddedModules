@@ -32,6 +32,7 @@ extern "C" {
 #define UART_CFG_REWRITE_HANLDER 1  // 是否重写HAL库中的串口中断处理函数
 // USB CDC设置
 #define UART_CFG_ENABLE_CDC 0      // 是否开启CDC虚拟串口支持
+#define UART_CFG_ENABLE_ITM 0      // 是否开启ITM(SWO)支持
 #define UART_CFG_CDC_USE_CUBEMX 1  // 是否使用CUBEMX生成的CDC代码
 #define UART_CFG_CDC_USE_CHERRY 0  // 是否使用CherryUSB的CDC代码
 // 串口收发设置
@@ -78,31 +79,6 @@ extern int uart_printf(UART_HandleTypeDef *huart, const char *fmt, ...);
 extern int uart_printf_block(UART_HandleTypeDef *huart, const char *fmt, ...);
 
 extern uint8_t disable_uart_printf;  // 禁止printf输出
-
-/**
- * @brief 向ITM(SWO)通道0发送格式化字符串
- * @param  fmt              类似printf的格式化字符串
- * @retval 发送的字节数
- */
-extern int ITM_printf(const char *fmt, ...);
-
-/**
- * @brief 向ITM(SWO)指定通道发送数据
- * @param  port             通道号(0~31)
- * @param  data             数据指针
- * @param  len              数据长度
- * @retval 发送的字节数(0:通道未激活)
- */
-extern int ITM_write(uint8_t port, uint8_t *data, size_t len);
-
-/**
- * @brief 从ITM(SWO)读取数据
- * @param  data             缓冲区指针
- * @param  len              缓冲区大小
- * @param  timeout_ms       超时时间(ms)
- * @retval 读取的字节数
- */
-extern size_t ITM_read(uint8_t *data, size_t len, m_time_t timeout_ms);
 
 /**
  * @brief 等待串口发送完成
@@ -159,6 +135,35 @@ extern void uart_rx_process(UART_HandleTypeDef *huart);
  * @brief 串口错误中断处理，在函数HAL_UART_ErrorCallback中调用
  */
 extern void uart_error_process(UART_HandleTypeDef *huart);
+
+#if UART_CFG_ENABLE_ITM
+
+/**
+ * @brief 向ITM(SWO)通道0发送格式化字符串
+ * @param  fmt              类似printf的格式化字符串
+ * @retval 发送的字节数
+ */
+extern int ITM_printf(const char *fmt, ...);
+
+/**
+ * @brief 向ITM(SWO)指定通道发送数据
+ * @param  port             通道号(0~31)
+ * @param  data             数据指针
+ * @param  len              数据长度
+ * @retval 发送的字节数(0:通道未激活)
+ */
+extern int ITM_write(uint8_t port, uint8_t *data, size_t len);
+
+/**
+ * @brief 从ITM(SWO)读取数据
+ * @param  data             缓冲区指针
+ * @param  len              缓冲区大小
+ * @param  timeout_ms       超时时间(ms)
+ * @retval 读取的字节数
+ */
+extern size_t ITM_read(uint8_t *data, size_t len, m_time_t timeout_ms);
+
+#endif  // UART_CFG_ENABLE_ITM
 
 #if UART_CFG_ENABLE_FIFO_TX
 /**

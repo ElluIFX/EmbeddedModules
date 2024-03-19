@@ -83,12 +83,12 @@ _INLINE uint8_t i2c_check_slave(uint8_t addr) {
 _INLINE void i2c_init(void) { ll_i2c_init(BOARD_I2C_CFG_LL_INSTANCE); }
 
 _INLINE void i2c_write_byte(uint8_t addr, uint8_t reg, uint8_t data) {
-  ll_i2c_write_raw(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, &data, 1);
+  ll_i2c_write(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, &data, 1);
 }
 
 _INLINE uint8_t i2c_read_byte(uint8_t addr, uint8_t reg) {
   uint8_t temp;
-  ll_i2c_read_raw(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, &temp, 1);
+  ll_i2c_read(BOARD_I2C_CFG_LL_INSTANCE, addr, reg, &temp, 1);
   return temp;
 }
 
@@ -132,7 +132,7 @@ _INLINE void i2c_read_words(uint8_t addr, uint8_t reg, uint16_t *data,
 }
 
 _INLINE uint8_t i2c_check_slave(uint8_t addr) {
-  return ll_i2c_check_slave(BOARD_I2C_CFG_LL_INSTANCE, addr);
+  return ll_i2c_check_addr(BOARD_I2C_CFG_LL_INSTANCE, addr);
 }
 
 #elif BOARD_I2C_CFG_USE_HAL_I2C

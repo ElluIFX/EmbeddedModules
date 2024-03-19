@@ -512,6 +512,8 @@ void HAL_UARTEx_TxEventCallback(UART_HandleTypeDef *huart) {
 #endif  // UART_CFG_ENABLE_DMA_RX
 #endif  // UART_CFG_REWRITE_HANLDER
 
+#if UART_CFG_ENABLE_ITM
+
 static int itm_lwprintf_fn(int ch, lwprintf_t *lwobj) {
   if (ch == '\0') return 0;
   ITM_SendChar(ch);
@@ -562,6 +564,8 @@ size_t ITM_read(uint8_t *data, size_t len, m_time_t timeout_ms) {
   }
   return send;
 }
+
+#endif  // UART_CFG_ENABLE_ITM
 
 #if VOFA_CFG_ENABLE
 

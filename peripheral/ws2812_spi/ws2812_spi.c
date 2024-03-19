@@ -41,12 +41,12 @@ HAL_StatusTypeDef ws2812_init(ws2812_strip_t *strip, uint16_t length,
                               SPI_HandleTypeDef *hspi) {
   if (hspi == NULL) hspi = strip->hspi;
   if (strip->buffer != NULL || strip->length != 0) {
-    LOG_W("LED REINIT");  // 最好手动调用Strip_DeInit再重新初始化
+    LOG_WARN("LED REINIT");  // 最好手动调用Strip_DeInit再重新初始化
     ws2812_deinit(strip);
   }
   strip->buffer = m_alloc(BUF_LEN(length) + HEAD_ZERO + TAIL_ZERO);
   if (strip->buffer == NULL) {
-    LOG_E("LED MALLOC FAILED");
+    LOG_ERROR("LED MALLOC FAILED");
     return HAL_ERROR;
   }
   strip->length = length;
@@ -117,7 +117,7 @@ HAL_StatusTypeDef ws2812_send(ws2812_strip_t *strip) {
   if (!strip->length || !strip->buffer) return HAL_ERROR;
   if (HAL_SPI_GetState(strip->hspi) != HAL_SPI_STATE_READY ||
       HAL_DMA_GetState(strip->hspi->hdmatx) != HAL_DMA_STATE_READY) {
-    LOG_E("LED SPI BUSY");
+    LOG_ERROR("LED SPI BUSY");
     return HAL_BUSY;
   }
   HAL_SPI_Transmit_DMA(strip->hspi, strip->buffer,
@@ -130,7 +130,7 @@ HAL_StatusTypeDef ws2812_send_part(ws2812_strip_t *strip, uint16_t num) {
   if (num > strip->length) num = strip->length;
   if (HAL_SPI_GetState(strip->hspi) != HAL_SPI_STATE_READY ||
       HAL_DMA_GetState(strip->hspi->hdmatx) != HAL_DMA_STATE_READY) {
-    LOG_E("LED SPI BUSY");
+    LOG_ERROR("LED SPI BUSY");
     return HAL_BUSY;
   }
   HAL_SPI_Transmit_DMA(strip->hspi, strip->buffer,

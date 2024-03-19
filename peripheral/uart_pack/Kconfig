@@ -62,6 +62,12 @@ if UART_CFG_ENABLE_CDC
           CDC Timeout in ms (0 for give up)
 endif
 
+config UART_CFG_ENABLE_ITM
+    bool "Enable ITM Support"
+    default n
+    help
+      Enable ITM (SWO Debug) Support
+
 config UART_CFG_TX_USE_DMA
     bool "Use DMA for Transmit"
     default y
@@ -98,6 +104,7 @@ if UART_CFG_PRINTF_REDIRECT
             depends on UART_CFG_ENABLE_CDC
         config UART_CFG_PRINTF_USE_ITM
             bool "ITM (SWO Debug)"
+            depends on UART_CFG_ENABLE_ITM
     endchoice
     config UART_CFG_PRINTF_UART_PORT
         string "Printf UART Port"
