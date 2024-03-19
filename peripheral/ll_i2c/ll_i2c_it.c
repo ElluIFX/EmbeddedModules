@@ -399,8 +399,8 @@ error:
   return false;
 }
 
-bool ll_i2c_internal_transaction(I2C_TypeDef* i2c, uint8_t addr,
-                                 ll_i2c_msg_t* msg, uint32_t msg_len) {
+bool ll_i2c_internal_transfer(I2C_TypeDef* i2c, uint8_t addr, ll_i2c_msg_t* msg,
+                              uint32_t msg_len) {
   i2c_interface_t* iface = get_iface(i2c);
   if (!iface) {
     return false;

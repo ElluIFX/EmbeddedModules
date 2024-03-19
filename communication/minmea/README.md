@@ -1,6 +1,6 @@
 # minmea, a lightweight GPS NMEA 0183 parser library
 
-[![C/C++ 
+[![C/C++
 CI](https://github.com/kosma/minmea/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/kosma/minmea/actions/workflows/c-cpp.yml)
 
 Minmea is a minimalistic GPS parser library written in pure C intended for
@@ -31,7 +31,7 @@ systems.
 * ``ZDA`` (Time & Date - UTC, day, month, year and local time zone)
 
 Adding support for more sentences is trivial; see ``minmea.c`` source. Good documentation
-on NMEA is at https://gpsd.gitlab.io/gpsd/NMEA.html
+on NMEA is at <https://gpsd.gitlab.io/gpsd/NMEA.html>
 
 ## Compatibility
 
@@ -133,8 +133,8 @@ good to go.
 Building and running the tests requires the following:
 
 * CMake
-* Check Framework (https://libcheck.github.io/check/).
-* Clang Static Analyzer (https://clang-analyzer.llvm.org/).
+* Check Framework (<https://libcheck.github.io/check/>).
+* Clang Static Analyzer (<https://clang-analyzer.llvm.org/>).
 
 If you have both in your ``$PATH``, running the tests should be as simple as:
 
@@ -170,6 +170,6 @@ license bothers you and I'll happily re-license under anything else under the su
 
 ## Author
 
-Minmea was written by Kosma Moczek &lt;kosma@kosma.pl&gt; and Patryk Szymczak
-&lt;patryk.szymczak@gmail.com&gt; at Cloud Your Car, with bugs fixed by countless
+Minmea was written by Kosma Moczek &lt;<kosma@kosma.pl>&gt; and Patryk Szymczak
+&lt;<patryk.szymczak@gmail.com>&gt; at Cloud Your Car, with bugs fixed by countless
 good people.

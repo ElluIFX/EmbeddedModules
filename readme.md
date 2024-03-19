@@ -70,6 +70,7 @@
 |-|-|:-:|-|
 | [board_i2c](./peripheral/board_i2c) | 板级I2C包装层 |*| |
 | [board_led](./peripheral/board_led) | 板级LED包装层 |*| |
+| [ee24](./peripheral/ee24) | 24xx EEPROM库 | [link](https://github.com/nimaltd/ee24) | |
 | [i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |*| |
 | [key](./peripheral/key) | 通用按键 |*| 支持多种事件 |
 | [ll_i2c](./peripheral/ll_i2c) | LL库I2C | * | 包含中断/轮询 |

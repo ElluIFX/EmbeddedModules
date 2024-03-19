@@ -32,13 +32,13 @@ bool ll_i2c_internal_write(I2C_TypeDef* i2c, uint8_t addr, uint16_t WriteAddr,
                            uint8_t reg_len, uint8_t* data, uint32_t data_len);
 
 bool ll_i2c_internal_check_addr(I2C_TypeDef* i2c, uint8_t addr);
-bool ll_i2c_internal_transaction(I2C_TypeDef* i2c, uint8_t addr,
-                                 ll_i2c_msg_t* msg, uint32_t msg_len);
+bool ll_i2c_internal_transfer(I2C_TypeDef* i2c, uint8_t addr, ll_i2c_msg_t* msg,
+                              uint32_t msg_len);
 
 _INLINE void ll_i2c_init(I2C_TypeDef* i2c) { ll_i2c_internal_init(i2c); }
-_INLINE bool ll_i2c_transaction(I2C_TypeDef* i2c, uint8_t addr,
-                                ll_i2c_msg_t* msg, uint32_t msg_len) {
-  return ll_i2c_internal_transaction(i2c, SLAVEADDR(addr), msg, msg_len);
+_INLINE bool ll_i2c_transfer(I2C_TypeDef* i2c, uint8_t addr, ll_i2c_msg_t* msg,
+                             uint32_t msg_len) {
+  return ll_i2c_internal_transfer(i2c, SLAVEADDR(addr), msg, msg_len);
 }
 _INLINE bool ll_i2c_write_raw(I2C_TypeDef* i2c, uint8_t addr, uint8_t* data,
                               uint32_t data_len) {

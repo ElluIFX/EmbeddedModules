@@ -45,8 +45,8 @@ extern void ll_i2c_init(I2C_TypeDef *i2c);
  * @param  msg_len   消息数组个数
  * @retval bool      是否成功
  */
-extern bool ll_i2c_transaction(I2C_TypeDef *i2c, uint8_t addr,
-                               ll_i2c_msg_t *msg, uint32_t msg_len);
+extern bool ll_i2c_transfer(I2C_TypeDef *i2c, uint8_t addr, ll_i2c_msg_t *msg,
+                            uint32_t msg_len);
 
 /**
  * @brief I2C 直写数据

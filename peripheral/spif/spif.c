@@ -74,7 +74,7 @@
 
 /***********************************************************************************************************/
 
-void SPIF_Lock(SPIF_HandleTypeDef *Handle) {
+static void SPIF_Lock(SPIF_HandleTypeDef *Handle) {
 #if !MOD_CFG_USE_OS_NONE
   MOD_MUTEX_ACQUIRE(Handle->Mutex);
 #endif
@@ -82,7 +82,7 @@ void SPIF_Lock(SPIF_HandleTypeDef *Handle) {
 
 /***********************************************************************************************************/
 
-void SPIF_UnLock(SPIF_HandleTypeDef *Handle) {
+static void SPIF_UnLock(SPIF_HandleTypeDef *Handle) {
 #if !MOD_CFG_USE_OS_NONE
   MOD_MUTEX_RELEASE(Handle->Mutex);
 #endif
@@ -90,10 +90,8 @@ void SPIF_UnLock(SPIF_HandleTypeDef *Handle) {
 
 /***********************************************************************************************************/
 
-void SPIF_CsPin(SPIF_HandleTypeDef *Handle, bool Select) {
+static void SPIF_CsPin(SPIF_HandleTypeDef *Handle, bool Select) {
   HAL_GPIO_WritePin(Handle->Gpio, Handle->Pin, (GPIO_PinState)Select);
-  for (int i = 0; i < 10; i++)
-    ;
 }
 
 /***********************************************************************************************************/

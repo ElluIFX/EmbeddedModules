@@ -109,7 +109,6 @@ typedef enum {
   SPIF_MANUFACTOR_FUJITSU = 0x04,
   SPIF_MANUFACTOR_EON = 0x1C,
   SPIF_MANUFACTOR_PUYA = 0x85,
-
 } SPIF_ManufactorTypeDef;
 
 typedef enum {
@@ -124,7 +123,6 @@ typedef enum {
   SPIF_SIZE_128MBIT = 0x18,
   SPIF_SIZE_256MBIT = 0x19,
   SPIF_SIZE_512MBIT = 0x20,
-
 } SPIF_SizeTypeDef;
 
 typedef struct {

@@ -102,14 +102,17 @@ static uint8_t spif_init_lfs(void) {
   LOG_PASS("SPIF Driver Initialized");
   cfg.block_size = SPIF_SECTOR_SIZE;
   cfg.block_count = hspif.SectorCnt;
-  LOG_DEBUG("LFS Block Size: %d, Block Count: %d", cfg.block_size,
-            cfg.block_count);
-  int err = lfs_mount(&lfs, &cfg);
-  if (err) {
+  // LOG_DEBUG("LFS Block Size: %d, Block Count: %d", cfg.block_size,
+  //           cfg.block_count);
+  int err;
+  if ((err = lfs_mount(&lfs, &cfg)) != LFS_ERR_OK) {
     LOG_ERROR("lfs_mount failed: %d, formatting", err);
-    lfs_format(&lfs, &cfg);
-    err = lfs_mount(&lfs, &cfg);
-    if (err) {
+    if ((err = lfs_format(&lfs, &cfg)) != LFS_ERR_OK) {
+      LOG_ERROR("lfs_format failed: %d", err);
+      return 0;
+    }
+    LOG_PASS("LittleFS Formatted");
+    if ((err = lfs_mount(&lfs, &cfg)) != LFS_ERR_OK) {
       LOG_ERROR("lfs_mount failed again: %d", err);
       return 0;
     }

@@ -256,8 +256,8 @@ bool ll_i2c_internal_write(I2C_TypeDef* i2c, uint8_t addr, uint16_t WriteAddr,
   return true;
 }
 
-bool ll_i2c_internal_transaction(I2C_TypeDef* i2c, uint8_t addr,
-                                 ll_i2c_msg_t* msg, uint32_t msg_len) {
+bool ll_i2c_internal_transfer(I2C_TypeDef* i2c, uint8_t addr, ll_i2c_msg_t* msg,
+                              uint32_t msg_len) {
   uint32_t i;
   uint8_t act_len;
   uint32_t data_len;
