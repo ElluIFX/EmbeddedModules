@@ -7,6 +7,8 @@
 
 #include "easy_ui.h"
 
+#include "log.h"
+
 static EasyUIDriver_t driver;
 
 // options
@@ -334,10 +336,10 @@ void EasyUIDrawMsgBox(char *msg, uint8_t reset) {
  * @note    Internal call
  */
 void EasyUIDrawProgressBar(EasyUIItem_t *item) {
-  static int16_t x, y;
-  static uint16_t width, height;
-  static uint16_t barWidth;
-
+  int16_t x, y;
+  uint16_t width, height;
+  uint16_t barWidth;
+  float barCurWidth;
   uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2 + 1;
   uint16_t msg_len = strlen(item->msg);
 
@@ -349,27 +351,31 @@ void EasyUIDrawProgressBar(EasyUIItem_t *item) {
     width = (msg_len + 1) * driver.font_width + 7;
   else
     width = 12 * driver.font_width + 7;
-  if (width < 2 * driver.width / 3) width = 2 * driver.width / 3;
+  if (width < 3 * driver.width / 4) width = 3 * driver.width / 4;
   x = (driver.width - width) / 2;
   y = (driver.height - height) / 2;
 
-  barWidth = width - 6 * driver.font_width - 10;
-
-  if (*item->param > 100) *item->param = 100;
-  if (*item->param < 0) *item->param = 0;
+  barWidth = width - 4 * driver.font_width - 10;
+  barCurWidth = *item->param;
+  if (barCurWidth > 100) barCurWidth = 100;
+  if (barCurWidth < 0) barCurWidth = 0;
+  barCurWidth = barCurWidth / 100.0 * barWidth;
 
   driver.drawFrame(x - 1, y - 1, width + 2, height + 2, driver.color);
   driver.drawBox(x, y, width, height, driver.bgcolor);
   driver.showStr(x + 3, y + itemHeightOffset, item->msg, driver.color);
   driver.drawFrame(x + 3, y + ITEM_HEIGHT + itemHeightOffset, barWidth,
                    driver.font_height, driver.color);
-  driver.drawBox(x + 5, y + ITEM_HEIGHT + itemHeightOffset + 2,
-                 (float)*item->param / 100 * barWidth - 4,
-                 driver.font_height - 4, driver.color);
-  driver.showFloat(x + width - 6 * driver.font_width - 4,
-                   y + ITEM_HEIGHT + itemHeightOffset, *item->param, 0, 2,
-                   driver.color);
-
+  if (barCurWidth > 4)
+    driver.drawBox(x + 5, y + ITEM_HEIGHT + itemHeightOffset + 2,
+                   barCurWidth - 4, driver.font_height - 4, driver.color);
+  if (*item->param < 100)
+    driver.showFloat(x + width - 4 * driver.font_width - 4,
+                     y + ITEM_HEIGHT + itemHeightOffset, *item->param, 0, 1,
+                     driver.color);
+  else
+    driver.showStr(x + width - 4 * driver.font_width - 4,
+                   y + ITEM_HEIGHT + itemHeightOffset, "100%%", driver.color);
   driver.flush();
 }
 
@@ -792,48 +798,87 @@ void EasyUIItemOperationResponse(EasyUIPage_t *page, EasyUIItem_t *item,
 }
 
 bool EasyUIDrawDialog(EasyUIItem_t *item) {
-  int16_t x1, x2, y;
+  int16_t x1, x2, y1, y2, offset;
   uint16_t width, height;
   uint16_t title_len = strlen(item->title);
   uint16_t msg_len = strlen(item->msg);
   uint16_t max_len = title_len > msg_len ? title_len : msg_len;
-  height = ITEM_HEIGHT * 3 + 4;
   if (max_len + 1 > 12)
     width = (max_len + 1) * driver.font_width + 7;
   else
     width = 12 * driver.font_width + 7;
-  driver.drawBox((driver.width - width) / 2, (driver.height - height) / 2,
-                 width, height, driver.bgcolor);
-  // draw dialog
-  driver.drawRFrame((driver.width - width) / 2 - 1,
-                    (driver.height - height) / 2 - 1, width + 2, height + 2,
-                    driver.color, 2);
-  // print title in the middle of the dialog
-  driver.showStr((driver.width - title_len * driver.font_width) / 2,
-                 (driver.height - height) / 2 + 2, item->title, driver.color);
-  // print message
-  driver.showStr((driver.width - msg_len * driver.font_width) / 2,
-                 (driver.height - height) / 2 + 2 + ITEM_HEIGHT, item->msg,
-                 driver.color);
-  // yes or no
-  x1 = (driver.width) / 2 - width / 4 - 3 * driver.font_width / 2;
-  x2 = (driver.width) / 2 + width / 4 - 2 * driver.font_width / 2;
-  y = (driver.height - height) / 2 + 4 + 2 * ITEM_HEIGHT;
-  // draw indicator
-  if (*item->flag) {
-    driver.drawRBox(x1 - 3, y - 3, 3 * driver.font_width + 6,
-                    driver.font_height + 6, driver.color, 1);
-    driver.enableXorRegion(x1 - 3, y - 3, 3 * driver.font_width + 6,
-                           driver.font_height + 6);
+  if (driver.height >= 4 * ITEM_HEIGHT) {
+    height = ITEM_HEIGHT * 3 + 4;
+    driver.drawBox((driver.width - width) / 2, (driver.height - height) / 2,
+                   width, height, driver.bgcolor);
+    // draw dialog
+    driver.drawRFrame((driver.width - width) / 2 - 1,
+                      (driver.height - height) / 2 - 1, width + 2, height + 2,
+                      driver.color, 2);
+    // print title in the middle of the dialog
+    driver.showStr((driver.width - title_len * driver.font_width) / 2,
+                   (driver.height - height) / 2 + 4, item->title, driver.color);
+    // print message
+    driver.showStr((driver.width - msg_len * driver.font_width) / 2,
+                   (driver.height - height) / 2 + 4 + ITEM_HEIGHT, item->msg,
+                   driver.color);
+    // yes or no at bottom
+    x1 = (driver.width) / 2 - width / 4 - 3 * driver.font_width / 2;
+    x2 = (driver.width) / 2 + width / 4 - 2 * driver.font_width / 2;
+    y1 = (driver.height - height) / 2 + 4 + 2 * ITEM_HEIGHT;
+    y2 = y1;
+    // draw indicator
+    if (*item->flag) {
+      driver.drawRBox(x1 - 3 - driver.font_width / 2, y1 - 3,
+                      3 * driver.font_width + 6, driver.font_height + 6,
+                      driver.color, 1);
+      driver.enableXorRegion(x1 - 3, y1 - 3, 3 * driver.font_width + 6,
+                             driver.font_height + 6);
+    } else {
+      driver.drawRBox(x2 - 3 - driver.font_width / 2, y2 - 3,
+                      3 * driver.font_width + 6, driver.font_height + 6,
+                      driver.color, 1);
+      driver.enableXorRegion(x2 - 3 - driver.font_width / 2, y2 - 3,
+                             3 * driver.font_width + 6, driver.font_height + 6);
+    }
+    driver.showStr(x1 - driver.font_width / 2, y1, "YES", driver.color);
+    driver.showStr(x2, y2, "NO", driver.color);
   } else {
-    driver.drawRBox(x2 - 3 - driver.font_width / 2, y - 3,
-                    3 * driver.font_width + 6, driver.font_height + 6,
-                    driver.color, 1);
-    driver.enableXorRegion(x2 - 3 - driver.font_width / 2, y - 3,
-                           3 * driver.font_width + 6, driver.font_height + 6);
+    height = ITEM_HEIGHT * 2 + 4;
+    width += 4 * driver.font_width;
+    driver.drawBox((driver.width - width) / 2, (driver.height - height) / 2,
+                   width, height, driver.bgcolor);
+    // draw dialog
+    driver.drawRFrame((driver.width - width) / 2 - 1,
+                      (driver.height - height) / 2 - 1, width + 2, height + 2,
+                      driver.color, 2);
+    // print title in the left of the dialog
+    driver.showStr((driver.width - width) / 2 + 4,
+                   (driver.height - height) / 2 + 4, item->title, driver.color);
+    // print message
+    driver.showStr((driver.width - width) / 2 + 4,
+                   (driver.height - height) / 2 + 4 + ITEM_HEIGHT, item->msg,
+                   driver.color);
+    // yes or no at right
+    x1 = (driver.width - width) / 2 + width - 1 * driver.font_width - 4;
+    x2 = x1;
+    y1 = (driver.height - height) / 2 + 4;
+    y2 = y1 + ITEM_HEIGHT;
+    // draw indicator
+    if (*item->flag) {
+      driver.drawRBox(x1 - 3, y1 - 3, driver.font_width + 6,
+                      driver.font_height + 6, driver.color, 1);
+      driver.enableXorRegion(x1 - 3, y1 - 3, driver.font_width + 6,
+                             driver.font_height + 6);
+    } else {
+      driver.drawRBox(x2 - 3, y2 - 3, driver.font_width + 6,
+                      driver.font_height + 6, driver.color, 1);
+      driver.enableXorRegion(x2 - 3, y2 - 3, driver.font_width + 6,
+                             driver.font_height + 6);
+    }
+    driver.showStr(x1, y1, "Y", driver.color);
+    driver.showStr(x2, y2, "N", driver.color);
   }
-  driver.showStr(x1, y, "Yes", driver.color);
-  driver.showStr(x2, y, "No", driver.color);
   driver.disableXorRegion();
   // operation move reaction
   if (uiActionFlag.forward || uiActionFlag.backward) {
@@ -861,6 +906,7 @@ bool EasyUIDrawValueEditor(EasyUIItem_t *item) {
   uint16_t width, height;
   uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2 + 1;
   bool ret = false;
+  bool large = driver.height >= 4 * ITEM_HEIGHT + 8;
   // init
   if (item->eventCnt == 0) {
     if (item->precision >= 4)
@@ -872,27 +918,42 @@ bool EasyUIDrawValueEditor(EasyUIItem_t *item) {
     index = 0;
     step = step_min;
   }
-  // Display information
-  height = ITEM_HEIGHT * 4 + 2;
   if (strlen(item->title) + 1 > 12)
     width = (strlen(item->title) + 1) * driver.font_width + 7;
   else
     width = 12 * driver.font_width + 7;
   if (width < 2 * driver.width / 3) width = 2 * driver.width / 3;
+  // Display information
+  if (large) {
+    height = ITEM_HEIGHT * 4 + 2;
+  } else {
+    height = ITEM_HEIGHT * 2 + 2;
+    width += 8 * driver.font_width;
+    if (width > driver.width) width = driver.width - 4;
+  }
   x = (driver.width - width) / 2;
   y = (driver.height - height) / 2;
   driver.drawFrame(x - 1, y - 1, width + 2, height + 2, driver.color);
   driver.drawBox(x, y, width, height, driver.bgcolor);
-  driver.showStr(x + 3, y + itemHeightOffset, item->title, driver.color);
-  driver.showStr(x + 3, y + ITEM_HEIGHT + itemHeightOffset,
-                 "Value: ", driver.color);
-  driver.showStr(x + 3, y + 2 * ITEM_HEIGHT + itemHeightOffset,
+  if (large) {
+    driver.showStr(x + 3, y + itemHeightOffset, item->title, driver.color);
+    y += ITEM_HEIGHT;
+  }
+  driver.showStr(x + 3, y + itemHeightOffset, "Value: ", driver.color);
+  driver.showStr(x + 3, y + 1 * ITEM_HEIGHT + itemHeightOffset,
                  "Step+: ", driver.color);
-  driver.showStr(x + 3, y + 3 * ITEM_HEIGHT + itemHeightOffset, "Confirm",
-                 driver.color);
-  driver.showStr(x + width - 6 * driver.font_width - 4,
-                 y + 3 * ITEM_HEIGHT + itemHeightOffset, "Cancel",
-                 driver.color);
+  if (large) {
+    driver.showStr(x + 3, y + 2 * ITEM_HEIGHT + itemHeightOffset, "Confirm",
+                   driver.color);
+    driver.showStr(x + width - 6 * driver.font_width - 4,
+                   y + 2 * ITEM_HEIGHT + itemHeightOffset, "Cancel",
+                   driver.color);
+  } else {
+    driver.showStr(x + width - 1 * driver.font_width - 4, y + itemHeightOffset,
+                   "Y", driver.color);
+    driver.showStr(x + width - 1 * driver.font_width - 4,
+                   y + ITEM_HEIGHT + itemHeightOffset, "N", driver.color);
+  }
   // Change value of param or step
   if (changeVal) {
     if (uiActionFlag.forward) *item->param += steps[step];
@@ -911,11 +972,10 @@ bool EasyUIDrawValueEditor(EasyUIItem_t *item) {
     if (uiActionFlag.backward) index = (index + 3) % 4;
   }
   // Display step and value
+  driver.showFloat(x + 3 + 7 * driver.font_width, y + itemHeightOffset,
+                   *item->param, 0, item->precision, driver.color);
   driver.showFloat(x + 3 + 7 * driver.font_width,
-                   y + ITEM_HEIGHT + itemHeightOffset, *item->param, 0,
-                   item->precision, driver.color);
-  driver.showFloat(x + 3 + 7 * driver.font_width,
-                   y + 2 * ITEM_HEIGHT + itemHeightOffset, steps[step], 0,
+                   y + ITEM_HEIGHT + itemHeightOffset, steps[step], 0,
                    item->precision, driver.color);
   // Operation move reaction
   if (uiActionFlag.enter) {
@@ -941,35 +1001,45 @@ bool EasyUIDrawValueEditor(EasyUIItem_t *item) {
   // Draw indicator
   if (index == 0) {  // Change value
     if (changeVal) {
-      driver.enableXorRegion(x + 2, y + 2 + ITEM_HEIGHT,
-                             6 * driver.font_width + 3, ITEM_HEIGHT - 2);
-      driver.drawRBox(x + 1, y + 1 + 1 * ITEM_HEIGHT, 6 * driver.font_width + 5,
-                      ITEM_HEIGHT, driver.color, 1);
+      driver.enableXorRegion(x + 2, y + 2, 6 * driver.font_width + 3,
+                             ITEM_HEIGHT - 2);
+      driver.drawRBox(x + 1, y + 1, 6 * driver.font_width + 5, ITEM_HEIGHT,
+                      driver.color, 1);
       driver.disableXorRegion();
     } else {
-      driver.drawRFrame(x + 1, y + 1 + 1 * ITEM_HEIGHT,
-                        6 * driver.font_width + 5, ITEM_HEIGHT, driver.color,
-                        1);
+      driver.drawRFrame(x + 1, y + 1, 6 * driver.font_width + 5, ITEM_HEIGHT,
+                        driver.color, 1);
     }
   } else if (index == 1) {  // Change step
     if (changeStep) {
-      driver.enableXorRegion(x + 2, y + 2 + 2 * ITEM_HEIGHT,
+      driver.enableXorRegion(x + 2, y + 2 + ITEM_HEIGHT,
                              6 * driver.font_width + 3, ITEM_HEIGHT - 2);
-      driver.drawRBox(x + 2, y + 2 + 2 * ITEM_HEIGHT, 6 * driver.font_width + 3,
+      driver.drawRBox(x + 2, y + 2 + ITEM_HEIGHT, 6 * driver.font_width + 3,
                       ITEM_HEIGHT - 2, driver.color, 1);
       driver.disableXorRegion();
     } else {
-      driver.drawRFrame(x + 1, y + 1 + 2 * ITEM_HEIGHT,
-                        6 * driver.font_width + 5, ITEM_HEIGHT, driver.color,
-                        1);
+      driver.drawRFrame(x + 1, y + 1 + ITEM_HEIGHT, 6 * driver.font_width + 5,
+                        ITEM_HEIGHT, driver.color, 1);
     }
-  } else if (index == 2)  // Confirm
-    driver.drawRFrame(x + 1, y + 1 + 3 * ITEM_HEIGHT, 7 * driver.font_width + 5,
-                      ITEM_HEIGHT, driver.color, 1);
-  else  // Cancel
-    driver.drawRFrame(x + width - 6 * driver.font_width - 6,
-                      y + 1 + 3 * ITEM_HEIGHT, 6 * driver.font_width + 5,
-                      ITEM_HEIGHT, driver.color, 1);
+  } else if (index == 2) {  // Confirm
+    if (large) {
+      driver.drawRFrame(x + 1, y + 1 + 2 * ITEM_HEIGHT,
+                        7 * driver.font_width + 5, ITEM_HEIGHT, driver.color,
+                        1);
+    } else {
+      driver.drawRFrame(x + width - driver.font_width - 6, y + 1,
+                        driver.font_width + 5, ITEM_HEIGHT, driver.color, 1);
+    }
+  } else {  // Cancel
+    if (large) {
+      driver.drawRFrame(x + width - 6 * driver.font_width - 6,
+                        y + 1 + 2 * ITEM_HEIGHT, 6 * driver.font_width + 5,
+                        ITEM_HEIGHT, driver.color, 1);
+    } else {
+      driver.drawRFrame(x + width - driver.font_width - 6, y + 1 + ITEM_HEIGHT,
+                        driver.font_width + 5, ITEM_HEIGHT, driver.color, 1);
+    }
+  }
   driver.flush();
   return ret;
 confirm_flag:
