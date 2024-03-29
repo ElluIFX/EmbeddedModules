@@ -50,7 +50,7 @@ Scheduler是一个多功能的时分调度器，它可以在裸机环境下实�
 
 > [!TIP]
 > 调试模式非常有用，它类似于PC的任务管理器，可以通过调试信息来判断任务函数的执行效率，了解系统瓶颈并针对性优化。
-<!--  -->
+---
 > [!WARNING]
 > 在启用RTOS后，如果线程在某个任务运行时被切换，会导致该任务的统计占用上涨，可以通过给予调度器所在线程较高的优先级来避免此问题。
 
@@ -100,7 +100,7 @@ void sch_add_command_to_cli(EmbeddedCli *cli)
 任务可以被理解为一个高精度的软件定时器，它可以在调度器中以指定的频率调用一个函数，且可以在运行时动态修改调度频率、优先级、启用状态等参数。
 
 ```C
-uint8_t sch_task_create(const char *name, sch_func_t func, float freqHz, uint8_t enable, uint8_t priority, void *args)
+uint8_t sch_task_create(const char *name, sch_func_t func, float freq_hz, uint8_t enable, uint8_t priority, void *args)
 ```
 
 + 功能：创建一个任务。
@@ -108,7 +108,7 @@ uint8_t sch_task_create(const char *name, sch_func_t func, float freqHz, uint8_t
 + 参数：
   + `name`：任务名，**不可重复**。
   + `func`：任务函数指针，返回为`void`，参数为`void*`。
-  + `freqHz`：任务调度频率(Hz)，>0。
+  + `freq_hz`：任务调度频率(Hz)，>0。
   + `enable`：创建后是否启用，0：不启用，1：启用。
   + `priority`：任务优先级，0：最低，255：最高。
   + `args`：任务参数，会传递给任务函数。
@@ -152,14 +152,14 @@ uint8_t sch_task_get_enabled(const char *name)
 + 返回：0：未启用或未找到任务，1：启用。
 
 ```C
-uint8_t sch_task_set_freq(const char *name, float freqHz)
+uint8_t sch_task_set_freq(const char *name, float freq_hz)
 ```
 
 + 功能：设置任务的调度频率。
 + 返回：1：成功，0：失败（未找到任务）。
 + 参数：
   + `name`：任务名。
-  + `freqHz`：任务调度频率(Hz)，>0。
+  + `freq_hz`：任务调度频率(Hz)，>0。
 
 ```C
 uint8_t sch_task_set_priority(const char *name, uint8_t priority)
@@ -183,7 +183,7 @@ uint8_t sch_task_set_args(const char *name, void *args)
 
 ```C
 uint8_t sch_task_delay(const char *name, uint64_t delay_us,
-                             uint8_t fromNow)
+                             uint8_t from_now)
 ```
 
 + 功能：推迟任务的下一次调度。
@@ -191,7 +191,7 @@ uint8_t sch_task_delay(const char *name, uint64_t delay_us,
 + 参数：
   + `name`：任务名。
   + `delay_us`：推迟的时间(us)。
-  + `fromNow`：1：从当前时间开始计算，0：从上一次调度时间开始计算。
+  + `from_now`：1：从当前时间开始计算，0：从上一次调度时间开始计算。
 
 ### 5.3. 事件 ([`scheduler_event.h`](scheduler_event.h))
 
@@ -357,11 +357,11 @@ void coroutine_main(__async__, void *args)
       + `func_cmd`：协程子函数
       + `args...`：协程子函数的参数
 
-    > [!TIP]
-    >AWAIT宏可以类比Python中的`await`关键字，用于等待另一个`协程子函数`执行完毕，`func_cmd`为协程子函数的调用命令
-    <!--  -->
-    > [!IMPORTANT]
-    >`协程子函数` 与 `协程主函数` 不同，除了__async__外的其他参数可以为任意类型和数量，但仍然必须返回`void`，因此数据的传入传出都需要通过参数指针来实现。下面给出一个例子：
+> [!TIP]
+>AWAIT宏可以类比Python中的`await`关键字，用于等待另一个`协程子函数`执行完毕，`func_cmd`为协程子函数的调用命令
+---
+> [!IMPORTANT]
+>`协程子函数` 与 `协程主函数` 不同，除了__async__外的其他参数可以为任意类型和数量，但仍然必须返回`void`，因此数据的传入传出都需要通过参数指针来实现。下面给出一个例子：
 
     ```C
     void receive_array(__async__, uint8_t *buf, uint16_t len)
@@ -391,8 +391,8 @@ void coroutine_main(__async__, void *args)
     }
     ```
 
-    > [!NOTE]
-    > `协程子函数`可以无限嵌套调用更多的`协程子函数`，`协程主函数`也可以是一种单参数的`协程子函数`。
+> [!NOTE]
+> `协程子函数`可以无限嵌套调用更多的`协程子函数`，`协程主函数`也可以是一种单参数的`协程子函数`。
 
 6. `AWAIT_DELAY(ms)` / `AWAIT_DELAY_US(us)`
 
@@ -401,8 +401,8 @@ void coroutine_main(__async__, void *args)
       + `ms`：等待时间(ms)。
       + `us`：等待时间(us)。
 
-    > [!TIP]
-    > AWAIT_DELAY宏可以类比Python中的`await asyncio.sleep()`，用于等待一段时间。
+> [!TIP]
+> AWAIT_DELAY宏可以类比Python中的`await asyncio.sleep()`，用于等待一段时间。
 
 7. `AWAIT_YIELD_UNTIL(cond)`
 
@@ -410,8 +410,8 @@ void coroutine_main(__async__, void *args)
     + 参数：
       + `cond`：条件表达式，为真时跳出阻塞。
 
-    > [!WARNING]
-    > 由于每次调度周期都需要重入函数以检查条件，该宏占用较大，除非要求极高的实时性，否则应优先使用下述的`AWAIT_DELAY_UNTIL`宏。
+> [!WARNING]
+> 由于每次调度周期都需要重入函数以检查条件，该宏占用较大，除非要求极高的实时性，否则应优先使用下述的`AWAIT_DELAY_UNTIL`宏。
 
 8. `AWAIT_DELAY_UNTIL(cond, delayMs)`
 
@@ -447,8 +447,8 @@ void coroutine_main(__async__, void *args)
     + 参数：
       + `mutex_name`：互斥锁名。
 
-    > [!NOTE]
-    > 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含AWAIT/YIELD，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
+> [!NOTE]
+> 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含AWAIT/YIELD，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
 
 13. `ASYNC_RELEASE_MUTEX(mutex_name)`
 
@@ -463,10 +463,10 @@ void coroutine_main(__async__, void *args)
     + 参数：
       + `barr_name`：屏障名。
 
-    > [!NOTE]
-    > 屏障是一种同步机制，它可以让多个协程在某个点上同步，当到达屏障点的协程个数达到目标时，所有协程同时被唤醒。
-    >
-    > 屏障刚建立时目标值为0xffff，调用`sch_cortn_set_barrier_target`来修改目标值，当目标值为0时，屏障失效。
+> [!NOTE]
+> 屏障是一种同步机制，它可以让多个协程在某个点上同步，当到达屏障点的协程个数达到目标时，所有协程同时被唤醒。
+>
+> 屏障刚建立时目标值为0xffff，调用`sch_cortn_set_barrier_target`来修改目标值，当目标值为0时，屏障失效。
 
 15. `ASYNC_RELEASE_BARRIER(barr_name)`
 

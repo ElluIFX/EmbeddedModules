@@ -99,13 +99,13 @@ _INLINE uint64_t task_runner(void) {
   return 0;
 }
 
-uint8_t sch_task_create(const char *name, task_func_t func, float freqHz,
+uint8_t sch_task_create(const char *name, task_func_t func, float freq_hz,
                         uint8_t enable, uint8_t priority, void *args) {
   scheduler_task_t task = {
       .task = func,
       .enable = enable,
       .priority = priority,
-      .period = (double)get_sys_freq() / (double)freqHz,
+      .period = (double)get_sys_freq() / (double)freq_hz,
       .pendTime = get_sys_tick(),
       .args = args,
   };
@@ -149,10 +149,10 @@ uint8_t sch_task_set_args(const char *name, void *args) {
   return 1;
 }
 
-uint8_t sch_task_delay(const char *name, uint64_t delay_us, uint8_t fromNow) {
+uint8_t sch_task_delay(const char *name, uint64_t delay_us, uint8_t from_now) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
-  if (fromNow)
+  if (from_now)
     p->pendTime = us_to_tick(delay_us) + get_sys_tick();
   else
     p->pendTime += us_to_tick(delay_us);
@@ -171,10 +171,10 @@ uint8_t sch_task_set_enabled(const char *name, uint8_t enable) {
   return 1;
 }
 
-uint8_t sch_task_set_freq(const char *name, float freqHz) {
+uint8_t sch_task_set_freq(const char *name, float freq_hz) {
   scheduler_task_t *p = find_task(name);
   if (p == NULL) return 0;
-  p->period = (double)get_sys_freq() / (double)freqHz;
+  p->period = (double)get_sys_freq() / (double)freq_hz;
   if (!p->period) p->period = 1;
   p->pendTime = get_sys_tick();
   pending_task = get_next_task();
