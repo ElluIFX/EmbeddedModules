@@ -363,33 +363,33 @@ void coroutine_main(__async__, void *args)
 > [!IMPORTANT]
 >`协程子函数` 与 `协程主函数` 不同，除了__async__外的其他参数可以为任意类型和数量，但仍然必须返回`void`，因此数据的传入传出都需要通过参数指针来实现。下面给出一个例子：
 
-    ```C
-    void receive_array(__async__, uint8_t *buf, uint16_t len)
-    {
-        ASYNC_LOCAL_START
-        uint16_t i;
-        ASYNC_LOCAL_END
-        XXXAcquireTransfer();
-        while (LOCAL(i) < len) {
-          while (!XXXTransferDataReady()) {
-              AWAIT_DELAY(1);
-          }
-          buf[LOCAL(i)++] = XXXGetTransferData();
-        }
-        XXXReleaseTransfer();
-    }
-
-    void coroutine_main(__async__, void *args) {
-      ASYNC_LOCAL_START
-      uint8_t buf[32];
-      ASYNC_LOCAL_END
-
-      while (1) {
-        AWAIT(receive_array, LOCAL(buf), 32);
-        printf("Recieved: %s\r\n", LOCAL(buf));
+```C
+void receive_array(__async__, uint8_t *buf, uint16_t len)
+{
+    ASYNC_LOCAL_START
+    uint16_t i;
+    ASYNC_LOCAL_END
+    XXXAcquireTransfer();
+    while (LOCAL(i) < len) {
+      while (!XXXTransferDataReady()) {
+          AWAIT_DELAY(1);
       }
+      buf[LOCAL(i)++] = XXXGetTransferData();
     }
-    ```
+    XXXReleaseTransfer();
+}
+
+void coroutine_main(__async__, void *args) {
+  ASYNC_LOCAL_START
+  uint8_t buf[32];
+  ASYNC_LOCAL_END
+
+  while (1) {
+    AWAIT(receive_array, LOCAL(buf), 32);
+    printf("Recieved: %s\r\n", LOCAL(buf));
+  }
+}
+```
 
 > [!NOTE]
 > `协程子函数`可以无限嵌套调用更多的`协程子函数`，`协程主函数`也可以是一种单参数的`协程子函数`。
