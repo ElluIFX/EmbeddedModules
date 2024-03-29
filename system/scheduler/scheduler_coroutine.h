@@ -69,9 +69,9 @@ extern "C" {
 #define AWAIT_YIELD_UNTIL(cond) __AWAIT_YIELD_UNTIL(cond)
 
 /**
- * @brief 无阻塞等待直到条件表达式为真，每隔delayMs检查一次
+ * @brief 无阻塞等待直到条件表达式为真，每隔delay_ms检查一次
  */
-#define AWAIT_DELAY_UNTIL(cond, delayMs) __AWAIT_DELAY_UNTIL(cond, delayMs)
+#define AWAIT_DELAY_UNTIL(cond, delay_ms) __AWAIT_DELAY_UNTIL(cond, delay_ms)
 
 /**
  * @brief 异步执行其他协程
@@ -91,7 +91,7 @@ extern "C" {
 /**
  * @brief 发送消息给指定协程, 立即返回
  */
-#define ASYNC_SEND_MSG(name, msg) sch_cortn_send_msg_to((name), (void *)(msg));
+#define ASYNC_SEND_MSG(name, msg) sch_cortn_send_msg((name), (void *)(msg));
 
 /**
  * @brief 获取互斥锁, 阻塞直至获取成功
@@ -160,7 +160,7 @@ extern uint8_t sch_cortn_get_waiting_msg(const char *name);
  * @param  msg              消息指针
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_cortn_send_msg_to(const char *name, void *msg);
+extern uint8_t sch_cortn_send_msg(const char *name, void *msg);
 
 /**
  * @brief 手动释放一个屏障

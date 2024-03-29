@@ -98,9 +98,9 @@ extern void __cortn_internal_await_msg(__async__, void **msgPtr);
     YIELD();                      \
   } while (!(cond))
 
-#define __AWAIT_DELAY_UNTIL(cond, delayMs) \
-  do {                                     \
-    AWAIT_DELAY(delayMs);                  \
+#define __AWAIT_DELAY_UNTIL(cond, delay_ms) \
+  do {                                      \
+    AWAIT_DELAY(delay_ms);                  \
   } while (!(cond))
 
 #define __AWAIT_ACQUIRE_MUTEX(mutex_name)          \

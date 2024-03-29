@@ -413,12 +413,12 @@ void coroutine_main(__async__, void *args) {
 > [!WARNING]
 > 由于每次调度周期都需要重入函数以检查条件，该宏占用较大，除非要求极高的实时性，否则应优先使用下述的`AWAIT_DELAY_UNTIL`宏。
 
-8. `AWAIT_DELAY_UNTIL(cond, delayMs)`
+8. `AWAIT_DELAY_UNTIL(cond, delay_ms)`
 
-    + 功能：阻塞等待条件满足, 每隔delayMs检查一次。
+    + 功能：阻塞等待条件满足, 每隔delay_ms检查一次。
     + 参数：
       + `cond`：条件表达式，为真时跳出阻塞。
-      + `delayMs`：检查间隔(ms)。
+      + `delay_ms`：检查间隔(ms)。
 
 9. `ASYNC_SELF_NAME()`
 
@@ -431,7 +431,6 @@ void coroutine_main(__async__, void *args) {
     + 功能：阻塞等待消息。
     + 参数：
       + `to_ptr`：消息指针，当函数返回时，消息指针会被赋值。
-    + 注意：调用时，参数的指针不需要写取址符。
 
 11. `ASYNC_SEND_MSG(name, msg)`
 
@@ -439,13 +438,14 @@ void coroutine_main(__async__, void *args) {
     + 参数：
       + `name`：协程名。
       + `msg`：消息指针。
-    + 等价：`sch_cortn_send_msg_to`
+    + 等价：`sch_cortn_send_msg`
 
 12. `AWAIT_ACQUIRE_MUTEX(mutex_name)`
 
     + 功能：阻塞等待互斥锁。
     + 参数：
       + `mutex_name`：互斥锁名。
+    + 备注: 若指定互斥锁不存在会自动创建
 
 > [!NOTE]
 > 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含AWAIT/YIELD，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
@@ -541,7 +541,7 @@ uint8_t sch_cortn_get_waiting_msg(const char *name)
 + 返回：0：不在等待，1：正在等待。
 
 ```C
-uint8_t sch_cortn_send_msg_to(const char *name, void *msg)
+uint8_t sch_cortn_send_msg(const char *name, void *msg)
 ```
 
 + 功能：发送消息给指定协程并唤醒。

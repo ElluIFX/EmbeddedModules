@@ -190,7 +190,7 @@ uint8_t sch_cortn_get_waiting_msg(const char *name) {
   return cortn->hd.state == _CR_STATE_AWAITING;
 }
 
-uint8_t sch_cortn_send_msg_to(const char *name, void *msg) {
+uint8_t sch_cortn_send_msg(const char *name, void *msg) {
   scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
