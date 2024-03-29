@@ -83,7 +83,7 @@ extern void event_runner(void);
 extern void soft_int_runner(void);
 extern uint64_t task_runner(void);
 extern uint64_t cortn_runner(void);
-extern uint64_t call_later_runner(void);
+extern uint64_t runlater_runner(void);
 extern uint8_t debug_info_runner(uint64_t sleep_us);
 
 #if SCH_CFG_DEBUG_REPORT

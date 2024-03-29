@@ -13,9 +13,9 @@
 
 static uint8_t mf_temp[MF_FLASH_BLOCK_SIZE];
 static mf_flash_info_t *mf_data = (mf_flash_info_t *)mf_temp;
-static mf_flash_info_t *info_main = (mf_flash_info_t *)MF_FLASH_MAIN_ADDR;
+static mf_flash_info_t *info_main = NULL;
 #ifdef MF_FLASH_BACKUP_ADDR
-static mf_flash_info_t *info_backup = (mf_flash_info_t *)MF_FLASH_BACKUP_ADDR;
+static mf_flash_info_t *info_backup = NULL;
 #endif
 
 static void mf_init_block(mf_flash_info_t *block) {
@@ -39,6 +39,11 @@ static bool mf_block_err(mf_flash_info_t *block) {
 }
 
 void mf_init() {
+  info_main = (mf_flash_info_t *)MF_FLASH_MAIN_ADDR;
+#ifdef MF_FLASH_BACKUP_ADDR
+  info_backup = (mf_flash_info_t *)MF_FLASH_BACKUP_ADDR;
+#endif
+
   mf_flash_info_t info = {
       .header = MF_FLASH_HEADER,
       .key = {.next_key = false, .name_length = 0, .data_size = 0}};
@@ -91,21 +96,21 @@ void mf_purge() {
   mf_init();
 }
 
-static size_t mf_get_key_size(mf_key_info_t *key) {
-  return sizeof(mf_key_info_t) + key->data_size + key->name_length;
+static size_t mf_get_key_size(mf_keyinfo_t *key) {
+  return sizeof(mf_keyinfo_t) + key->data_size + key->name_length;
 }
 
-static mf_key_info_t *mf_get_next_key(mf_key_info_t *key) {
+static mf_keyinfo_t *mf_get_next_key(mf_keyinfo_t *key) {
   if (key->next_key == NULL) return NULL;
-  return (mf_key_info_t *)(((uint8_t *)key) + mf_get_key_size(key));
+  return (mf_keyinfo_t *)(((uint8_t *)key) + mf_get_key_size(key));
 }
 
-static mf_key_info_t *mf_get_last_key(mf_flash_info_t *block) {
+static mf_keyinfo_t *mf_get_last_key(mf_flash_info_t *block) {
   if (mf_block_empty(block)) {
     return NULL;
   }
 
-  mf_key_info_t *ans = &block->key;
+  mf_keyinfo_t *ans = &block->key;
 
   while (ans->next_key) {
     ans = mf_get_next_key(ans);
@@ -119,7 +124,7 @@ size_t mf_len() {
     return 0;
   }
   size_t len = 1;
-  mf_key_info_t *ans = &mf_data->key;
+  mf_keyinfo_t *ans = &mf_data->key;
   while ((ans = mf_get_next_key(ans)) != NULL) {
     len++;
   }
@@ -133,21 +138,21 @@ mf_status_t mf_add_key(const char *name, const void *data, size_t size) {
 
   size_t name_len = strlen(name) + 1;
 
-  mf_key_info_t *key_buf = NULL;
+  mf_keyinfo_t *key_buf = NULL;
   uint8_t *data_name_buf = NULL;
-  mf_key_info_t *last_key = NULL;
+  mf_keyinfo_t *last_key = NULL;
 
   if (mf_block_empty(mf_data)) {
     key_buf = &mf_data->key;
-    data_name_buf = (uint8_t *)&mf_data->key + sizeof(mf_key_info_t);
+    data_name_buf = (uint8_t *)&mf_data->key + sizeof(mf_keyinfo_t);
   } else {
     last_key = mf_get_last_key(mf_data);
     key_buf =
-        (mf_key_info_t *)(((uint8_t *)last_key) + mf_get_key_size(last_key));
-    data_name_buf = (uint8_t *)key_buf + sizeof(mf_key_info_t);
+        (mf_keyinfo_t *)(((uint8_t *)last_key) + mf_get_key_size(last_key));
+    data_name_buf = (uint8_t *)key_buf + sizeof(mf_keyinfo_t);
   }
 
-  if ((uint8_t *)key_buf + sizeof(mf_key_info_t) + size + name_len >
+  if ((uint8_t *)key_buf + sizeof(mf_keyinfo_t) + size + name_len >
       mf_temp + MF_FLASH_BLOCK_SIZE - 1) {
     return MF_ERR_FULL;
   }
@@ -157,7 +162,7 @@ mf_status_t mf_add_key(const char *name, const void *data, size_t size) {
   data_name_buf += name_len;
   memcpy(data_name_buf, data, size);
 
-  *key_buf = (mf_key_info_t){
+  *key_buf = (mf_keyinfo_t){
       .next_key = 0U, .name_length = name_len, .data_size = size};
 
   if (last_key != NULL) {
@@ -171,11 +176,11 @@ mf_status_t mf_del_key(const char *name) {
   if (mf_block_empty(mf_data)) {
     return MF_ERR_NULL;
   }
-  mf_key_info_t *key = mf_search_key(name);
+  mf_keyinfo_t *key = mf_search_key(name);
   if (key == NULL) {
     return MF_ERR_NULL;
   }
-  mf_key_info_t *last_key = mf_get_last_key(mf_data);
+  mf_keyinfo_t *last_key = mf_get_last_key(mf_data);
   if (last_key == key) {
     size_t key_size = mf_get_key_size(key);
     if (&mf_data->key == key) {
@@ -183,7 +188,7 @@ mf_status_t mf_del_key(const char *name) {
       mf_data->key.data_size = 0;
       mf_data->key.next_key = false;
     } else {
-      mf_key_info_t *prev_key = &mf_data->key;
+      mf_keyinfo_t *prev_key = &mf_data->key;
       while (mf_get_next_key(prev_key) != key) {
         prev_key = mf_get_next_key(prev_key);
       }
@@ -203,7 +208,7 @@ mf_status_t mf_del_key(const char *name) {
 }
 
 mf_status_t mf_modify_key(const char *name, const void *data, size_t size) {
-  mf_key_info_t *key = mf_search_key(name);
+  mf_keyinfo_t *key = mf_search_key(name);
   if (key == NULL) {
     return MF_ERR_NULL;
   }
@@ -211,13 +216,13 @@ mf_status_t mf_modify_key(const char *name, const void *data, size_t size) {
     return MF_ERR_SIZE;
   }
 
-  memcpy((void *)mf_get_key_data(key), data, size);
+  memcpy((void *)mf_get_keyinfo_ptr(key), data, size);
 
   return MF_OK;
 }
 
 mf_status_t mf_set_key(const char *name, const void *data, size_t size) {
-  mf_key_info_t *key = mf_search_key(name);
+  mf_keyinfo_t *key = mf_search_key(name);
 
   if (key == NULL) {
     return mf_add_key(name, data, size);
@@ -231,49 +236,81 @@ mf_status_t mf_set_key(const char *name, const void *data, size_t size) {
     return mf_add_key(name, data, size);
   }
 
-  memcpy((void *)mf_get_key_data(key), data, size);
+  memcpy((void *)mf_get_keyinfo_ptr(key), data, size);
 
   return MF_OK;
 }
 
-const char *mf_get_key_name(mf_key_info_t *key) {
-  return (char *)((uint8_t *)key + sizeof(mf_key_info_t));
+mf_status_t mf_get_key(const char *name, void *data, size_t size,
+                       size_t *data_size) {
+  mf_keyinfo_t *key = mf_search_key(name);
+  if (data_size) {
+    *data_size = 0;
+  }
+  if (key == NULL) {
+    return MF_ERR_NULL;
+  }
+  if (key->data_size > size) {
+    return MF_ERR_SIZE;
+  }
+
+  memcpy(data, mf_get_keyinfo_ptr(key), size);
+
+  if (data_size) {
+    *data_size = key->data_size;
+  }
+
+  return MF_OK;
 }
 
-const void *mf_get_key_data(mf_key_info_t *key) {
-  return (const void *)((uint8_t *)key + sizeof(mf_key_info_t) +
+const void *mf_get_key_ptr(const char *name, size_t *data_size) {
+  mf_keyinfo_t *key = mf_search_key(name);
+  if (key == NULL) {
+    if (data_size) *data_size = 0;
+    return NULL;
+  }
+  if (data_size) *data_size = key->data_size;
+  return mf_get_keyinfo_ptr(key);
+}
+
+const char *mf_get_keyinfo_name(mf_keyinfo_t *key) {
+  return (char *)((uint8_t *)key + sizeof(mf_keyinfo_t));
+}
+
+const void *mf_get_keyinfo_ptr(mf_keyinfo_t *key) {
+  return (const void *)((uint8_t *)key + sizeof(mf_keyinfo_t) +
                         key->name_length);
 }
 
-size_t mf_get_key_data_size(mf_key_info_t *key) { return key->data_size; }
+size_t mf_get_keyinfo_size(mf_keyinfo_t *key) { return key->data_size; }
 
-mf_key_info_t *mf_search_key(const char *name) {
+mf_keyinfo_t *mf_search_key(const char *name) {
   if (mf_block_empty(mf_data)) {
     return NULL;
   }
 
-  mf_key_info_t *ans = &mf_data->key;
+  mf_keyinfo_t *ans = &mf_data->key;
 
   while (ans->next_key) {
-    if (strcmp(name, mf_get_key_name(ans)) == 0) {
+    if (strcmp(name, mf_get_keyinfo_name(ans)) == 0) {
       return ans;
     }
     ans = mf_get_next_key(ans);
   }
 
-  if (strcmp(name, mf_get_key_name(ans)) == 0) {
+  if (strcmp(name, mf_get_keyinfo_name(ans)) == 0) {
     return ans;
   } else {
     return NULL;
   }
 }
 
-void mf_foreach(bool (*fun)(mf_key_info_t *key, void *arg), void *arg) {
+void mf_foreach(bool (*fun)(mf_keyinfo_t *key, void *arg), void *arg) {
   if (mf_block_empty(mf_data)) {
     return;
   }
 
-  mf_key_info_t *ans = &mf_data->key;
+  mf_keyinfo_t *ans = &mf_data->key;
 
   while (ans->next_key) {
     if (!fun(ans, arg)) {
@@ -287,8 +324,7 @@ void mf_foreach(bool (*fun)(mf_key_info_t *key, void *arg), void *arg) {
   return;
 }
 
-bool mf_iter(mf_key_info_t **key, const char **name, const void **value,
-             size_t *data_size) {
+bool mf_iter(mf_keyinfo_t **key) {
   if (mf_block_empty(mf_data)) {
     return false;
   }
@@ -298,14 +334,7 @@ bool mf_iter(mf_key_info_t **key, const char **name, const void **value,
     *key = mf_get_next_key(*key);
   }
   if (*key == NULL) {
-    if (name) *name = NULL;
-    if (value) *value = NULL;
-    if (data_size) *data_size = 0;
     return false;
   }
-  if (name) *name = mf_get_key_name(*key);
-  if (value) *value = mf_get_key_data(*key);
-  if (data_size) *data_size = mf_get_key_data_size(*key);
-
   return true;
 }

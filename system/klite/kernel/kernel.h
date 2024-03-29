@@ -35,11 +35,13 @@
 #if !KCONFIG_AVAILABLE
 
 #define KERNEL_CFG_FREQ 100000       // 内核时基频率(赫兹)
+#define KERNEL_CFG_MAX_PRIO 7        // 最大优先级
 #define KERNEL_CFG_HOOK_ENABLE 1     // 内核钩子使能
 #define KERNEL_CFG_HEAP_USE_BARE 0   // 使用裸机基础内存管理器
 #define KERNEL_CFG_HEAP_USE_LWMEM 0  // 使用lwmem内存管理器
 #define KERNEL_CFG_HEAP_USE_HEAP4 1  // 使用heap4内存管理器
-
+#define KERNEL_CFG_IDLE_THREAD_STACK_SIZE 256   // 空闲线程栈大小
+#define KERNEL_CFG_DEFAULT_STACK_SIZE 1024      // 默认线程栈大小
 #define KERNEL_CFG_STACK_OVERFLOW_GUARD 1       // 栈溢出保护
 #define KERNEL_CFG_STACKOF_BEHAVIOR_SYSRESET 1  // 栈溢出时系统复位
 #define KERNEL_CFG_STACKOF_BEHAVIOR_SUSPEND 0   // 栈溢出时挂起线程
@@ -71,12 +73,12 @@ void kernel_init(void *heap_addr, uint32_t heap_size);
 void kernel_start(void);
 
 /**
- * @brief 进入临界区, 禁止中断
+ * @brief 进入临界区, 禁止中断, 允许嵌套
  */
 void kernel_enter_critical(void);
 
 /**
- * @brief 退出临界区, 允许中断
+ * @brief 退出临界区, 允许中断, 允许嵌套
  */
 void kernel_exit_critical(void);
 
@@ -86,68 +88,62 @@ void kernel_exit_critical(void);
 uint32_t kernel_version(void);
 
 /**
- * @brief 处理内核空闲事务, 回收线程资源
- * @warning 此函数不会返回。必须单独创建一个线程来调用。
- */
-void kernel_idle(void);
-
-/**
- * @retval 系统空闲时间(Tick)
  * @brief 获取系统从启动到现在空闲线程占用CPU的总时间
  * @note 可使用此函数和kernel_tick_count()一起计算CPU占用率
+ * @retval 系统空闲时间(Tick)
  */
 uint32_t kernel_idle_time(void);
 
 /**
- * @param time 递增Tick数
  * @brief 此函数不是用户API, 而是由CPU的滴答时钟中断程序调用, 为系统提供时钟源。
  * @note 滴答定时器的周期决定了系统计时功能的细粒度 (1/KERNEL_CFG_FREQ)
+ * @param time 递增Tick数
  */
 void kernel_tick(uint32_t time);
 
 /**
- * @retval 系统运行时间(Tick)
  * @brief 此函数可以获取内核从启动到现在所运行的总时间
+ * @retval 系统运行时间(Tick)
  */
 uint32_t kernel_tick_count(void);
 
 /**
- * @retval 系统运行时间(Tick)
  * @brief 此函数可以获取内核从启动到现在所运行的总时间
+ * @retval 系统运行时间(Tick)
  */
 uint64_t kernel_tick_count64(void);
 
 /**
+ * @brief 计算ms对应的Tick数
  * @param ms 毫秒
  * @retval 返回ms对应的Tick数
- * @brief 计算ms对应的Tick数
  */
 static inline uint32_t kernel_ms_to_ticks(uint32_t ms) {
   return ((uint64_t)ms * KERNEL_CFG_FREQ) / 1000;
 }
 
 /**
+ * @brief 计算Tick对应的毫秒数
  * @param tick Tick数
  * @retval 返回Tick对应的毫秒数
- * @brief 计算Tick对应的毫秒数
  */
 static inline uint32_t kernel_ticks_to_ms(uint32_t tick) {
   return ((uint64_t)tick * 1000) / KERNEL_CFG_FREQ;
 }
 
 /**
+ * @brief 计算us对应的Tick数
  * @param us 微秒
  * @retval 返回us对应的Tick数
- * @brief 计算us对应的Tick数
  */
 static inline uint32_t kernel_us_to_ticks(uint32_t us) {
   return ((uint64_t)us * KERNEL_CFG_FREQ) / 1000000;
 }
 
 /**
+ * @brief 计算Tick对应的微秒数
  * @param tick Tick数
  * @retval 返回Tick对应的微秒数
- * @brief 计算Tick对应的微秒数
  */
 static inline uint32_t kernel_ticks_to_us(uint32_t tick) {
   return ((uint64_t)tick * 1000000) / KERNEL_CFG_FREQ;
@@ -160,91 +156,92 @@ extern void *kernel_heap_addr;
  ******************************************************************************/
 
 /**
+ * @brief 用户在指定内存创建一个用于动态管理的堆内存
  * @param addr 动态分配起始地址
  * @param size 动态分配内存大小
- * @brief 用户在指定内存创建一个用于动态管理的堆内存
  */
 void heap_create(void *addr, uint32_t size);
 
 /**
+ * @brief 从堆中申请一段连续的内存, 功能和标准库的malloc()一样
  * @param size 申请内存大小
  * @retval 申请成功返回内存指针, 申请失败返回NULL
- * @brief 从堆中申请一段连续的内存, 功能和标准库的malloc()一样
  */
 void *heap_alloc(uint32_t size);
 
 /**
- * @param mem 内存指针
  * @brief 释放内存, 功能和标准库的free()一样
+ * @param mem 内存指针
  */
 void heap_free(void *mem);
 
 /**
+ * @brief 重新分配内存大小, 功能和标准库的realloc()一样
  * @param mem 内存指针
  * @param size 申请内存大小
  * @retval 申请成功返回内存指针, 申请失败返回NULL
- * @brief 重新分配内存大小, 功能和标准库的realloc()一样
  */
 void *heap_realloc(void *mem, uint32_t size);
 
 /**
+ * @brief 获取堆内存使用情况
  * @param used 已使用内存大小
  * @param free 空闲内存大小
- * @brief 获取堆内存使用情况
  */
 void heap_usage(uint32_t *used, uint32_t *free);
 
 /**
- * @retval 堆内存使用率
  * @brief 获取堆内存使用率(0.0~1.0)
+ * @retval 堆内存使用率
  */
 float heap_usage_percent(void);
 
 /******************************************************************************
  * thread
  ******************************************************************************/
-enum {
-  THREAD_PRIORITY_IDLE = 0,
-  THREAD_PRIORITY_LOWEST,
-  THREAD_PRIORITY_LOWER,
-  THREAD_PRIORITY_LOW,
-  THREAD_PRIORITY_NORMAL,
-  THREAD_PRIORITY_HIGH,
-  THREAD_PRIORITY_HIGHER,
-  THREAD_PRIORITY_HIGHEST,
-  __THREAD_PRIORITY_MAX__
-};
 
 /**
+ * @brief 创建新线程, 并加入就绪队列
  * @param entry 线程入口函数
  * @param arg 线程入口函数的参数
- * @param stack_size 线程的栈大小（字节）, 0:使用默认值 (1024)
- * @param prio 线程优先级 (1~7, 7为最高优先级, 0:使用NORMAL优先级)
+ * @param stack_size 线程的栈大小（字节）, 0:使用默认值
+ * @param prio 线程优先级 (>0) , 0:使用默认值
  * @retval 成功返回线程句柄, 失败返回NULL
- * @brief 创建新线程, 并加入就绪队列
  */
 thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
                        uint32_t prio);
 
 /**
- * @param thread 被删除的线程标识符
  * @brief 删除线程, 并释放内存
+ * @param thread 被删除的线程标识符
  * @warning 该函数不能用来结束当前线程, 如果想要结束当前线程,
  * 请使用thread_exit()或直接使用return退出主循环
  */
 void thread_delete(thread_t thread);
 
 /**
- * @param thread 线程标识符
  * @brief 挂起线程, 使线程进入休眠状态, 并释放CPU控制权
+ * @param thread 线程标识符
  */
 void thread_suspend(thread_t thread);
 
 /**
- * @param thread 线程标识符
  * @brief 恢复线程, 使线程从休眠状态中恢复
+ * @param thread 线程标识符
  */
 void thread_resume(thread_t thread);
+
+/**
+ * @brief 挂起所有线程, 禁止线程调度, 允许嵌套
+ * @warning 非中断安全, 挂起期间禁止调用内核API
+ */
+void thread_suspend_all(void);
+
+/**
+ * @brief 恢复所有线程, 允许线程调度, 允许嵌套
+ * @warning 非中断安全, 挂起期间禁止调用内核API
+ */
+void thread_resume_all(void);
 
 /**
  * @brief 使当前线程立即释放CPU控制权, 并进入就绪队列
@@ -252,8 +249,8 @@ void thread_resume(thread_t thread);
 void thread_yield(void);
 
 /**
- * @param time 睡眠时间(取决于时钟源粒度)
  * @brief 将当前线程休眠一段时间, 释放CPU控制权
+ * @param time 睡眠时间(取决于时钟源粒度)
  */
 void thread_sleep(uint32_t time);
 
@@ -263,100 +260,100 @@ void thread_sleep(uint32_t time);
 void thread_exit(void);
 
 /**
- * @retval 调用线程的标识符
  * @brief 用于获取当前线程标识符
+ * @retval 调用线程的标识符
  */
 thread_t thread_self(void);
 
 /**
+ * @brief 获取线程自创建以来所占用CPU的时间
  * @param thread 线程标识符
  * @retval 指定线程运行时间（Tick）
- * @brief 获取线程自创建以来所占用CPU的时间
  * @note 在休眠期间的时间不计算在内, 可以使用此函数来监控某个线程的CPU占用率
  */
 uint32_t thread_time(thread_t thread);
 
 /**
+ * @brief 获取线程栈信息
  * @param thread 线程标识符
  * @param stack_free 剩余栈空间
  * @param stack_size 栈总大小
- * @brief 获取线程栈信息
  */
 void thread_stack_info(thread_t thread, size_t *stack_free, size_t *stack_size);
 
 /**
- * @param thread 线程标识符
- * @param prio 新的优先级 (0~7, 7为最高优先级)
  * @brief 重新设置线程优先级, 立即生效
+ * @param thread 线程标识符
+ * @param prio 新的优先级 (>0) , 0:使用默认值
  * @warning 不允许在内核启动前修改线程优先级
- * @note 7 - THREAD_PRIORITY_HIGHEST - 最高优先级
- * @note 6 - THREAD_PRIORITY_HIGHER  - 较高优先级
- * @note 5 - THREAD_PRIORITY_HIGH    - 高优先级
- * @note 4 - THREAD_PRIORITY_NORMAL  - 默认优先级
- * @note 3 - THREAD_PRIORITY_LOW     - 低优先级
- * @note 2 - THREAD_PRIORITY_LOWER   - 较低优先级
- * @note 1 - THREAD_PRIORITY_LOWEST  - 最低优先级
- * @note 0 - THREAD_PRIORITY_IDLE    - 空闲优先级(仅限空闲线程使用)
  */
 void thread_set_priority(thread_t thread, uint32_t prio);
 
 /**
+ * @brief 获取线程优先级
  * @param thread 线程标识符
  * @retval 线程优先级
- * @brief 获取线程优先级
  */
 uint32_t thread_get_priority(thread_t thread);
+
+/**
+ * @brief 迭代获取所有线程
+ * @param thread NULL:获取第1个线程, 其它:获取下一个线程
+ * @retval 返回线程标识符, 如果返回NULL则说明没有更多线程
+ */
+thread_t thread_iter(thread_t thread);
 
 /******************************************************************************
  * semaphore
  ******************************************************************************/
 
 /**
+ * @brief 创建信号量对象
  * @param value 信号量初始值
  * @retval 成功返回信号量标识符, 失败返回NULL
- * @brief 创建信号量对象
  */
 sem_t sem_create(uint32_t value);
 
 /**
+ * @brief 删除对象, 并释放内存
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  * @param sem 信号量标识符
- * @brief 删除对象, 并释放内存在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void sem_delete(sem_t sem);
 
 /**
- * @param sem 信号量标识符
  * @brief 信号量计数值加1, 如果有线程在等待信号量, 此函数会唤醒优先级最高的线程
+ * @param sem 信号量标识符
  */
 void sem_post(sem_t sem);
 
 /**
- * @param sem 信号量标识符
  * @brief 等待信号量, 信号量计数值减1, 如果当前信号量计数值为0, 则线程阻塞,
  * 直到计数值大于0
+ * @param sem 信号量标识符
  */
 void sem_wait(sem_t sem);
 
 /**
+ * @brief 定时等待信号量, 并将信号量计数值减1, 如果当前信号量计数值为0,
+ * 则线程阻塞, 直到计数值大于0, 或者阻塞时间超过timeout指定的时间
  * @param sem 信号量标识符
  * @param timeout 超时时间（Tick）
  * @retval 剩余等待时间, 如果返回0则说明等待超时
- * @brief 定时等待信号量, 并将信号量计数值减1, 如果当前信号量计数值为0,
- * 则线程阻塞, 直到计数值大于0, 或者阻塞时间超过timeout指定的时间
  */
 uint32_t sem_timed_wait(sem_t sem, uint32_t timeout);
 
 /**
+ * @brief 获取信号量计数值
  * @param sem 信号量标识符
  * @retval 信号量计数值
- * @brief 获取信号量计数值
  */
 uint32_t sem_value(sem_t sem);
 
 /**
+ * @brief 重置信号量计数值
  * @param sem 信号量标识符
  * @param value 信号量计数值
- * @brief 重置信号量计数值
  */
 void sem_reset(sem_t sem, uint32_t value);
 
@@ -365,44 +362,44 @@ void sem_reset(sem_t sem, uint32_t value);
  ******************************************************************************/
 
 /**
+ * @brief 创建一个事件对象, 当auto_reset为true时事件会在传递成功后自动复位
  * @param auto_reset 是否自动复位事件
  * @retval 创建成功返回事件标识符, 失败返回NULL
- * @brief 创建一个事件对象, 当auto_reset为true时事件会在传递成功后自动复位
  */
 event_t event_create(bool auto_reset);
 
 /**
- * @param event 事件标识符
  * @brief 删除事件对象, 并释放内存, 在没有线程使用它时才能删除,
  * 否则将导致未定义行为
+ * @param event 事件标识符
  */
 void event_delete(event_t event);
 
 /**
- * @param event 事件标识符
  * @brief 标记事件为置位状态, 并唤醒等待队列中的线程, 如果auto_reset为true,
  * 那么只唤醒第1个线程, 并且将事件复位, 如果auto_reset为false,
  * 那么会唤醒所有线程, 事件保持置位状态
+ * @param event 事件标识符
  */
 void event_set(event_t event);
 
 /**
- * @param event 事件标识符
  * @brief 标记事件为复位状态, 此函数不会唤醒任何线程
+ * @param event 事件标识符
  */
 void event_reset(event_t event);
 
 /**
- * @param event 事件标识符
  * @brief 等待事件被置位
+ * @param event 事件标识符
  */
 void event_wait(event_t event);
 
 /**
+ * @brief 定时等待事件置位, 如果等待时间超过timeout设定的时间则退出等待
  * @param event 事件标识符
  * @param timeout 等待时间（Tick）
  * @retval 剩余等待时间, 如果返回0则说明等待超时
- * @brief 定时等待事件置位, 如果等待时间超过timeout设定的时间则退出等待
  */
 uint32_t event_timed_wait(event_t event, uint32_t timeout);
 
@@ -414,43 +411,43 @@ uint32_t event_timed_wait(event_t event, uint32_t timeout);
  ******************************************************************************/
 
 /**
- * @retval 成功返回互斥锁标识符, 失败返回NULL
  * @brief 创建一个互斥锁对象, 支持递归锁
+ * @retval 成功返回互斥锁标识符, 失败返回NULL
  */
 mutex_t mutex_create(void);
 
 /**
- * @param mutex 互斥锁标识符
  * @brief 删除互斥锁对象, 并释放内存, 在没有线程使用它时才能删除, 否则线程将死锁
+ * @param mutex 互斥锁标识符
  */
 void mutex_delete(mutex_t mutex);
 
 /**
- * @param mutex 互斥锁标识符
  * @brief 将mutex指定的互斥锁标记为锁定状态, 如果mutex已被其它线程锁定,
  * 则调用线程将会被阻塞, 直到另一个线程释放这个互斥锁
+ * @param mutex 互斥锁标识符
  */
 void mutex_lock(mutex_t mutex);
 
 /**
- * @param mutex 互斥锁标识符
  * @brief 释放mutex标识的互斥锁, 如果有其它线程正在等待这个锁,
  * 则会唤醒优先级最高的那个线程
+ * @param mutex 互斥锁标识符
  */
 void mutex_unlock(mutex_t mutex);
 
 /**
+ * @brief 此函数是mutex_lock的非阻塞版本
  * @param mutex 互斥锁标识符
  * @retval 如果锁定成功则返回true, 失败则返回false
- * @brief 此函数是mutex_lock的非阻塞版本
  */
 bool mutex_try_lock(mutex_t mutex);
 
 /**
+ * @brief 此函数是mutex_lock的定时版本
  * @param mutex 互斥锁标识符
  * @param timeout 超时时间（Tick）
  * @retval 如果锁定成功则返回true, 失败则返回false
- * @brief 此函数是mutex_lock的定时版本
  */
 bool mutex_timed_lock(mutex_t mutex, uint32_t timeout);
 
@@ -459,42 +456,42 @@ bool mutex_timed_lock(mutex_t mutex, uint32_t timeout);
  ******************************************************************************/
 
 /**
- * @retval 成功返回条件变量标识符, 失败返回NULL
  * @brief 创建条件变量对象
+ * @retval 成功返回条件变量标识符, 失败返回NULL
  */
 cond_t cond_create(void);
 
 /**
- * @param cond 条件变量标识符
  * @brief 删除条件变量
+ * @param cond 条件变量标识符
  */
 void cond_delete(cond_t cond);
 
 /**
- * @param cond 条件变量标识符
  * @brief 唤醒一个被条件变量阻塞的线程, 如果没有线程被阻塞则此函数什么也不做
+ * @param cond 条件变量标识符
  */
 void cond_signal(cond_t cond);
 
 /**
- * @param cond 条件变量标识符
  * @brief 唤醒所有被条件变量阻塞的线程, 如果没有线程被阻塞则此函数什么也不做
+ * @param cond 条件变量标识符
  */
 void cond_broadcast(cond_t cond);
 
 /**
+ * @brief 阻塞线程, 并等待被条件变量唤醒
  * @param cond 条件变量标识符
  * @param mutex 互斥锁标识符
- * @brief 阻塞线程, 并等待被条件变量唤醒
  */
 void cond_wait(cond_t cond, mutex_t mutex);
 
 /**
+ * @brief 定时阻塞线程, 并等待被条件变量唤醒
  * @param cond 条件变量标识符
  * @param mutex 互斥锁标识符
  * @param timeout 超时时间（Tick）
  * @retval 剩余等待时间, 如果返回0则说明等待超时
- * @brief 定时阻塞线程, 并等待被条件变量唤醒
  */
 uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);
 

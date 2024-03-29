@@ -31,6 +31,8 @@
 #define MAKE_VERSION_CODE(a, b, c) ((a << 24) | (b << 16) | (c))
 #define KERNEL_VERSION_CODE MAKE_VERSION_CODE(5, 1, 0)
 
+extern thread_t m_idle_thread;
+
 static uint64_t m_tick_count;
 thread_t m_idle_thread;
 void* kernel_heap_addr;
@@ -42,6 +44,10 @@ void kernel_init(void* heap_addr, uint32_t heap_size) {
   sched_init();
   heap_create(heap_addr, heap_size);
   kernel_heap_addr = heap_addr;
+
+  /* 创建idle线程 */
+  m_idle_thread = thread_create(kernel_idle_thread, NULL,
+                                KERNEL_CFG_IDLE_THREAD_STACK_SIZE, 0);
 }
 
 void kernel_start(void) {
@@ -49,11 +55,9 @@ void kernel_start(void) {
   cpu_sys_start();
 }
 
-void kernel_idle(void) {
-  void thread_clean_up(void);
+void kernel_idle_thread(void* args) {
+  (void)args;
 
-  m_idle_thread = thread_self();
-  thread_set_priority(m_idle_thread, THREAD_PRIORITY_IDLE);
   while (1) {
 #if KERNEL_CFG_HOOK_ENABLE
     kernel_hook_idle();
@@ -69,20 +73,9 @@ uint32_t kernel_idle_time(void) {
   return m_idle_thread ? thread_time(m_idle_thread) : 0;
 }
 
-volatile uint32_t kernel_sys_nesting;
+void kernel_enter_critical(void) { cpu_enter_critical(); }
 
-#include "led.h"
-#include "log.h"
-
-void kernel_enter_critical(void) {
-  cpu_enter_critical();
-  kernel_sys_nesting++;
-}
-
-void kernel_exit_critical(void) {
-  kernel_sys_nesting--;
-  cpu_leave_critical();
-}
+void kernel_exit_critical(void) { cpu_leave_critical(); }
 
 void kernel_tick(uint32_t time) {
   m_tick_count += time;

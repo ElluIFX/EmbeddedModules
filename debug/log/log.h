@@ -136,12 +136,12 @@ extern void log_hook(const char *fmt, ...);
 #define __LOG_LIMIT(_STR, _CLR, limit_ms, fmt, args...)                 \
   do {                                                                  \
     static m_time_t SAFE_NAME(limited_log_t) = 0;                       \
-    static uint64_t SAFE_NAME(limited_log_count) = 0;                   \
+    static uint32_t SAFE_NAME(limited_log_count) = 0;                   \
     SAFE_NAME(limited_log_count)++;                                     \
     if (m_time_ms() > SAFE_NAME(limited_log_t) + limit_ms) {            \
       SAFE_NAME(limited_log_t) = m_time_ms();                           \
       __LOG(LOG_CFG_PREFIX, _STR, _CLR, LOG_CFG_SUFFIX LOG_CFG_NEWLINE, \
-            "[L/%ld]:" fmt, SAFE_NAME(limited_log_count), ##args);      \
+            "[L/%d]:" fmt, SAFE_NAME(limited_log_count), ##args);       \
       SAFE_NAME(limited_log_count) = 0;                                 \
     }                                                                   \
   } while (0)

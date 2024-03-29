@@ -51,21 +51,23 @@ struct tcb_node {
 };
 
 struct tcb {
-  void *stack;
-  uint32_t stack_size;
-  void (*entry)(void *);
-  uint32_t prio;
-  uint32_t time;
-  uint32_t timeout;
-  struct tcb_list *list_sched;
-  struct tcb_list *list_wait;
-  struct tcb_node node_sched;
-  struct tcb_node node_wait;
+  void *stack;                  // 栈基地址
+  uint32_t stack_size;          // 栈大小
+  void (*entry)(void *);        // 线程入口
+  uint32_t prio;                // 线程优先级
+  uint32_t time;                // 线程运行时间
+  uint32_t timeout;             // 睡眠超时时间
+  struct tcb_list *list_sched;  // 当前所处调度队列
+  struct tcb_list *list_wait;   // 当前所处等待队列
+  struct tcb_node node_sched;   // 调度队列节点
+  struct tcb_node node_wait;    // 等待队列节点
+  struct tcb_node node_manage;  // 管理节点
 };
 
 extern struct tcb *sched_tcb_now;
 extern struct tcb *sched_tcb_next;
-extern volatile uint32_t kernel_sys_nesting;
+
+extern volatile uint32_t sched_susp_nesting;
 
 // 平台实现: 进入临界区, 并执行需要在内核初始化前执行的操作
 void cpu_sys_init(void);
@@ -95,18 +97,65 @@ void cpu_enter_critical(void);
 // 平台实现: 退出临界区
 void cpu_leave_critical(void);
 
+// 内核空闲线程
+void kernel_idle_thread(void *args);
+
+// 清理待删除线程
+void thread_clean_up(void);
+
+// 初始化线程调度器
 void sched_init(void);
+
+// 线程调度器空闲处理
+// 如果有线程就绪, 则调度线程
+// 如果没有线程就绪, 则进入系统空闲
 void sched_idle(void);
+
+// 线程调度器时钟处理
+// 如果有线程超时, 则唤醒线程
+// @param time: 时钟增量
 void sched_timing(uint32_t time);
+
+// 执行线程切换
 void sched_switch(void);
+
+// 尝试切换线程, 并将当前线程加入就绪队列
+// @param round_robin: 允许同优先级时间片轮转
 void sched_preempt(bool round_robin);
-void sched_tcb_reset(struct tcb *tcb, uint32_t prio);
+
+// 重置线程优先级
+// @param tcb: 线程控制块
+// @param prio: 优先级
+void sched_tcb_reset_prio(struct tcb *tcb, uint32_t prio);
+
+// 从调度器移除线程
+// @param tcb: 线程控制块
 void sched_tcb_remove(struct tcb *tcb);
+
+// 将线程加入就绪队列
+// @param tcb: 线程控制块
 void sched_tcb_ready(struct tcb *tcb);
+
+// 将线程加入睡眠队列
+// @param tcb: 线程控制块
+// @param timeout: 睡眠时间
 void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout);
+
+// 将线程加入等待队列
+// @param tcb: 线程控制块
+// @param list: 等待队列
 void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list);
+
+// 将线程同时加入等待队列和睡眠队列
+// @param tcb: 线程控制块
+// @param list: 等待队列
+// @param timeout: 睡眠时间(等待超时时间)
 void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
                           uint32_t timeout);
+
+// 尝试唤醒等待队列中的线程
+// @param list: 等待队列
+// @return: 被唤醒的线程控制块, NULL表示无等待线程
 struct tcb *sched_tcb_wake_from(struct tcb_list *list);
 
 #endif

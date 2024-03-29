@@ -40,7 +40,7 @@ extern const char *__cortn_internal_get_name(void);
 extern void *__cortn_internal_init_local(size_t size);
 extern uint8_t __cortn_internal_await_enter(void);
 extern uint8_t __cortn_internal_await_return(void);
-extern void __cortn_internal_delay(uint64_t delayUs);
+extern void __cortn_internal_delay(uint64_t delay_us);
 extern uint8_t __cortn_internal_acq_mutex(const char *name);
 extern void __cortn_internal_rel_mutex(const char *name);
 extern uint8_t __cortn_internal_await_bar(const char *name);

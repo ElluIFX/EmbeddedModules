@@ -505,11 +505,13 @@ void* ulist_search_matched(ULIST list, const void* key,
   ULIST_UNLOCK_RET(NULL);
 }
 
-void ulist_mem_shrink(ULIST list) {
+void ulist_mem_shrink(ULIST list, uint8_t force_auto_free) {
   ULIST_LOCK();
   uint8_t cfg = list->cfg;
-  list->cfg &= ~ULIST_CFG_NO_AUTO_FREE;
-  list->cfg |= ULIST_CFG_NO_SHRINK;
+  if (force_auto_free) {
+    list->cfg &= ~ULIST_CFG_NO_AUTO_FREE;
+  }
+  list->cfg &= ~ULIST_CFG_NO_SHRINK;
   ulist_shrink(list, list->num);
   list->cfg = cfg;
   ULIST_UNLOCK();

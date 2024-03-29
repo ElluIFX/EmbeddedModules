@@ -20,7 +20,7 @@ typedef void (*task_func_t)(void *args);  // 任务函数指针类型
  * @param  args             任务参数
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_create_task(const char *name, task_func_t func, float freqHz,
+extern uint8_t sch_task_create(const char *name, task_func_t func, float freqHz,
                                uint8_t enable, uint8_t priority, void *args);
 
 /**
@@ -29,14 +29,14 @@ extern uint8_t sch_create_task(const char *name, task_func_t func, float freqHz,
  * @param  enable           使能状态
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_set_task_enabled(const char *name, uint8_t enable);
+extern uint8_t sch_task_set_enabled(const char *name, uint8_t enable);
 
 /**
  * @brief 删除一个调度任务
  * @param  name             任务名
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_delete_task(const char *name);
+extern uint8_t sch_task_delete(const char *name);
 
 /**
  * @brief 设置任务调度频率
@@ -44,7 +44,7 @@ extern uint8_t sch_delete_task(const char *name);
  * @param  freq             调度频率
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_set_task_freq(const char *name, float freqHz);
+extern uint8_t sch_task_set_freq(const char *name, float freqHz);
 
 /**
  * @brief 设置任务优先级
@@ -52,7 +52,7 @@ extern uint8_t sch_set_task_freq(const char *name, float freqHz);
  * @param  priority         任务优先级
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_set_task_priority(const char *name, uint8_t priority);
+extern uint8_t sch_task_set_priority(const char *name, uint8_t priority);
 
 /**
  * @brief 设置任务参数
@@ -60,36 +60,36 @@ extern uint8_t sch_set_task_priority(const char *name, uint8_t priority);
  * @param  args             任务参数
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_set_task_args(const char *name, void *args);
+extern uint8_t sch_task_set_args(const char *name, void *args);
 
 /**
  * @brief 查询任务是否存在
  * @param  name             任务名
  * @retval uint8_t             任务是否存在
  */
-extern uint8_t sch_get_task_exist(const char *name);
+extern uint8_t sch_task_get_exist(const char *name);
 
 /**
  * @brief 查询任务状态
  * @param  name             任务名
  * @retval uint8_t             任务状态
  */
-extern uint8_t sch_get_task_enabled(const char *name);
+extern uint8_t sch_task_get_enabled(const char *name);
 
 /**
  * @brief 延迟(推后)指定任务下一次调度的时间
  * @param  name             任务名
- * @param  delayUs          延迟时间(us)
+ * @param  delay_us          延迟时间(us)
  * @param  fromNow          从当前时间/上一次调度时间计算延迟
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_delay_task(const char *name, uint64_t delayUs,
+extern uint8_t sch_task_delay(const char *name, uint64_t delay_us,
                               uint8_t fromNow);
 
 /**
  * @brief 获取调度器内任务数量
  */
-extern uint16_t sch_get_task_num(void);
+extern uint16_t sch_task_get_num(void);
 
 #endif  // SCH_CFG_ENABLE_TASK
 

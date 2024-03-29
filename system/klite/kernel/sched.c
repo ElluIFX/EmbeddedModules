@@ -30,14 +30,17 @@
 
 struct tcb *sched_tcb_now;
 struct tcb *sched_tcb_next;
-static struct tcb_list m_list_ready[__THREAD_PRIORITY_MAX__];
+static struct tcb_list m_list_ready[KERNEL_CFG_MAX_PRIO + 1];
 static struct tcb_list m_list_sleep;
+static uint32_t m_idle_elapse;
 static uint32_t m_idle_timeout;
 static uint32_t m_prio_highest;
 static uint32_t m_prio_bitmap;
 
-static void list_insert_by_priority(struct tcb_list *list,
-                                    struct tcb_node *node) {
+volatile uint32_t sched_susp_nesting = 0;
+
+static inline void list_insert_by_priority(struct tcb_list *list,
+                                           struct tcb_node *node) {
   uint32_t prio;
   struct tcb_node *find;
   prio = node->tcb->prio;
@@ -49,7 +52,7 @@ static void list_insert_by_priority(struct tcb_list *list,
   list_insert_after(list, find, node);
 }
 
-static uint32_t find_highest_priority(uint32_t highest) {
+static inline uint32_t find_highest_priority(uint32_t highest) {
   for (; highest > 0; highest--) {
     if (m_prio_bitmap & (1 << highest)) {
       break;
@@ -76,19 +79,21 @@ void sched_tcb_remove(struct tcb *tcb) {
   }
 }
 
-void sched_tcb_reset(struct tcb *tcb, uint32_t prio) {
+void sched_tcb_reset_prio(struct tcb *tcb, uint32_t prio) {
+  uint32_t old_prio;
+  old_prio = tcb->prio;
+  tcb->prio = prio;
   if (tcb->list_wait) {
     list_remove(tcb->list_wait, &tcb->node_wait);
     list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
   }
-
   if (tcb->list_sched) {
     if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
     {
       /* remove from old list */
       list_remove(tcb->list_sched, &tcb->node_sched);
       if (tcb->list_sched->head == NULL) {
-        m_prio_bitmap &= ~(1 << tcb->prio);
+        m_prio_bitmap &= ~(1 << old_prio);
         m_prio_highest = find_highest_priority(m_prio_highest);
       }
       /* append to new list */
@@ -112,11 +117,11 @@ void sched_tcb_ready(struct tcb *tcb) {
 }
 
 void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout) {
-  tcb->timeout = timeout;
+  tcb->timeout = timeout + m_idle_elapse;
   tcb->list_sched = &m_list_sleep;
   list_append(tcb->list_sched, &tcb->node_sched);
-  if (timeout < m_idle_timeout) {
-    m_idle_timeout = timeout;
+  if (tcb->timeout < m_idle_timeout) {
+    m_idle_timeout = tcb->timeout;
   }
 }
 
@@ -153,18 +158,17 @@ struct tcb *sched_tcb_wake_from(struct tcb_list *list) {
 }
 
 void sched_switch(void) {
+  if (sched_susp_nesting) return;
   struct tcb *tcb;
   tcb = m_list_ready[m_prio_highest].head->tcb;
 #if KERNEL_CFG_STACK_OVERFLOW_GUARD
   uint8_t *stack = (uint8_t *)(tcb + 1);
-  // check 32 bytes of stack overflow magic value
-  if (*(stack + 2) != STACK_MAGIC_VALUE || *(stack + 6) != STACK_MAGIC_VALUE ||
-      *(stack + 10) != STACK_MAGIC_VALUE ||
-      *(stack + 14) != STACK_MAGIC_VALUE ||
-      *(stack + 18) != STACK_MAGIC_VALUE ||
-      *(stack + 22) != STACK_MAGIC_VALUE ||
-      *(stack + 26) != STACK_MAGIC_VALUE ||
-      *(stack + 31) != STACK_MAGIC_VALUE) {
+  // check 16 bytes of stack overflow magic value
+  if (*(stack + 1) != STACK_MAGIC_VALUE || *(stack + 3) != STACK_MAGIC_VALUE ||
+      *(stack + 5) != STACK_MAGIC_VALUE || *(stack + 7) != STACK_MAGIC_VALUE ||
+      *(stack + 9) != STACK_MAGIC_VALUE || *(stack + 11) != STACK_MAGIC_VALUE ||
+      *(stack + 13) != STACK_MAGIC_VALUE ||
+      *(stack + 15) != STACK_MAGIC_VALUE) {
 #if KERNEL_CFG_STACKOF_BEHAVIOR_SUSPEND
     sched_tcb_remove(tcb);
     tcb = m_list_ready[m_prio_highest].head->tcb;
@@ -202,8 +206,8 @@ void sched_preempt(bool round_robin) {
     sched_switch();
   }
 }
-
-static inline void sched_timeout(uint32_t elapse) {
+#include "log.h"
+static inline void sched_timeout(void) {
   struct tcb *tcb;
   struct tcb_node *node;
   struct tcb_node *next;
@@ -211,8 +215,8 @@ static inline void sched_timeout(uint32_t elapse) {
   for (node = m_list_sleep.head; node != NULL; node = next) {
     next = node->next;
     tcb = node->tcb;
-    if (tcb->timeout > elapse) {
-      tcb->timeout -= elapse;
+    if (tcb->timeout > m_idle_elapse) {
+      tcb->timeout -= m_idle_elapse;
       if (tcb->timeout < m_idle_timeout) {
         m_idle_timeout = tcb->timeout;
       }
@@ -224,12 +228,11 @@ static inline void sched_timeout(uint32_t elapse) {
 }
 
 void sched_timing(uint32_t time) {
-  static uint32_t elapse;
-  elapse += time;
+  m_idle_elapse += time;
   sched_tcb_now->time += time;
-  if (elapse >= m_idle_timeout) {
-    sched_timeout(elapse);
-    elapse = 0;
+  if (m_idle_elapse >= m_idle_timeout) {
+    sched_timeout();
+    m_idle_elapse = 0;
   }
 }
 

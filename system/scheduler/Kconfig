@@ -6,43 +6,7 @@ config SCH_CFG_ENABLE_TASK
     help
       Enable the task support in the scheduler.
 
-config SCH_CFG_ENABLE_EVENT
-    bool "Enable event Support"
-    default y
-    help
-      Enable the event support in the scheduler.
-
-config SCH_CFG_ENABLE_COROUTINE
-    bool "Enable Coroutine Support"
-    default y
-    help
-      Enable the coroutine support in the scheduler.
-
-config SCH_CFG_ENABLE_CALLLATER
-    bool "Enable call_later Support"
-    default y
-    help
-      Enable the call later support in the scheduler.
-
-config SCH_CFG_ENABLE_SOFTINT
-    bool "Enable Software Interrupt Support"
-    default y
-    help
-      Enable the software interrupt support in the scheduler.
-
-config SCH_CFG_STATIC_NAME
-    bool "Use Static Name"
-    default n
-    help
-      Use static name for the task, event, coroutine and call later.
-
-config SCH_CFG_STATIC_NAME_LEN
-    int "Static Name Max Length"
-    default 16
-    range 8 64
-    depends on SCH_CFG_STATIC_NAME
-    help
-      The max length of the static name (-1 for \0).
+if SCH_CFG_ENABLE_TASK
 
 config SCH_CFG_COMP_RANGE_US
     int "Task Auto Compensate Range (us)"
@@ -57,11 +21,64 @@ config SCH_CFG_PRI_ORDER_ASC
     help
       The priority order is ascending if enabled.
 
+endif
+
+config SCH_CFG_ENABLE_EVENT
+    bool "Enable event Support"
+    default y
+    help
+      Enable the event support in the scheduler.
+
+config SCH_CFG_ENABLE_COROUTINE
+    bool "Enable Coroutine Support"
+    default y
+    help
+      Enable the coroutine support in the scheduler.
+
+config SCH_CFG_ENABLE_CALLLATER
+    bool "Enable Call Later Support"
+    default y
+    help
+      Enable the call later support in the scheduler.
+
+if SCH_CFG_ENABLE_CALLLATER
+
+config SCH_CFG_CALLLATER_MAX_ARG
+    int "Max Argument Number"
+    default 12
+    range 1 64
+    help
+      The max argument number for the call later function.
+      IF argument include uint64_t(or other 64bit type), it consumes 2 arguments.
+endif
+
+config SCH_CFG_ENABLE_SOFTINT
+    bool "Enable Software Interrupt Support"
+    default y
+    help
+      Enable the software interrupt support in the scheduler.
+
+config SCH_CFG_STATIC_NAME
+    bool "Use Static Name"
+    default y
+    help
+      Use static name for the task, event, coroutine.
+
+config SCH_CFG_STATIC_NAME_LEN
+    int "Static Name Max Length"
+    default 16
+    range 8 64
+    depends on SCH_CFG_STATIC_NAME
+    help
+      The max length of the static name (-1 for \0).
+
 config SCH_CFG_DEBUG_REPORT
     bool "Enable Debug Report"
     default n
     help
       Enable the debug report in the scheduler. (Causing performance overhead)
+
+if SCH_CFG_DEBUG_REPORT
 
 config SCH_CFG_DEBUG_PERIOD
     int "Debug Report Period (s)"
@@ -78,6 +95,8 @@ config SCH_CFG_DEBUG_MAXLINE
     depends on SCH_CFG_DEBUG_REPORT
     help
       The max line number of each debug report.
+
+endif
 
 config SCH_CFG_ENABLE_TERMINAL
     bool "Enable Terminal Support"

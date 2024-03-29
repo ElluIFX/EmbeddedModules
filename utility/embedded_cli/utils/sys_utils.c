@@ -26,7 +26,7 @@
 #elif (MOD_CFG_HEAP_MATHOD_RTT)
 #define SHOWRTTHREAD 1
 #endif
-#if MOD_CFG_USE_OS_KLITE && KERNEL_CFG_HOOK_ENABLE
+#if MOD_CFG_USE_OS_KLITE
 #include "kernel.h"
 #define SHOWKLITE 1
 #endif
@@ -55,58 +55,31 @@
 // Private Functions ------------------------
 #if SHOWKLITE
 #include "internal.h"
-static ULIST thread_list;
-
-static int sort_thread(const void *a, const void *b) {
-  thread_t *ta = (thread_t *)a;
-  thread_t *tb = (thread_t *)b;
-  return (int)thread_get_priority(*tb) - (int)thread_get_priority(*ta);
-}
-
-void kernel_hook_thread_create(thread_t thread) {
-  if (!thread_list) {
-    thread_list = ulist_new(sizeof(thread_t), 0, NULL, NULL);
-  }
-  ulist_append_copy(thread_list, &thread);
-  ulist_sort(thread_list, sort_thread, SLICE_START, SLICE_END);
-}
-
-void kernel_hook_thread_delete(thread_t thread) {
-  ulist_delete(thread_list, ulist_find(thread_list, &thread));
-  ulist_sort(thread_list, sort_thread, SLICE_START, SLICE_END);
-}
-
-void kernel_hook_thread_prio_change(thread_t thread, uint32_t prio) {
-  ulist_sort(thread_list, sort_thread, SLICE_START, SLICE_END);
-}
-
 static void list_klite(void) {
   TT tt = TT_NewTable(-1);
   TT_FMT1 f1 = TT_FMT1_GREEN;
   TT_FMT2 f2 = TT_FMT2_BOLD;
   TT_ALIGN al = TT_ALIGN_LEFT;
-  TT_AddTitle(
-      tt, TT_FmtStr(al, f1, f2, "[ Thread List / %d ]", ulist_len(thread_list)),
-      '-');
+  TT_AddTitle(tt, TT_Str(al, f1, f2, "[ Thread List ]"), '-');
   TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
   TT_ITEM_GRID_LINE line =
       TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-  const char *head[] = {"ID", "Pri", "Entry", "Avg Usage", "Stack Avail"};
+  const char *head[] = {"ID", "Pri", "Entry", "Avg Usage", "Free Stack"};
   for (int i = 0; i < sizeof(head) / sizeof(char *); i++)
     TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head[i]));
   int i = 0;
   size_t sfree, ssize;
   f2 = TT_FMT2_NONE;
-  ulist_foreach(thread_list, thread_t, thread_p) {
+  thread_t thread = NULL;
+  while ((thread = thread_iter(thread)) != NULL) {
     line = TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " "));
-    thread_t thread = *thread_p;
     double usage = (double)thread_time(thread) / (double)kernel_tick_count64();
     thread_stack_info(thread, &sfree, &ssize);
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", i));
     TT_GridLine_AddItem(
         line, TT_FmtStr(al, f1, f2, "%d", thread_get_priority(thread)));
     if (thread_get_priority(thread) == 0)
-      TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "Idle"));
+      TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "[Idle]"));
     else
       TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%p", thread->entry));
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.4f%%", usage * 100));
@@ -133,27 +106,32 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   int id = atoi(embeddedCliGetToken(args, -1));
-  thread_t *thread_p = (thread_t *)ulist_get(thread_list, id);
-  if (!thread_p) {
+  thread_t thread = NULL;
+  int i = 0;
+  while ((thread = thread_iter(thread)) != NULL) {
+    if (i == id) break;
+    i++;
+  }
+  if (!thread) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);
     return;
   }
   if (embeddedCliCheckToken(args, "-s", 1)) {
-    if (thread_get_priority(*thread_p) == 0) {
+    if (thread_get_priority(thread) == 0) {
       PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot suspend idle thread" T_RST);
       return;
     }
-    thread_suspend(*thread_p);
+    thread_suspend(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d suspended" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
-    thread_resume(*thread_p);
+    thread_resume(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d resumed" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
-    if (thread_get_priority(*thread_p) == 0) {
+    if (thread_get_priority(thread) == 0) {
       PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot delete idle thread" T_RST);
       return;
     }
-    thread_delete(*thread_p);
+    thread_delete(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d deleted" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-p", 1)) {
     if (argc < 3) {
@@ -161,12 +139,12 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       return;
     }
     int pri = atoi(embeddedCliGetToken(args, 2));
-    if (pri < 0 || pri >= __THREAD_PRIORITY_MAX__) {
+    if (pri < 0 || pri > KERNEL_CFG_MAX_PRIO) {
       PRINTLN(T_FMT(T_BOLD, T_RED) "Priority must be 0-%d",
-              __THREAD_PRIORITY_MAX__ - 1);
+              KERNEL_CFG_MAX_PRIO);
       return;
     }
-    thread_set_priority(*thread_p, pri);
+    thread_set_priority(thread, pri);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d priority set to %d" T_RST, id,
             pri);
   } else {
@@ -217,8 +195,11 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       '-');
   kv = TT_AddKVPair(tt, 0);
 #if SHOWKLITE
+  uint16_t thread_num = 0;
+  thread_t thread = NULL;
+  while ((thread = thread_iter(thread)) != NULL) thread_num++;
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Thread Num"),
-                    TT_FmtStr(al, f1, f2, "%d", ulist_len(thread_list)), sep);
+                    TT_FmtStr(al, f1, f2, "%d", thread_num), sep);
 #endif
   static uint64_t last_kernel_tick = 0;
   static uint64_t last_idle_time = 0;
@@ -243,15 +224,15 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   kv = TT_AddKVPair(tt, 0);
 #if SCH_CFG_ENABLE_TASK
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Task Num"),
-                    TT_FmtStr(al, f1, f2, "%d", sch_get_task_num()), sep);
+                    TT_FmtStr(al, f1, f2, "%d", sch_task_get_num()), sep);
 #endif  // SCH_CFG_ENABLE_TASK
 #if SCH_CFG_ENABLE_EVENT
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Event Num"),
-                    TT_FmtStr(al, f1, f2, "%d", sch_get_event_num()), sep);
+                    TT_FmtStr(al, f1, f2, "%d", sch_event_get_num()), sep);
 #endif  // SCH_CFG_ENABLE_EVENT
 #if SCH_CFG_ENABLE_COROUTINE
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Coroutine Num"),
-                    TT_FmtStr(al, f1, f2, "%d", sch_get_cortn_num()), sep);
+                    TT_FmtStr(al, f1, f2, "%d", sch_cortn_get_num()), sep);
 #endif  // SCH_CFG_ENABLE_COROUTINE
 #endif  // SCHEDULER
 #if SHOWLWMEM

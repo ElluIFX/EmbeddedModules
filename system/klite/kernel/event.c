@@ -35,7 +35,7 @@ struct event {
 
 event_t event_create(bool auto_reset) {
   struct event *event;
-  event = heap_alloc( sizeof(struct event));
+  event = heap_alloc(sizeof(struct event));
   if (event != NULL) {
     memset(event, 0, sizeof(struct event));
     event->auto_reset = auto_reset;
@@ -43,7 +43,7 @@ event_t event_create(bool auto_reset) {
   return (event_t)event;
 }
 
-void event_delete(event_t event) { heap_free( event); }
+void event_delete(event_t event) { heap_free(event); }
 
 void event_set(event_t event) {
   cpu_enter_critical();
@@ -52,10 +52,9 @@ void event_set(event_t event) {
     if (sched_tcb_wake_from(&event->list)) {
       event->state = false;
     }
-  } else {
-    while (sched_tcb_wake_from(&event->list))
-      ;
   }
+  while (sched_tcb_wake_from(&event->list))
+    ;
   sched_preempt(false);
   cpu_leave_critical();
 }

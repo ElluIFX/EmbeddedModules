@@ -22,13 +22,13 @@ typedef struct {      // 协程互斥锁结构
   ID_NAME_VAR(name);  // 锁名
   uint8_t locked;     // 锁状态
   ulist_t waitlist;   // 等待的协程列表
-} scheduler_cortn_mutex_t;
+} sch_cortneduler_mutex_t;
 
 typedef struct {      // 协程屏障结构
   ID_NAME_VAR(name);  // 屏障名
   uint16_t target;    // 目标协程数
   ulist_t waitlist;   // 等待的协程列表
-} scheduler_cortn_barrier_t;
+} sch_cortneduler_barrier_t;
 #pragma pack()
 
 static ulist_t cortnlist = {.data = NULL,
@@ -43,7 +43,7 @@ static ulist_t mutexlist = {
     .cap = 0,
     .num = 0,
     .elfree = NULL,
-    .isize = sizeof(scheduler_cortn_mutex_t),
+    .isize = sizeof(sch_cortneduler_mutex_t),
     .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
 
 static ulist_t barrierlist = {
@@ -51,7 +51,7 @@ static ulist_t barrierlist = {
     .cap = 0,
     .num = 0,
     .elfree = NULL,
-    .isize = sizeof(scheduler_cortn_barrier_t),
+    .isize = sizeof(sch_cortneduler_barrier_t),
     .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
 
 static __cortn_handle_t *cortn_handle_now = NULL;
@@ -62,7 +62,7 @@ _INLINE uint64_t cortn_runner(void) {
   uint64_t now = get_sys_us();
   ulist_foreach(&cortnlist, scheduler_cortn_t, cortn) {
     if (cortn->hd.state == _CR_STATE_STOPPED) {
-      sch_stop_cortn(cortn->name);
+      sch_cortn_stop(cortn->name);
       return 0;  // 指针已被释放
     } else if (cortn->hd.state == _CR_STATE_READY) {
       cortn->hd.state = _CR_STATE_RUNNING;  // 就绪态转运行态
@@ -105,7 +105,7 @@ _INLINE uint64_t cortn_runner(void) {
   return sleep_us;
 }
 
-uint8_t sch_run_cortn(const char *name, cortn_func_t func, void *args) {
+uint8_t sch_cortn_run(const char *name, cortn_func_t func, void *args) {
   scheduler_cortn_t cortn = {
       .task = func,
       .args = args,
@@ -164,7 +164,7 @@ static scheduler_cortn_t *find_cortn_by_handle(__cortn_handle_t *handle) {
   return NULL;
 }
 
-uint8_t sch_stop_cortn(const char *name) {
+uint8_t sch_cortn_stop(const char *name) {
   scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   // 不允许在协程中删除自身
@@ -177,20 +177,20 @@ uint8_t sch_stop_cortn(const char *name) {
   return 1;
 }
 
-uint16_t sch_get_cortn_num(void) { return cortnlist.num; }
+uint16_t sch_cortn_get_num(void) { return cortnlist.num; }
 
-uint8_t sch_get_cortn_running(const char *name) {
+uint8_t sch_cortn_get_running(const char *name) {
   return find_cortn(name) != NULL;
 }
 
-uint8_t sch_get_cortn_waiting_msg(const char *name) {
+uint8_t sch_cortn_get_waiting_msg(const char *name) {
   scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
   return cortn->hd.state == _CR_STATE_AWAITING;
 }
 
-uint8_t sch_send_msg_to_cortn(const char *name, void *msg) {
+uint8_t sch_cortn_send_msg_to(const char *name, void *msg) {
   scheduler_cortn_t *cortn = find_cortn(name);
   if (cortn == NULL) return 0;
   if (cortn->hd.state == _CR_STATE_STOPPED) return 0;
@@ -284,10 +284,10 @@ _INLINE uint8_t __cortn_internal_await_return(void) {
 
 /**
  * @brief (内部函数)协程延时
- * @param  delayUs 延时时间(us)
+ * @param  delay_us 延时时间(us)
  */
-_INLINE void __cortn_internal_delay(uint64_t delayUs) {
-  cortn_handle_now->sleepUntil = get_sys_us() + delayUs;
+_INLINE void __cortn_internal_delay(uint64_t delay_us) {
+  cortn_handle_now->sleepUntil = get_sys_us() + delay_us;
   cortn_handle_now->state = _CR_STATE_SLEEPING;
 }
 
@@ -305,13 +305,13 @@ void __cortn_internal_await_msg(__async__, void **msgPtr) {
   __chd__->msg = NULL;
 }
 
-_STATIC_INLINE scheduler_cortn_mutex_t *get_mutex(const char *name) {
-  ulist_foreach(&mutexlist, scheduler_cortn_mutex_t, mutex) {
+_STATIC_INLINE sch_cortneduler_mutex_t *get_mutex(const char *name) {
+  ulist_foreach(&mutexlist, sch_cortneduler_mutex_t, mutex) {
     if (fast_strcmp(mutex->name, name)) {
       return mutex;
     }
   }
-  scheduler_cortn_mutex_t *ret = ulist_append(&mutexlist);
+  sch_cortneduler_mutex_t *ret = ulist_append(&mutexlist);
   if (ret == NULL) return NULL;
   ID_NAME_SET(ret->name, name);
   ret->locked = 0;
@@ -325,7 +325,7 @@ _STATIC_INLINE scheduler_cortn_mutex_t *get_mutex(const char *name) {
  * @return 1: 获取成功跳过等待, 0: 需要等待
  */
 _INLINE uint8_t __cortn_internal_acq_mutex(const char *name) {
-  scheduler_cortn_mutex_t *mutex = get_mutex(name);
+  sch_cortneduler_mutex_t *mutex = get_mutex(name);
   if (mutex == NULL) return 0;
   if (mutex->locked) {  // 锁已被占用, 添加到等待队列
     const char **ptr = ulist_append(&mutex->waitlist);
@@ -344,7 +344,7 @@ _INLINE uint8_t __cortn_internal_acq_mutex(const char *name) {
  */
 _INLINE void __cortn_internal_rel_mutex(const char *name) {
   scheduler_cortn_t *cortn = NULL;
-  scheduler_cortn_mutex_t *mutex = get_mutex(name);
+  sch_cortneduler_mutex_t *mutex = get_mutex(name);
   if (mutex == NULL) return;
   do {
     if (mutex->waitlist.num) {  // 等待队列不为空, 唤醒第一个协程
@@ -359,15 +359,15 @@ _INLINE void __cortn_internal_rel_mutex(const char *name) {
   } while (cortn == NULL);
 }
 
-_STATIC_INLINE scheduler_cortn_barrier_t *get_barrier(const char *name,
+_STATIC_INLINE sch_cortneduler_barrier_t *get_barrier(const char *name,
                                                       uint8_t create) {
-  ulist_foreach(&barrierlist, scheduler_cortn_barrier_t, barrier) {
+  ulist_foreach(&barrierlist, sch_cortneduler_barrier_t, barrier) {
     if (fast_strcmp(barrier->name, name)) {
       return barrier;
     }
   }
   if (!create) return NULL;
-  scheduler_cortn_barrier_t *ret = ulist_append(&barrierlist);
+  sch_cortneduler_barrier_t *ret = ulist_append(&barrierlist);
   if (ret == NULL) return NULL;
   ID_NAME_SET(ret->name, name);
   ret->target = 0xffff;
@@ -375,7 +375,7 @@ _STATIC_INLINE scheduler_cortn_barrier_t *get_barrier(const char *name,
   return ret;
 }
 
-_STATIC_INLINE void release_barrier(scheduler_cortn_barrier_t *barrier) {
+_STATIC_INLINE void release_barrier(sch_cortneduler_barrier_t *barrier) {
   scheduler_cortn_t *cortn;
   if (barrier->waitlist.num) {  // 等待队列不为空, 唤醒所有协程
     ulist_foreach(&barrier->waitlist, const char *, ptr) {
@@ -387,15 +387,15 @@ _STATIC_INLINE void release_barrier(scheduler_cortn_barrier_t *barrier) {
   }
 }
 
-uint8_t sch_release_cortn_barrier(const char *name) {
-  scheduler_cortn_barrier_t *barrier = get_barrier(name, 0);
+uint8_t sch_cortn_release_barrier(const char *name) {
+  sch_cortneduler_barrier_t *barrier = get_barrier(name, 0);
   if (barrier == NULL) return 0;
   release_barrier(barrier);
   return 1;
 }
 
-uint8_t sch_set_cortn_barrier_target(const char *name, uint16_t target) {
-  scheduler_cortn_barrier_t *barrier = get_barrier(name, 1);
+uint8_t sch_cortn_set_barrier_target(const char *name, uint16_t target) {
+  sch_cortneduler_barrier_t *barrier = get_barrier(name, 1);
   if (barrier == NULL) return 0;
   barrier->target = target;
   if (barrier->waitlist.num >= target) {
@@ -404,8 +404,8 @@ uint8_t sch_set_cortn_barrier_target(const char *name, uint16_t target) {
   return 1;
 }
 
-uint16_t sch_get_cortn_barrier_num(const char *name) {
-  scheduler_cortn_barrier_t *barrier = get_barrier(name, 0);
+uint16_t sch_cortn_get_barrier_num(const char *name) {
+  sch_cortneduler_barrier_t *barrier = get_barrier(name, 0);
   if (barrier == NULL) return 0;
   return barrier->waitlist.num;
 }
@@ -416,7 +416,7 @@ uint16_t sch_get_cortn_barrier_num(const char *name) {
  * @return 1: 到达屏障, 0: 等待屏障
  */
 uint8_t __cortn_internal_await_bar(const char *name) {
-  scheduler_cortn_barrier_t *barrier = get_barrier(name, 1);
+  sch_cortneduler_barrier_t *barrier = get_barrier(name, 1);
   if (barrier == NULL) return 0;
   if (barrier->waitlist.num + 1 >= barrier->target) {
     release_barrier(barrier);
@@ -453,7 +453,7 @@ void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
     TT_ALIGN al = TT_ALIGN_LEFT;
     TT_AddTitle(
         tt,
-        TT_FmtStr(al, f1, f2, "[ Coroutine Report / %d ]", sch_get_cortn_num()),
+        TT_FmtStr(al, f1, f2, "[ Coroutine Report / %d ]", sch_cortn_get_num()),
         '-');
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
@@ -552,7 +552,7 @@ void cortn_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "-k", 1)) {
-    sch_stop_cortn(name);
+    sch_cortn_stop(name);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Coroutine: %s killed" T_RST, name);
   } else {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Unknown command" T_RST);

@@ -31,7 +31,7 @@
 
 typedef struct soft_timer *soft_timer_t;
 
-#define SOFT_TIMER_PRIORITY THREAD_PRIORITY_NORMAL
+#define SOFT_TIMER_PRIORITY 1
 
 soft_timer_t soft_timer_create(void (*handler)(void *), void *arg);
 void soft_timer_delete(soft_timer_t timer);

@@ -7,14 +7,15 @@
 static __IO uint8_t imm = 0;
 static __IO uint8_t ism[8] = {0};
 
-_INLINE void sch_trigger_soft_int(uint8_t mainChannel, uint8_t subChannel) {
-  if (mainChannel > 7 || subChannel > 7) return;
-  imm |= 1 << mainChannel;
-  ism[mainChannel] |= 1 << subChannel;
+_INLINE void sch_softint_trigger(uint8_t main_channel, uint8_t sub_channel) {
+  // if (main_channel > 7 || sub_channel > 7) return;
+  imm |= 1 << main_channel;
+  ism[main_channel] |= 1 << sub_channel;
 }
 
-__weak void scheduler_soft_int_handler(uint8_t mainChannel, uint8_t subMask) {
-  LOG_DEBUG_LIMIT(100, "soft_int %d:%d", mainChannel, subMask);
+__weak void scheduler_softint_handler(uint8_t main_channel,
+                                      uint8_t sub_channel_mask) {
+  LOG_DEBUG_LIMIT(100, "soft_int %d:%d", main_channel, sub_channel_mask);
 }
 
 _INLINE void soft_int_runner(void) {
@@ -25,7 +26,7 @@ _INLINE void soft_int_runner(void) {
         _ism = ism[i];
         ism[i] = 0;
         imm &= ~(1 << i);
-        scheduler_soft_int_handler(i, _ism);
+        scheduler_softint_handler(i, _ism);
       }
     }
   }
@@ -48,7 +49,7 @@ void softint_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "(Sub-)Channel must be 0~7" T_RST);
     return;
   }
-  sch_trigger_soft_int(ch, sub);
+  sch_softint_trigger(ch, sub);
   PRINTLN(T_FMT(T_BOLD, T_GREEN) "soft_int: %d-%d triggered" T_RST, ch, sub);
 }
 #endif  // SCH_CFG_ENABLE_TERMINAL

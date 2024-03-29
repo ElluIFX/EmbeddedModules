@@ -53,7 +53,7 @@ void sch_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding softint_cmd = {
       .name = "softint",
       .usage = "softint [channel] [sub-channel]",
-      .help = "soft_int manual trigger command (Scheduler)",
+      .help = "Soft-Interrupt manual trigger command (Scheduler)",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = softint_cmd_func,

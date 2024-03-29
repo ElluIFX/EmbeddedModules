@@ -89,13 +89,15 @@ typedef struct {
       pfnEnterCallFun; /*!< 当前菜单选项进入时(从父菜单进入)需要执行一次的函数,
                           为NULL不执行 */
 
-  cotMenuCallFun_f pfnExitCallFun; /*!<
-                                      当前菜单选项进入后退出时(退出至父菜单)需要执行一次的函数,
-                                      为NULL不执行 */
+  cotMenuCallFun_f
+      pfnExitCallFun; /*!<
+                         当前菜单选项进入后退出时(退出至父菜单)需要执行一次的函数,
+                         为NULL不执行 */
 
-  cotMenuCallFun_f pfnLoadCallFun; /*!<
-                                      当前菜单选项每次加载时(从父菜单进入或子菜单退出)需要执行一次的函数,
-                                      为NULL不执行 */
+  cotMenuCallFun_f
+      pfnLoadCallFun; /*!<
+                         当前菜单选项每次加载时(从父菜单进入或子菜单退出)需要执行一次的函数,
+                         为NULL不执行 */
 
   cotMenuCallFun_f pfnRunCallFun; /*!< 当前菜单选项的周期调度函数 */
 

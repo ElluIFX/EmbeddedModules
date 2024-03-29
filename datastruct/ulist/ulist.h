@@ -446,17 +446,24 @@ extern void ulist_free(ULIST list);
 
 /**
  * @brief 手动缩减列表储存区
- * @param  list       列表结构体
+ * @param  list            列表结构体
+ * @param  force_auto_free 个数为0时是否强制释放内存(无视配置)
  * @note
  * 这是为启用了`ULIST_CFG_NO_SHRINK`或`ULIST_CFG_NO_AUTO_FREE`的列表提供的手动缩减函数
  */
-extern void ulist_mem_shrink(ULIST list);
+extern void ulist_mem_shrink(ULIST list, uint8_t force_auto_free);
 
 /**
  * @brief 获取列表长度
  * @param  list       列表结构体
  */
 static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
+
+/**
+ * @brief 获取列表当前存储区长度
+ * @param  list       列表结构体
+ */
+static inline ulist_size_t ulist_capacity(ULIST list) { return list->cap; }
 
 /**
  * @brief 获取列表对应位置的元素指针

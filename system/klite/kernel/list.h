@@ -44,7 +44,12 @@ static void list_init(void *list) {
   ((struct __list *)list)->tail = NULL;
 }
 
-static void list_remove(void *list, void *node) {
+static void node_init(void *node) {
+  ((struct __node *)node)->prev = NULL;
+  ((struct __node *)node)->next = NULL;
+}
+
+static inline void list_remove(void *list, void *node) {
   if (((struct __node *)node)->prev == NULL) {
     ((struct __list *)list)->head = ((struct __node *)node)->next;
   } else {
@@ -55,9 +60,11 @@ static void list_remove(void *list, void *node) {
   } else {
     ((struct __node *)node)->next->prev = ((struct __node *)node)->prev;
   }
+  ((struct __node *)node)->prev = NULL;
+  ((struct __node *)node)->next = NULL;
 }
 
-static void list_insert_before(void *list, void *before, void *node) {
+static inline void list_insert_before(void *list, void *before, void *node) {
   ((struct __node *)node)->next = before;
   if (before == NULL) {
     ((struct __node *)node)->prev = ((struct __list *)list)->tail;
@@ -73,7 +80,7 @@ static void list_insert_before(void *list, void *before, void *node) {
   }
 }
 
-static void list_insert_after(void *list, void *after, void *node) {
+static inline void list_insert_after(void *list, void *after, void *node) {
   ((struct __node *)node)->prev = after;
   if (after == NULL) {
     ((struct __node *)node)->next = ((struct __list *)list)->head;

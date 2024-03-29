@@ -6,6 +6,22 @@ config KERNEL_CFG_FREQ
     help
         The frequency of the kernel clock in Hz.
 
+config KERNEL_CFG_MAX_PRIO
+    int "Max Priority"
+    default 7
+    range 1 31
+    help
+        The maximum priority level of the kernel.
+        Available prio = 1 ~ Max Priority(include)
+        Priority 0 is reserved for idle thread.
+
+config KERNEL_CFG_DEFAULT_PRIO
+    int "Default Priority"
+    default 4
+    range 1 KERNEL_CFG_MAX_PRIO
+    help
+        The default priority level of the thread created with prio=0.
+
 config KERNEL_CFG_HOOK_ENABLE
     bool "Enable Kernel Hooks"
     default y
@@ -25,6 +41,20 @@ choice
     config KERNEL_CFG_HEAP_USE_LWMEM
         bool "LwMEM"
 endchoice
+
+config KERNEL_CFG_DEFAULT_STACK_SIZE
+    int "Default Stack Size"
+    default 1024
+    range 1 102400
+    help
+        The default stack size of the thread created with stack_size=0.
+
+config KERNEL_CFG_IDLE_THREAD_STACK_SIZE
+    int "Idle Thread Stack Size"
+    default 256
+    range 256 102400
+    help
+        The stack size of the idle thread.
 
 config KERNEL_CFG_STACK_OVERFLOW_GUARD
     bool "Enable Stack Overflow Guard"

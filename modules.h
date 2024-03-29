@@ -60,7 +60,7 @@ extern "C" {
 #if MOD_CFG_TIME_MATHOD_HAL
 typedef uint32_t m_time_t;
 #define m_time_t_max_value (UINT32_MAX)
-#define Init_Module_Timebase() ((void)0)
+#define init_module_timebase() ((void)0)
 #define m_time_ms() HAL_GetTick()
 #define m_time_us() (HAL_GetTick() * 1000)
 #define m_time_ns() (HAL_GetTick() * 1000000)
@@ -73,7 +73,7 @@ typedef uint32_t m_time_t;
 #include "perf_counter.h"
 typedef int64_t m_time_t;
 #define m_time_t_max_value (INT64_MAX)
-#define Init_Module_Timebase() init_cycle_counter(1);
+#define init_module_timebase() init_cycle_counter(1);
 #define m_time_ms() ((uint64_t)get_system_ms())
 #define m_time_us() ((uint64_t)get_system_us())
 #define m_time_ns() (((uint64_t)get_system_us()) * 1000)
@@ -96,13 +96,13 @@ typedef int64_t m_time_t;
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif MOD_CFG_DELAY_MATHOD_KLITE  // klite
 #include "kernel.h"
-#define m_delay_us(x) thread_sleep((uint32_t)(x) / (1000000 / KERNEL_CFG_FREQ))
+#define m_delay_us(x) thread_sleep((x) / (1000000U / KERNEL_CFG_FREQ))
 #if KERNEL_CFG_FREQ >= 1000
-#define m_delay_ms(x) thread_sleep((uint32_t)(x) * (KERNEL_CFG_FREQ / 1000))
+#define m_delay_ms(x) thread_sleep((x) * (KERNEL_CFG_FREQ / 1000U))
 #else
-#define m_delay_ms(x) thread_sleep((uint32_t)(x) / (1000 / KERNEL_CFG_FREQ))
+#define m_delay_ms(x) thread_sleep((x) / (1000U / KERNEL_CFG_FREQ))
 #endif
-#define m_delay_s(x) thread_sleep((uint32_t)(x) * KERNEL_CFG_FREQ)
+#define m_delay_s(x) thread_sleep((x) * KERNEL_CFG_FREQ)
 #elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"                // period = 1ms
 #include "task.h"
@@ -128,14 +128,14 @@ typedef int64_t m_time_t;
 #if MOD_CFG_HEAP_MATHOD_STDLIB  // stdlib
 #include "stdlib.h"
 // You should configure CubeMX instead of using this!
-#define Init_Module_Heap(ptr, size) (YOU_SHOULD_CONFIGURE_CUBEMX_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_CONFIGURE_CUBEMX_INSTEAD)
 #define m_alloc(size) malloc(size)
 #define m_free(ptr) free(ptr)
 #define m_realloc(ptr, size) realloc(ptr, size)
 #elif MOD_CFG_HEAP_MATHOD_LWMEM  // lwmem
 #define _MOD_USE_DALLOC 1
 #include "lwmem.h"
-#define Init_Module_Heap(ptr, size)                              \
+#define init_module_heap(ptr, size)                              \
   do {                                                           \
     static lwmem_region_t _regions[] = {{ptr, size}, {NULL, 0}}; \
     lwmem_assignmem(_regions)                                    \
@@ -146,27 +146,27 @@ typedef int64_t m_time_t;
 #elif MOD_CFG_HEAP_MATHOD_KLITE  // klite
 #include "kernel.h"
 // You should init klite instead of using this!
-#define Init_Module_Heap(ptr, size) (YOU_SHOULD_INIT_KLITE_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_INIT_KLITE_INSTEAD)
 #define m_alloc(size) heap_alloc(size)
 #define m_free(ptr) heap_free((ptr))
 #define m_realloc(ptr, size) heap_realloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"
 // You should init freertos instead of using this!
-#define Init_Module_Heap(ptr, size) (YOU_SHOULD_INIT_FREERTOS_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_INIT_FREERTOS_INSTEAD)
 #define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_HEAP4  // heap4
 #include "heap4.h"
-#define Init_Module_Heap(ptr, size) prvHeapInit(ptr, size)
+#define init_module_heap(ptr, size) prvHeapInit(ptr, size)
 #define m_alloc(size) pvPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_RTT  // rtthread
 #include "rtthread.h"
 // You should init rtthread instead of using this!
-#define Init_Module_Heap(ptr, size) (YOU_SHOULD_INIT_RTTHREAD_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_INIT_RTTHREAD_INSTEAD)
 #define m_alloc(size) rt_malloc(size)
 #define m_free(ptr) rt_free(ptr)
 #define m_realloc(ptr, size) rt_realloc(ptr, size)
@@ -181,7 +181,7 @@ typedef int64_t m_time_t;
   do {                           \
     while (mutex)                \
       ;                          \
-    mutex = 1                    \
+    mutex = 1;                   \
   } while (0)
 static inline bool _MOD_MUTEX_TRY_ACQUIRE(MOD_MUTEX_HANDLE *mutex,
                                           uint32_t ms) {
@@ -204,7 +204,7 @@ static inline bool _MOD_MUTEX_TRY_ACQUIRE(MOD_MUTEX_HANDLE *mutex,
   do {                    \
     while (!sem)          \
       ;                   \
-    sem--                 \
+    sem--;                \
   } while (0)
 static inline bool _MOD_SEM_TRY_TAKE(MOD_SEM_HANDLE *sem, uint32_t ms) {
   m_time_t start = m_time_ms();

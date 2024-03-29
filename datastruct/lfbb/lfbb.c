@@ -149,13 +149,15 @@ void LFBB_WriteRelease(LFBB_Inst_Type *inst, const size_t written) {
 
   /* Preload variables with adequate memory ordering */
   lfbb_atomic_size_t w = LFBB_LOAD(inst->w, _LFBB_MEMORDER_RELEX);
-  lfbb_atomic_size_t i = LFBB_LOAD(inst->i, _LFBB_MEMORDER_RELEX);
+  lfbb_atomic_size_t i;
 
   /* If the write wrapped set the invalidate index and reset write index*/
   if (inst->write_wrapped) {
     inst->write_wrapped = false;
     i = w;
     w = 0U;
+  } else {
+    i = LFBB_LOAD(inst->i, _LFBB_MEMORDER_RELEX);
   }
 
   /* Increment the write index */

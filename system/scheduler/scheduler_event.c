@@ -19,7 +19,7 @@ typedef struct {      // 事件结构
 } scheduler_event_t;
 typedef struct {              // 事件触发结构
   event_func_t task;          // 事件回调函数指针
-  scheduler_event_arg_t arg;  // 事件参数
+  sch_eventeduler_arg_t arg;  // 事件参数
   uint8_t allocated;          // 动态分配的参数内存
 #if SCH_CFG_DEBUG_REPORT
   uint64_t trigger_time;     // 触发时间(Tick)
@@ -41,14 +41,14 @@ static ulist_t triggered_eventlist = {
     .num = 0,
     .elfree = NULL,
     .isize = sizeof(scheduler_triggered_event_t),
-    .cfg = ULIST_CFG_NO_SHRINK | ULIST_CFG_NO_AUTO_FREE};
+    .cfg = ULIST_CFG_NO_SHRINK};
 
 _INLINE void event_runner(void) {
   static uint64_t last_event_us = 0;
   if (!triggered_eventlist.num) {
     if (triggered_eventlist.cap &&
         get_sys_us() - last_event_us > 10000000) {  // 10s无事件触发，释放内存
-      ulist_mem_shrink(&triggered_eventlist);
+      ulist_mem_shrink(&triggered_eventlist, 1);
     }
     return;
   }
@@ -75,7 +75,7 @@ _INLINE void event_runner(void) {
   last_event_us = get_sys_us();
 }
 
-uint8_t sch_create_event(const char *name, event_func_t callback,
+uint8_t sch_event_create(const char *name, event_func_t callback,
                          uint8_t enable) {
   if (!name || !callback) return 0;
   ulist_foreach(&eventlist, scheduler_event_t, event) {
@@ -99,21 +99,21 @@ __STATIC_INLINE scheduler_event_t *find_event(const char *name) {
   return NULL;
 }
 
-uint8_t sch_delete_event(const char *name) {
+uint8_t sch_event_delete(const char *name) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   ulist_remove(&eventlist, event);
   return 1;
 }
 
-uint8_t sch_set_event_enabled(const char *name, uint8_t enable) {
+uint8_t sch_event_set_enabled(const char *name, uint8_t enable) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   event->enable = enable;
   return 1;
 }
 
-uint8_t sch_trigger_event(const char *name, uint8_t arg_type, void *arg_ptr,
+uint8_t sch_event_trigger(const char *name, uint8_t arg_type, void *arg_ptr,
                           size_t arg_size) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
@@ -135,7 +135,7 @@ uint8_t sch_trigger_event(const char *name, uint8_t arg_type, void *arg_ptr,
   return 1;
 }
 
-uint8_t sch_trigger_event_ex(const char *name, uint8_t arg_type,
+uint8_t sch_event_trigger_ex(const char *name, uint8_t arg_type,
                              const void *arg_ptr, size_t arg_size) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
@@ -157,17 +157,17 @@ uint8_t sch_trigger_event_ex(const char *name, uint8_t arg_type,
   return ret;
 }
 
-uint8_t sch_get_event_exist(const char *name) {
+uint8_t sch_event_get_exist(const char *name) {
   return find_event(name) == NULL ? 0 : 1;
 }
 
-uint8_t sch_get_event_enabled(const char *name) {
+uint8_t sch_event_get_enabled(const char *name) {
   scheduler_event_t *event = find_event(name);
   if (event == NULL) return 0;
   return event->enable;
 }
 
-uint16_t sch_get_event_num(void) { return eventlist.num; }
+uint16_t sch_event_get_num(void) { return eventlist.num; }
 
 #if SCH_CFG_DEBUG_REPORT
 void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
@@ -176,7 +176,7 @@ void sch_event_add_debug(TT tt, uint64_t period, uint64_t *other) {
     TT_FMT2 f2 = TT_FMT2_BOLD;
     TT_ALIGN al = TT_ALIGN_LEFT;
     TT_AddTitle(
-        tt, TT_FmtStr(al, f1, f2, "[ event Report / %d ]", sch_get_event_num()),
+        tt, TT_FmtStr(al, f1, f2, "[ event Report / %d ]", sch_event_get_num()),
         '-');
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
@@ -299,13 +299,13 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   if (embeddedCliCheckToken(args, "-e", 1)) {
-    sch_set_event_enabled(name, ENABLE);
+    sch_event_set_enabled(name, ENABLE);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s enabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
-    sch_set_event_enabled(name, DISABLE);
+    sch_event_set_enabled(name, DISABLE);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s disabled" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
-    sch_delete_event(name);
+    sch_event_delete(name);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s deleted" T_RST, name);
   } else if (embeddedCliCheckToken(args, "-t", 1)) {
     if (argc < 4) {
@@ -313,7 +313,7 @@ void event_cmd_func(EmbeddedCli *cli, char *args, void *context) {
               name);
       return;
     }
-    sch_trigger_event(name, atoi(embeddedCliGetToken(args, 3)),
+    sch_event_trigger(name, atoi(embeddedCliGetToken(args, 3)),
                       (void *)embeddedCliGetToken(args, 4),
                       strlen(embeddedCliGetToken(args, 4)));
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "event: %s triggered" T_RST, name);

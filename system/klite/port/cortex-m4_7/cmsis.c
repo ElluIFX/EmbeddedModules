@@ -36,6 +36,7 @@ void cpu_enter_critical(void) {
 }
 
 void cpu_leave_critical(void) {
+  if (m_sys_nesting == 0) return;
   m_sys_nesting--;
   if (!m_sys_nesting) __enable_irq();
 }

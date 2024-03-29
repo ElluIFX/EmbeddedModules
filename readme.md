@@ -1,11 +1,13 @@
-# 自用的嵌入式软件模块仓库
+# 自用的嵌入式STM32软件模块仓库
 
 采用统一上层头文件来统一动态内存/时间/延时函数，并实现可视化参数配置
 
+> [!IMPORTANT]
 > 主要是给stm32项目用的，部分模块依赖hal库
 
 ## 当前文件结构
 
+> [!NOTE]
 > 标*的为自己写的模块，其他修改自开源库，原repo已列出
 
 | [Algorithm](./algorithm) | 算法 | repo | 备注 |
@@ -71,6 +73,7 @@
 |-|-|:-:|-|
 | [board_i2c](./peripheral/board_i2c) | 板级I2C包装层 |*| |
 | [board_led](./peripheral/board_led) | 板级LED包装层 |*| |
+| [ee](./peripheral/ee) | 内置flash读写库 | [link](https://github.com/nimaltd/ee) | |
 | [ee24](./peripheral/ee24) | 24xx EEPROM库 | [link](https://github.com/nimaltd/ee24) | |
 | [i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |*| |
 | [key](./peripheral/key) | 通用按键 |*| 支持多种事件 |
