@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "kernel.h"
+#include "klite.h"
 // #error "Include CMSIS based device header here!"
 #include "main.h"
 
@@ -49,7 +49,7 @@ void cpu_sys_init(void) {
 
 void cpu_sys_start(void) {
   SystemCoreClockUpdate();
-  SysTick_Config(SystemCoreClock / KERNEL_CFG_FREQ);
+  SysTick_Config(SystemCoreClock / KLITE_CFG_FREQ);
   cpu_leave_critical();
 }
 
@@ -65,13 +65,13 @@ extern __IO uint32_t uwTick;
 void SysTick_Handler(void) {
   kernel_tick(1);
 
-#if KERNEL_CFG_FREQ >= 1000
+#if KLITE_CFG_FREQ >= 1000
   static uint16_t tick_scaler = 0;
-  if (++tick_scaler >= (KERNEL_CFG_FREQ / 1000)) {  // us -> ms
-    uwTick++;                                       // for HAL_Delay()
+  if (++tick_scaler >= (KLITE_CFG_FREQ / 1000)) {  // us -> ms
+    uwTick++;                                      // for HAL_Delay()
     tick_scaler = 0;
   }
 #else
-  uwTick += 1000 / KERNEL_CFG_FREQ;
+  uwTick += 1000 / KLITE_CFG_FREQ;
 #endif
 }

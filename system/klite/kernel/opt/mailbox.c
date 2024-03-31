@@ -24,10 +24,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "mailbox.h"
 
-#include "fifo.h"
-#include "kernel.h"
+#include "klite.h"
+
+#if KLITE_CFG_OPT_MAILBOX
+
+#include "klite_internal_fifo.h"
 
 struct mailbox {
   fifo_t fifo;
@@ -38,25 +40,25 @@ struct mailbox {
 
 mailbox_t mailbox_create(uint32_t size) {
   struct mailbox *mailbox;
-  mailbox = heap_alloc( sizeof(struct mailbox) + size);
+  mailbox = heap_alloc(sizeof(struct mailbox) + size);
   if (mailbox != NULL) {
     fifo_init(&mailbox->fifo, mailbox + 1, size);
     mailbox->mutex = mutex_create();
     if (mailbox->mutex == NULL) {
-      heap_free( mailbox);
+      heap_free(mailbox);
       return NULL;
     }
     mailbox->empty = event_create(true);
     if (mailbox->empty == NULL) {
       mutex_delete(mailbox->mutex);
-      heap_free( mailbox);
+      heap_free(mailbox);
       return NULL;
     }
     mailbox->full = event_create(true);
     if (mailbox->full == NULL) {
       mutex_delete(mailbox->mutex);
       event_delete(mailbox->empty);
-      heap_free( mailbox);
+      heap_free(mailbox);
       return NULL;
     }
   }
@@ -67,7 +69,7 @@ void mailbox_delete(mailbox_t mailbox) {
   mutex_delete(mailbox->mutex);
   event_delete(mailbox->empty);
   event_delete(mailbox->full);
-  heap_free( mailbox);
+  heap_free(mailbox);
 }
 
 void mailbox_clear(mailbox_t mailbox) {
@@ -132,3 +134,5 @@ uint32_t mailbox_wait(mailbox_t mailbox, void *buf, uint32_t len,
     return 0;
   }
 }
+
+#endif  // KLITE_CFG_OPT_MAILBOX

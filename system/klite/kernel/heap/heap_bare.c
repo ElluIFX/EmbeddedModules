@@ -24,9 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "internal.h"
-#include "kernel.h"
-#if KERNEL_CFG_HEAP_USE_BARE
+#include "klite.h"
+#include "klite_internal.h"
+#if KLITE_CFG_HEAP_USE_BARE
 #include "log.h"
 
 #define MEM_ALIGN_BYTE (8)
@@ -130,11 +130,11 @@ void *heap_alloc(uint32_t size) {
       break;
     }
   }
-#if KERNEL_CFG_HOOK_ENABLE
+#if KLITE_CFG_HOOK_ENABLE
   if (mem == NULL) {
-    kernel_hook_heap_fault(size);
+    heap_hook_fault(size);
   } else {
-    kernel_hook_heap_operation(mem, NULL, size, KERNEL_HEAP_OP_ALLOC);
+    heap_hook_operation(mem, NULL, size, HEAP_HOOK_OP_ALLOC);
   }
 #endif
   heap_mutex_unlock();
@@ -152,8 +152,8 @@ void heap_free(void *mem) {
       heap->free = node->prev;
     }
   }
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_heap_operation(mem, NULL, 0, KERNEL_HEAP_OP_FREE);
+#if KLITE_CFG_HOOK_ENABLE
+  heap_hook_operation(mem, NULL, 0, HEAP_HOOK_OP_FREE);
 #endif
   heap_mutex_unlock();
 }
@@ -161,11 +161,11 @@ void heap_free(void *mem) {
 void *heap_realloc(void *mem, uint32_t size) {
   void *new_mem;
   new_mem = heap_alloc(size);
-#if KERNEL_CFG_HOOK_ENABLE
+#if KLITE_CFG_HOOK_ENABLE
   if (new_mem == NULL) {
-    kernel_hook_heap_fault(size);
+    heap_hook_fault(size);
   } else {
-    kernel_hook_heap_operation(mem, new_mem, size, KERNEL_HEAP_OP_REALLOC);
+    heap_hook_operation(mem, new_mem, size, HEAP_HOOK_OP_REALLOC);
   }
 #endif
   if (new_mem) {

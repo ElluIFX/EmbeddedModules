@@ -433,7 +433,18 @@ extern void log_hook(const char *fmt, ...);
 
 #endif  // LOG_CFG_ENABLE_ALIAS
 
-#if MOD_CFG_TIME_MATHOD_PERF_COUNTER  // timeit功能由perf_counter实现
+#ifndef __cycleof__  // __cycleof__功能默认由perf_counter实现
+#include "macro.h"
+#pragma clang diagnostic ignored "-Wcompound-token-split-by-macro"
+#define __cycleof__(__DUMMY, ...)                            \
+  using(uint64_t _ = m_tick(), __cycle_count__ = _, _ = _, { \
+    _ = m_tick() - _;                                        \
+    __cycle_count__ = _;                                     \
+    if (1) {                                                 \
+      __VA_ARGS__                                            \
+    }                                                        \
+  })
+#endif
 
 #define __LOG_TIMEIT(fmt, args...)                      \
   __LOG(LOG_CFG_PREFIX, LOG_CFG_T_STR, LOG_CFG_T_COLOR, \
@@ -443,29 +454,32 @@ extern void log_hook(const char *fmt, ...);
  * @brief 测量代码块执行时间
  * @param  NAME             测量名称
  */
-#define timeit(NAME)                                                     \
-  __cycleof__("", {                                                      \
-    __LOG_TIMEIT(NAME ":%fus", (double)_ / (SystemCoreClock / 1000000)); \
+#define timeit(NAME)                                              \
+  __cycleof__("", {                                               \
+    __LOG_TIMEIT(NAME ":%fus",                                    \
+                 (double)__cycle_count__ / m_tick_clk * 1000000); \
   })
 
 /**
  * @brief 测量代码块执行周期数
  * @param  NAME             测量名称
  */
-#define cycleit(NAME) __cycleof__("", { __LOG_TIMEIT(NAME ":%dcycles", _); })
+#define cycleit(NAME) \
+  __cycleof__("", { __LOG_TIMEIT(NAME ":%dcycles", __cycle_count__); })
 
 /**
  * @brief 测量代码块执行时间, 并限制输出频率
  * @param  NAME             测量名称
  * @param  limit_ms         输出周期(ms)
  */
-#define timeit_limit(NAME, limit_ms)                                     \
-  __cycleof__("", {                                                      \
-    static m_time_t SAFE_NAME(limited_log_t) = 0;                        \
-    if (m_time_ms() > SAFE_NAME(limited_log_t) + limit_ms) {             \
-      SAFE_NAME(limited_log_t) = m_time_ms();                            \
-      __LOG_TIMEIT(NAME ":%fus", (double)_ * 1000000 / SystemCoreClock); \
-    }                                                                    \
+#define timeit_limit(NAME, limit_ms)                                \
+  __cycleof__("", {                                                 \
+    static m_time_t SAFE_NAME(limited_log_t) = 0;                   \
+    if (m_time_ms() > SAFE_NAME(limited_log_t) + limit_ms) {        \
+      SAFE_NAME(limited_log_t) = m_time_ms();                       \
+      __LOG_TIMEIT(NAME ":%fus",                                    \
+                   (double)__cycle_count__ * 1000000 / m_tick_clk); \
+    }                                                               \
   })
 
 /**
@@ -478,7 +492,7 @@ extern void log_hook(const char *fmt, ...);
     static m_time_t SAFE_NAME(limited_log_t) = 0;            \
     if (m_time_ms() > SAFE_NAME(limited_log_t) + limit_ms) { \
       SAFE_NAME(limited_log_t) = m_time_ms();                \
-      __LOG_TIMEIT(NAME ":%dcycles", _);                     \
+      __LOG_TIMEIT(NAME ":%dcycles", __cycle_count__);       \
     }                                                        \
   })
 
@@ -487,17 +501,18 @@ extern void log_hook(const char *fmt, ...);
  * @param  NAME             测量名称
  * @param  duration_ms      测量周期(ms)
  */
-#define timeit_max(NAME, duration_ms)                                          \
-  __cycleof__("", {                                                            \
-    static m_time_t SAFE_NAME(timeit_max) = 0;                                 \
-    static m_time_t SAFE_NAME(timeit_last) = 0;                                \
-    if (_ > SAFE_NAME(timeit_max)) SAFE_NAME(timeit_max) = _;                  \
-    if (m_time_ms() > SAFE_NAME(timeit_last) + duration_ms) {                  \
-      __LOG_TIMEIT(NAME "(max):%fus",                                          \
-                   (double)SAFE_NAME(timeit_max) * 1000000 / SystemCoreClock); \
-      SAFE_NAME(timeit_max) = 0;                                               \
-      SAFE_NAME(timeit_last) = m_time_ms();                                    \
-    }                                                                          \
+#define timeit_max(NAME, duration_ms)                                     \
+  __cycleof__("", {                                                       \
+    static m_time_t SAFE_NAME(timeit_max) = 0;                            \
+    static m_time_t SAFE_NAME(timeit_last) = 0;                           \
+    if (__cycle_count__ > SAFE_NAME(timeit_max))                          \
+      SAFE_NAME(timeit_max) = __cycle_count__;                            \
+    if (m_time_ms() > SAFE_NAME(timeit_last) + duration_ms) {             \
+      __LOG_TIMEIT(NAME "(max):%fus",                                     \
+                   (double)SAFE_NAME(timeit_max) * 1000000 / m_tick_clk); \
+      SAFE_NAME(timeit_max) = 0;                                          \
+      SAFE_NAME(timeit_last) = m_time_ms();                               \
+    }                                                                     \
   })
 
 /**
@@ -505,21 +520,21 @@ extern void log_hook(const char *fmt, ...);
  * @param  NAME             测量名称
  * @param  duration_ms      测量周期(ms)
  */
-#define timeit_avg(NAME, duration_ms)                                \
-  __cycleof__("", {                                                  \
-    static m_time_t SAFE_NAME(timeit_sum) = 0;                       \
-    static m_time_t SAFE_NAME(timeit_count) = 0;                     \
-    static m_time_t SAFE_NAME(timeit_last) = 0;                      \
-    SAFE_NAME(timeit_sum) += _;                                      \
-    SAFE_NAME(timeit_count)++;                                       \
-    if (m_time_ms() > SAFE_NAME(timeit_last) + duration_ms) {        \
-      __LOG_TIMEIT(NAME "(avg/%d):%fus", SAFE_NAME(timeit_count),    \
-                   (double)SAFE_NAME(timeit_sum) * 1000000 /         \
-                       (SystemCoreClock * SAFE_NAME(timeit_count))); \
-      SAFE_NAME(timeit_sum) = 0;                                     \
-      SAFE_NAME(timeit_count) = 0;                                   \
-      SAFE_NAME(timeit_last) = m_time_ms();                          \
-    }                                                                \
+#define timeit_avg(NAME, duration_ms)                             \
+  __cycleof__("", {                                               \
+    static m_time_t SAFE_NAME(timeit_sum) = 0;                    \
+    static m_time_t SAFE_NAME(timeit_count) = 0;                  \
+    static m_time_t SAFE_NAME(timeit_last) = 0;                   \
+    SAFE_NAME(timeit_sum) += __cycle_count__;                     \
+    SAFE_NAME(timeit_count)++;                                    \
+    if (m_time_ms() > SAFE_NAME(timeit_last) + duration_ms) {     \
+      __LOG_TIMEIT(NAME "(avg/%d):%fus", SAFE_NAME(timeit_count), \
+                   (double)SAFE_NAME(timeit_sum) * 1000000 /      \
+                       (m_tick_clk * SAFE_NAME(timeit_count)));   \
+      SAFE_NAME(timeit_sum) = 0;                                  \
+      SAFE_NAME(timeit_count) = 0;                                \
+      SAFE_NAME(timeit_last) = m_time_ms();                       \
+    }                                                             \
   })
 
 /**
@@ -527,15 +542,13 @@ extern void log_hook(const char *fmt, ...);
  * @param  NAME             测量名称
  * @param  N                平均次数
  */
-#define timeit_calc_avg(NAME, N)                                        \
-  __cycleof__("", {                                                     \
-    double SAFE_NAME(timeit_avg) = N;                                   \
-    __LOG_TIMEIT(                                                       \
-        NAME "(avg/%d): %fus", N,                                       \
-        (double)_ * 1000000 / SystemCoreClock / SAFE_NAME(timeit_avg)); \
+#define timeit_calc_avg(NAME, N)                                  \
+  __cycleof__("", {                                               \
+    double SAFE_NAME(timeit_avg) = N;                             \
+    __LOG_TIMEIT(NAME "(avg/%d): %fus", N,                        \
+                 (double)__cycle_count__ * 1000000 / m_tick_clk / \
+                     SAFE_NAME(timeit_avg));                      \
   })
-
-#endif  // MOD_CFG_TIME_MATHOD_PERF_COUNTER
 
 #ifdef __cplusplus
 }

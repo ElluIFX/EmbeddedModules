@@ -24,10 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "kernel.h"
+#include "klite.h"
 // #error "Include CMSIS based device header here!"
 #include "main.h"
-
 static uint32_t m_sys_nesting;
 
 void cpu_enter_critical(void) {
@@ -49,7 +48,7 @@ void cpu_sys_init(void) {
 
 void cpu_sys_start(void) {
   SystemCoreClockUpdate();
-  SysTick_Config(SystemCoreClock / KERNEL_CFG_FREQ);
+  SysTick_Config(SystemCoreClock / KLITE_CFG_FREQ);
   cpu_leave_critical();
 }
 
@@ -61,17 +60,25 @@ void cpu_sys_sleep(uint32_t time) {
 #endif
 }
 
+#define SSHigh(GPIOx, Pinx) ((GPIOx)->BSRR = (Pinx))
+// ((GPIOx)->BSRR = (Pinx) << 16) or ((GPIOx)->BRR = (Pinx))
+#define SSLow(GPIOx, Pinx) ((GPIOx)->BSRR = (Pinx) << 16)
+#define DEBUG_PIN_HIGH() SSHigh(TIMEIT_GPIO_Port, TIMEIT_Pin)
+#define DEBUG_PIN_LOW() SSLow(TIMEIT_GPIO_Port, TIMEIT_Pin)
+
 extern __IO uint32_t uwTick;
 void SysTick_Handler(void) {
+  DEBUG_PIN_HIGH();
   kernel_tick(1);
+  DEBUG_PIN_LOW();
 
-#if KERNEL_CFG_FREQ >= 1000
-  static uint16_t tick_scaler = 0;
-  if (++tick_scaler >= (KERNEL_CFG_FREQ / 1000)) {  // us -> ms
-    uwTick++;                                       // for HAL_Delay()
+#if KLITE_CFG_FREQ >= 1000
+  static uint32_t tick_scaler = 0;
+  if (++tick_scaler >= (KLITE_CFG_FREQ / 1000)) {  // us -> ms
+    uwTick++;                                      // for HAL_Delay()
     tick_scaler = 0;
   }
 #else
-  uwTick += 1000 / KERNEL_CFG_FREQ;
+  uwTick += 1000 / KLITE_CFG_FREQ;
 #endif
 }

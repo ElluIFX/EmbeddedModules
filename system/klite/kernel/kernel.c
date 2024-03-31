@@ -24,18 +24,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "kernel.h"
-
-#include "internal.h"
+#include "klite.h"
+#include "klite_internal.h"
 
 #define MAKE_VERSION_CODE(a, b, c) ((a << 24) | (b << 16) | (c))
 #define KERNEL_VERSION_CODE MAKE_VERSION_CODE(5, 1, 0)
 
-extern thread_t m_idle_thread;
-
 static uint64_t m_tick_count;
-thread_t m_idle_thread;
-void* kernel_heap_addr;
+static thread_t m_idle_thread;
 
 void kernel_init(void* heap_addr, uint32_t heap_size) {
   m_tick_count = 0;
@@ -43,11 +39,10 @@ void kernel_init(void* heap_addr, uint32_t heap_size) {
   cpu_sys_init();
   sched_init();
   heap_create(heap_addr, heap_size);
-  kernel_heap_addr = heap_addr;
 
   /* 创建idle线程 */
   m_idle_thread = thread_create(kernel_idle_thread, NULL,
-                                KERNEL_CFG_IDLE_THREAD_STACK_SIZE, 0);
+                                KLITE_CFG_IDLE_THREAD_STACK_SIZE, 0);
 }
 
 void kernel_start(void) {
@@ -59,7 +54,7 @@ void kernel_idle_thread(void* args) {
   (void)args;
 
   while (1) {
-#if KERNEL_CFG_HOOK_ENABLE
+#if KLITE_CFG_HOOK_ENABLE
     kernel_hook_idle();
 #endif
     thread_clean_up();
@@ -79,7 +74,7 @@ void kernel_exit_critical(void) { cpu_leave_critical(); }
 
 void kernel_tick(uint32_t time) {
   m_tick_count += time;
-#if KERNEL_CFG_HOOK_ENABLE
+#if KLITE_CFG_HOOK_ENABLE
   kernel_hook_tick(time);
 #endif
   cpu_enter_critical();

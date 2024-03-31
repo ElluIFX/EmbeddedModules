@@ -24,11 +24,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "event_flags.h"
+
+#include "klite.h"
+
+#if KLITE_CFG_OPT_EVENT_FLAGS
 
 #include <string.h>
-
-#include "kernel.h"
 
 struct event_flags {
   mutex_t mutex;
@@ -38,18 +39,18 @@ struct event_flags {
 
 event_flags_t event_flags_create(void) {
   struct event_flags *flags;
-  flags = heap_alloc( sizeof(struct event_flags));
+  flags = heap_alloc(sizeof(struct event_flags));
   if (flags != NULL) {
     memset(flags, 0, sizeof(struct event_flags));
     flags->mutex = mutex_create();
     if (flags->mutex == NULL) {
-      heap_free( flags);
+      heap_free(flags);
       return NULL;
     }
     flags->cond = cond_create();
     if (flags->cond == NULL) {
       mutex_delete(flags->mutex);
-      heap_free( flags);
+      heap_free(flags);
       return NULL;
     }
   }
@@ -59,7 +60,7 @@ event_flags_t event_flags_create(void) {
 void event_flags_delete(event_flags_t flags) {
   mutex_delete(flags->mutex);
   cond_delete(flags->cond);
-  heap_free( flags);
+  heap_free(flags);
 }
 
 void event_flags_set(event_flags_t flags, uint32_t bits) {
@@ -118,3 +119,6 @@ uint32_t event_flags_timed_wait(event_flags_t flags, uint32_t bits,
   mutex_unlock(flags->mutex);
   return ret;
 }
+
+
+#endif  // KLITE_CFG_OPT_EVENT_FLAGS

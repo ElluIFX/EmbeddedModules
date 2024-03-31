@@ -16,18 +16,18 @@
 // Private Defines --------------------------
 
 #if (MOD_CFG_HEAP_MATHOD_LWMEM || \
-     (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_CFG_HEAP_USE_LWMEM))
+     (MOD_CFG_HEAP_MATHOD_KLITE && KLITE_CFG_HEAP_USE_LWMEM))
 #include "lwmem.h"
 #define SHOWLWMEM 1
 #elif (MOD_CFG_HEAP_MATHOD_HEAP4 || \
-       (MOD_CFG_HEAP_MATHOD_KLITE && KERNEL_CFG_HEAP_USE_HEAP4))
+       (MOD_CFG_HEAP_MATHOD_KLITE && KLITE_CFG_HEAP_USE_HEAP4))
 #include "heap4.h"
 #define SHOWHEAP4 1
 #elif (MOD_CFG_HEAP_MATHOD_RTT)
 #define SHOWRTTHREAD 1
 #endif
 #if MOD_CFG_USE_OS_KLITE
-#include "kernel.h"
+#include "klite.h"
 #define SHOWKLITE 1
 #endif
 
@@ -54,7 +54,7 @@
 
 // Private Functions ------------------------
 #if SHOWKLITE
-#include "internal.h"
+#include "klite_internal.h"
 static void list_klite(void) {
   TT tt = TT_NewTable(-1);
   TT_FMT1 f1 = TT_FMT1_GREEN;
@@ -139,9 +139,8 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       return;
     }
     int pri = atoi(embeddedCliGetToken(args, 2));
-    if (pri < 0 || pri > KERNEL_CFG_MAX_PRIO) {
-      PRINTLN(T_FMT(T_BOLD, T_RED) "Priority must be 0-%d",
-              KERNEL_CFG_MAX_PRIO);
+    if (pri < 0 || pri > KLITE_CFG_MAX_PRIO) {
+      PRINTLN(T_FMT(T_BOLD, T_RED) "Priority must be 0-%d", KLITE_CFG_MAX_PRIO);
       return;
     }
     thread_set_priority(thread, pri);

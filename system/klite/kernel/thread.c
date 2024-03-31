@@ -24,9 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "internal.h"
-#include "kernel.h"
-#include "list.h"
+#include "klite.h"
+#include "klite_internal.h"
+#include "klite_internal_list.h"
 
 static struct tcb_list m_list_alive;  // 运行中线程列表
 static struct tcb_list m_list_dead;   // 待删除线程列表
@@ -37,9 +37,9 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
                        uint32_t prio) {
   if (!entry) return NULL;
 
-  if (prio > KERNEL_CFG_MAX_PRIO) prio = KERNEL_CFG_MAX_PRIO;
-  if (!prio && entry != kernel_idle_thread) prio = KERNEL_CFG_DEFAULT_PRIO;
-  if (!stack_size) stack_size = KERNEL_CFG_DEFAULT_STACK_SIZE;
+  if (prio > KLITE_CFG_MAX_PRIO) prio = KLITE_CFG_MAX_PRIO;
+  if (!prio && entry != kernel_idle_thread) prio = KLITE_CFG_DEFAULT_PRIO;
+  if (!stack_size) stack_size = KLITE_CFG_DEFAULT_STACK_SIZE;
 
   struct tcb *tcb;
   uint8_t *stack_base;
@@ -59,8 +59,8 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
   tcb->node_sched.tcb = tcb;
   tcb->node_manage.tcb = tcb;
   cpu_enter_critical();
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_create(tcb);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_create(tcb);
 #endif
   list_prepend(&m_list_alive, &tcb->node_manage);
   sched_tcb_ready(tcb);
@@ -69,10 +69,11 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
 }
 
 void thread_delete(thread_t thread) {
+  if (!thread) thread = sched_tcb_now;
   if (thread == sched_tcb_now) return thread_exit();
   cpu_enter_critical();
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_delete(thread);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_delete(thread);
 #endif
   list_remove(&m_list_alive, &thread->node_manage);
   sched_tcb_remove(thread);
@@ -81,9 +82,10 @@ void thread_delete(thread_t thread) {
 }
 
 void thread_suspend(thread_t thread) {
+  if (!thread) thread = sched_tcb_now;
   cpu_enter_critical();
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_suspend(thread);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_suspend(thread);
 #endif
   sched_tcb_remove(thread);
   if (thread == sched_tcb_now) sched_switch();
@@ -91,9 +93,10 @@ void thread_suspend(thread_t thread) {
 }
 
 void thread_resume(thread_t thread) {
+  if (!thread) thread = sched_tcb_now;  // not possible
   cpu_enter_critical();
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_resume(thread);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_resume(thread);
 #endif
   sched_tcb_ready(thread);
   cpu_leave_critical();
@@ -134,8 +137,8 @@ void thread_sleep(uint32_t time) {
   }
   if (!time) return thread_yield();
   cpu_enter_critical();
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_sleep(sched_tcb_now, time);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_sleep(sched_tcb_now, time);
 #endif
   sched_tcb_sleep(sched_tcb_now, time);
   sched_switch();
@@ -146,6 +149,7 @@ uint32_t thread_time(thread_t thread) { return thread->time; }
 
 void thread_stack_info(thread_t thread, size_t *stack_free,
                        size_t *stack_size) {
+  if (!thread) thread = sched_tcb_now;
   uint32_t free = 0;
   uint8_t *stack = (uint8_t *)(thread + 1);
   while (*stack++ == STACK_MAGIC_VALUE) free++;
@@ -154,18 +158,22 @@ void thread_stack_info(thread_t thread, size_t *stack_free,
 }
 
 void thread_set_priority(thread_t thread, uint32_t prio) {
-  if (!prio) prio = KERNEL_CFG_DEFAULT_PRIO;
-  if (prio > KERNEL_CFG_MAX_PRIO) prio = KERNEL_CFG_MAX_PRIO;
+  if (!thread) thread = sched_tcb_now;
+  if (!prio) prio = KLITE_CFG_DEFAULT_PRIO;
+  if (prio > KLITE_CFG_MAX_PRIO) prio = KLITE_CFG_MAX_PRIO;
   cpu_enter_critical();
   sched_tcb_reset_prio(thread, prio);
   sched_preempt(false);
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_prio_change(thread, prio);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_prio_change(thread, prio);
 #endif
   cpu_leave_critical();
 }
 
-uint32_t thread_get_priority(thread_t thread) { return thread->prio; }
+uint32_t thread_get_priority(thread_t thread) {
+  if (!thread) thread = sched_tcb_now;
+  return thread->prio;
+}
 
 thread_t thread_iter(thread_t thread) {
   struct tcb_node *node = NULL;
@@ -181,8 +189,8 @@ thread_t thread_iter(thread_t thread) {
 
 void thread_exit(void) {
   cpu_enter_critical();
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_delete(sched_tcb_now);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_delete(sched_tcb_now);
 #endif
   sched_tcb_remove(sched_tcb_now);
   list_remove(&m_list_alive, &sched_tcb_now->node_manage);

@@ -24,8 +24,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#ifndef __LIST_H
-#define __LIST_H
+#ifndef __KLITE_LIST_H
+#define __KLITE_LIST_H
 
 #include <stddef.h>
 

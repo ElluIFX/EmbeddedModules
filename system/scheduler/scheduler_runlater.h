@@ -104,16 +104,16 @@ extern void __sch_runlater_cancel(void *func_addr);
       (uint8_t[]){sizeof(arg1), sizeof(arg2), sizeof(arg3), sizeof(arg4),    \
                   sizeof(arg5), sizeof(arg6), sizeof(arg7), sizeof(arg8),    \
                   sizeof(arg9), sizeof(arg10)})
-#define __sch_runlater11 TOO_MANY_PARAMETERS
-#define __sch_runlater12 TOO_MANY_PARAMETERS
-#define __sch_runlater13 TOO_MANY_PARAMETERS
-#define __sch_runlater14 TOO_MANY_PARAMETERS
-#define __sch_runlater15 TOO_MANY_PARAMETERS
-#define __sch_runlater16 TOO_MANY_PARAMETERS
-#define __sch_runlater17 TOO_MANY_PARAMETERS
-#define __sch_runlater18 TOO_MANY_PARAMETERS
-#define __sch_runlater19 TOO_MANY_PARAMETERS
-#define __sch_runlater20 TOO_MANY_PARAMETERS
+#define __sch_runlater11 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater12 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater13 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater14 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater15 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater16 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater17 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater18 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater19 ERR_TOO_MANY_PARAMETERS
+#define __sch_runlater20 ERR_TOO_MANY_PARAMETERS
 // 够了吧(
 
 #endif  // SCH_CFG_ENABLE_CALLLATER

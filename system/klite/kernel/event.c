@@ -24,8 +24,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "internal.h"
-#include "kernel.h"
+#include "klite.h"
+#include "klite_internal.h"
 
 struct event {
   struct tcb_list list;
@@ -78,6 +78,8 @@ void event_wait(event_t event) {
   sched_switch();
   cpu_leave_critical();
 }
+
+bool event_is_set(event_t event) { return event->state; }
 
 uint32_t event_timed_wait(event_t event, uint32_t timeout) {
   cpu_enter_critical();

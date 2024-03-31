@@ -24,12 +24,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "soft_timer.h"
+
+#include "klite.h"
+
+#if KLITE_CFG_OPT_SOFT_TIMER
 
 #include <string.h>
 
-#include "kernel.h"
-#include "list.h"
+#include "klite_internal_list.h"
 
 struct soft_timer {
   struct soft_timer *prev;
@@ -88,7 +90,7 @@ static void soft_timer_service(void *arg) {
   }
 }
 
-static bool soft_timer_init(void) {
+bool soft_timer_init(uint32_t priority) {
   if (m_timer_thread != NULL) {
     return true;
   }
@@ -102,8 +104,7 @@ static bool soft_timer_init(void) {
     mutex_delete(m_timer_mutex);
     return false;
   }
-  m_timer_thread =
-      thread_create(soft_timer_service, NULL, 0, SOFT_TIMER_PRIORITY);
+  m_timer_thread = thread_create(soft_timer_service, NULL, 0, priority);
   if (m_timer_thread == NULL) {
     mutex_delete(m_timer_mutex);
     event_delete(m_timer_event);
@@ -112,9 +113,28 @@ static bool soft_timer_init(void) {
   return true;
 }
 
+void soft_timer_deinit(void) {
+  struct soft_timer *node;
+  if (m_timer_thread == NULL) {
+    return;
+  }
+  thread_delete(m_timer_thread);
+  m_timer_thread = NULL;
+  event_delete(m_timer_event);
+  m_timer_event = NULL;
+  mutex_lock(m_timer_mutex);
+  while (m_timer_list.head != NULL) {
+    node = m_timer_list.head;
+    list_remove(&m_timer_list, node);
+    heap_free(node);
+  }
+  mutex_unlock(m_timer_mutex);
+  mutex_delete(m_timer_mutex);
+}
+
 soft_timer_t soft_timer_create(void (*handler)(void *), void *arg) {
   struct soft_timer *timer;
-  if (!soft_timer_init()) {
+  if (!m_timer_thread) {
     return NULL;
   }
   timer = heap_alloc(sizeof(struct soft_timer));
@@ -150,3 +170,5 @@ void soft_timer_stop(soft_timer_t timer) {
   mutex_unlock(m_timer_mutex);
   event_set(m_timer_event);
 }
+
+#endif /* KLITE_CFG_OPT_SOFT_TIMER */

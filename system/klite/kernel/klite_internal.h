@@ -24,8 +24,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#ifndef __INTERNAL_H
-#define __INTERNAL_H
+#ifndef __KLITE_INTERNAL_H
+#define __KLITE_INTERNAL_H
 
 #include <stdbool.h>
 #include <stddef.h>

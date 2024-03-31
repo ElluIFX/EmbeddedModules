@@ -5,7 +5,7 @@
 void my_clock_init() {}
 
 /* 4. Implement the function of getting current clock ticks. */
-my_clock_t my_clock() { return get_system_ms(); }
+my_clock_t my_clock() { return m_time_ms(); }
 
 /* 5. Implement the idle delay function. */
 void my_on_idle(uint64_t max_idle_ms) {

@@ -1344,7 +1344,7 @@ static void onReboot(EmbeddedCli *cli, char *tokens, void *context) {
   UNUSED(context);
   writeToOutputColor(cli, "Rebooting...", CLI_WARNING_COLOR);
   writeToOutput(cli, lineBreak);
-  delay_ms(100);
+  m_delay_ms(100);
   // reboot
   NVIC_SystemReset();
 }

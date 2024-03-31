@@ -1,12 +1,12 @@
 menu "Klite RTOS Configuration"
-config KERNEL_CFG_FREQ
+config KLITE_CFG_FREQ
     int "Kernel Frequency"
-    default 100000
-    range 100 1000000
+    default 1000
+    range 100 100000
     help
         The frequency of the kernel clock in Hz.
 
-config KERNEL_CFG_MAX_PRIO
+config KLITE_CFG_MAX_PRIO
     int "Max Priority"
     default 7
     range 1 31
@@ -15,48 +15,42 @@ config KERNEL_CFG_MAX_PRIO
         Available prio = 1 ~ Max Priority(include)
         Priority 0 is reserved for idle thread.
 
-config KERNEL_CFG_DEFAULT_PRIO
+config KLITE_CFG_DEFAULT_PRIO
     int "Default Priority"
     default 4
-    range 1 KERNEL_CFG_MAX_PRIO
+    range 1 KLITE_CFG_MAX_PRIO
     help
         The default priority level of the thread created with prio=0.
 
-config KERNEL_CFG_HOOK_ENABLE
-    bool "Enable Kernel Hooks"
-    default y
-    help
-        Enable the kernel hooks.
-
 choice
     prompt "Kernel Heap Provider"
-    default KERNEL_CFG_HEAP_USE_HEAP4
+    default KLITE_CFG_HEAP_USE_HEAP4
 
-    config KERNEL_CFG_HEAP_USE_BARE
+    config KLITE_CFG_HEAP_USE_BARE
         bool "Simple Heap (Bare)"
 
-    config KERNEL_CFG_HEAP_USE_HEAP4
+    config KLITE_CFG_HEAP_USE_HEAP4
         bool "Heap4 (From FreeRTOS)"
 
-    config KERNEL_CFG_HEAP_USE_LWMEM
+    config KLITE_CFG_HEAP_USE_LWMEM
         bool "LwMEM"
 endchoice
 
-config KERNEL_CFG_DEFAULT_STACK_SIZE
+config KLITE_CFG_DEFAULT_STACK_SIZE
     int "Default Stack Size"
     default 1024
     range 1 102400
     help
         The default stack size of the thread created with stack_size=0.
 
-config KERNEL_CFG_IDLE_THREAD_STACK_SIZE
+config KLITE_CFG_IDLE_THREAD_STACK_SIZE
     int "Idle Thread Stack Size"
     default 256
     range 256 102400
     help
         The stack size of the idle thread.
 
-config KERNEL_CFG_STACK_OVERFLOW_GUARD
+config KLITE_CFG_STACK_OVERFLOW_GUARD
     bool "Enable Stack Overflow Guard"
     default n
     help
@@ -66,19 +60,72 @@ config KERNEL_CFG_STACK_OVERFLOW_GUARD
 
 choice
     prompt "Stack Overflow Behavior"
-    default KERNEL_CFG_STACKOF_BEHAVIOR_SYSRESET
+    default KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
 
-    config KERNEL_CFG_STACKOF_BEHAVIOR_SYSRESET
+    config KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
         bool "Reset System"
 
-    config KERNEL_CFG_STACKOF_BEHAVIOR_SUSPEND
+    config KLITE_CFG_STACKOF_BEHAVIOR_SUSPEND
         bool "Suspend the thread (may fail)"
 
-    config KERNEL_CFG_STACKOF_BEHAVIOR_HARDFLT
+    config KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
         bool "Hard Fault (by accessing 0x10 address)"
 
     help
         The behavior when a stack overflow is detected.
 endchoice
 
+config KLITE_CFG_INTERFACE_ENABLE
+    bool "Enable Kernel Interface"
+    default n
+    help
+        Enable the kernel interface for convenience use. (Increase the RAM usage)
+
+config KLITE_CFG_HOOK_ENABLE
+    bool "Enable Function Hooks"
+    default n
+    help
+        Enable the internal hooks.
+
+menuconfig KLITE_CFG_OPT_ENABLE
+    bool "Optional Features"
+    default n
+if KLITE_CFG_OPT_ENABLE
+    config KLITE_CFG_OPT_EVENT_FLAGS
+        bool "Event Flags"
+        default n
+        help
+            Enable the event flags.
+
+    config KLITE_CFG_OPT_MAILBOX
+        bool "Mailbox"
+        default n
+        help
+            Enable the mailbox.
+
+    config KLITE_CFG_OPT_MPOOL
+        bool "Memory Pool"
+        default n
+        help
+            Enable the memory pool.
+
+    config KLITE_CFG_OPT_MSG_QUEUE
+        bool "Message Queue"
+        default n
+        select KLITE_CFG_OPT_MPOOL
+        help
+            Enable the message queue.
+
+    config KLITE_CFG_OPT_SOFT_TIMER
+        bool "Software Timer"
+        default n
+        help
+            Enable the software timer.
+
+    config KLITE_CFG_OPT_THREAD_POOL
+        bool "Thread Pool"
+        default n
+        help
+            Enable the thread pool.
+endif
 endmenu

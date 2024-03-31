@@ -29,9 +29,19 @@ _STATIC_INLINE uint64_t get_sys_freq(void) { return m_tick_clk; }
  * @retval uint64_t          系统时钟
  */
 _STATIC_INLINE uint64_t get_sys_us(void) {
-  static uint64_t div = 0;
-  if (!div) div = get_sys_freq() / 1000000;
-  return get_sys_tick() / div;
+  static uint64_t temp = 0;
+  static uint8_t mode = 0;
+  if (!temp) {
+    if (get_sys_freq() >= 1000000) {
+      temp = get_sys_freq() / 1000000;
+      mode = 0;
+    } else {
+      temp = 1000000 / get_sys_freq();
+      mode = 1;
+    }
+  }
+  if (!mode) return get_sys_tick() / temp;
+  return get_sys_tick() * temp;
 }
 
 /**
@@ -40,9 +50,9 @@ _STATIC_INLINE uint64_t get_sys_us(void) {
  * @retval float           us
  */
 _STATIC_INLINE float tick_to_us(uint64_t tick) {
-  static float tick2us = 0;
-  if (!tick2us) tick2us = (float)1000000 / (float)get_sys_freq();
-  return tick2us * (float)tick;
+  static float temp = 0;
+  if (!temp) temp = (float)1000000 / (float)get_sys_freq();
+  return temp * (float)tick;
 }
 
 /**
@@ -51,9 +61,19 @@ _STATIC_INLINE float tick_to_us(uint64_t tick) {
  * @retval uint64_t        时钟
  */
 _STATIC_INLINE uint64_t us_to_tick(float us) {
-  static uint64_t us2tick = 0;
-  if (!us2tick) us2tick = get_sys_freq() / 1000000;
-  return us * us2tick;
+  static uint64_t temp = 0;
+  static uint64_t mode = 0;
+  if (!temp) {
+    if (get_sys_freq() >= 1000000) {
+      temp = get_sys_freq() / 1000000;
+      mode = 0;
+    } else {
+      temp = 1000000 / get_sys_freq();
+      mode = 1;
+    }
+  }
+  if (!mode) return (uint64_t)(us * temp);
+  return (uint64_t)(us / temp);
 }
 
 /**

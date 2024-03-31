@@ -24,30 +24,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#ifndef __KERNEL_H
-#define __KERNEL_H
+#ifndef __KLITE_H
+#define __KLITE_H
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "modules.h"
-
-#if !KCONFIG_AVAILABLE
-
-#define KERNEL_CFG_FREQ 100000       // 内核时基频率(赫兹)
-#define KERNEL_CFG_MAX_PRIO 7        // 最大优先级
-#define KERNEL_CFG_HOOK_ENABLE 1     // 内核钩子使能
-#define KERNEL_CFG_HEAP_USE_BARE 0   // 使用裸机基础内存管理器
-#define KERNEL_CFG_HEAP_USE_LWMEM 0  // 使用lwmem内存管理器
-#define KERNEL_CFG_HEAP_USE_HEAP4 1  // 使用heap4内存管理器
-#define KERNEL_CFG_IDLE_THREAD_STACK_SIZE 256   // 空闲线程栈大小
-#define KERNEL_CFG_DEFAULT_STACK_SIZE 1024      // 默认线程栈大小
-#define KERNEL_CFG_STACK_OVERFLOW_GUARD 1       // 栈溢出保护
-#define KERNEL_CFG_STACKOF_BEHAVIOR_SYSRESET 1  // 栈溢出时系统复位
-#define KERNEL_CFG_STACKOF_BEHAVIOR_SUSPEND 0   // 栈溢出时挂起线程
-#define KERNEL_CFG_STACKOF_BEHAVIOR_HARDFLT 0  // 栈溢出时访问0x10触发异常
-
-#endif
+#include "klite_cfg.h"
 
 typedef struct tcb *thread_t;
 typedef struct sem *sem_t;
@@ -96,7 +79,7 @@ uint32_t kernel_idle_time(void);
 
 /**
  * @brief 此函数不是用户API, 而是由CPU的滴答时钟中断程序调用, 为系统提供时钟源。
- * @note 滴答定时器的周期决定了系统计时功能的细粒度 (1/KERNEL_CFG_FREQ)
+ * @note 滴答定时器的周期决定了系统计时功能的细粒度 (1/KLITE_CFG_FREQ)
  * @param time 递增Tick数
  */
 void kernel_tick(uint32_t time);
@@ -119,7 +102,7 @@ uint64_t kernel_tick_count64(void);
  * @retval 返回ms对应的Tick数
  */
 static inline uint32_t kernel_ms_to_ticks(uint32_t ms) {
-  return ((uint64_t)ms * KERNEL_CFG_FREQ) / 1000;
+  return ((uint64_t)ms * KLITE_CFG_FREQ) / 1000;
 }
 
 /**
@@ -128,7 +111,7 @@ static inline uint32_t kernel_ms_to_ticks(uint32_t ms) {
  * @retval 返回Tick对应的毫秒数
  */
 static inline uint32_t kernel_ticks_to_ms(uint32_t tick) {
-  return ((uint64_t)tick * 1000) / KERNEL_CFG_FREQ;
+  return ((uint64_t)tick * 1000) / KLITE_CFG_FREQ;
 }
 
 /**
@@ -137,7 +120,7 @@ static inline uint32_t kernel_ticks_to_ms(uint32_t tick) {
  * @retval 返回us对应的Tick数
  */
 static inline uint32_t kernel_us_to_ticks(uint32_t us) {
-  return ((uint64_t)us * KERNEL_CFG_FREQ) / 1000000;
+  return ((uint64_t)us * KLITE_CFG_FREQ) / 1000000;
 }
 
 /**
@@ -146,10 +129,8 @@ static inline uint32_t kernel_us_to_ticks(uint32_t us) {
  * @retval 返回Tick对应的微秒数
  */
 static inline uint32_t kernel_ticks_to_us(uint32_t tick) {
-  return ((uint64_t)tick * 1000000) / KERNEL_CFG_FREQ;
+  return ((uint64_t)tick * 1000000) / KLITE_CFG_FREQ;
 }
-
-extern void *kernel_heap_addr;
 
 /******************************************************************************
  * heap
@@ -396,6 +377,13 @@ void event_reset(event_t event);
 void event_wait(event_t event);
 
 /**
+ * @brief 判断事件是否被置位
+ * @param event 事件标识符
+ * @retval 事件置位返回true, 否则返回false
+ */
+bool event_is_set(event_t event);
+
+/**
  * @brief 定时等待事件置位, 如果等待时间超过timeout设定的时间则退出等待
  * @param event 事件标识符
  * @param timeout 等待时间（Tick）
@@ -499,7 +487,7 @@ uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout);
  * hook
  ******************************************************************************/
 
-#if KERNEL_CFG_HOOK_ENABLE
+#if KLITE_CFG_HOOK_ENABLE
 
 /**
  * @brief 内核空闲钩子函数
@@ -516,7 +504,11 @@ void kernel_hook_tick(uint32_t time);
  * @brief 内核堆内存分配错误钩子函数
  * @param size 内存大小
  */
-void kernel_hook_heap_fault(uint32_t size);
+void heap_hook_fault(uint32_t size);
+
+#define HEAP_HOOK_OP_ALLOC 0
+#define HEAP_HOOK_OP_FREE 1
+#define HEAP_HOOK_OP_REALLOC 2
 
 /**
  * @brief 内核堆内存操作钩子函数
@@ -525,58 +517,388 @@ void kernel_hook_heap_fault(uint32_t size);
  * @param size 内存大小
  * @param op 操作类型 0:分配 1:释放 2:重新分配
  */
-void kernel_hook_heap_operation(void *addr1, void *addr2, uint32_t size,
-                                uint8_t op);
-
-#define KERNEL_HEAP_OP_ALLOC 0
-#define KERNEL_HEAP_OP_FREE 1
-#define KERNEL_HEAP_OP_REALLOC 2
+void heap_hook_operation(void *addr1, void *addr2, uint32_t size, uint8_t op);
 
 /**
  * @brief 内核线程创建钩子函数
  * @param thread 线程标识符
  */
-void kernel_hook_thread_create(thread_t thread);
+void thread_hook_create(thread_t thread);
 
 /**
  * @brief 内核线程删除/退出钩子函数
  * @param thread 线程标识符
  */
-void kernel_hook_thread_delete(thread_t thread);
+void thread_hook_delete(thread_t thread);
 
 /**
  * @brief 内核线程优先级改变钩子函数
  * @param thread 线程标识符
  * @param prio 新的优先级
  */
-void kernel_hook_thread_prio_change(thread_t thread, uint32_t prio);
+void thread_hook_prio_change(thread_t thread, uint32_t prio);
 
 /**
  * @brief 内核线程挂起钩子函数
  * @param thread 线程标识符
  */
-void kernel_hook_thread_suspend(thread_t thread);
+void thread_hook_suspend(thread_t thread);
 
 /**
  * @brief 内核线程恢复钩子函数
  * @param thread 线程标识符
  */
-void kernel_hook_thread_resume(thread_t thread);
+void thread_hook_resume(thread_t thread);
 
 /**
  * @brief 内核线程切换钩子函数
  * @param from 当前线程标识符
  * @param to 目标线程标识符
  */
-void kernel_hook_thread_switch(thread_t from, thread_t to);
+void thread_hook_switch(thread_t from, thread_t to);
 
 /**
  * @brief 内核线程休眠钩子函数
  * @param thread 线程标识符
  * @param time 休眠时间
  */
-void kernel_hook_thread_sleep(thread_t thread, uint32_t time);
+void thread_hook_sleep(thread_t thread, uint32_t time);
 
-#endif  // KERNEL_CFG_HOOK_ENABLE
+#endif  // KLITE_CFG_HOOK_ENABLE
 
-#endif
+/******************************************************************************
+ * event flags
+ ******************************************************************************/
+
+#if KLITE_CFG_OPT_EVENT_FLAGS
+
+#define EVENT_FLAGS_WAIT_ANY 0x00
+#define EVENT_FLAGS_WAIT_ALL 0x01
+#define EVENT_FLAGS_AUTO_RESET 0x02
+
+typedef struct event_flags *event_flags_t;
+
+/**
+ * @brief 创建一个事件组对象
+ * @param 无
+ * @retval 创建成功返回事件标识符，失败返回NULL
+ */
+event_flags_t event_flags_create(void);
+
+/**
+ * @brief 删除事件组对象，并释放内存
+ * @param event 事件组标识符
+ * @retval 无
+ * @warning 在没有线程使用它时才能删除，否则会导致未定义行为
+ */
+void event_flags_delete(event_flags_t flags);
+
+/**
+ * @brief 置位bits指定的事件标志位，并唤醒等待队列中想要获取bits的线程
+ * @param event 事件组标识符
+ * @retval 无
+ */
+void event_flags_set(event_flags_t flags, uint32_t bits);
+
+/**
+ * @brief 清除bits指定的事件标志位，此函数不会唤醒任何线程
+ * @param event 事件组标识符
+ * @retval 无
+ */
+void event_flags_reset(event_flags_t flags, uint32_t bits);
+
+/**
+ * @brief 等待1个或多个事件标志位
+ * @param event 事件组标识符
+ * @param bits 想要等待的标志位
+ * @param ops 等待标志位的行为
+ *      EVENT_FLAGS_WAIT_ANY: 只要bits中的任意一位有效，函数立即返回；
+ *      EVENT_FLAGS_WAIT_ALL: 只有bits中的所有位都有效，函数才能返回；
+ *      EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
+ * @retval 实际获取到的标志位状态
+ */
+uint32_t event_flags_wait(event_flags_t flags, uint32_t bits, uint32_t ops);
+
+/**
+ * @brief 等待1个或多个事件标志位，超时返回
+ * @param event 事件组标识符
+ * @param bits 想要等待的标志位
+ * @param ops 等待标志位的行为
+ *      EVENT_FLAGS_WAIT_ANY: 只要bits中的任意一位有效，函数立即返回；
+ *      EVENT_FLAGS_WAIT_ALL: 只有bits中的所有位都有效，函数才能返回；
+ *      EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
+ * @param timeout 等待超时时间(毫秒)
+ * @retval 实际获取到的标志位状态
+ */
+uint32_t event_flags_timed_wait(event_flags_t flags, uint32_t bits,
+                                uint32_t ops, uint32_t timeout);
+
+#endif  // KLITE_CFG_OPT_EVENT_FLAGS
+
+/******************************************************************************
+ * mailbox
+ ******************************************************************************/
+
+#if KLITE_CFG_OPT_MAILBOX
+
+typedef struct mailbox *mailbox_t;
+
+/**
+ * @brief 创建消息邮箱
+ * @param size 缓冲区长度
+ * @retval 创建成功返回标识符，失败返回NULL
+ * @note 消息邮箱按照FIFO机制取出消息。取出的消息长度和发送的消息长度一致
+ * @note 如果输入的buf长度小于消息长度，则丢弃超出buf长度的部分内容
+ */
+mailbox_t mailbox_create(uint32_t size);
+
+/**
+ * @brief 删除消息邮箱，并释放内存.
+ * @param mailbox 消息邮箱标识符
+ * @retval 无
+ */
+void mailbox_delete(mailbox_t mailbox);
+
+/**
+ * @param mailbox 消息邮箱标识符
+ * @retval 无
+ * @brief 清空消息邮箱
+ */
+void mailbox_clear(mailbox_t mailbox);
+
+/**
+ * @brief 向消息邮箱发送消息
+ * @param mailbox 消息邮箱标识符
+ * @param buf 消息缓冲区
+ * @param len 消息长度
+ * @param timeout 超时时间
+ * @retval 实际写入数据长度
+ */
+uint32_t mailbox_post(mailbox_t mailbox, void *buf, uint32_t len,
+                      uint32_t timeout);
+
+/**
+ * @brief 从消息邮箱读取消息
+ * @param mailbox 消息邮箱标识符
+ * @param buf 读取缓冲区
+ * @param len 读取缓冲区长度
+ * @param timeout 超时时间
+ * @retval 实际读取数据长度
+ */
+uint32_t mailbox_wait(mailbox_t mailbox, void *buf, uint32_t len,
+                      uint32_t timeout);
+
+#endif  // KLITE_CFG_OPT_MAILBOX
+
+/******************************************************************************
+ * mpool
+ ******************************************************************************/
+
+#if KLITE_CFG_OPT_MPOOL
+
+typedef struct mpool *mpool_t;
+
+/**
+ * @brief 创建内存池
+ * @param  block_size   内存块大小
+ * @param  block_count  内存块数量
+ * @retval 创建成功返回内存池标识符，失败返回NULL
+ */
+mpool_t mpool_create(uint32_t block_size, uint32_t block_count);
+
+/**
+ * @brief 删除内存池，并释放内存
+ * @param mpool 内存池标识符
+ * @retval 无
+ */
+void mpool_delete(mpool_t mpool);
+
+/**
+ * @brief 从内存池中分配内存块
+ * @param mpool 内存池标识符
+ * @retval 成功返回内存块指针，失败返回NULL
+ */
+void *mpool_alloc(mpool_t mpool);
+
+/**
+ * @brief 释放内存块
+ * @param mpool 内存池标识符
+ * @param block 内存块指针
+ * @retval 无
+ */
+void mpool_free(mpool_t mpool, void *block);
+
+#endif  // KLITE_CFG_OPT_MPOOL
+
+/******************************************************************************
+ * mqueue
+ ******************************************************************************/
+
+#if KLITE_CFG_OPT_MSG_QUEUE
+
+typedef struct msg_queue *msg_queue_t;
+
+/**
+ * @brief 创建消息队列
+ * @param item_size 消息大小
+ * @param queue_depth 队列长度
+ * @retval 创建成功返回消息队列标识符，失败返回NULL
+ */
+msg_queue_t msg_queue_create(uint32_t item_size, uint32_t queue_depth);
+
+/**
+ * @brief 删除消息队列，并释放内存
+ * @param queue 消息队列标识符
+ * @retval 无
+ */
+void msg_queue_delete(msg_queue_t queue);
+
+/**
+ * @brief 清空消息队列
+ * @param queue 消息队列标识符
+ * @retval 无
+ */
+void msg_queue_clear(msg_queue_t queue);
+
+/**
+ * @brief 发送消息到消息队列
+ * @param queue 消息队列标识符
+ * @param item 消息缓冲区
+ * @param timeout 超时时间
+ * @retval 发送成功返回true，失败返回false
+ */
+bool msg_queue_send(msg_queue_t queue, void *item, uint32_t timeout);
+
+/**
+ * @brief 从消息队列接收消息
+ * @param queue 消息队列标识符
+ * @param item 消息缓冲区
+ * @param timeout 超时时间
+ * @retval 接收成功返回true，失败返回false
+ */
+bool msg_queue_recv(msg_queue_t queue, void *item, uint32_t timeout);
+
+#endif  // KLITE_CFG_OPT_MSG_QUEUE
+
+/******************************************************************************
+ * soft timer
+ ******************************************************************************/
+
+#if KLITE_CFG_OPT_SOFT_TIMER
+
+typedef struct soft_timer *soft_timer_t;
+
+/**
+ * @brief 初始化软定时器
+ * @param priority 定时器线程优先级
+ * @retval 初始化成功返回true，失败返回false
+ */
+bool soft_timer_init(uint32_t priority);
+
+/**
+ * @brief 反初始化软定时器, 并释放内存
+ * @retval 无
+ */
+void soft_timer_deinit(void);
+
+/**
+ * @brief 创建软定时器
+ * @param handler 定时器回调函数
+ * @param arg 回调函数参数
+ * @retval 创建成功返回定时器标识符，失败返回NULL
+ * @warning 应首先调用soft_timer_init()初始化软定时器
+ */
+soft_timer_t soft_timer_create(void (*handler)(void *), void *arg);
+
+/**
+ * @brief 删除软定时器
+ * @param timer 定时器标识符
+ * @retval 无
+ */
+void soft_timer_delete(soft_timer_t timer);
+
+/**
+ * @brief 启动软定时器
+ * @param timer 定时器标识符
+ * @param timeout 定时时间（毫秒）
+ * @retval 无
+ */
+void soft_timer_start(soft_timer_t timer, uint32_t timeout);
+
+/**
+ * @brief 停止软定时器
+ * @param timer 定时器标识符
+ * @retval 无
+ */
+void soft_timer_stop(soft_timer_t timer);
+
+#endif  // KLITE_CFG_OPT_SOFT_TIMER
+
+/******************************************************************************
+ * thread pool
+ ******************************************************************************/
+
+#if KLITE_CFG_OPT_THREAD_POOL
+
+typedef struct thread_pool *thread_pool_t;
+
+/**
+ * @brief 创建线程池
+ * @param worker_num 工作线程数量
+ * @param worker_stack_size 工作线程栈大小
+ * @param worker_priority 工作线程优先级
+ * @retval 创建成功返回线程池标识符，失败返回NULL
+ */
+thread_pool_t thread_pool_create(uint8_t worker_num, uint32_t worker_stack_size,
+                                 uint32_t worker_priority);
+
+/**
+ * @brief 删除线程池，并释放内存
+ * @param pool 线程池标识符
+ * @retval 无
+ */
+void thread_pool_delete(thread_pool_t pool);
+
+/**
+ * @brief 提交任务到线程池
+ * @param pool 线程池标识符
+ * @param process 任务处理函数
+ * @param arg 任务参数
+ * @retval 无
+ */
+void thread_pool_submit(thread_pool_t pool, void (*process)(void *arg),
+                        void *arg);
+
+/**
+ * @brief 关闭线程池
+ * @param  pool 线程池标识符
+ */
+void thread_pool_shutdown(thread_pool_t pool);
+
+/**
+ * @brief 等待线程池中的任务执行完成
+ * @param pool 线程池标识符
+ * @retval 无
+ */
+void thread_pool_join(thread_pool_t pool);
+
+/**
+ * @brief 获取线程池中的未完成任务数量
+ * @param pool 线程池标识符
+ * @retval 未完成任务数量
+ */
+uint16_t thread_pool_pending_task(thread_pool_t pool);
+
+#endif  // KLITE_CFG_OPT_THREAD_POOL
+
+/******************************************************************************
+ * interface
+ ******************************************************************************/
+
+#if KLITE_CFG_INTERFACE_ENABLE
+
+#include "klite_api.h"
+
+#endif  // KLITE_CFG_OPT_INTERFACE
+
+#endif  // __KLITE_H

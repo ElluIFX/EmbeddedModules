@@ -24,11 +24,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "mpool.h"
+
+#include "klite.h"
+
+#if KLITE_CFG_OPT_MPOOL
 
 #include <string.h>
-
-#include "kernel.h"
 
 struct mpool {
   mutex_t mutex;
@@ -46,7 +47,7 @@ mpool_t mpool_create(uint32_t block_size, uint32_t block_count) {
   uint8_t *block;
   msize =
       sizeof(struct mpool) + block_count * (sizeof(uint32_t *) + block_size);
-  mpool = heap_alloc( msize);
+  mpool = heap_alloc(msize);
   if (mpool != NULL) {
     memset(mpool, 0, msize);
     mpool->mutex = mutex_create();
@@ -60,14 +61,14 @@ mpool_t mpool_create(uint32_t block_size, uint32_t block_count) {
       }
       return mpool;
     }
-    heap_free( mpool);
+    heap_free(mpool);
   }
   return NULL;
 }
 
 void mpool_delete(mpool_t mpool) {
   mutex_delete(mpool->mutex);
-  heap_free( mpool);
+  heap_free(mpool);
 }
 
 void *mpool_alloc(mpool_t mpool) {
@@ -95,3 +96,5 @@ void mpool_free(mpool_t mpool, void *block) {
   }
   mutex_unlock(mpool->mutex);
 }
+
+#endif /* KLITE_CFG_OPT_MPOOL */

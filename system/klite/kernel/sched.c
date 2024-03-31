@@ -24,13 +24,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "internal.h"
-#include "kernel.h"
-#include "list.h"
+#include "klite.h"
+#include "klite_internal.h"
+#include "klite_internal_list.h"
 
 struct tcb *sched_tcb_now;
 struct tcb *sched_tcb_next;
-static struct tcb_list m_list_ready[KERNEL_CFG_MAX_PRIO + 1];
+static struct tcb_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
 static struct tcb_list m_list_sleep;
 static uint32_t m_idle_elapse;
 static uint32_t m_idle_timeout;
@@ -161,7 +161,7 @@ void sched_switch(void) {
   if (sched_susp_nesting) return;
   struct tcb *tcb;
   tcb = m_list_ready[m_prio_highest].head->tcb;
-#if KERNEL_CFG_STACK_OVERFLOW_GUARD
+#if KLITE_CFG_STACK_OVERFLOW_GUARD
   uint8_t *stack = (uint8_t *)(tcb + 1);
   // check 16 bytes of stack overflow magic value
   if (*(stack + 1) != STACK_MAGIC_VALUE || *(stack + 3) != STACK_MAGIC_VALUE ||
@@ -169,12 +169,12 @@ void sched_switch(void) {
       *(stack + 9) != STACK_MAGIC_VALUE || *(stack + 11) != STACK_MAGIC_VALUE ||
       *(stack + 13) != STACK_MAGIC_VALUE ||
       *(stack + 15) != STACK_MAGIC_VALUE) {
-#if KERNEL_CFG_STACKOF_BEHAVIOR_SUSPEND
+#if KLITE_CFG_STACKOF_BEHAVIOR_SUSPEND
     sched_tcb_remove(tcb);
     tcb = m_list_ready[m_prio_highest].head->tcb;
-#elif KERNEL_CFG_STACKOF_BEHAVIOR_SYSRESET
+#elif KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
     NVIC_SystemReset();
-#elif KERNEL_CFG_STACKOF_BEHAVIOR_HARDFLT
+#elif KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
     ((void (*)(void))0x10)();
 #endif
   }
@@ -186,8 +186,8 @@ void sched_switch(void) {
   }
   tcb->list_sched = NULL;
   sched_tcb_next = tcb;
-#if KERNEL_CFG_HOOK_ENABLE
-  kernel_hook_thread_switch(sched_tcb_now, sched_tcb_next);
+#if KLITE_CFG_HOOK_ENABLE
+  thread_hook_switch(sched_tcb_now, sched_tcb_next);
 #endif
   cpu_contex_switch();
 }
@@ -246,6 +246,7 @@ void sched_idle(void) {
 }
 
 void sched_init(void) {
+  m_idle_elapse = 0;
   m_idle_timeout = UINT32_MAX;
   m_prio_highest = 0;
   m_prio_bitmap = 0;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (c) 2015-2022 jiangxiaogang<kerndev@foxmail.com>
+ * Copyright (c) 2015-2023 jiangxiaogang<kerndev@foxmail.com>
  *
  * This file is part of KLite distribution.
  *
@@ -24,17 +24,48 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#ifndef __MPOOL_H
-#define __MPOOL_H
+#include "klite.h"
+#include "klite_internal.h"
+#if KLITE_CFG_HOOK_ENABLE
+#include "log.h"
 
-#include "kernel.h"
+__weak void kernel_hook_idle(void) {}
 
+__weak void kernel_hook_tick(uint32_t time) { (void)time; }
 
-typedef struct mpool *mpool_t;
+__weak void heap_hook_fault(uint32_t size) {
+  LOG_ERROR("heap alloc failed: size=%d", size);
+}
 
-mpool_t mpool_create(uint32_t block_size, uint32_t block_count);
-void mpool_delete(mpool_t mpool);
-void *mpool_alloc(mpool_t mpool);
-void mpool_free(mpool_t mpool, void *block);
+__weak void heap_hook_operation(void *addr1, void *addr2, uint32_t size,
+                                uint8_t op) {
+  (void)addr1;
+  (void)addr2;
+  (void)size;
+  (void)op;
+}
 
-#endif
+__weak void thread_hook_create(thread_t thread) { (void)thread; }
+
+__weak void thread_hook_delete(thread_t thread) { (void)thread; }
+
+__weak void thread_hook_suspend(thread_t thread) { (void)thread; }
+
+__weak void thread_hook_resume(thread_t thread) { (void)thread; }
+
+__weak void thread_hook_prio_change(thread_t thread, uint32_t prio) {
+  (void)thread;
+  (void)prio;
+}
+
+__weak void thread_hook_switch(thread_t from, thread_t to) {
+  (void)from;
+  (void)to;
+}
+
+__weak void thread_hook_sleep(thread_t thread, uint32_t time) {
+  (void)thread;
+  (void)time;
+}
+
+#endif  // KLITE_CFG_HOOK_ENABLE

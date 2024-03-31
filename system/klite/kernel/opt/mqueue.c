@@ -24,39 +24,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "queue.h"
+
+#include "klite.h"
+
+#if KLITE_CFG_OPT_MSG_QUEUE
 
 #include <string.h>
 
-#include "kernel.h"
-#include "list.h"
-#include "mpool.h"
+#include "klite_internal_list.h"
 
-struct queue_node {
-  struct queue_node *prev;
-  struct queue_node *next;
+struct msg_queue_node {
+  struct msg_queue_node *prev;
+  struct msg_queue_node *next;
   uint8_t data[4];
 };
 
-struct queue {
-  struct queue_node *head;
-  struct queue_node *tail;
+struct msg_queue {
+  struct msg_queue_node *head;
+  struct msg_queue_node *tail;
   sem_t sem;
   mutex_t mutex;
   mpool_t mpool;
   uint32_t size;
 };
 
-queue_t queue_create(uint32_t item_size, uint32_t queue_depth) {
-  queue_t queue;
-  queue = heap_alloc( sizeof(struct queue));
+msg_queue_t msg_queue_create(uint32_t item_size, uint32_t queue_depth) {
+  msg_queue_t queue;
+  queue = heap_alloc(sizeof(struct msg_queue));
   if (queue != NULL) {
-    memset(queue, 0, sizeof(struct queue));
+    memset(queue, 0, sizeof(struct msg_queue));
     queue->size = item_size;
     queue->sem = sem_create(0);
     queue->mutex = mutex_create();
     queue->mpool =
-        mpool_create(sizeof(struct queue_node) + item_size, queue_depth);
+        mpool_create(sizeof(struct msg_queue_node) + item_size, queue_depth);
     if (queue->mpool == NULL) {
       if (queue->mutex != NULL) {
         mutex_delete(queue->mutex);
@@ -64,25 +65,36 @@ queue_t queue_create(uint32_t item_size, uint32_t queue_depth) {
       if (queue->sem != NULL) {
         sem_delete(queue->sem);
       }
-      heap_free( queue);
+      heap_free(queue);
       return NULL;
     }
   }
   return queue;
 }
 
-void queue_delete(queue_t queue) {
+void msg_queue_delete(msg_queue_t queue) {
   mpool_delete(queue->mpool);
   mutex_delete(queue->mutex);
   sem_delete(queue->sem);
-  heap_free( queue);
+  heap_free(queue);
 }
 
-bool queue_send(queue_t queue, void *item, uint32_t timeout) {
-  struct queue_node *node;
+void msg_queue_clear(msg_queue_t queue) {
+  struct msg_queue_node *node;
+  while (sem_timed_wait(queue->sem, 0)) {
+    mutex_lock(queue->mutex);
+    node = queue->head;
+    list_remove(queue, node);
+    mutex_unlock(queue->mutex);
+    mpool_free(queue->mpool, node);
+  }
+}
+
+bool msg_queue_send(msg_queue_t queue, void *item, uint32_t timeout) {
+  struct msg_queue_node *node;
   node = mpool_alloc(queue->mpool);
   if (node != NULL) {
-    memset(node, 0, sizeof(struct queue_node));
+    memset(node, 0, sizeof(struct msg_queue_node));
     memcpy(node->data, item, queue->size);
     mutex_lock(queue->mutex);
     list_append(queue, node);
@@ -93,8 +105,8 @@ bool queue_send(queue_t queue, void *item, uint32_t timeout) {
   return false;
 }
 
-bool queue_recv(queue_t queue, void *item, uint32_t timeout) {
-  struct queue_node *node;
+bool msg_queue_recv(msg_queue_t queue, void *item, uint32_t timeout) {
+  struct msg_queue_node *node;
   if (sem_timed_wait(queue->sem, timeout)) {
     mutex_lock(queue->mutex);
     node = queue->head;
@@ -106,3 +118,5 @@ bool queue_recv(queue_t queue, void *item, uint32_t timeout) {
   }
   return false;
 }
+
+#endif  // KLITE_CFG_OPT_MSG_QUEUE

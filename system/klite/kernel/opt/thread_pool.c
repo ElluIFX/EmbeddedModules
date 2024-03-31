@@ -1,7 +1,10 @@
+#include "klite.h"
 
-#include "thread_pool.h"
+#if KLITE_CFG_OPT_THREAD_POOL
 
-#include "internal.h"
+#include <string.h>
+
+#include "klite_internal.h"
 
 #define THREAD_POOL_JOIN_TIME 100  // thread pool join waiting time
 
@@ -13,6 +16,8 @@ struct thread_pool_task {
   void *arg;                  /**< task callback function's arguments */
   struct thread_pool_task *next;
 };
+
+typedef struct thread_pool_task *thread_pool_task_t;
 
 /* thread pool struct */
 struct thread_pool {
@@ -209,3 +214,5 @@ static void thread_job(void *arg) {
     mutex_unlock(pool->queue_lock);
   }
 }
+
+#endif  // KLITE_CFG_OPT_THREAD_POOL

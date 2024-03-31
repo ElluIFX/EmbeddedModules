@@ -1,7 +1,7 @@
 mainmenu "Ellu's Modules"
 
 
-menu "System Configuration"
+menu "Global Configuration"
 
     choice
         prompt "Enable RTOS Support"
@@ -22,11 +22,15 @@ menu "System Configuration"
         prompt "System Time/Tick Provider"
         help
             Select the system time source that offers m_tick/m_time_* functions.
+        default MOD_CFG_TIME_MATHOD_KLITE if MOD_CFG_USE_OS_KLITE
         default MOD_CFG_TIME_MATHOD_PERF_COUNTER
         config MOD_CFG_TIME_MATHOD_HAL
             bool "ST HAL Library"
         config MOD_CFG_TIME_MATHOD_PERF_COUNTER
             bool "PerfCounter Library"
+        config MOD_CFG_TIME_MATHOD_KLITE
+            bool "KLite RTOS"
+            depends on MOD_CFG_USE_OS_KLITE
     endchoice
 
     choice
@@ -80,7 +84,7 @@ menu "System Configuration"
     endchoice
 
     config MOD_CFG_WFI_WHEN_SYSTEM_IDLE
-        bool "Use WFI when system is idle"
+        bool "Call WFI when system is idle"
         help
             If enabled, the system will enter WFI mode when there is no task to run.
             This will save power, but may cause some peripherals to stop working and avoid Debugger from connecting.

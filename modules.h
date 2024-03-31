@@ -38,6 +38,7 @@ extern "C" {
 // 时间获取方法(m_tick/m_time_*)
 #define MOD_CFG_TIME_MATHOD_HAL 0
 #define MOD_CFG_TIME_MATHOD_PERF_COUNTER 1
+#define MOD_CFG_TIME_MATHOD_KLITE 0
 
 // 延时方法(m_delay_*)
 #define MOD_CFG_DELAY_MATHOD_HAL 0
@@ -59,7 +60,7 @@ extern "C" {
 
 #if MOD_CFG_TIME_MATHOD_HAL
 typedef uint32_t m_time_t;
-#define m_time_t_max_value (UINT32_MAX)
+#define m_time_t_max (UINT32_MAX)
 #define init_module_timebase() ((void)0)
 #define m_time_ms() HAL_GetTick()
 #define m_time_us() (HAL_GetTick() * 1000)
@@ -67,21 +68,28 @@ typedef uint32_t m_time_t;
 #define m_time_s() (HAL_GetTick() / 1000)
 #define m_tick() HAL_GetTick()
 #define m_tick_clk (1000)
-#define m_tick_per_ms(type) ((type)1)
-#define m_tick_per_us(type) ((type)0.001)
 #elif MOD_CFG_TIME_MATHOD_PERF_COUNTER
 #include "perf_counter.h"
 typedef int64_t m_time_t;
-#define m_time_t_max_value (INT64_MAX)
+#define m_time_t_max (INT64_MAX)
 #define init_module_timebase() init_cycle_counter(1);
 #define m_time_ms() ((uint64_t)get_system_ms())
 #define m_time_us() ((uint64_t)get_system_us())
 #define m_time_ns() (((uint64_t)get_system_us()) * 1000)
 #define m_time_s() (((uint64_t)get_system_ms()) / 1000)
 #define m_tick() ((uint64_t)get_system_ticks())
-#define m_tick_clk (SystemCoreClock)
-#define m_tick_per_ms(type) ((type)SystemCoreClock / 1000)
-#define m_tick_per_us(type) ((type)SystemCoreClock / 1000000)
+#define m_tick_clk ((uint64_t)SystemCoreClock)
+#elif MOD_CFG_TIME_MATHOD_KLITE
+#include "klite.h"
+typedef uint64_t m_time_t;
+#define m_time_t_max (UINT64_MAX)
+#define init_module_timebase() ((void)0)
+#define m_time_ms() (kernel_ticks_to_ms(kernel_tick_count64()))
+#define m_time_us() (kernel_ticks_to_us(kernel_tick_count64()))
+#define m_time_ns() (m_time_us() * 1000)
+#define m_time_s() (m_time_ms() / 1000)
+#define m_tick() (kernel_tick_count64())
+#define m_tick_clk (KLITE_CFG_FREQ)
 #else
 #error "MOD_CFG_TIME_MATHOD invalid"
 #endif  // MOD_CFG_TIME_MATHOD
@@ -95,14 +103,14 @@ typedef int64_t m_time_t;
 #define m_delay_ms(x) delay_ms((x))
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif MOD_CFG_DELAY_MATHOD_KLITE  // klite
-#include "kernel.h"
-#define m_delay_us(x) thread_sleep((x) / (1000000U / KERNEL_CFG_FREQ))
-#if KERNEL_CFG_FREQ >= 1000
-#define m_delay_ms(x) thread_sleep((x) * (KERNEL_CFG_FREQ / 1000U))
+#include "klite.h"
+#define m_delay_us(x) thread_sleep((x) / (1000000U / KLITE_CFG_FREQ))
+#if KLITE_CFG_FREQ >= 1000
+#define m_delay_ms(x) thread_sleep((x) * (KLITE_CFG_FREQ / 1000U))
 #else
-#define m_delay_ms(x) thread_sleep((x) / (1000U / KERNEL_CFG_FREQ))
+#define m_delay_ms(x) thread_sleep((x) / (1000U / KLITE_CFG_FREQ))
 #endif
-#define m_delay_s(x) thread_sleep((x) * KERNEL_CFG_FREQ)
+#define m_delay_s(x) thread_sleep((x) * KLITE_CFG_FREQ)
 #elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"                // period = 1ms
 #include "task.h"
@@ -128,7 +136,7 @@ typedef int64_t m_time_t;
 #if MOD_CFG_HEAP_MATHOD_STDLIB  // stdlib
 #include "stdlib.h"
 // You should configure CubeMX instead of using this!
-#define init_module_heap(ptr, size) (YOU_SHOULD_CONFIGURE_CUBEMX_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_CONFIG_CUBEMX_INSTEAD)
 #define m_alloc(size) malloc(size)
 #define m_free(ptr) free(ptr)
 #define m_realloc(ptr, size) realloc(ptr, size)
@@ -144,16 +152,16 @@ typedef int64_t m_time_t;
 #define m_free(ptr) lwmem_free(ptr)
 #define m_realloc(ptr, size) lwmem_realloc(ptr, size)
 #elif MOD_CFG_HEAP_MATHOD_KLITE  // klite
-#include "kernel.h"
+#include "klite.h"
 // You should init klite instead of using this!
-#define init_module_heap(ptr, size) (YOU_SHOULD_INIT_KLITE_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_CONFIG_KLITE_INSTEAD)
 #define m_alloc(size) heap_alloc(size)
 #define m_free(ptr) heap_free((ptr))
 #define m_realloc(ptr, size) heap_realloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"
 // You should init freertos instead of using this!
-#define init_module_heap(ptr, size) (YOU_SHOULD_INIT_FREERTOS_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_CONFIG_FREERTOS_INSTEAD)
 #define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
@@ -166,7 +174,7 @@ typedef int64_t m_time_t;
 #elif MOD_CFG_HEAP_MATHOD_RTT  // rtthread
 #include "rtthread.h"
 // You should init rtthread instead of using this!
-#define init_module_heap(ptr, size) (YOU_SHOULD_INIT_RTTHREAD_INSTEAD)
+#define init_module_heap(ptr, size) (YOU_SHOULD_CONFIG_RTTHREAD_INSTEAD)
 #define m_alloc(size) rt_malloc(size)
 #define m_free(ptr) rt_free(ptr)
 #define m_realloc(ptr, size) rt_realloc(ptr, size)
@@ -221,7 +229,7 @@ static inline bool _MOD_SEM_TRY_TAKE(MOD_SEM_HANDLE *sem, uint32_t ms) {
 #define MOD_SEM_VALUE(sem) (sem)
 #define MOD_SEM_DELETE(sem) ((void)0)
 #elif MOD_CFG_USE_OS_KLITE  // klite
-#include "kernel.h"
+#include "klite.h"
 #define MOD_MUTEX_HANDLE mutex_t
 #define MOD_MUTEX_CREATE(name) mutex_create()
 #define MOD_MUTEX_ACQUIRE(mutex) mutex_lock(mutex)

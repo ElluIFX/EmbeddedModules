@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "kernel.h"
+#include "klite.h"
 
 #define NVIC_INT_CTRL (*((volatile uint32_t *)0xE000ED04))
 #define PEND_INT_SET (1 << 28)

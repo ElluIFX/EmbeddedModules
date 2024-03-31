@@ -24,8 +24,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "internal.h"
-#include "kernel.h"
+#include "klite.h"
+#include "klite_internal.h"
 
 struct cond {
   struct tcb_list list;
@@ -33,14 +33,14 @@ struct cond {
 
 cond_t cond_create(void) {
   struct cond *cond;
-  cond = heap_alloc( sizeof(struct cond));
+  cond = heap_alloc(sizeof(struct cond));
   if (cond != NULL) {
     memset(cond, 0, sizeof(struct cond));
   }
   return (cond_t)cond;
 }
 
-void cond_delete(cond_t cond) { heap_free( cond); }
+void cond_delete(cond_t cond) { heap_free(cond); }
 
 void cond_signal(cond_t cond) {
   cpu_enter_critical();

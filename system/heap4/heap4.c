@@ -66,7 +66,7 @@
 #define xTaskResumeAll() ((void)0)
 
 #if MOD_CFG_USE_OS_KLITE
-#include "kernel.h"
+#include "klite.h"
 #define taskENTER_CRITICAL() kernel_enter_critical()
 
 #define taskEXIT_CRITICAL() kernel_exit_critical()

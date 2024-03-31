@@ -49,9 +49,9 @@ typedef struct {              // FIFO串口发送控制结构体
   LFBB_Inst_Type lfbb;        // 发送缓冲区
   size_t sending;             // 正在发送的数据长度
   UART_HandleTypeDef *huart;  // 串口句柄
-// #if !MOD_CFG_USE_OS_NONE
-  MOD_MUTEX_HANDLE mutex;  // 互斥锁
-// #endif
+                              // #if !MOD_CFG_USE_OS_NONE
+  MOD_MUTEX_HANDLE mutex;     // 互斥锁
+  // #endif
 } uart_fifo_tx_t;
 
 static ulist_t fifo_tx_list = {
@@ -213,7 +213,7 @@ int uart_printf_block_ap(UART_HandleTypeDef *huart, const char *fmt,
 }
 
 int uart_printf_block(UART_HandleTypeDef *huart, const char *fmt, ...) {
-  if (unlikely(disable_uart_printf)) return 0;
+  if ((disable_uart_printf)) return 0;
   if (UART_CFG_NOT_READY) {
     HAL_UART_DMAStop(huart);
     HAL_UART_AbortTransmit_IT(huart);
@@ -226,7 +226,7 @@ int uart_printf_block(UART_HandleTypeDef *huart, const char *fmt, ...) {
 }
 
 int uart_printf(UART_HandleTypeDef *huart, const char *fmt, ...) {
-  if (unlikely(disable_uart_printf)) return 0;
+  if ((disable_uart_printf)) return 0;
   int sendLen;
   va_list ap;
 #if UART_CFG_ENABLE_FIFO_TX

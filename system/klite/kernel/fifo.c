@@ -24,23 +24,63 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#ifndef __FIFO_H
-#define __FIFO_H
+#include "klite_internal_fifo.h"
 
-#include "kernel.h"
+void fifo_init(fifo_t *fifo, void *buf, uint32_t size) {
+  fifo->buf = buf;
+  fifo->size = size;
+  fifo->rp = 0;
+  fifo->wp = 0;
+}
 
-typedef struct {
-  uint8_t *buf;
-  uint32_t size;
-  uint32_t wp;
-  uint32_t rp;
-} fifo_t;
+uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t size) {
+  uint32_t i;
+  for (i = 0; i < size; i++) {
+    if (fifo->rp == fifo->wp) {
+      break;
+    }
+    ((uint8_t *)buf)[i] = fifo->buf[fifo->rp++];
+    if (fifo->rp == fifo->size) {
+      fifo->rp = 0;
+    }
+  }
+  return i;
+}
 
-void fifo_init(fifo_t *fifo, void *buf, uint32_t size);
-uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t size);
-uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t size);
-void fifo_clear(fifo_t *fifo);
-uint32_t fifo_get_used(fifo_t *fifo);
-uint32_t fifo_get_free(fifo_t *fifo);
+uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t size) {
+  uint32_t i;
+  uint32_t pos;
+  for (i = 0; i < size; i++) {
+    pos = fifo->wp + 1;
+    if (pos == fifo->size) {
+      pos = 0;
+    }
+    if (pos == fifo->rp) {
+      break;
+    }
+    fifo->buf[fifo->wp] = ((uint8_t *)buf)[i];
+    fifo->wp = pos;
+  }
+  return i;
+}
 
-#endif
+void fifo_clear(fifo_t *fifo) {
+  fifo->wp = 0;
+  fifo->rp = 0;
+}
+
+uint32_t fifo_get_free(fifo_t *fifo) {
+  if (fifo->rp > fifo->wp) {
+    return fifo->rp - fifo->wp - 1;
+  } else {
+    return fifo->rp + fifo->size - fifo->wp;
+  }
+}
+
+uint32_t fifo_get_used(fifo_t *fifo) {
+  if (fifo->wp >= fifo->rp) {
+    return fifo->wp - fifo->rp;
+  } else {
+    return fifo->wp + fifo->size - fifo->rp;
+  }
+}
