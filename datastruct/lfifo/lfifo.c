@@ -9,32 +9,18 @@
  */
 #include "lfifo.h"
 
-#if LFIFO_CFG_DISABLE_ATOMIC
-#define FIFO_INIT(var, val) (var) = (val)
-#define FIFO_LOAD(var, type) (var)
-#define FIFO_STORE(var, val, type) (var) = (val)
-#define _FIFO_MEMORDER_ACQ 0
-#define _FIFO_MEMORDER_REL 0
-#define _FIFO_MEMORDER_RELEX 0
-#else
-#define FIFO_INIT(var, val) atomic_init(&(var), (val))
-#define FIFO_LOAD(var, type) atomic_load_explicit(&(var), (type))
-#define FIFO_STORE(var, val, type) atomic_store_explicit(&(var), (val), (type))
-#define _FIFO_MEMORDER_ACQ __ATOMIC_ACQUIRE
-#define _FIFO_MEMORDER_REL __ATOMIC_RELEASE
-#define _FIFO_MEMORDER_RELEX __ATOMIC_RELAXED
-#endif  // LFIFO_CFG_DISABLE_ATOMIC
+#include <string.h>  // memcpy
 
 #define _INLINE __attribute__((always_inline)) inline
 
-int LFifo_Init(lfifo_t *fifo, fifo_size_t size) {
+int LFifo_Init(lfifo_t *fifo, mod_size_t size) {
   fifo->buf = m_alloc(size + 1);
   if (fifo->buf == NULL) {
     return -1;
   }
   fifo->size = size + 1;
-  FIFO_INIT(fifo->wr, 0);
-  FIFO_INIT(fifo->rd, 0);
+  MOD_ATOMIC_INIT(fifo->wr, 0);
+  MOD_ATOMIC_INIT(fifo->rd, 0);
   return 0;
 }
 
@@ -42,23 +28,23 @@ void LFifo_Destory(lfifo_t *fifo) {
   m_free(fifo->buf);
   fifo->buf = NULL;
   fifo->size = 0;
-  FIFO_INIT(fifo->wr, 0);
-  FIFO_INIT(fifo->rd, 0);
+  MOD_ATOMIC_INIT(fifo->wr, 0);
+  MOD_ATOMIC_INIT(fifo->rd, 0);
 }
 
-void LFifo_AssignBuf(lfifo_t *fifo, uint8_t *buffer, fifo_size_t size) {
+void LFifo_AssignBuf(lfifo_t *fifo, uint8_t *buffer, mod_size_t size) {
   fifo->buf = buffer;
   fifo->size = size;
-  FIFO_INIT(fifo->wr, 0);
-  FIFO_INIT(fifo->rd, 0);
+  MOD_ATOMIC_INIT(fifo->wr, 0);
+  MOD_ATOMIC_INIT(fifo->rd, 0);
 }
 
-_INLINE fifo_size_t LFifo_GetSize(lfifo_t *fifo) {
+_INLINE mod_size_t LFifo_GetSize(lfifo_t *fifo) {
   if (fifo->size == 0) return 0;
   return fifo->size - 1;
 }
 
-_INLINE fifo_size_t LFifo_GetUsed(lfifo_t *fifo) {
+_INLINE mod_size_t LFifo_GetUsed(lfifo_t *fifo) {
   if (fifo->size == 0) return 0;
   if (fifo->wr >= fifo->rd) {
     return fifo->wr - fifo->rd;
@@ -67,7 +53,7 @@ _INLINE fifo_size_t LFifo_GetUsed(lfifo_t *fifo) {
   }
 }
 
-_INLINE fifo_size_t LFifo_GetFree(lfifo_t *fifo) {
+_INLINE mod_size_t LFifo_GetFree(lfifo_t *fifo) {
   if (fifo->size == 0) return 0;
   return fifo->size - LFifo_GetUsed(fifo) - 1;
 }
@@ -89,109 +75,109 @@ void LFifo_Clear(lfifo_t *fifo) {
   fifo->rd = 0;
 }
 
-fifo_size_t LFifo_Write(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
-  fifo_size_t free_size = LFifo_GetFree(fifo);
+mod_size_t LFifo_Write(lfifo_t *fifo, uint8_t *data, mod_size_t len) {
+  mod_size_t free_size = LFifo_GetFree(fifo);
   if (!free_size) return 0;
   if (len > free_size) len = free_size;
-  fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_ACQ);
-  fifo_size_t tocpy = len;
+  mod_size_t wr_t = MOD_ATOMIC_LOAD(fifo->wr, MOD_ATOMIC_ORDER_ACQUIRE);
+  mod_size_t tocpy = len;
   if (len > fifo->size - wr_t) tocpy = fifo->size - wr_t;
-  if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(&fifo->buf[wr_t], data, tocpy);
+  if (data != NULL) memcpy(&fifo->buf[wr_t], data, tocpy);
   wr_t += tocpy;
   data += tocpy;
   tocpy = len - tocpy;
   if (tocpy) {
-    if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(fifo->buf, data, tocpy);
+    if (data != NULL) memcpy(fifo->buf, data, tocpy);
     wr_t = tocpy;
   }
   wr_t %= fifo->size;
-  FIFO_STORE(fifo->wr, wr_t, _FIFO_MEMORDER_REL);
+  MOD_ATOMIC_STORE(fifo->wr, wr_t, MOD_ATOMIC_ORDER_RELEASE);
   return len;
 }
 
-fifo_size_t LFifo_Read(lfifo_t *fifo, uint8_t *data, fifo_size_t len) {
-  fifo_size_t used_size = LFifo_GetUsed(fifo);
+mod_size_t LFifo_Read(lfifo_t *fifo, uint8_t *data, mod_size_t len) {
+  mod_size_t used_size = LFifo_GetUsed(fifo);
   if (!used_size) return 0;
   if (len > used_size) len = used_size;
   if (data == NULL) {  // discard data
     fifo->rd = (fifo->rd + len) % fifo->size;
     return len;
   }
-  fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_ACQ);
-  fifo_size_t tocpy = len;
+  mod_size_t rd_t = MOD_ATOMIC_LOAD(fifo->rd, MOD_ATOMIC_ORDER_ACQUIRE);
+  mod_size_t tocpy = len;
   if (len > fifo->size - rd_t) tocpy = fifo->size - rd_t;
-  if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(data, &fifo->buf[rd_t], tocpy);
+  if (data != NULL) memcpy(data, &fifo->buf[rd_t], tocpy);
   rd_t += tocpy;
   data += tocpy;
   tocpy = len - tocpy;
   if (tocpy) {
-    if (data != NULL) LFIFO_CFG_MEMCPY_FUNC(data, fifo->buf, tocpy);
+    if (data != NULL) memcpy(data, fifo->buf, tocpy);
     rd_t = tocpy;
   }
   rd_t %= fifo->size;
-  FIFO_STORE(fifo->rd, rd_t, _FIFO_MEMORDER_REL);
+  MOD_ATOMIC_STORE(fifo->rd, rd_t, MOD_ATOMIC_ORDER_RELEASE);
   return len;
 }
 
-fifo_size_t LFifo_Peek(lfifo_t *fifo, fifo_size_t offset, uint8_t *data,
-                       fifo_size_t len) {
-  fifo_size_t used_size = LFifo_GetUsed(fifo);
+mod_size_t LFifo_Peek(lfifo_t *fifo, mod_size_t offset, uint8_t *data,
+                      mod_size_t len) {
+  mod_size_t used_size = LFifo_GetUsed(fifo);
   if (offset >= used_size) return 0;
   if (len + offset > used_size) len = used_size - offset;
-  fifo_size_t rd_t = (fifo->rd + offset) % fifo->size;
-  fifo_size_t tocpy = len;
+  mod_size_t rd_t = (fifo->rd + offset) % fifo->size;
+  mod_size_t tocpy = len;
   if (len > fifo->size - rd_t) tocpy = fifo->size - rd_t;
-  LFIFO_CFG_MEMCPY_FUNC(data, &fifo->buf[rd_t], tocpy);
+  memcpy(data, &fifo->buf[rd_t], tocpy);
   data += tocpy;
   tocpy = len - tocpy;
-  if (tocpy) LFIFO_CFG_MEMCPY_FUNC(data, fifo->buf, tocpy);
+  if (tocpy) memcpy(data, fifo->buf, tocpy);
   return len;
 }
 
 _INLINE int LFifo_WriteByte(lfifo_t *fifo, uint8_t data) {
   if (fifo->wr == (fifo->rd + fifo->size - 1) % fifo->size) return -1;
-  fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_ACQ);
+  mod_size_t wr_t = MOD_ATOMIC_LOAD(fifo->wr, MOD_ATOMIC_ORDER_ACQUIRE);
   fifo->buf[wr_t] = data;
   wr_t = (wr_t + 1) % fifo->size;
-  FIFO_STORE(fifo->wr, wr_t, _FIFO_MEMORDER_REL);
+  MOD_ATOMIC_STORE(fifo->wr, wr_t, MOD_ATOMIC_ORDER_RELEASE);
   return 0;
 }
 
 _INLINE int LFifo_ReadByte(lfifo_t *fifo) {
   if (fifo->wr == fifo->rd) return -1;
-  fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_ACQ);
+  mod_size_t rd_t = MOD_ATOMIC_LOAD(fifo->rd, MOD_ATOMIC_ORDER_ACQUIRE);
   uint8_t data = fifo->buf[rd_t];
   rd_t = (rd_t + 1) % fifo->size;
-  FIFO_STORE(fifo->rd, rd_t, _FIFO_MEMORDER_REL);
+  MOD_ATOMIC_STORE(fifo->rd, rd_t, MOD_ATOMIC_ORDER_RELEASE);
   return data;
 }
 
-_INLINE int LFifo_PeekByte(lfifo_t *fifo, fifo_size_t offset) {
+_INLINE int LFifo_PeekByte(lfifo_t *fifo, mod_size_t offset) {
   if (offset >= LFifo_GetUsed(fifo)) {
     return -1;
   }
   return fifo->buf[(fifo->rd + offset) % fifo->size];
 }
 
-uint8_t *LFifo_GetWritePtr(lfifo_t *fifo, fifo_offset_t offset) {
-  fifo_offset_t temp = (fifo_offset_t)fifo->wr + offset;
+uint8_t *LFifo_GetWritePtr(lfifo_t *fifo, mod_offset_t offset) {
+  mod_offset_t temp = (mod_offset_t)fifo->wr + offset;
   while (temp < 0) {
     temp += fifo->size;
   }
   return &fifo->buf[temp % fifo->size];
 }
 
-uint8_t *LFifo_GetReadPtr(lfifo_t *fifo, fifo_offset_t offset) {
-  fifo_offset_t temp = (fifo_offset_t)fifo->rd + offset;
+uint8_t *LFifo_GetReadPtr(lfifo_t *fifo, mod_offset_t offset) {
+  mod_offset_t temp = (mod_offset_t)fifo->rd + offset;
   while (temp < 0) {
     temp += fifo->size;
   }
   return &fifo->buf[temp % fifo->size];
 }
 
-fifo_offset_t LFifo_Find(lfifo_t *fifo, uint8_t *data, fifo_size_t len,
-                         fifo_size_t r_offset) {
-  fifo_size_t used, rd;
+mod_offset_t LFifo_Find(lfifo_t *fifo, uint8_t *data, mod_size_t len,
+                        mod_size_t r_offset) {
+  mod_size_t used, rd;
   uint8_t found;
   if (len == 0 || data == NULL || LFifo_GetUsed(fifo) == 0) {
     return -1;
@@ -201,12 +187,12 @@ fifo_offset_t LFifo_Find(lfifo_t *fifo, uint8_t *data, fifo_size_t len,
   if (used < (len + r_offset)) {
     return -1;
   }
-  for (fifo_size_t skip_x = r_offset; skip_x <= used - len; ++skip_x) {
+  for (mod_size_t skip_x = r_offset; skip_x <= used - len; ++skip_x) {
     found = 1;
     /* Prepare the starting point for reading */
     rd = (fifo->rd + skip_x) % fifo->size;
     /* Search in the buffer */
-    for (fifo_size_t i = 0; i < len; ++i) {
+    for (mod_size_t i = 0; i < len; ++i) {
       if (fifo->buf[rd] != data[i]) {
         found = 0;
         break;
@@ -218,13 +204,13 @@ fifo_offset_t LFifo_Find(lfifo_t *fifo, uint8_t *data, fifo_size_t len,
   return -1;
 }
 
-uint8_t *LFifo_AcquireLinearWrite(lfifo_t *fifo, fifo_size_t *len) {
+uint8_t *LFifo_AcquireLinearWrite(lfifo_t *fifo, mod_size_t *len) {
   if (LFifo_GetFree(fifo) == 0) {
     *len = 0;
     return NULL;
   }
-  fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_RELEX);
-  fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_RELEX);
+  mod_size_t wr_t = MOD_ATOMIC_LOAD(fifo->wr, MOD_ATOMIC_ORDER_RELAXED);
+  mod_size_t rd_t = MOD_ATOMIC_LOAD(fifo->rd, MOD_ATOMIC_ORDER_RELAXED);
   if (wr_t >= rd_t) {
     *len = fifo->size - wr_t;
   } else {
@@ -233,22 +219,22 @@ uint8_t *LFifo_AcquireLinearWrite(lfifo_t *fifo, fifo_size_t *len) {
   return &fifo->buf[wr_t];
 }
 
-void LFifo_ReleaseLinearWrite(lfifo_t *fifo, fifo_size_t len) {
+void LFifo_ReleaseLinearWrite(lfifo_t *fifo, mod_size_t len) {
   if (len == 0) return;
-  fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_ACQ);
+  mod_size_t wr_t = MOD_ATOMIC_LOAD(fifo->wr, MOD_ATOMIC_ORDER_ACQUIRE);
   wr_t += len;
   wr_t %= fifo->size;
-  FIFO_STORE(fifo->wr, wr_t, _FIFO_MEMORDER_REL);
+  MOD_ATOMIC_STORE(fifo->wr, wr_t, MOD_ATOMIC_ORDER_RELEASE);
 }
 
-uint8_t *LFifo_AcquireLinearRead(lfifo_t *fifo, fifo_size_t *len) {
-  fifo_size_t used = LFifo_GetUsed(fifo);
+uint8_t *LFifo_AcquireLinearRead(lfifo_t *fifo, mod_size_t *len) {
+  mod_size_t used = LFifo_GetUsed(fifo);
   if (used == 0) {
     *len = 0;
     return NULL;
   }
-  fifo_size_t wr_t = FIFO_LOAD(fifo->wr, _FIFO_MEMORDER_RELEX);
-  fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_RELEX);
+  mod_size_t wr_t = MOD_ATOMIC_LOAD(fifo->wr, MOD_ATOMIC_ORDER_RELAXED);
+  mod_size_t rd_t = MOD_ATOMIC_LOAD(fifo->rd, MOD_ATOMIC_ORDER_RELAXED);
   if (wr_t >= rd_t) {
     *len = wr_t - rd_t;
   } else {
@@ -257,10 +243,10 @@ uint8_t *LFifo_AcquireLinearRead(lfifo_t *fifo, fifo_size_t *len) {
   return &fifo->buf[rd_t];
 }
 
-void LFifo_ReleaseLinearRead(lfifo_t *fifo, fifo_size_t len) {
+void LFifo_ReleaseLinearRead(lfifo_t *fifo, mod_size_t len) {
   if (len == 0) return;
-  fifo_size_t rd_t = FIFO_LOAD(fifo->rd, _FIFO_MEMORDER_ACQ);
+  mod_size_t rd_t = MOD_ATOMIC_LOAD(fifo->rd, MOD_ATOMIC_ORDER_ACQUIRE);
   rd_t += len;
   rd_t %= fifo->size;
-  FIFO_STORE(fifo->rd, rd_t, _FIFO_MEMORDER_REL);
+  MOD_ATOMIC_STORE(fifo->rd, rd_t, MOD_ATOMIC_ORDER_RELEASE);
 }

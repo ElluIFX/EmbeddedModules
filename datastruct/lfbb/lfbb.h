@@ -46,28 +46,6 @@
 
 #include "modules.h"
 
-#if !KCONFIG_AVAILABLE
-
-#define LFBB_DISABLE_ATOMIC 0      // 禁用原子操作
-#define LFBB_CACHELINE_LENGTH 64U  // 缓存行长度
-#define LFBB_MULTICORE_HOSTED 0    // 多核主机
-
-#endif  // !KCONFIG_AVAILABLE
-
-#if LFBB_DISABLE_ATOMIC
-typedef size_t lfbb_atomic_size_t;
-#else
-#ifndef __cplusplus
-#include <stdalign.h>
-#include <stdatomic.h>
-#include <stdbool.h>
-typedef atomic_uint_fast32_t lfbb_atomic_size_t;
-#else
-#include <atomic>
-typedef std::atomic_uint_fast32_t lfbb_atomic_size_t;
-#endif  // __cplusplus
-#endif  // LFBB_DISABLE_ATOMIC
-
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -75,20 +53,13 @@ extern "C" {
 /*************************** TYPES ****************************/
 
 typedef struct {
-  size_t size;        /**< Size of the data array */
-  uint8_t *data;      /**< Pointer to the data array */
-  bool write_wrapped; /**< Write wrapped flag, used only in the producer */
-  bool read_wrapped;  /**< Read wrapped flag, used only in the consumer */
-#if LFBB_MULTICORE_HOSTED
-  alignas(LFBB_CACHELINE_LENGTH) lfbb_atomic_size_t r; /**< Read index */
-  alignas(LFBB_CACHELINE_LENGTH) lfbb_atomic_size_t w; /**< Write index */
-  alignas(LFBB_CACHELINE_LENGTH)
-      lfbb_atomic_size_t i; /**< Invalidated space index */
-#else
-  lfbb_atomic_size_t r; /**< Read index */
-  lfbb_atomic_size_t w; /**< Write index */
-  lfbb_atomic_size_t i; /**< Invalidated space index */
-#endif
+  size_t size;         /**< Size of the data array */
+  uint8_t *data;       /**< Pointer to the data array */
+  bool write_wrapped;  /**< Write wrapped flag, used only in the producer */
+  bool read_wrapped;   /**< Read wrapped flag, used only in the consumer */
+  mod_atomic_size_t r; /**< Read index */
+  mod_atomic_size_t w; /**< Write index */
+  mod_atomic_size_t i; /**< Invalidated space index */
 } LFBB_Inst_Type;
 
 /******************** FUNCTION PROTOTYPES *********************/

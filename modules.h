@@ -58,6 +58,8 @@ extern "C" {
 
 #endif  // KCONFIG_AVAILABLE
 
+#define MOD_CFG_OS_AVAILABLE (!MOD_CFG_USE_OS_NONE)
+
 #if MOD_CFG_TIME_MATHOD_HAL
 typedef uint32_t m_time_t;
 #define m_time_t_max (UINT32_MAX)
@@ -182,50 +184,19 @@ typedef uint64_t m_time_t;
 #endif
 
 #if MOD_CFG_USE_OS_NONE  // none
-#define MOD_MUTEX_HANDLE volatile uint8_t
-#define MOD_MUTEX_CREATE(name) (0)
-#define MOD_MUTEX_ACQUIRE(mutex) \
-  do {                           \
-    while (mutex)                \
-      ;                          \
-    mutex = 1;                   \
-  } while (0)
-static inline bool _MOD_MUTEX_TRY_ACQUIRE(MOD_MUTEX_HANDLE *mutex,
-                                          uint32_t ms) {
-  m_time_t start = m_time_ms();
-  while (*mutex) {
-    if (m_time_ms() - start > ms) {
-      return false;
-    }
-  }
-  *mutex = 1;
-  return true;
-}
-#define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) _MOD_MUTEX_TRY_ACQUIRE(&mutex, ms)
-#define MOD_MUTEX_RELEASE(mutex) mutex = 0
+#define MOD_MUTEX_HANDLE uint8_t
+#define MOD_MUTEX_CREATE(name) (1)
+#define MOD_MUTEX_ACQUIRE(mutex) ((void)0)
+#define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) (true)
+#define MOD_MUTEX_RELEASE(mutex) ((void)0)
 #define MOD_MUTEX_DELETE(mutex) ((void)0)
 
-#define MOD_SEM_HANDLE volatile uint8_t
-#define MOD_SEM_CREATE(name, init) (init)
-#define MOD_SEM_TAKE(sem) \
-  do {                    \
-    while (!sem)          \
-      ;                   \
-    sem--;                \
-  } while (0)
-static inline bool _MOD_SEM_TRY_TAKE(MOD_SEM_HANDLE *sem, uint32_t ms) {
-  m_time_t start = m_time_ms();
-  while (!*sem) {
-    if (m_time_ms() - start > ms) {
-      return false;
-    }
-  }
-  (*sem)--;
-  return true;
-}
-#define MOD_SEM_TRY_TAKE(sem, ms) _MOD_SEM_TRY_TAKE(&sem, ms)
-#define MOD_SEM_GIVE(sem) (sem++)
-#define MOD_SEM_VALUE(sem) (sem)
+#define MOD_SEM_HANDLE uint8_t
+#define MOD_SEM_CREATE(name, init) (1)
+#define MOD_SEM_TAKE(sem) ((void)0)
+#define MOD_SEM_TRY_TAKE(sem, ms) (true)
+#define MOD_SEM_GIVE(sem) ((void)0)
+#define MOD_SEM_VALUE(sem) ((void)0)
 #define MOD_SEM_DELETE(sem) ((void)0)
 #elif MOD_CFG_USE_OS_KLITE  // klite
 #include "klite.h"
@@ -280,6 +251,32 @@ static inline bool _MOD_SEM_TRY_TAKE(MOD_SEM_HANDLE *sem, uint32_t ms) {
 #define MOD_SEM_DELETE(sem) rt_sem_delete(sem)
 #else
 #error "MOD_CFG_USE_OS invalid"
+#endif
+
+typedef uint32_t mod_size_t;
+typedef int32_t mod_offset_t;
+
+#if MOD_CFG_ENABLE_ATOMIC
+#include <stdalign.h>
+#include <stdatomic.h>
+typedef atomic_uint_fast32_t mod_atomic_size_t;
+typedef atomic_int_fast32_t mod_atomic_offset_t;
+#define MOD_ATOMIC_INIT(var, val) atomic_init(&(var), (val))
+#define MOD_ATOMIC_LOAD(var, type) atomic_load_explicit(&(var), (type))
+#define MOD_ATOMIC_STORE(var, val, type) \
+  atomic_store_explicit(&(var), (val), (type))
+#define MOD_ATOMIC_ORDER_ACQUIRE __ATOMIC_ACQUIRE
+#define MOD_ATOMIC_ORDER_RELEASE __ATOMIC_RELEASE
+#define MOD_ATOMIC_ORDER_RELAXED __ATOMIC_RELAXED
+#else
+typedef uint32_t mod_atomic_size_t;
+typedef int32_t mod_atomic_offset_t;
+#define MOD_ATOMIC_INIT(var, val) (var) = (val)
+#define MOD_ATOMIC_LOAD(var, type) (var)
+#define MOD_ATOMIC_STORE(var, val, type) (var) = (val)
+#define MOD_ATOMIC_ORDER_ACQUIRE 0
+#define MOD_ATOMIC_ORDER_RELEASE 0
+#define MOD_ATOMIC_ORDER_RELAXED 0
 #endif
 
 #ifndef __has_include

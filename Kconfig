@@ -83,6 +83,16 @@ menu "Global Configuration"
             depends on MOD_CFG_USE_OS_FREERTOS
     endchoice
 
+    config MOD_CFG_ENABLE_ATOMIC
+        bool "Enable Atomic Operations Support"
+        help
+            If enabled, the atomic operations will be used to protect critical sections.
+            This will make the system more stable, but may cause some performance loss.
+            May not be available on some platforms like Cortex-M0.
+        default n if MOD_CFG_USE_OS_NONE
+        default y
+
+
     config MOD_CFG_WFI_WHEN_SYSTEM_IDLE
         bool "Call WFI when system is idle"
         help
@@ -90,6 +100,7 @@ menu "Global Configuration"
             This will save power, but may cause some peripherals to stop working and avoid Debugger from connecting.
             Effects KLite RTOS and Scheduler by now.
         default n
+
 endmenu
 
 # Sub-Modules

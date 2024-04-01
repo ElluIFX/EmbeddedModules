@@ -25,52 +25,44 @@
  * SOFTWARE.
  ******************************************************************************/
 #include "klite.h"
-// #error "Include CMSIS based device header here!"
-#include "main.h"
-static uint32_t m_sys_nesting;
 
-void cpu_enter_critical(void) {
-  __disable_irq();
-  m_sys_nesting++;
-}
-
-void cpu_leave_critical(void) {
-  if (m_sys_nesting == 0) return;
-  m_sys_nesting--;
-  if (!m_sys_nesting) __enable_irq();
-}
-
-void cpu_sys_init(void) {
-  cpu_enter_critical();
-  NVIC_SetPriority(PendSV_IRQn, 255);
-  NVIC_SetPriority(SysTick_IRQn, 255);
-}
-
-void cpu_sys_start(void) {
-  SystemCoreClockUpdate();
-  SysTick_Config(SystemCoreClock / KLITE_CFG_FREQ);
-  cpu_leave_critical();
-}
-
-void cpu_sys_sleep(klite_tick_t time) {
-// Call wfi() can enter low power mode
-// But SysTick may be stopped after call wfi() on some device.
-#if MOD_CFG_WFI_WHEN_SYSTEM_IDLE
-  __wfi();
+#if (defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_7M__) || \
+     defined(__ARM_ARCH_7EM) || defined(__ARM_ARCH_4T__) ||   \
+     defined(__ARM_ARCH_4T))
+#define CORTEX_M4_7 1
 #endif
-}
 
-extern __IO uint32_t uwTick;
-void SysTick_Handler(void) {
-  kernel_tick(1);
+#define NVIC_INT_CTRL (*((volatile uint32_t *)0xE000ED04))
+#define PEND_INT_SET (1 << 28)
 
-#if KLITE_CFG_FREQ >= 1000
-  static uint32_t tick_scaler = 0;
-  if (++tick_scaler >= (KLITE_CFG_FREQ / 1000)) {  // us -> ms
-    uwTick++;                                      // for HAL_Delay()
-    tick_scaler = 0;
-  }
-#else
-  uwTick += 1000 / KLITE_CFG_FREQ;
+void cpu_contex_switch(void) { NVIC_INT_CTRL = PEND_INT_SET; }
+
+void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg,
+                      void *exit) {
+  uint32_t *sp;
+  sp = (uint32_t *)(((uint32_t)stack_top) & 0xFFFFFFF8);
+  *(--sp) = 0x01000000;       // xPSR
+  *(--sp) = (uint32_t)entry;  // PC
+  *(--sp) = (uint32_t)exit;   // R14(LR)
+  *(--sp) = 0;                // R12
+  *(--sp) = 0;                // R3
+  *(--sp) = 0;                // R2
+  *(--sp) = 0;                // R1
+  *(--sp) = (uint32_t)arg;    // R0
+
+#if CORTEX_M4_7
+  *(--sp) = 0xFFFFFFF9;  // LR(EXC_RETURN)
 #endif
+
+  // cortex-m3/4/7: R11, R10, R9, R8, R7, R6, R5, R4
+  // cortex-m0:     R7, R6, R5, R4, R11, R10, R9, R8
+  *(--sp) = 0;
+  *(--sp) = 0;
+  *(--sp) = 0;
+  *(--sp) = 0;
+  *(--sp) = 0;
+  *(--sp) = 0;
+  *(--sp) = 0;
+  *(--sp) = 0;
+  return sp;
 }

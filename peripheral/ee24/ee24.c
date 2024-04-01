@@ -23,17 +23,13 @@
 ************************************************************************************************************/
 
 static void EE24_Lock(EE24_HandleTypeDef *Handle) {
-#if !MOD_CFG_USE_OS_NONE
   MOD_MUTEX_ACQUIRE(Handle->Mutex);
-#endif
 }
 
 /***********************************************************************************************************/
 
 static void EE24_UnLock(EE24_HandleTypeDef *Handle) {
-#if !MOD_CFG_USE_OS_NONE
   MOD_MUTEX_RELEASE(Handle->Mutex);
-#endif
 }
 
 /************************************************************************************************************

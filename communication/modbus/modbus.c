@@ -1,6 +1,8 @@
 #include "modbus.h"
 
-#include <log.h>
+#include <string.h>
+
+#include "log.h"
 
 #define MODBUS_DEBUG(x) LOG_DEBUG x
 #define MODBUS_DELAY_DEBUG(x) LOG_DEBUG x

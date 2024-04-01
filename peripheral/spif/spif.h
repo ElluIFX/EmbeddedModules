@@ -137,9 +137,7 @@ typedef struct {
   uint32_t PageCnt;
   uint32_t SectorCnt;
   uint32_t BlockCnt;
-#if !MOD_CFG_USE_OS_NONE
   MOD_MUTEX_HANDLE Mutex;
-#endif
 } SPIF_HandleTypeDef;
 
 /***********************************************************************************************************/

@@ -22,7 +22,6 @@
 #define _udict_realloc m_realloc
 #define _udict_memcmp memcmp
 
-#if !MOD_CFG_USE_OS_NONE
 #define UDICT_LOCK()                                           \
   {                                                            \
     if (!dict->mutex) dict->mutex = MOD_MUTEX_CREATE("udict"); \
@@ -30,10 +29,6 @@
   }
 #define UDICT_UNLOCK() \
   { MOD_MUTEX_RELEASE(dict->mutex); }
-#else
-#define UDICT_LOCK() ((void)0)
-#define UDICT_UNLOCK() ((void)0)
-#endif
 #define UDICT_UNLOCK_RET(x) \
   {                         \
     UDICT_UNLOCK();         \
@@ -82,9 +77,7 @@ bool udict_init(UDICT dict) {
   dict->size = 0;
   dict->iter = 0;
   dict->dyn = false;
-#if !MOD_CFG_USE_OS_NONE
   dict->mutex = MOD_MUTEX_CREATE("udict");
-#endif
   return true;
 }
 
@@ -110,9 +103,7 @@ void udict_clear(UDICT dict) {
 
 void udict_free(UDICT dict) {
   ulist_free(&dict->nodes);
-#if !MOD_CFG_USE_OS_NONE
   if (dict->mutex) MOD_MUTEX_DELETE(dict->mutex);
-#endif
   if (dict->dyn) _udict_free(dict);
 }
 

@@ -32,7 +32,6 @@
   }
 #endif
 
-#if !MOD_CFG_USE_OS_NONE
 #define ULIST_LOCK()                                             \
   {                                                              \
     if (!(list->cfg & ULIST_CFG_NO_MUTEX)) {                     \
@@ -46,10 +45,6 @@
       MOD_MUTEX_RELEASE(list->mutex);        \
     }                                        \
   }
-#else
-#define ULIST_LOCK() ((void)0)
-#define ULIST_UNLOCK() ((void)0)
-#endif
 #define ULIST_UNLOCK_RET(x) \
   {                         \
     ULIST_UNLOCK();         \
@@ -193,12 +188,10 @@ bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
     }
     list->num = init_size;
   }
-#if !MOD_CFG_USE_OS_NONE
   if (!(list->cfg & ULIST_CFG_NO_MUTEX))
     list->mutex = MOD_MUTEX_CREATE("ulist");
   else
     list->mutex = NULL;
-#endif
   return true;
 }
 
@@ -225,9 +218,7 @@ void ulist_free(ULIST list) {
   if (list->data != NULL) {
     _ulist_free(list->data);
   }
-#if !MOD_CFG_USE_OS_NONE
   if (list->mutex) MOD_MUTEX_DELETE(list->mutex);
-#endif
   if (list->dyn) _ulist_free(list);
 }
 

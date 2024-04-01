@@ -1,9 +1,6 @@
 #include "scheduler_internal.h"
 
-/**
- * @brief 利用Systick中断配合WFI实现低功耗延时
- * @param  us 延时时间(us)
- */
+#if MOD_CFG_WFI_WHEN_SYSTEM_IDLE && !MOD_CFG_OS_AVAILABLE
 static void SysTick_Sleep(uint32_t us) {
   SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
   uint32_t load = SysTick->LOAD;   // 保存原本的重装载值
@@ -18,10 +15,11 @@ static void SysTick_Sleep(uint32_t us) {
   SysTick->VAL = val;
   SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
 }
+#endif
 
 __weak void scheduler_idle_handler(uint64_t idleTimeUs) {
   if (idleTimeUs > 1000) idleTimeUs = 1000;  // 最多休眠1ms以保证事件的及时响应
-#if !MOD_CFG_USE_OS_NONE
+#if MOD_CFG_OS_AVAILABLE
   m_delay_us(idleTimeUs);
 #else  // 关闭CPU
 #if MOD_CFG_WFI_WHEN_SYSTEM_IDLE

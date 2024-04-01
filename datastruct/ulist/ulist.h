@@ -25,17 +25,15 @@ typedef int32_t ulist_offset_t;
 
 #pragma pack(1)
 typedef struct {
-  void* data;             // 数据缓冲区
-  ulist_size_t num;       // 列表内元素个数
-  ulist_size_t cap;       // 缓冲区容量(元素个数)
-  ulist_size_t isize;     // 元素大小(字节)
-  ulist_offset_t iter;    // 迭代器位置(<0:未初始化)
-  uint8_t cfg;            // 配置
-  bool dyn;               // 是否动态分配
-  void (*elfree)(void*);  // 元素释放函数
-#if !MOD_CFG_USE_OS_NONE
+  void* data;              // 数据缓冲区
+  ulist_size_t num;        // 列表内元素个数
+  ulist_size_t cap;        // 缓冲区容量(元素个数)
+  ulist_size_t isize;      // 元素大小(字节)
+  ulist_offset_t iter;     // 迭代器位置(<0:未初始化)
+  uint8_t cfg;             // 配置
+  bool dyn;                // 是否动态分配
+  void (*elfree)(void*);   // 元素释放函数
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
-#endif
 } ulist_t;
 typedef ulist_t* ULIST;
 

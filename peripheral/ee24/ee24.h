@@ -80,9 +80,7 @@ typedef struct {
   GPIO_TypeDef *WpGpio;
   uint16_t WpPin;
 #endif
-#if !MOD_CFG_USE_OS_NONE
   MOD_MUTEX_HANDLE Mutex;
-#endif
 } EE24_HandleTypeDef;
 
 /************************************************************************************************************

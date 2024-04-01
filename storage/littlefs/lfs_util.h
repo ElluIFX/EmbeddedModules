@@ -35,7 +35,7 @@
 #define LFS_MALLOC(size) m_alloc(size)
 #define LFS_FREE(ptr) m_free(ptr)
 
-#if !MOD_CFG_USE_OS_NONE
+#if MOD_CFG_OS_AVAILABLE
 #define LFS_THREADSAFE 1
 #endif
 

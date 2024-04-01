@@ -37,7 +37,7 @@
 #define __weak __attribute__((weak))
 #endif
 
-#define STACK_MAGIC_VALUE 0xCC
+#define STACK_MAGIC_VALUE 0xAC
 
 struct tcb_list {
   struct tcb_node *head;

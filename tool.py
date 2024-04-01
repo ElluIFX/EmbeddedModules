@@ -25,6 +25,9 @@ LOGO = rf"""
   \/_/  \/_/   \/_____/   \/____/   \/_____/   \/_____/   \/_____/   \/_____/
 {C0}"""
 
+if __name__ == "__main__":
+    print(LOGO)
+
 
 def log(level, text):
     # Log level colors
@@ -78,7 +81,6 @@ except ImportError:
     install_package("kconfiglib")
     from kconfiglib import Kconfig
     from menuconfig import menuconfig as Kmenuconfig
-
 
 C_FILE_TEMP = """/**
  * @file &&&FILE_NAME&&&.c
@@ -184,11 +186,11 @@ def module_wizard():
         from rich.table import Table
     except ImportError:
         install_package("rich")
-        from rich.console import Console
+        from rich.console import Console  # noqa: F401
         from rich.prompt import Confirm, Prompt
         from rich.table import Table
-
     module_root = os.path.dirname(os.path.abspath(__file__))
+
     con = Console()
 
     con.print(f"[blue]Module root: [green]{module_root}")
@@ -375,9 +377,17 @@ def menuconfig(kconfig_file, config_file, header_file, output_dir):
     log("success", "menuconfig success")
 
 
-if __name__ == "__main__":
-    print(LOGO)
+def pull_latest():
+    addr = "https://github.com/ElluIFX/EmbeddedModules"
+    log("info", f"pulling latest version from {addr}")
+    ret = os.system(f"git pull {addr} --quiet")
+    if ret != 0:
+        log("error", "pull failed, check your network connection")
+        exit(1)
+    log("success", "pull success")
 
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "-m", "--menuconfig", action="store_true", help="Run menuconfig"
@@ -393,6 +403,12 @@ if __name__ == "__main__":
         "--generate",
         action="store_true",
         help="Generate header file without menuconfig",
+    )
+    parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="Pull the latest version of the tool from github",
     )
     parser.add_argument(
         "-k",
@@ -431,6 +447,8 @@ if __name__ == "__main__":
         makeconfig(args.kconfig, args.config, HEADER_FILE, args.output_dir)
     elif args.newmodule:
         module_wizard()
+    elif args.update:
+        pull_latest()
     else:
         parser.print_help()
         exit(1)
