@@ -1,7 +1,8 @@
 #include "klite.h"
-#include "klite_api.h"
 
 #if KLITE_CFG_INTERFACE_ENABLE
+#include "klite_api.h"
+
 const klite_api_t klite = {
     .kernel.init = kernel_init,
     .kernel.start = kernel_start,
