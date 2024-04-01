@@ -106,7 +106,7 @@ uint32_t event_flags_wait(event_flags_t flags, uint32_t bits, uint32_t ops) {
 }
 
 uint32_t event_flags_timed_wait(event_flags_t flags, uint32_t bits,
-                                uint32_t ops, uint32_t timeout) {
+                                    uint32_t ops, klite_tick_t timeout) {
   uint32_t ret;
   mutex_lock(flags->mutex);
   while (1) {
@@ -119,6 +119,5 @@ uint32_t event_flags_timed_wait(event_flags_t flags, uint32_t bits,
   mutex_unlock(flags->mutex);
   return ret;
 }
-
 
 #endif  // KLITE_CFG_OPT_EVENT_FLAGS

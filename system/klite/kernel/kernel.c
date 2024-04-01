@@ -64,7 +64,7 @@ void kernel_idle_thread(void* args) {
   }
 }
 
-uint32_t kernel_idle_time(void) {
+klite_tick_t kernel_idle_time(void) {
   return m_idle_thread ? thread_time(m_idle_thread) : 0;
 }
 
@@ -83,7 +83,7 @@ void kernel_tick(uint32_t time) {
   cpu_leave_critical();
 }
 
-uint32_t kernel_tick_count(void) { return (uint32_t)m_tick_count; }
+klite_tick_t kernel_tick_count(void) { return (klite_tick_t)m_tick_count; }
 
 uint64_t kernel_tick_count64(void) { return m_tick_count; }
 

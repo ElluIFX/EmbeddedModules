@@ -31,7 +31,7 @@
 
 __weak void kernel_hook_idle(void) {}
 
-__weak void kernel_hook_tick(uint32_t time) { (void)time; }
+__weak void kernel_hook_tick(klite_tick_t time) { (void)time; }
 
 __weak void heap_hook_fault(uint32_t size) {
   LOG_ERROR("heap alloc failed: size=%d", size);
@@ -63,7 +63,7 @@ __weak void thread_hook_switch(thread_t from, thread_t to) {
   (void)to;
 }
 
-__weak void thread_hook_sleep(thread_t thread, uint32_t time) {
+__weak void thread_hook_sleep(thread_t thread, klite_tick_t time) {
   (void)thread;
   (void)time;
 }

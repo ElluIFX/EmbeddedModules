@@ -53,7 +53,7 @@ void cpu_sys_start(void) {
   cpu_leave_critical();
 }
 
-void cpu_sys_sleep(uint32_t time) {
+void cpu_sys_sleep(klite_tick_t time) {
   // Call wfi() can enter low power mode
   // But SysTick may be stopped after call wfi() on some device.
 #if MOD_CFG_WFI_WHEN_SYSTEM_IDLE

@@ -241,13 +241,13 @@ void ll_i2c_combine_irq(I2C_TypeDef* i2c) {
  * @param  addr 从机地址
  * @param  reload 是否启用重载(有下一次连续传输)
  * @param  stop   是否发送STOP条件
- * @param  is_tx  传输方向为发送
+ * @param  wr  传输方向为发送
  * @param  buf 数据缓冲区
  * @param  len 数据长度
  * @retval  0:成功 -1:超时 -2:仲裁丢失 -3:NACK -4:错误
  */
 static int i2c_transfer(I2C_TypeDef* i2c, uint8_t addr, bool reload, bool stop,
-                        bool is_tx, uint8_t* buf, uint32_t len) {
+                        bool wr, uint8_t* buf, uint32_t len) {
   if (!buf || !len) {
     return false;
   }
@@ -258,15 +258,15 @@ static int i2c_transfer(I2C_TypeDef* i2c, uint8_t addr, bool reload, bool stop,
 
   reset_iface(iface);
 
-  // iface->is_tx = is_tx; // not used
+  // iface->wr = wr; // not used
   iface->stop = stop;
   iface->len = len;
   iface->buf = buf;
 
   i2c_transfer_init(i2c, len, addr,
-                    is_tx ? LL_I2C_REQUEST_WRITE : LL_I2C_REQUEST_READ, reload);
+                    wr ? LL_I2C_REQUEST_WRITE : LL_I2C_REQUEST_READ, reload);
   i2c_enable_transfer_interrupts(i2c);
-  if (is_tx) {
+  if (wr) {
     LL_I2C_EnableIT_TX(i2c); /* Enable TX interrupt */
   } else {
     LL_I2C_EnableIT_RX(i2c); /* Enable RX interrupt */
@@ -425,7 +425,7 @@ bool ll_i2c_internal_transfer(I2C_TypeDef* i2c, uint8_t addr, ll_i2c_msg_t* msg,
     do {
       act_len = data_len > STM32_I2C_MAX_SIZE ? STM32_I2C_MAX_SIZE : data_len;
       data_len -= act_len;
-      if (0 != i2c_transfer(i2c, addr, data_len > 0, stop, msg[i].is_tx, data,
+      if (0 != i2c_transfer(i2c, addr, data_len > 0, stop, msg[i].wr, data,
                             act_len)) {
         goto error;
       }

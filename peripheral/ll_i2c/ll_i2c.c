@@ -20,7 +20,7 @@
 #if LL_IIC_CFG_CONVERT_7BIT_ADDR
 #define SLAVEADDR(addr) ((addr) << 1)
 #else
-#define SLAVEADDR(addr) (addr)
+#define SLAVEADDR(addr) ((addr) & 0xFE)
 #endif
 
 void ll_i2c_internal_init(I2C_TypeDef* i2c);

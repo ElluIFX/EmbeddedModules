@@ -450,40 +450,7 @@ void coroutine_main(__async__, void *args) {
 > [!NOTE]
 > 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含AWAIT/YIELD，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
 
-13. `ASYNC_RELEASE_MUTEX(mutex_name)`
-
-    + 功能：释放互斥锁，立即返回。
-    + 参数：
-      + `mutex_name`：互斥锁名。
-    + 警告：释放互斥锁时不会检查操作者是否是锁的所有者，允许强制释放。
-
-14. `AWAIT_BARRIER(barr_name)`
-
-    + 功能：阻塞等待屏障。
-    + 参数：
-      + `barr_name`：屏障名。
-
-> [!NOTE]
-> 屏障是一种同步机制，它可以让多个协程在某个点上同步，当到达屏障点的协程个数达到目标时，所有协程同时被唤醒。
->
-> 屏障刚建立时目标值为0xffff，调用`sch_cortn_set_barrier_target`来修改目标值，当目标值为0时，屏障失效。
-
-15. `ASYNC_RELEASE_BARRIER(barr_name)`
-
-    + 功能：手动释放屏障，立即返回。
-    + 参数：
-      + `barr_name`：屏障名。
-    + 等价：`sch_cortn_release_barrier`
-
-16. `ASYNC_SET_BARRIER_TARGET(barr_name, target)`
-
-    + 功能：设置屏障目标值。
-    + 参数：
-      + `barr_name`：屏障名。
-      + `target`：目标值。
-    + 等价：`sch_cortn_set_barrier_target`
-
-17. `ASYNC_RUN(name, func, args)`
+13. `ASYNC_RUN(name, func, args)`
 
     + 功能：创建并异步运行一个协程，立即返回。
     + 参数：
@@ -492,7 +459,7 @@ void coroutine_main(__async__, void *args) {
       + `args`：协程参数指针。
     + 等价：`sch_cortn_run`
 
-18. `AWAIT_JOIN(name)`
+14. `AWAIT_JOIN(name)`
 
     + 功能：阻塞等待一个协程结束。
     + 参数：
@@ -550,31 +517,6 @@ uint8_t sch_cortn_send_msg(const char *name, void *msg)
   + `name`：协程名。
   + `msg`：消息指针。
 + 警告: 该函数是异步的，需要注意消息的生命周期，禁止传递临时数据指针。
-
-```C
-uint8_t sch_cortn_release_barrier(const char *name)
-```
-
-+ 功能：手动释放协程屏障。
-+ 返回：1：成功，0：失败（屏障未建立）。
-
-```C
-uint16_t sch_cortn_get_barrier_num(const char *name)
-```
-
-+ 功能：获取协程屏障等待数量。
-+ 返回：等待数量。
-
-```C
-uint8_t sch_cortn_set_barrier_target(const char *name, uint16_t target)
-```
-
-+ 功能：设置协程屏障目标值。
-+ 返回：1：成功，0：失败。
-+ 参数：
-  + `name`：协程名。
-  + `target`：目标值。
-+ 注意：当目标值为0时，屏障失效。
 
 ### 5.5. 延时调用 ([`scheduler_runlater.h`](scheduler_runlater.h))
 

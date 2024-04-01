@@ -104,22 +104,6 @@ extern "C" {
 #define ASYNC_RELEASE_MUTEX(mutex_name) __cortn_internal_rel_mutex(mutex_name)
 
 /**
- * @brief 等待屏障, 阻塞直至屏障解除
- */
-#define AWAIT_BARRIER(barr_name) __AWAIT_BARRIER(barr_name)
-
-/**
- * @brief 手动释放屏障, 立即返回
- */
-#define ASYNC_RELEASE_BARRIER(barr_name) sch_cortn_release_barrier(barr_name)
-
-/**
- * @brief 设置屏障目标协程数量
- */
-#define ASYNC_SET_BARRIER_TARGET(barr_name, target) \
-  sch_cortn_set_barrier_target(barr_name, target)
-
-/**
  * @brief 运行一个协程
  * @param  name             协程名
  * @param  func             任务函数指针
@@ -161,27 +145,6 @@ extern uint8_t sch_cortn_get_waiting_msg(const char *name);
  * @retval uint8_t          是否成功
  */
 extern uint8_t sch_cortn_send_msg(const char *name, void *msg);
-
-/**
- * @brief 手动释放一个屏障
- * @param  name            屏障名
- * @retval uint8_t         是否成功
- */
-extern uint8_t sch_cortn_release_barrier(const char *name);
-
-/**
- * @brief 获取指定屏障等待协程数量
- * @param  name            屏障名
- * @retval uint16_t        等待数量
- */
-extern uint16_t sch_cortn_get_barrier_num(const char *name);
-
-/**
- * @brief 设置指定屏障目标协程数量
- * @param  name            屏障名
- * @param  target          目标数量
- */
-extern uint8_t sch_cortn_set_barrier_target(const char *name, uint16_t target);
 
 #endif  // SCH_CFG_ENABLE_COROUTINE
 #ifdef __cplusplus

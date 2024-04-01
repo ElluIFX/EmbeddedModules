@@ -24,63 +24,59 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite_internal_fifo.h"
+#include "klite.h"
 
-void fifo_init(fifo_t *fifo, void *buf, uint32_t size) {
-  fifo->buf = buf;
-  fifo->size = size;
-  fifo->rp = 0;
-  fifo->wp = 0;
-}
+#if KLITE_CFG_OPT_BARRIER
 
-uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t size) {
-  uint32_t i;
-  for (i = 0; i < size; i++) {
-    if (fifo->rp == fifo->wp) {
-      break;
-    }
-    ((uint8_t *)buf)[i] = fifo->buf[fifo->rp++];
-    if (fifo->rp == fifo->size) {
-      fifo->rp = 0;
-    }
+#include "klite_internal.h"
+
+struct barrier {
+  struct tcb_list list;
+  uint32_t value;
+  uint32_t target;
+};
+
+barrier_t barrier_create(uint32_t target) {
+  struct barrier *barrier;
+  barrier = heap_alloc(sizeof(struct barrier));
+  if (barrier != NULL) {
+    memset(barrier, 0, sizeof(struct barrier));
+    barrier->target = target;
+    barrier->value = 0;
   }
-  return i;
+  return (barrier_t)barrier;
 }
 
-uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t size) {
-  uint32_t i;
-  uint32_t pos;
-  for (i = 0; i < size; i++) {
-    pos = fifo->wp + 1;
-    if (pos == fifo->size) {
-      pos = 0;
-    }
-    if (pos == fifo->rp) {
-      break;
-    }
-    fifo->buf[fifo->wp] = ((uint8_t *)buf)[i];
-    fifo->wp = pos;
+void barrier_delete(barrier_t barrier) { heap_free(barrier); }
+
+static bool barrier_check(struct barrier *barrier) {
+  if (barrier->value >= barrier->target) {
+    barrier->value = 0;
+    while (sched_tcb_wake_from(&barrier->list))
+      ;
+    sched_preempt(false);
+    return true;
   }
-  return i;
+  return false;
 }
 
-void fifo_clear(fifo_t *fifo) {
-  fifo->wp = 0;
-  fifo->rp = 0;
+void barrier_set(barrier_t barrier, uint32_t target) {
+  cpu_enter_critical();
+  barrier->target = target;
+  barrier_check(barrier);
+  cpu_leave_critical();
 }
 
-uint32_t fifo_get_free(fifo_t *fifo) {
-  if (fifo->rp > fifo->wp) {
-    return fifo->rp - fifo->wp - 1;
-  } else {
-    return fifo->rp + fifo->size - fifo->wp;
+uint32_t barrier_get(barrier_t barrier) { return barrier->value; }
+
+void barrier_wait(barrier_t barrier) {
+  cpu_enter_critical();
+  barrier->value++;
+  if (!barrier_check(barrier)) {
+    sched_tcb_wait(sched_tcb_now, &barrier->list);
+    sched_switch();
   }
+  cpu_leave_critical();
 }
 
-uint32_t fifo_get_used(fifo_t *fifo) {
-  if (fifo->wp >= fifo->rp) {
-    return fifo->wp - fifo->rp;
-  } else {
-    return fifo->wp + fifo->size - fifo->rp;
-  }
-}
+#endif

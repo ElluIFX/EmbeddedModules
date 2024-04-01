@@ -2,7 +2,7 @@ menu "LL I2C Library Configuration"
 
 config LL_IIC_CFG_CONVERT_7BIT_ADDR
     bool "Convert 7-bit address to 8-bit address"
-    default n
+    default y
     help
       addr => (addr << 1)
 

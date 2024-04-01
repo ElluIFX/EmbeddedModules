@@ -90,7 +90,7 @@ static void soft_timer_service(void *arg) {
   }
 }
 
-bool soft_timer_init(uint32_t priority) {
+bool soft_timer_init(uint32_t stack_size, uint32_t priority) {
   if (m_timer_thread != NULL) {
     return true;
   }
@@ -104,7 +104,8 @@ bool soft_timer_init(uint32_t priority) {
     mutex_delete(m_timer_mutex);
     return false;
   }
-  m_timer_thread = thread_create(soft_timer_service, NULL, 0, priority);
+  m_timer_thread =
+      thread_create(soft_timer_service, NULL, stack_size, priority);
   if (m_timer_thread == NULL) {
     mutex_delete(m_timer_mutex);
     event_delete(m_timer_event);
@@ -135,7 +136,9 @@ void soft_timer_deinit(void) {
 soft_timer_t soft_timer_create(void (*handler)(void *), void *arg) {
   struct soft_timer *timer;
   if (!m_timer_thread) {
-    return NULL;
+    if (!soft_timer_init(0, 0)) {  // use default value
+      return NULL;
+    }
   }
   timer = heap_alloc(sizeof(struct soft_timer));
   if (timer != NULL) {
@@ -156,7 +159,7 @@ void soft_timer_delete(soft_timer_t timer) {
   heap_free(timer);
 }
 
-void soft_timer_start(soft_timer_t timer, uint32_t timeout) {
+void soft_timer_start(soft_timer_t timer, klite_tick_t timeout) {
   mutex_lock(m_timer_mutex);
   timer->reload = (timeout > 0) ? timeout : 1; /* timeout can't be 0 */
   timer->timeout = timer->reload;

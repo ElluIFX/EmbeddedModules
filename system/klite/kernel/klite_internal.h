@@ -55,8 +55,8 @@ struct tcb {
   uint32_t stack_size;          // 栈大小
   void (*entry)(void *);        // 线程入口
   uint32_t prio;                // 线程优先级
-  uint32_t time;                // 线程运行时间
-  uint32_t timeout;             // 睡眠超时时间
+  klite_tick_t time;            // 线程运行时间
+  klite_tick_t timeout;         // 睡眠超时时间
   struct tcb_list *list_sched;  // 当前所处调度队列
   struct tcb_list *list_wait;   // 当前所处等待队列
   struct tcb_node node_sched;   // 调度队列节点
@@ -77,7 +77,7 @@ void cpu_sys_start(void);
 
 // 平台实现: 系统空闲回调
 // @param time: 系统空闲时间, 单位tick
-void cpu_sys_sleep(uint32_t time);
+void cpu_sys_sleep(klite_tick_t time);
 
 // 平台实现: 触发PendSV, 进行上下文切换
 void cpu_contex_switch(void);
@@ -114,7 +114,7 @@ void sched_idle(void);
 // 线程调度器时钟处理
 // 如果有线程超时, 则唤醒线程
 // @param time: 时钟增量
-void sched_timing(uint32_t time);
+void sched_timing(klite_tick_t time);
 
 // 执行线程切换
 void sched_switch(void);
@@ -139,7 +139,7 @@ void sched_tcb_ready(struct tcb *tcb);
 // 将线程加入睡眠队列
 // @param tcb: 线程控制块
 // @param timeout: 睡眠时间
-void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout);
+void sched_tcb_sleep(struct tcb *tcb, klite_tick_t timeout);
 
 // 将线程加入等待队列
 // @param tcb: 线程控制块
@@ -151,11 +151,16 @@ void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list);
 // @param list: 等待队列
 // @param timeout: 睡眠时间(等待超时时间)
 void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
-                          uint32_t timeout);
+                          klite_tick_t timeout);
 
 // 尝试唤醒等待队列中的线程
 // @param list: 等待队列
 // @return: 被唤醒的线程控制块, NULL表示无等待线程
 struct tcb *sched_tcb_wake_from(struct tcb_list *list);
+
+// 尝试唤醒等待队列中的最高优先级线程
+// @param list: 等待队列
+// @return: 被唤醒的线程控制块, NULL表示无等待线程
+struct tcb *sched_tcb_wake_from_by_priority(struct tcb_list *list);
 
 #endif

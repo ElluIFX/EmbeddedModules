@@ -124,7 +124,7 @@ void thread_yield(void) {
   cpu_leave_critical();
 }
 
-void thread_sleep(uint32_t time) {
+void thread_sleep(klite_tick_t time) {
   if (sched_susp_nesting) {  // 挂起状态直接死等
     uint64_t start = kernel_tick_count64();
     while (kernel_tick_count64() - start < time) {
@@ -145,7 +145,7 @@ void thread_sleep(uint32_t time) {
   cpu_leave_critical();
 }
 
-uint32_t thread_time(thread_t thread) { return thread->time; }
+klite_tick_t thread_time(thread_t thread) { return thread->time; }
 
 void thread_stack_info(thread_t thread, size_t *stack_free,
                        size_t *stack_size) {

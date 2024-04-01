@@ -141,7 +141,6 @@ typedef uint64_t m_time_t;
 #define m_free(ptr) free(ptr)
 #define m_realloc(ptr, size) realloc(ptr, size)
 #elif MOD_CFG_HEAP_MATHOD_LWMEM  // lwmem
-#define _MOD_USE_DALLOC 1
 #include "lwmem.h"
 #define init_module_heap(ptr, size)                              \
   do {                                                           \
@@ -240,9 +239,9 @@ static inline bool _MOD_SEM_TRY_TAKE(MOD_SEM_HANDLE *sem, uint32_t ms) {
 
 #define MOD_SEM_HANDLE sem_t
 #define MOD_SEM_CREATE(name, init) sem_create(init)
-#define MOD_SEM_TAKE(sem) sem_wait(sem)
-#define MOD_SEM_TRY_TAKE(sem, ms) sem_timed_wait(sem, kernel_ms_to_ticks(ms))
-#define MOD_SEM_GIVE(sem) sem_post(sem)
+#define MOD_SEM_TAKE(sem) sem_take(sem)
+#define MOD_SEM_TRY_TAKE(sem, ms) sem_timed_take(sem, kernel_ms_to_ticks(ms))
+#define MOD_SEM_GIVE(sem) sem_give(sem)
 #define MOD_SEM_VALUE(sem) sem_value(sem)
 #define MOD_SEM_DELETE(sem) sem_delete(sem)
 #elif MOD_CFG_USE_OS_FREERTOS  // freertos

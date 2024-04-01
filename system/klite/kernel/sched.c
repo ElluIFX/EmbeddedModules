@@ -32,8 +32,8 @@ struct tcb *sched_tcb_now;
 struct tcb *sched_tcb_next;
 static struct tcb_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
 static struct tcb_list m_list_sleep;
-static uint32_t m_idle_elapse;
-static uint32_t m_idle_timeout;
+static klite_tick_t m_idle_elapse;
+static klite_tick_t m_idle_timeout;
 static uint32_t m_prio_highest;
 static uint32_t m_prio_bitmap;
 
@@ -116,7 +116,7 @@ void sched_tcb_ready(struct tcb *tcb) {
   }
 }
 
-void sched_tcb_sleep(struct tcb *tcb, uint32_t timeout) {
+void sched_tcb_sleep(struct tcb *tcb, klite_tick_t timeout) {
   tcb->timeout = timeout + m_idle_elapse;
   tcb->list_sched = &m_list_sleep;
   list_append(tcb->list_sched, &tcb->node_sched);
@@ -131,9 +131,9 @@ void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list) {
 }
 
 void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
-                          uint32_t timeout) {
+                          klite_tick_t timeout) {
   sched_tcb_wait(tcb, list);
-  sched_tcb_sleep(tcb, timeout);
+  if (timeout != KLITE_WAIT_FOREVER) sched_tcb_sleep(tcb, timeout);
 }
 
 static inline void sched_tcb_wake_up(struct tcb *tcb) {
@@ -157,11 +157,31 @@ struct tcb *sched_tcb_wake_from(struct tcb_list *list) {
   return NULL;
 }
 
+struct tcb *sched_tcb_wake_from_by_priority(struct tcb_list *list) {
+  struct tcb *tcb;
+  uint32_t prio;
+  if (list->head) {
+    prio = list->head->tcb->prio;
+    for (tcb = list->head->tcb; tcb != NULL; tcb = tcb->node_wait.next->tcb) {
+      if (tcb->prio > prio) {
+        prio = tcb->prio; /* find the highest priority */
+      }
+    }
+    for (tcb = list->head->tcb; tcb != NULL; tcb = tcb->node_wait.next->tcb) {
+      if (tcb->prio == prio) {
+        sched_tcb_wake_up(tcb);
+        return tcb;
+      }
+    }
+  }
+  return NULL;
+}
+
 void sched_switch(void) {
   if (sched_susp_nesting) return;
   struct tcb *tcb;
   tcb = m_list_ready[m_prio_highest].head->tcb;
-#if KLITE_CFG_STACK_OVERFLOW_GUARD
+#if KLITE_CFG_STACK_OVERFLOW_DETECT
   uint8_t *stack = (uint8_t *)(tcb + 1);
   // check 16 bytes of stack overflow magic value
   if (*(stack + 1) != STACK_MAGIC_VALUE || *(stack + 3) != STACK_MAGIC_VALUE ||
@@ -176,6 +196,9 @@ void sched_switch(void) {
     NVIC_SystemReset();
 #elif KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
     ((void (*)(void))0x10)();
+#elif KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
+    void klite_stack_overflow_callback(void);
+    klite_stack_overflow_callback();
 #endif
   }
 #endif
@@ -227,7 +250,7 @@ static inline void sched_timeout(void) {
   }
 }
 
-void sched_timing(uint32_t time) {
+void sched_timing(klite_tick_t time) {
   m_idle_elapse += time;
   sched_tcb_now->time += time;
   if (m_idle_elapse >= m_idle_timeout) {

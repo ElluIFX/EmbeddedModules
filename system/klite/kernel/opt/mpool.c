@@ -33,6 +33,7 @@
 
 struct mpool {
   mutex_t mutex;
+  cond_t wait;
   uint8_t **block_list;
   uint32_t block_count;
   uint32_t free_count;
@@ -51,6 +52,7 @@ mpool_t mpool_create(uint32_t block_size, uint32_t block_count) {
   if (mpool != NULL) {
     memset(mpool, 0, msize);
     mpool->mutex = mutex_create();
+    mpool->wait = cond_create();
     if (mpool->mutex != NULL) {
       mpool->block_list = (uint8_t **)(mpool + 1);
       mpool->block_count = block_count;
@@ -68,6 +70,7 @@ mpool_t mpool_create(uint32_t block_size, uint32_t block_count) {
 
 void mpool_delete(mpool_t mpool) {
   mutex_delete(mpool->mutex);
+  cond_delete(mpool->wait);
   heap_free(mpool);
 }
 
@@ -86,6 +89,36 @@ void *mpool_alloc(mpool_t mpool) {
   return block;
 }
 
+void *mpool_timed_alloc(mpool_t mpool, klite_tick_t timeout) {
+  void *block = NULL;
+  mutex_lock(mpool->mutex);
+  if (mpool->free_count == 0 && timeout > 0) {
+    cond_timed_wait(mpool->wait, mpool->mutex, timeout);
+  }
+  if (mpool->free_count > 0) {
+    block = mpool->block_list[mpool->free_head];
+    mpool->free_count--;
+    mpool->free_head++;
+    if (mpool->free_head >= mpool->block_count) {
+      mpool->free_head = 0;
+    }
+  }
+  mutex_unlock(mpool->mutex);
+  return block;
+}
+
+void *mpool_blocked_alloc(mpool_t mpool) {
+  void *block = NULL;
+  mutex_lock(mpool->mutex);
+  while (mpool->free_count == 0) {
+    cond_wait(mpool->wait, mpool->mutex);
+  }
+  block = mpool->block_list[mpool->free_head];
+  mpool->free_count--;
+  mutex_unlock(mpool->mutex);
+  return block;
+}
+
 void mpool_free(mpool_t mpool, void *block) {
   mutex_lock(mpool->mutex);
   mpool->block_list[mpool->free_tail] = block;
@@ -94,6 +127,7 @@ void mpool_free(mpool_t mpool, void *block) {
   if (mpool->free_tail >= mpool->block_count) {
     mpool->free_tail = 0;
   }
+  cond_signal(mpool->wait);
   mutex_unlock(mpool->mutex);
 }
 

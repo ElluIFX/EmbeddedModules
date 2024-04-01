@@ -6,48 +6,57 @@
 
 #include "klite_internal.h"
 
-#define THREAD_POOL_JOIN_TIME 100  // thread pool join waiting time
-
-static void thread_job(void *arg);
-
-/* a task queue which run in thread pool */
 struct thread_pool_task {
-  void (*process)(void *arg); /**< task callback function */
-  void *arg;                  /**< task callback function's arguments */
-  struct thread_pool_task *next;
+  void (*process)(void *arg);
+  void *arg;
 };
 
-typedef struct thread_pool_task *thread_pool_task_t;
-
-/* thread pool struct */
 struct thread_pool {
-  thread_pool_task_t queue_head; /**< task queue which place all waiting task */
-  mutex_t queue_lock;            /**< task queue mutex lock */
-  sem_t queue_ready;             /**< a semaphore which for task queue ready */
-  uint8_t is_shutdown;           /**< shutdown state  */
-  thread_t *thread_list;         /**< thread queue */
-  uint8_t alive_worker_num;      /**< current alive thread number */
-  uint16_t waiting_task_num;     /**< current waiting task number */
-  uint16_t running_task_num;     /**< current excuting task number */
+  msg_queue_t task_queue;
+  thread_t *thread_list;
+  sem_t idle_sem;
+  uint8_t worker_num;
 };
 
-/**
- * This function will initialize the thread pool.
- */
+static void thread_job(void *arg) {
+  thread_pool_t pool = (thread_pool_t)arg;
+  struct thread_pool_task temp_task;
+  sem_give(pool->idle_sem);
+  while (1) {
+    msg_queue_recv(pool->task_queue, &temp_task);
+    sem_take(pool->idle_sem);
+    temp_task.process(temp_task.arg);
+    sem_give(pool->idle_sem);
+  }
+}
+
 thread_pool_t thread_pool_create(uint8_t worker_num, uint32_t worker_stack_size,
-                                 uint32_t worker_priority) {
+                                 uint32_t worker_priority,
+                                 uint32_t max_task_num) {
   thread_pool_t pool = (thread_pool_t)heap_alloc(sizeof(struct thread_pool));
   if (pool == NULL) {
     return NULL;
   }
-  pool->queue_lock = mutex_create();
-  pool->queue_ready = sem_create(0);
-  pool->queue_head = NULL;
-  pool->alive_worker_num = 0;
-  pool->waiting_task_num = 0;
-  pool->running_task_num = 0;
-  pool->is_shutdown = 0;
+  pool->worker_num = worker_num;
+  pool->task_queue =
+      msg_queue_create(sizeof(struct thread_pool_task), max_task_num);
+  if (pool->task_queue == NULL) {
+    heap_free(pool);
+    return NULL;
+  }
   pool->thread_list = (thread_t *)heap_alloc(worker_num * sizeof(thread_t *));
+  if (pool->thread_list == NULL) {
+    msg_queue_delete(pool->task_queue);
+    heap_free(pool);
+    return NULL;
+  }
+  pool->idle_sem = sem_create(0);
+  if (pool->idle_sem == NULL) {
+    msg_queue_delete(pool->task_queue);
+    heap_free(pool->thread_list);
+    heap_free(pool);
+    return NULL;
+  }
   for (uint8_t i = 0; i < worker_num; i++) {
     pool->thread_list[i] =
         thread_create(thread_job, pool, worker_stack_size, worker_priority);
@@ -55,164 +64,38 @@ thread_pool_t thread_pool_create(uint8_t worker_num, uint32_t worker_stack_size,
   return pool;
 }
 
-/**
- * This function will submit a task to thread pool.
- *
- * @param pool thread pool pointer
- * @param process task function pointer
- * @param arg task function arguments
- */
-void thread_pool_submit(thread_pool_t pool, void (*process)(void *arg),
-                        void *arg) {
-  thread_pool_task_t member = NULL;
-  thread_pool_task_t newtask =
-      (thread_pool_task_t)heap_alloc(sizeof(struct thread_pool_task));
-  newtask->process = process;
-  newtask->arg = arg;
-  newtask->next = NULL;
-  /* lock thread pool */
-  mutex_lock(pool->queue_lock);
-  member = pool->queue_head;
-  /* task queue is NULL */
-  if (member == NULL) {
-    pool->queue_head = newtask;
-  } else {
-    /* look up for queue tail */
-    while (member->next != NULL) {
-      member = member->next;
-    }
-    member->next = newtask;
+bool thread_pool_submit(thread_pool_t pool, void (*process)(void *arg),
+                        void *arg, klite_tick_t timeout) {
+  struct thread_pool_task task = {
+      .process = process,
+      .arg = arg,
+  };
+  if (msg_queue_timed_send(pool->task_queue, &task, timeout)) {
+    return false;
   }
-  /* add current waiting thread number */
-  pool->waiting_task_num++;
-  mutex_unlock(pool->queue_lock);
-  /* wake up a waiting thread to process task */
-  sem_post(pool->queue_ready);
+  return true;
 }
 
-/**
- * This function will delete all wait task and shutdown all worker thread.
- *
- * @param pool thread pool pointer
- */
-void thread_pool_shutdown(thread_pool_t pool) {
-  mutex_lock(pool->queue_lock);
-  pool->is_shutdown = 1;
-  mutex_unlock(pool->queue_lock);
-  // wake up all waiting thread
-  for (uint8_t i = 0; i < pool->alive_worker_num; i++) {
-    sem_post(pool->queue_ready);
-  }
-  // wait all thread exit
-  while (pool->alive_worker_num != 0) {
-    thread_sleep(THREAD_POOL_JOIN_TIME);
-    sem_post(pool->queue_ready);  // make sure all thread wake up
-  }
-  mutex_lock(pool->queue_lock);
-  /* delete all task in queue */
-  for (;;) {
-    if (pool->queue_head != NULL) {
-      heap_free(pool->queue_head);
-      pool->queue_head = pool->queue_head->next;
-      pool->waiting_task_num--;
-    } else {
-      break;
-    }
-  }
-  sem_reset(pool->queue_ready, 0);
-  mutex_unlock(pool->queue_lock);
-}
-
-/**
- * This function will shutdown all worker thread and delete thread pool.
- *
- * @param pool thread pool pointer
- */
-void thread_pool_delete(thread_pool_t pool) {
-  thread_pool_task_t head = NULL;
-  /* wait all thread exit */
-  if (!pool->is_shutdown) thread_pool_shutdown(pool);
-  /* delete mutex and semaphore then all waiting thread will wake up */
-  mutex_delete(pool->queue_lock);
-  sem_delete(pool->queue_ready);
-  /* release memory */
-  heap_free(pool->thread_list);
-  pool->thread_list = NULL;
-  /* destroy task queue */
-  while (pool->queue_head != NULL) {
-    head = pool->queue_head;
-    pool->queue_head = pool->queue_head->next;
-    heap_free(head);
-  }
-  /* release memory */
-  heap_free(pool);
-}
-
-/**
- * This function will join until all task finish.
- *
- * @param pool thread pool pointer
- */
-void thread_pool_join(thread_pool_t pool) {
-  while (pool->waiting_task_num != 0 || pool->running_task_num != 0) {
-    thread_sleep(THREAD_POOL_JOIN_TIME);
-  }
-}
-
-/**
- * This function will return the current number of unfinished task.
- *
- * @param pool thread pool pointer
- *
- * @return the current alive worker number
- */
 uint16_t thread_pool_pending_task(thread_pool_t pool) {
-  return pool->waiting_task_num + pool->running_task_num;
+  return msg_queue_count(pool->task_queue) +
+         (pool->worker_num - sem_value(pool->idle_sem));
 }
 
-/**
- * This function is thread job.
- *
- * @param arg the thread job arguments
- *
- */
-static void thread_job(void *arg) {
-  thread_pool_t pool = (thread_pool_t)arg;
-  thread_pool_task_t task = NULL;
-  mutex_lock(pool->queue_lock);
-  pool->alive_worker_num++;
-  mutex_unlock(pool->queue_lock);
-  while (1) {
-    mutex_lock(pool->queue_lock);
-    while (pool->waiting_task_num == 0 && !pool->is_shutdown) {
-      if (sem_value(pool->queue_ready) == 0) {
-        mutex_unlock(pool->queue_lock);
-        sem_wait(pool->queue_ready);
-        mutex_lock(pool->queue_lock);
-      } else {
-        sem_wait(pool->queue_ready);
-      }
-    }
-    if (pool->is_shutdown) {
-      pool->alive_worker_num--;
-      mutex_unlock(pool->queue_lock);
-      return;
-    }
-    /* load task to thread job */
-    pool->waiting_task_num--;
-    task = pool->queue_head;
-    pool->queue_head = task->next;
-    pool->running_task_num++;
-    mutex_unlock(pool->queue_lock);
-    /* run task */
-    (*(task->process))(task->arg);
-    /* release memory */
-    mutex_lock(pool->queue_lock);
-    pool->running_task_num--;
-    heap_free(task);
-    task = NULL;
-    mutex_unlock(pool->queue_lock);
+void thread_pool_join(thread_pool_t pool) {
+  while (thread_pool_pending_task(pool) > 0) {
+    thread_sleep(kernel_ms_to_ticks(50));
   }
+}
+
+void thread_pool_shutdown(thread_pool_t pool) {
+  /* exit all thread */
+  for (uint8_t i = 0; i < pool->worker_num; i++) {
+    thread_delete(pool->thread_list[i]);
+  }
+  /* release memory */
+  msg_queue_delete(pool->task_queue);
+  heap_free(pool->thread_list);
+  heap_free(pool);
 }
 
 #endif  // KLITE_CFG_OPT_THREAD_POOL

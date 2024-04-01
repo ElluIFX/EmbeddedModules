@@ -110,11 +110,3 @@ extern void __cortn_internal_await_msg(__async__, void **msgPtr);
       YIELD();                                     \
     }                                              \
   } while (0)
-
-#define __AWAIT_BARRIER(barr_name)                \
-  do {                                            \
-    if (!__cortn_internal_await_bar(barr_name)) { \
-      __chd__->state = _CR_STATE_AWAITING;        \
-      YIELD();                                    \
-    }                                             \
-  } while (0)

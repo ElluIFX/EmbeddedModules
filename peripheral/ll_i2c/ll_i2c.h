@@ -25,10 +25,10 @@ extern "C" {
 #endif
 
 typedef struct {
-  uint8_t *data;      // 数据指针
-  uint32_t len;       // 数据长度
-  uint8_t is_tx : 1;  // 写入/读取
-  uint8_t stop : 1;   // 是否产生STOP
+  uint8_t *data;     // 数据指针
+  uint32_t len;      // 数据长度
+  uint8_t wr : 1;    // 写入/读取
+  uint8_t stop : 1;  // 是否产生STOP
 } ll_i2c_msg_t;
 
 /**

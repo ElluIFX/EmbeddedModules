@@ -25,57 +25,85 @@
  * SOFTWARE.
  ******************************************************************************/
 #include "klite.h"
+
+#if KLITE_CFG_OPT_SEM
+
 #include "klite_internal.h"
 
-struct cond {
+struct sem {
   struct tcb_list list;
+  uint32_t value;
 };
 
-cond_t cond_create(void) {
-  struct cond *cond;
-  cond = heap_alloc(sizeof(struct cond));
-  if (cond != NULL) {
-    memset(cond, 0, sizeof(struct cond));
+sem_t sem_create(uint32_t value) {
+  struct sem *sem;
+  sem = heap_alloc(sizeof(struct sem));
+  if (sem != NULL) {
+    memset(sem, 0, sizeof(struct sem));
+    sem->value = value;
   }
-  return (cond_t)cond;
+  return (sem_t)sem;
 }
 
-void cond_delete(cond_t cond) { heap_free(cond); }
+void sem_delete(sem_t sem) { heap_free(sem); }
 
-void cond_signal(cond_t cond) {
+void sem_give(sem_t sem) {
   cpu_enter_critical();
-  sched_tcb_wake_from((struct tcb_list *)cond);
-  sched_preempt(false);
+  if (sched_tcb_wake_from(&sem->list)) {
+    sched_preempt(false);
+    cpu_leave_critical();
+    return;
+  }
+  sem->value++;
   cpu_leave_critical();
 }
 
-void cond_broadcast(cond_t cond) {
+void sem_take(sem_t sem) {
   cpu_enter_critical();
-  while (sched_tcb_wake_from((struct tcb_list *)cond))
-    ;
-  sched_preempt(false);
-  cpu_leave_critical();
-}
-
-void cond_wait(cond_t cond, mutex_t mutex) {
-  cpu_enter_critical();
-  sched_tcb_wait(sched_tcb_now, (struct tcb_list *)cond);
-  mutex_unlock(mutex);
+  if (sem->value > 0) {
+    sem->value--;
+    cpu_leave_critical();
+    return;
+  }
+  sched_tcb_wait(sched_tcb_now, &sem->list);
   sched_switch();
   cpu_leave_critical();
-  mutex_lock(mutex);
 }
 
-uint32_t cond_timed_wait(cond_t cond, mutex_t mutex, uint32_t timeout) {
+void sem_reset(sem_t sem, uint32_t value) {
   cpu_enter_critical();
+  sem->value = value;
+  cpu_leave_critical();
+}
+
+bool sem_try_take(sem_t sem) {
+  cpu_enter_critical();
+  if (sem->value > 0) {
+    sem->value--;
+    cpu_leave_critical();
+    return true;
+  }
+  cpu_leave_critical();
+  return false;
+}
+
+klite_tick_t sem_timed_take(sem_t sem, klite_tick_t timeout) {
+  cpu_enter_critical();
+  if (sem->value > 0) {
+    sem->value--;
+    cpu_leave_critical();
+    return true;
+  }
   if (timeout == 0) {
     cpu_leave_critical();
     return false;
   }
-  sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)cond, timeout);
-  mutex_unlock(mutex);
+  sched_tcb_timed_wait(sched_tcb_now, &sem->list, timeout);
   sched_switch();
   cpu_leave_critical();
-  mutex_lock(mutex);
   return sched_tcb_now->timeout;
 }
+
+uint32_t sem_value(sem_t sem) { return sem->value; }
+
+#endif

@@ -34,8 +34,8 @@
 struct mailbox {
   fifo_t fifo;
   mutex_t mutex;
-  event_t empty;
-  event_t full;
+  cond_t write;
+  cond_t read;
 };
 
 mailbox_t mailbox_create(uint32_t size) {
@@ -43,21 +43,24 @@ mailbox_t mailbox_create(uint32_t size) {
   mailbox = heap_alloc(sizeof(struct mailbox) + size);
   if (mailbox != NULL) {
     fifo_init(&mailbox->fifo, mailbox + 1, size);
+
     mailbox->mutex = mutex_create();
     if (mailbox->mutex == NULL) {
       heap_free(mailbox);
       return NULL;
     }
-    mailbox->empty = event_create(true);
-    if (mailbox->empty == NULL) {
+
+    mailbox->write = cond_create();
+    if (mailbox->write == NULL) {
       mutex_delete(mailbox->mutex);
       heap_free(mailbox);
       return NULL;
     }
-    mailbox->full = event_create(true);
-    if (mailbox->full == NULL) {
+
+    mailbox->read = cond_create();
+    if (mailbox->read == NULL) {
       mutex_delete(mailbox->mutex);
-      event_delete(mailbox->empty);
+      cond_delete(mailbox->write);
       heap_free(mailbox);
       return NULL;
     }
@@ -67,8 +70,8 @@ mailbox_t mailbox_create(uint32_t size) {
 
 void mailbox_delete(mailbox_t mailbox) {
   mutex_delete(mailbox->mutex);
-  event_delete(mailbox->empty);
-  event_delete(mailbox->full);
+  cond_delete(mailbox->write);
+  cond_delete(mailbox->read);
   heap_free(mailbox);
 }
 
@@ -76,42 +79,41 @@ void mailbox_clear(mailbox_t mailbox) {
   mutex_lock(mailbox->mutex);
   fifo_clear(&mailbox->fifo);
   mutex_unlock(mailbox->mutex);
-  event_set(mailbox->empty);
+  cond_broadcast(mailbox->write);
 }
 
 uint32_t mailbox_post(mailbox_t mailbox, void *buf, uint32_t len,
-                      uint32_t timeout) {
+                      klite_tick_t timeout) {
   uint32_t ret;
   uint32_t ttl;
   ttl = len + sizeof(uint32_t);
+  mutex_lock(mailbox->mutex);
   while (1) {
-    mutex_lock(mailbox->mutex);
     ret = fifo_get_free(&mailbox->fifo);
     if (ret >= ttl) {
       fifo_write(&mailbox->fifo, &len, sizeof(uint32_t));
       fifo_write(&mailbox->fifo, buf, len);
       mutex_unlock(mailbox->mutex);
-      event_set(mailbox->full);
+      cond_broadcast(mailbox->read);
       return len;
     }
     if (timeout > 0) {
-      mutex_unlock(mailbox->mutex);
-      timeout = event_timed_wait(mailbox->empty, timeout);
-      continue;
+      timeout = cond_timed_wait(mailbox->write, mailbox->mutex, timeout);
+      if (timeout != 0) continue;
     }
     mutex_unlock(mailbox->mutex);
     return 0;
   }
 }
 
-uint32_t mailbox_wait(mailbox_t mailbox, void *buf, uint32_t len,
-                      uint32_t timeout) {
+uint32_t mailbox_read(mailbox_t mailbox, void *buf, uint32_t len,
+                      klite_tick_t timeout) {
   uint32_t ret;
   uint32_t ttl;
   uint32_t over;
   uint8_t dummy;
+  mutex_lock(mailbox->mutex);
   while (1) {
-    mutex_lock(mailbox->mutex);
     ret = fifo_read(&mailbox->fifo, &ttl, sizeof(uint32_t));
     if (ret != 0) {
       ret = fifo_read(&mailbox->fifo, buf, (len < ttl) ? len : ttl);
@@ -122,13 +124,12 @@ uint32_t mailbox_wait(mailbox_t mailbox, void *buf, uint32_t len,
         }
       }
       mutex_unlock(mailbox->mutex);
-      event_set(mailbox->empty);
+      cond_broadcast(mailbox->write);
       return ttl;
     }
     if (timeout > 0) {
-      mutex_unlock(mailbox->mutex);
-      timeout = event_timed_wait(mailbox->full, timeout);
-      continue;
+      timeout = cond_timed_wait(mailbox->read, mailbox->mutex, timeout);
+      if (timeout != 0) continue;
     }
     mutex_unlock(mailbox->mutex);
     return 0;

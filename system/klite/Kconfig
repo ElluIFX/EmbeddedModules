@@ -26,11 +26,11 @@ choice
     prompt "Kernel Heap Provider"
     default KLITE_CFG_HEAP_USE_HEAP4
 
-    config KLITE_CFG_HEAP_USE_BARE
-        bool "Simple Heap (Bare)"
-
     config KLITE_CFG_HEAP_USE_HEAP4
         bool "Heap4 (From FreeRTOS)"
+
+    config KLITE_CFG_HEAP_USE_BARE
+        bool "Simple Heap (Bare)"
 
     config KLITE_CFG_HEAP_USE_LWMEM
         bool "LwMEM"
@@ -39,24 +39,23 @@ endchoice
 config KLITE_CFG_DEFAULT_STACK_SIZE
     int "Default Stack Size"
     default 1024
-    range 1 102400
+    range 1 1024000
     help
         The default stack size of the thread created with stack_size=0.
 
 config KLITE_CFG_IDLE_THREAD_STACK_SIZE
     int "Idle Thread Stack Size"
     default 256
-    range 256 102400
+    range 256 1024000
     help
         The stack size of the idle thread.
 
-config KLITE_CFG_STACK_OVERFLOW_GUARD
-    bool "Enable Stack Overflow Guard"
+config KLITE_CFG_STACK_OVERFLOW_DETECT
+    bool "Enable Stack Overflow Detect"
     default n
     help
-        Enable the stack overflow guard.
+        Stack overflow detection by checking 32 bytes of magic number at the bottom of the stack.
         Only available when the overflow have not occurred usage fault, and the thread can be switched out.
-        By detect 32 bytes of magic number at the bottom of the stack.
 
 choice
     prompt "Stack Overflow Behavior"
@@ -71,6 +70,10 @@ choice
     config KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
         bool "Hard Fault (by accessing 0x10 address)"
 
+    config KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
+        bool "Callback [void klite_stack_overflow_callback(void)]"
+        select KLITE_CFG_HOOK_ENABLE
+
     help
         The behavior when a stack overflow is detected.
 endchoice
@@ -81,6 +84,12 @@ config KLITE_CFG_INTERFACE_ENABLE
     help
         Enable the kernel interface for convenience use. (Increase the RAM usage)
 
+config KLITE_CFG_64BIT_TICK
+    bool "64-bit Tick Variable (uint64_t)"
+    default y
+    help
+        Use 64-bit (uint64_t) tick for the user space.
+
 config KLITE_CFG_HOOK_ENABLE
     bool "Enable Function Hooks"
     default n
@@ -89,22 +98,67 @@ config KLITE_CFG_HOOK_ENABLE
 
 menuconfig KLITE_CFG_OPT_ENABLE
     bool "Optional Features"
-    default n
+    default y
 if KLITE_CFG_OPT_ENABLE
+    config KLITE_CFG_OPT_MUTEX
+        bool "Mutex"
+        default y
+        help
+            Enable the mutex.
+
+    config KLITE_CFG_OPT_SEM
+        bool "Semaphore"
+        default y
+        help
+            Enable the semaphore.
+
+    config KLITE_CFG_OPT_COND
+        bool "Condition Variable"
+        default n
+        select KLITE_CFG_OPT_MUTEX
+        help
+            Enable the condition variable.
+
+    config KLITE_CFG_OPT_BARRIER
+        bool "Barrier"
+        default n
+        help
+            Enable the barrier.
+
+    config KLITE_CFG_OPT_RWLOCK
+        bool "Read-Write Lock"
+        default n
+        select KLITE_CFG_OPT_MUTEX
+        select KLITE_CFG_OPT_COND
+        help
+            Enable the read-write lock.
+
+    config KLITE_CFG_OPT_EVENT
+        bool "Event"
+        default n
+        help
+            Enable the event.
+
     config KLITE_CFG_OPT_EVENT_FLAGS
         bool "Event Flags"
         default n
+        select KLITE_CFG_OPT_MUTEX
+        select KLITE_CFG_OPT_COND
         help
             Enable the event flags.
 
     config KLITE_CFG_OPT_MAILBOX
         bool "Mailbox"
         default n
+        select KLITE_CFG_OPT_MUTEX
+        select KLITE_CFG_OPT_COND
         help
             Enable the mailbox.
 
     config KLITE_CFG_OPT_MPOOL
         bool "Memory Pool"
+        select KLITE_CFG_OPT_MUTEX
+        select KLITE_CFG_OPT_COND
         default n
         help
             Enable the memory pool.
@@ -112,6 +166,8 @@ if KLITE_CFG_OPT_ENABLE
     config KLITE_CFG_OPT_MSG_QUEUE
         bool "Message Queue"
         default n
+        select KLITE_CFG_OPT_SEM
+        select KLITE_CFG_OPT_MUTEX
         select KLITE_CFG_OPT_MPOOL
         help
             Enable the message queue.
@@ -119,12 +175,16 @@ if KLITE_CFG_OPT_ENABLE
     config KLITE_CFG_OPT_SOFT_TIMER
         bool "Software Timer"
         default n
+        select KLITE_CFG_OPT_MUTEX
+        select KLITE_CFG_OPT_EVENT
         help
             Enable the software timer.
 
     config KLITE_CFG_OPT_THREAD_POOL
         bool "Thread Pool"
         default n
+        select KLITE_CFG_OPT_SEM
+        select KLITE_CFG_OPT_MSG_QUEUE
         help
             Enable the thread pool.
 endif

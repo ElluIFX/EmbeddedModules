@@ -81,7 +81,7 @@ void msg_queue_delete(msg_queue_t queue) {
 
 void msg_queue_clear(msg_queue_t queue) {
   struct msg_queue_node *node;
-  while (sem_timed_wait(queue->sem, 0)) {
+  while (sem_timed_take(queue->sem, 0)) {
     mutex_lock(queue->mutex);
     node = queue->head;
     list_remove(queue, node);
@@ -90,24 +90,46 @@ void msg_queue_clear(msg_queue_t queue) {
   }
 }
 
-bool msg_queue_send(msg_queue_t queue, void *item, uint32_t timeout) {
+void msg_queue_send(msg_queue_t queue, void *item) {
   struct msg_queue_node *node;
-  node = mpool_alloc(queue->mpool);
+  node = mpool_blocked_alloc(queue->mpool);
+  memset(node, 0, sizeof(struct msg_queue_node));
+  memcpy(node->data, item, queue->size);
+  mutex_lock(queue->mutex);
+  list_append(queue, node);
+  mutex_unlock(queue->mutex);
+  sem_give(queue->sem);
+}
+
+void msg_queue_recv(msg_queue_t queue, void *item) {
+  struct msg_queue_node *node;
+  sem_take(queue->sem);
+  mutex_lock(queue->mutex);
+  node = queue->head;
+  memcpy(item, node->data, queue->size);
+  list_remove(queue, node);
+  mutex_unlock(queue->mutex);
+  mpool_free(queue->mpool, node);
+}
+
+bool msg_queue_timed_send(msg_queue_t queue, void *item, klite_tick_t timeout) {
+  struct msg_queue_node *node;
+  node = mpool_timed_alloc(queue->mpool, timeout);
   if (node != NULL) {
     memset(node, 0, sizeof(struct msg_queue_node));
     memcpy(node->data, item, queue->size);
     mutex_lock(queue->mutex);
     list_append(queue, node);
     mutex_unlock(queue->mutex);
-    sem_post(queue->sem);
+    sem_give(queue->sem);
     return true;
   }
   return false;
 }
 
-bool msg_queue_recv(msg_queue_t queue, void *item, uint32_t timeout) {
+bool msg_queue_timed_recv(msg_queue_t queue, void *item, klite_tick_t timeout) {
   struct msg_queue_node *node;
-  if (sem_timed_wait(queue->sem, timeout)) {
+  if (sem_timed_take(queue->sem, timeout)) {
     mutex_lock(queue->mutex);
     node = queue->head;
     memcpy(item, node->data, queue->size);
@@ -117,6 +139,17 @@ bool msg_queue_recv(msg_queue_t queue, void *item, uint32_t timeout) {
     return true;
   }
   return false;
+}
+
+uint32_t msg_queue_count(msg_queue_t queue) {
+  uint32_t count = 0;
+  mutex_lock(queue->mutex);
+  for (struct msg_queue_node *node = queue->head; node != NULL;
+       node = node->next) {
+    count++;
+  }
+  mutex_unlock(queue->mutex);
+  return count;
 }
 
 #endif  // KLITE_CFG_OPT_MSG_QUEUE

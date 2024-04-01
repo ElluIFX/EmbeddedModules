@@ -23,12 +23,6 @@ typedef struct {      // 协程互斥锁结构
   uint8_t locked;     // 锁状态
   ulist_t waitlist;   // 等待的协程列表
 } sch_cortneduler_mutex_t;
-
-typedef struct {      // 协程屏障结构
-  ID_NAME_VAR(name);  // 屏障名
-  uint16_t target;    // 目标协程数
-  ulist_t waitlist;   // 等待的协程列表
-} sch_cortneduler_barrier_t;
 #pragma pack()
 
 static ulist_t cortnlist = {.data = NULL,
@@ -44,14 +38,6 @@ static ulist_t mutexlist = {
     .num = 0,
     .elfree = NULL,
     .isize = sizeof(sch_cortneduler_mutex_t),
-    .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
-
-static ulist_t barrierlist = {
-    .data = NULL,
-    .cap = 0,
-    .num = 0,
-    .elfree = NULL,
-    .isize = sizeof(sch_cortneduler_barrier_t),
     .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
 
 static __cortn_handle_t *cortn_handle_now = NULL;
@@ -359,75 +345,6 @@ _INLINE void __cortn_internal_rel_mutex(const char *name) {
   } while (cortn == NULL);
 }
 
-_STATIC_INLINE sch_cortneduler_barrier_t *get_barrier(const char *name,
-                                                      uint8_t create) {
-  ulist_foreach(&barrierlist, sch_cortneduler_barrier_t, barrier) {
-    if (fast_strcmp(barrier->name, name)) {
-      return barrier;
-    }
-  }
-  if (!create) return NULL;
-  sch_cortneduler_barrier_t *ret = ulist_append(&barrierlist);
-  if (ret == NULL) return NULL;
-  ID_NAME_SET(ret->name, name);
-  ret->target = 0xffff;
-  ulist_init(&ret->waitlist, sizeof(char *), 0, NULL, NULL);
-  return ret;
-}
-
-_STATIC_INLINE void release_barrier(sch_cortneduler_barrier_t *barrier) {
-  scheduler_cortn_t *cortn;
-  if (barrier->waitlist.num) {  // 等待队列不为空, 唤醒所有协程
-    ulist_foreach(&barrier->waitlist, const char *, ptr) {
-      cortn = find_cortn(*ptr);
-      if (cortn == NULL) continue;
-      cortn->hd.state = _CR_STATE_READY;
-    }
-    ulist_clear(&barrier->waitlist);
-  }
-}
-
-uint8_t sch_cortn_release_barrier(const char *name) {
-  sch_cortneduler_barrier_t *barrier = get_barrier(name, 0);
-  if (barrier == NULL) return 0;
-  release_barrier(barrier);
-  return 1;
-}
-
-uint8_t sch_cortn_set_barrier_target(const char *name, uint16_t target) {
-  sch_cortneduler_barrier_t *barrier = get_barrier(name, 1);
-  if (barrier == NULL) return 0;
-  barrier->target = target;
-  if (barrier->waitlist.num >= target) {
-    release_barrier(barrier);
-  }
-  return 1;
-}
-
-uint16_t sch_cortn_get_barrier_num(const char *name) {
-  sch_cortneduler_barrier_t *barrier = get_barrier(name, 0);
-  if (barrier == NULL) return 0;
-  return barrier->waitlist.num;
-}
-
-/**
- * @brief (内部函数)协程等待屏障
- * @param  name 屏障名
- * @return 1: 到达屏障, 0: 等待屏障
- */
-uint8_t __cortn_internal_await_bar(const char *name) {
-  sch_cortneduler_barrier_t *barrier = get_barrier(name, 1);
-  if (barrier == NULL) return 0;
-  if (barrier->waitlist.num + 1 >= barrier->target) {
-    release_barrier(barrier);
-    return 1;
-  }
-  const char **ptr = ulist_append(&barrier->waitlist);
-  if (ptr == NULL) return 0;
-  *ptr = cortn_handle_now->name;
-  return 0;
-}
-
 static const char *get_cortn_state_str(uint8_t state) {
   switch (state) {
     case _CR_STATE_STOPPED:
@@ -495,11 +412,10 @@ void sch_cortn_add_debug(TT tt, uint64_t period, uint64_t *other) {
       *other -= cortn->total_cost;
       i++;
     }
-    if (mutexlist.num || barrierlist.num) {
+    if (mutexlist.num) {
       TT_AddString(tt,
                    TT_FmtStr(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_NONE,
-                             "Signals: Mutex: %d, Barrier: %d", mutexlist.num,
-                             barrierlist.num),
+                             "Mutex: %d", mutexlist.num),
                    -1);
     }
   }

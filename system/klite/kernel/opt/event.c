@@ -25,52 +25,71 @@
  * SOFTWARE.
  ******************************************************************************/
 #include "klite.h"
+
+#if KLITE_CFG_OPT_EVENT
+
 #include "klite_internal.h"
 
-struct mutex {
+struct event {
   struct tcb_list list;
-  struct tcb *owner;
-  uint32_t lock;
+  bool auto_reset;
+  bool state;
 };
 
-mutex_t mutex_create(void) {
-  struct mutex *mutex;
-  mutex = heap_alloc(sizeof(struct mutex));
-  if (mutex != NULL) {
-    memset(mutex, 0, sizeof(struct mutex));
+event_t event_create(bool auto_reset) {
+  struct event *event;
+  event = heap_alloc(sizeof(struct event));
+  if (event != NULL) {
+    memset(event, 0, sizeof(struct event));
+    event->auto_reset = auto_reset;
   }
-  return (mutex_t)mutex;
+  return (event_t)event;
 }
 
-void mutex_delete(mutex_t mutex) { heap_free(mutex); }
+void event_delete(event_t event) { heap_free(event); }
 
-bool mutex_try_lock(mutex_t mutex) {
+void event_set(event_t event) {
   cpu_enter_critical();
-  if (mutex->owner == NULL) {
-    mutex->lock++;
-    mutex->owner = sched_tcb_now;
-    cpu_leave_critical();
-    return true;
+  event->state = true;
+  if (event->auto_reset) {
+    if (sched_tcb_wake_from(&event->list)) {
+      event->state = false;
+    }
   }
-  if (mutex->owner == sched_tcb_now) {
-    mutex->lock++;
-    cpu_leave_critical();
-    return true;
-  }
+  while (sched_tcb_wake_from(&event->list))
+    ;
+  sched_preempt(false);
   cpu_leave_critical();
-  return false;
 }
 
-bool mutex_timed_lock(mutex_t mutex, uint32_t timeout) {
+void event_reset(event_t event) {
   cpu_enter_critical();
-  if (mutex->owner == NULL) {
-    mutex->lock++;
-    mutex->owner = sched_tcb_now;
+  event->state = false;
+  cpu_leave_critical();
+}
+
+void event_wait(event_t event) {
+  cpu_enter_critical();
+  if (event->state) {
+    if (event->auto_reset) {
+      event->state = false;
+    }
     cpu_leave_critical();
-    return true;
+    return;
   }
-  if (mutex->owner == sched_tcb_now) {
-    mutex->lock++;
+  sched_tcb_wait(sched_tcb_now, &event->list);
+  sched_switch();
+  cpu_leave_critical();
+}
+
+bool event_is_set(event_t event) { return event->state; }
+
+klite_tick_t event_timed_wait(event_t event, klite_tick_t timeout) {
+  cpu_enter_critical();
+  if (event->state) {
+    if (event->auto_reset) {
+      event->state = false;
+    }
     cpu_leave_critical();
     return true;
   }
@@ -78,35 +97,10 @@ bool mutex_timed_lock(mutex_t mutex, uint32_t timeout) {
     cpu_leave_critical();
     return false;
   }
-  sched_tcb_timed_wait(sched_tcb_now, &mutex->list, timeout);
+  sched_tcb_timed_wait(sched_tcb_now, &event->list, timeout);
   sched_switch();
   cpu_leave_critical();
   return sched_tcb_now->timeout;
 }
 
-void mutex_lock(mutex_t mutex) {
-  cpu_enter_critical();
-  if (mutex->owner == NULL) mutex->owner = sched_tcb_now;
-  if (mutex->owner == sched_tcb_now) {
-    mutex->lock++;
-    cpu_leave_critical();
-    return;
-  }
-  sched_tcb_wait(sched_tcb_now, &mutex->list);
-  sched_switch();
-  cpu_leave_critical();
-  return;
-}
-
-void mutex_unlock(mutex_t mutex) {
-  cpu_enter_critical();
-  mutex->lock--;
-  if (mutex->lock == 0) {
-    mutex->owner = sched_tcb_wake_from(&mutex->list);
-    if (mutex->owner != NULL) {
-      mutex->lock++;
-      sched_preempt(false);
-    }
-  }
-  cpu_leave_critical();
-}
+#endif

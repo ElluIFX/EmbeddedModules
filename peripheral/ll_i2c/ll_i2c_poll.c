@@ -276,12 +276,12 @@ bool ll_i2c_internal_transfer(I2C_TypeDef* i2c, uint8_t addr, ll_i2c_msg_t* msg,
       act_len = data_len > STM32_I2C_MAX_SIZE ? STM32_I2C_MAX_SIZE : data_len;
       data_len -= act_len;
       if (!i2c_start_transfer(i2c,
-                              msg[i].is_tx ? I2C_TRANSMITTER : I2C_RECEIVER,
+                              msg[i].wr ? I2C_TRANSMITTER : I2C_RECEIVER,
                               addr, act_len, data_len > 0)) {
         goto error;
       }
       while (act_len--) {
-        if (msg[i].is_tx) {
+        if (msg[i].wr) {
           if (!i2c_send_byte(i2c, *data++)) {
             goto error;
           }
