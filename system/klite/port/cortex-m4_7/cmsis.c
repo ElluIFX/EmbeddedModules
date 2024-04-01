@@ -60,17 +60,9 @@ void cpu_sys_sleep(uint32_t time) {
 #endif
 }
 
-#define SSHigh(GPIOx, Pinx) ((GPIOx)->BSRR = (Pinx))
-// ((GPIOx)->BSRR = (Pinx) << 16) or ((GPIOx)->BRR = (Pinx))
-#define SSLow(GPIOx, Pinx) ((GPIOx)->BSRR = (Pinx) << 16)
-#define DEBUG_PIN_HIGH() SSHigh(TIMEIT_GPIO_Port, TIMEIT_Pin)
-#define DEBUG_PIN_LOW() SSLow(TIMEIT_GPIO_Port, TIMEIT_Pin)
-
 extern __IO uint32_t uwTick;
 void SysTick_Handler(void) {
-  DEBUG_PIN_HIGH();
   kernel_tick(1);
-  DEBUG_PIN_LOW();
 
 #if KLITE_CFG_FREQ >= 1000
   static uint32_t tick_scaler = 0;
