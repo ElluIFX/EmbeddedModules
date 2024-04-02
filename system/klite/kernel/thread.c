@@ -30,6 +30,7 @@
 
 static struct tcb_list m_list_alive;  // 运行中线程列表
 static struct tcb_list m_list_dead;   // 待删除线程列表
+static uint32_t thread_id_counter;    // 线程ID计数器
 
 thread_t thread_self(void) { return (thread_t)sched_tcb_now; }
 
@@ -58,6 +59,7 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
   tcb->node_wait.tcb = tcb;
   tcb->node_sched.tcb = tcb;
   tcb->node_manage.tcb = tcb;
+  tcb->id = thread_id_counter++;
   cpu_enter_critical();
 #if KLITE_CFG_HOOK_ENABLE
   thread_hook_create(tcb);

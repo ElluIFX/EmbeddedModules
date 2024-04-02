@@ -18,8 +18,6 @@ extern "C" {
 #include "modules.h"
 #include "ulist.h"
 
-typedef uint16_t udict_size_t;
-
 #pragma pack(1)
 typedef struct udict_node {
   char* key;
@@ -28,8 +26,8 @@ typedef struct udict_node {
 } udict_node_t;
 typedef struct udict {
   ulist_t nodes;
-  udict_size_t size;
-  udict_size_t iter;
+  mod_size_t size;
+  mod_size_t iter;
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
   bool dyn;
 } udict_t;
@@ -69,7 +67,7 @@ extern void udict_free(UDICT dict);
  *
  * @return 字典大小
  */
-static inline udict_size_t udict_len(UDICT dict) { return dict->size; }
+static inline mod_size_t udict_len(UDICT dict) { return dict->size; }
 
 /**
  * @brief 检查字典是否包含某个键

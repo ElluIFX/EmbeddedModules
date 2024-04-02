@@ -61,21 +61,29 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
   return highest;
 }
 
+static inline void remove_list_wait(struct tcb *tcb) {
+  list_remove(tcb->list_wait, &tcb->node_wait);
+  tcb->list_wait = NULL;
+}
+
+static inline void remove_list_sched(struct tcb *tcb) {
+  list_remove(tcb->list_sched, &tcb->node_sched);
+  if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
+  {
+    if (tcb->list_sched->head == NULL) {
+      m_prio_bitmap &= ~(1 << tcb->prio);
+      m_prio_highest = find_highest_priority(m_prio_highest);
+    }
+  }
+  tcb->list_sched = NULL;
+}
+
 void sched_tcb_remove(struct tcb *tcb) {
   if (tcb->list_wait) {
-    list_remove(tcb->list_wait, &tcb->node_wait);
-    tcb->list_wait = NULL;
+    remove_list_wait(tcb);
   }
   if (tcb->list_sched) {
-    list_remove(tcb->list_sched, &tcb->node_sched);
-    if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
-    {
-      if (tcb->list_sched->head == NULL) {
-        m_prio_bitmap &= ~(1 << tcb->prio);
-        m_prio_highest = find_highest_priority(m_prio_highest);
-      }
-    }
-    tcb->list_sched = NULL;
+    remove_list_sched(tcb);
   }
 }
 
@@ -108,6 +116,9 @@ void sched_tcb_reset_prio(struct tcb *tcb, uint32_t prio) {
 }
 
 void sched_tcb_ready(struct tcb *tcb) {
+  if (tcb->list_sched) {
+    remove_list_sched(tcb);
+  }
   tcb->list_sched = &m_list_ready[tcb->prio];
   list_append(tcb->list_sched, &tcb->node_sched);
   m_prio_bitmap |= (1 << tcb->prio);
@@ -117,6 +128,9 @@ void sched_tcb_ready(struct tcb *tcb) {
 }
 
 void sched_tcb_sleep(struct tcb *tcb, klite_tick_t timeout) {
+  if (tcb->list_sched) {
+    remove_list_sched(tcb);
+  }
   tcb->timeout = timeout + m_idle_elapse;
   tcb->list_sched = &m_list_sleep;
   list_append(tcb->list_sched, &tcb->node_sched);
@@ -126,8 +140,15 @@ void sched_tcb_sleep(struct tcb *tcb, klite_tick_t timeout) {
 }
 
 void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list) {
+  if (tcb->list_wait) {
+    remove_list_wait(tcb);
+  }
   tcb->list_wait = list;
+#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
   list_insert_by_priority(list, &tcb->node_wait);
+#else  // FIFO
+  list_append(list, &tcb->node_wait);
+#endif
 }
 
 void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
@@ -138,11 +159,10 @@ void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
 
 static inline void sched_tcb_wake_up(struct tcb *tcb) {
   if (tcb->list_wait) {
-    list_remove(tcb->list_wait, &tcb->node_wait);
-    tcb->list_wait = NULL;
+    remove_list_wait(tcb);
   }
   if (tcb->list_sched) {
-    list_remove(tcb->list_sched, &tcb->node_sched);
+    remove_list_sched(tcb);
   }
   sched_tcb_ready(tcb);
 }
@@ -157,28 +177,10 @@ struct tcb *sched_tcb_wake_from(struct tcb_list *list) {
   return NULL;
 }
 
-struct tcb *sched_tcb_wake_from_by_priority(struct tcb_list *list) {
-  struct tcb *tcb;
-  uint32_t prio;
-  if (list->head) {
-    prio = list->head->tcb->prio;
-    for (tcb = list->head->tcb; tcb != NULL; tcb = tcb->node_wait.next->tcb) {
-      if (tcb->prio > prio) {
-        prio = tcb->prio; /* find the highest priority */
-      }
-    }
-    for (tcb = list->head->tcb; tcb != NULL; tcb = tcb->node_wait.next->tcb) {
-      if (tcb->prio == prio) {
-        sched_tcb_wake_up(tcb);
-        return tcb;
-      }
-    }
-  }
-  return NULL;
-}
-
 void sched_switch(void) {
-  if (sched_susp_nesting) return;
+  if (sched_susp_nesting) { /* in critical section */
+    return;
+  }
   struct tcb *tcb;
   tcb = m_list_ready[m_prio_highest].head->tcb;
 #if KLITE_CFG_STACK_OVERFLOW_DETECT
@@ -224,12 +226,15 @@ void sched_preempt(bool round_robin) {
   {
     return;
   }
+  if (sched_susp_nesting) { /* in critical section */
+    return;
+  }
   if ((m_prio_highest + round_robin) > sched_tcb_now->prio) {
     sched_tcb_ready(sched_tcb_now);
     sched_switch();
   }
 }
-#include "log.h"
+
 static inline void sched_timeout(void) {
   struct tcb *tcb;
   struct tcb_node *node;

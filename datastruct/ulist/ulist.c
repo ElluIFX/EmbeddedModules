@@ -61,8 +61,8 @@
  * @note  对于SLICE_END，返回list->num
  * @note  上述规则SLICE_*假定你进行的是正向迭代(start<=i++<end)
  */
-static inline ulist_offset_t convert_pylike_offset(ULIST list,
-                                                   ulist_offset_t index) {
+static inline mod_offset_t convert_pylike_offset(ULIST list,
+                                                 mod_offset_t index) {
   if (index == 0) return 0;
   if (index == SLICE_START) return 0;
   if (index == SLICE_END) return list->num;
@@ -90,9 +90,9 @@ static inline ulist_offset_t convert_pylike_offset(ULIST list,
  * @brief 计算满足num个元素的所需容量
  * @note  当前实现为2的幂次, 降低内存操作次数
  */
-static ulist_size_t calc_req_size(ulist_size_t req_num) {
+static mod_size_t calc_req_size(mod_size_t req_num) {
   if (req_num > ULIST_MAX_EXTEND_SIZE) return req_num + ULIST_MAX_EXTEND_SIZE;
-  ulist_size_t min_req_size = 2;
+  mod_size_t min_req_size = 2;
   while (min_req_size < req_num) min_req_size *= 2;
   return min_req_size;
 }
@@ -101,7 +101,7 @@ static ulist_size_t calc_req_size(ulist_size_t req_num) {
  * @brief 扩容列表, 使其容量至少为req_num
  * @note  如果扩容失败, 返回false
  */
-static bool ulist_expend(ULIST list, ulist_size_t req_num) {
+static bool ulist_expend(ULIST list, mod_size_t req_num) {
   if (list->data == NULL || list->cap == 0) {  // list is empty
     if (!(list->cfg & ULIST_CFG_NO_ALLOC_EXTEND)) {
       req_num = calc_req_size(req_num);
@@ -139,7 +139,7 @@ static bool ulist_expend(ULIST list, ulist_size_t req_num) {
  * @brief 缩减列表, 使其容量至少为req_num
  * @note  如果req_num为0, 则释放列表
  */
-static void ulist_shrink(ULIST list, ulist_size_t req_num) {
+static void ulist_shrink(ULIST list, mod_size_t req_num) {
   if (req_num == 0) {  // free all
     if (list->cfg & ULIST_CFG_NO_AUTO_FREE) {
       goto check_dirty_region;
@@ -170,8 +170,8 @@ check_dirty_region:
   }
 }
 
-bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
-                uint8_t cfg, void (*elfree)(void* item)) {
+bool ulist_init(ULIST list, mod_size_t isize, mod_size_t init_size, uint8_t cfg,
+                void (*elfree)(void* item)) {
   list->data = NULL;
   list->cap = 0;
   list->num = 0;
@@ -195,7 +195,7 @@ bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
   return true;
 }
 
-ULIST ulist_new(ulist_size_t isize, ulist_size_t init_size, uint8_t cfg,
+ULIST ulist_new(mod_size_t isize, mod_size_t init_size, uint8_t cfg,
                 void (*elfree)(void* item)) {
   ULIST list = (ULIST)_ulist_malloc(sizeof(ulist_t));
   if (list == NULL) {
@@ -211,7 +211,7 @@ ULIST ulist_new(ulist_size_t isize, ulist_size_t init_size, uint8_t cfg,
 
 void ulist_free(ULIST list) {
   if (list->elfree != NULL && list->num > 0) {
-    for (ulist_size_t i = 0; i < list->num; i++) {
+    for (mod_size_t i = 0; i < list->num; i++) {
       list->elfree(ULIST_PTR(i));
     }
   }
@@ -222,7 +222,7 @@ void ulist_free(ULIST list) {
   if (list->dyn) _ulist_free(list);
 }
 
-void* ulist_append_multi(ULIST list, ulist_size_t num) {
+void* ulist_append_multi(ULIST list, mod_size_t num) {
   if (num == 0) return NULL;
 
   ULIST_LOCK();
@@ -244,16 +244,16 @@ bool ulist_append_copy(ULIST list, const void* src) {
   ULIST_UNLOCK_RET(true);
 }
 
-void* ulist_insert_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
+void* ulist_insert_multi(ULIST list, mod_offset_t index, mod_size_t num) {
   if (num == 0) return NULL;
   if (index == SLICE_END) return ulist_append_multi(list, num);  // append
 
   ULIST_LOCK();
-  ulist_offset_t i = convert_pylike_offset(list, index);
+  mod_offset_t i = convert_pylike_offset(list, index);
   if (i == -1) ULIST_UNLOCK_RET(NULL);
   if (!ulist_expend(list, list->num + num)) ULIST_UNLOCK_RET(NULL);
   uint8_t* src = ULIST_PTR(i);
-  ulist_size_t move_size = ULIST_BSIZE(list->num - i);
+  mod_size_t move_size = ULIST_BSIZE(list->num - i);
   uint8_t* dst = ULIST_PTR(i + num);
   _ulist_memmove(dst, src, move_size);
   if (list->cfg & ULIST_CFG_CLEAR_DIRTY_REGION) {
@@ -264,11 +264,11 @@ void* ulist_insert_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
   ULIST_UNLOCK_RET((void*)src);
 }
 
-void* ulist_insert(ULIST list, ulist_offset_t index) {
+void* ulist_insert(ULIST list, mod_offset_t index) {
   return ulist_insert_multi(list, index, 1);
 }
 
-bool ulist_insert_copy(ULIST list, ulist_offset_t index, const void* src) {
+bool ulist_insert_copy(ULIST list, mod_offset_t index, const void* src) {
   if (!src) return false;
 
   ULIST_LOCK();
@@ -290,7 +290,7 @@ bool ulist_extend(ULIST list, ULIST other) {
   ULIST_UNLOCK_RET(true);
 }
 
-bool ulist_extend_at(ULIST list, ULIST other, ulist_offset_t index) {
+bool ulist_extend_at(ULIST list, ULIST other, mod_offset_t index) {
   if (!other) return false;
   if (other->isize != list->isize) return false;
 
@@ -301,15 +301,15 @@ bool ulist_extend_at(ULIST list, ULIST other, ulist_offset_t index) {
   ULIST_UNLOCK_RET(true);
 }
 
-bool ulist_delete_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
+bool ulist_delete_multi(ULIST list, mod_offset_t index, mod_size_t num) {
   if (num == 0) return false;
 
   ULIST_LOCK();
-  ulist_offset_t i = convert_pylike_offset(list, index);
+  mod_offset_t i = convert_pylike_offset(list, index);
   if (i == -1 || list->num == 0) ULIST_UNLOCK_RET(false);
   if (i + num > list->num) num = list->num - i;
   if (list->elfree != NULL) {
-    for (ulist_size_t j = 0; j < num; j++) {
+    for (mod_size_t j = 0; j < num; j++) {
       list->elfree(ULIST_PTR((i + j)));
     }
   }
@@ -317,7 +317,7 @@ bool ulist_delete_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
     list->num -= num;
   } else {  // delete from middle, need to move data
     uint8_t* src = ULIST_PTR((i + num));
-    ulist_size_t move_size = ULIST_BSIZE(list->num - (i + num));
+    mod_size_t move_size = ULIST_BSIZE(list->num - (i + num));
     uint8_t* dst = ULIST_PTR(i);
     _ulist_memmove(dst, src, move_size);
     list->num -= num;
@@ -327,11 +327,11 @@ bool ulist_delete_multi(ULIST list, ulist_offset_t index, ulist_size_t num) {
   ULIST_UNLOCK_RET(true);
 }
 
-bool ulist_delete(ULIST list, ulist_offset_t index) {
+bool ulist_delete(ULIST list, mod_offset_t index) {
   return ulist_delete_multi(list, index, 1);
 }
 
-bool ulist_delete_slice(ULIST list, ulist_offset_t start, ulist_offset_t end) {
+bool ulist_delete_slice(ULIST list, mod_offset_t start, mod_offset_t end) {
   ULIST_LOCK();
   start = convert_pylike_offset(list, start);
   end = convert_pylike_offset(list, end);
@@ -341,18 +341,17 @@ bool ulist_delete_slice(ULIST list, ulist_offset_t start, ulist_offset_t end) {
 
 bool ulist_remove(ULIST list, const void* ptr) {
   ULIST_LOCK();
-  ulist_offset_t i = ulist_index(list, ptr);
+  mod_offset_t i = ulist_index(list, ptr);
   if (i == -1) ULIST_UNLOCK_RET(false);
   ULIST_UNLOCK_RET(ulist_delete(list, i));
 }
 
-void* ulist_slice_to_newmem(ULIST list, ulist_offset_t start,
-                            ulist_offset_t end) {
+void* ulist_slice_to_newmem(ULIST list, mod_offset_t start, mod_offset_t end) {
   ULIST_LOCK();
   start = convert_pylike_offset(list, start);
   end = convert_pylike_offset(list, end);
   if (start == -1 || end == -1) ULIST_UNLOCK_RET(NULL);
-  ulist_size_t num = end - start;
+  mod_size_t num = end - start;
   uint8_t* ptr = _ulist_malloc(ULIST_BSIZE(num));
   if (ptr == NULL) ULIST_UNLOCK_RET(NULL);
   uint8_t* src = ULIST_PTR(start);
@@ -360,25 +359,24 @@ void* ulist_slice_to_newmem(ULIST list, ulist_offset_t start,
   ULIST_UNLOCK_RET((void*)ptr);
 }
 
-bool ulist_slice_to_buf(ULIST list, ulist_offset_t start, ulist_offset_t end,
+bool ulist_slice_to_buf(ULIST list, mod_offset_t start, mod_offset_t end,
                         void* buf) {
   ULIST_LOCK();
   start = convert_pylike_offset(list, start);
   end = convert_pylike_offset(list, end);
   if (start == -1 || end == -1) ULIST_UNLOCK_RET(false);
-  ulist_size_t num = end - start;
+  mod_size_t num = end - start;
   uint8_t* src = ULIST_PTR(start);
   _ulist_memcpy(buf, src, ULIST_BSIZE(num));
   ULIST_UNLOCK_RET(true);
 }
 
-ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
-                             ulist_offset_t end) {
+ULIST ulist_slice_to_newlist(ULIST list, mod_offset_t start, mod_offset_t end) {
   ULIST_LOCK();
   start = convert_pylike_offset(list, start);
   end = convert_pylike_offset(list, end);
   if (start == -1 || end == -1) ULIST_UNLOCK_RET(NULL);
-  ulist_size_t num = end - start;
+  mod_size_t num = end - start;
   uint8_t* src = ULIST_PTR(start);
   ULIST new_list = ulist_new(list->isize, num, list->cfg, list->elfree);
   if (new_list == NULL) ULIST_UNLOCK_RET(NULL);
@@ -386,7 +384,7 @@ ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
   ULIST_UNLOCK_RET(new_list);
 }
 
-void* ulist_pop_to_newmem(ULIST list, ulist_offset_t index) {
+void* ulist_pop_to_newmem(ULIST list, mod_offset_t index) {
   ULIST_LOCK();
   void* ptr = ulist_slice_to_newmem(list, index, index + 1);
   if (ptr == NULL) ULIST_UNLOCK_RET(NULL);
@@ -394,9 +392,9 @@ void* ulist_pop_to_newmem(ULIST list, ulist_offset_t index) {
   ULIST_UNLOCK_RET(ptr);
 }
 
-bool ulist_update(ULIST list, ulist_offset_t index, const void* src) {
+bool ulist_update(ULIST list, mod_offset_t index, const void* src) {
   ULIST_LOCK();
-  ulist_offset_t i = convert_pylike_offset(list, index);
+  mod_offset_t i = convert_pylike_offset(list, index);
   if (i == -1) ULIST_UNLOCK_RET(false);
   if (list->elfree != NULL) {
     list->elfree(ULIST_PTR(i));
@@ -405,9 +403,9 @@ bool ulist_update(ULIST list, ulist_offset_t index, const void* src) {
   ULIST_UNLOCK_RET(true);
 }
 
-void* ulist_get(ULIST list, ulist_offset_t index) {
+void* ulist_get(ULIST list, mod_offset_t index) {
   ULIST_LOCK();
-  ulist_offset_t i;
+  mod_offset_t i;
   if (index == SLICE_START) {
     i = 0;
   } else if (index == SLICE_END) {
@@ -419,11 +417,11 @@ void* ulist_get(ULIST list, ulist_offset_t index) {
   ULIST_UNLOCK_RET((void*)(ULIST_PTR(i)));
 }
 
-void* __ulist_foreach_init_ptr(ULIST list, ulist_offset_t index,
-                               ulist_offset_t step, bool isStart) {
+void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
+                               mod_offset_t step, bool isStart) {
   ULIST_LOCK();
   if (step == 0) ULIST_UNLOCK_RET(NULL);
-  ulist_offset_t i = convert_pylike_offset(list, index);
+  mod_offset_t i = convert_pylike_offset(list, index);
   if (i == -1) ULIST_UNLOCK_RET(NULL);
   if (step < 0) {  // reverse
     if (index == SLICE_END && isStart) i = list->num - 1;
@@ -432,7 +430,7 @@ void* __ulist_foreach_init_ptr(ULIST list, ulist_offset_t index,
   ULIST_UNLOCK_RET((void*)(ULIST_PTR(i)));
 }
 
-bool ulist_get_item(ULIST list, ulist_offset_t index, void* target) {
+bool ulist_get_item(ULIST list, mod_offset_t index, void* target) {
   ULIST_LOCK();
   void* ptr = ulist_get(list, index);
   if (ptr == NULL) ULIST_UNLOCK_RET(false);
@@ -440,15 +438,15 @@ bool ulist_get_item(ULIST list, ulist_offset_t index, void* target) {
   ULIST_UNLOCK_RET(true);
 }
 
-bool ulist_swap(ULIST list, ulist_offset_t index1, ulist_offset_t index2) {
+bool ulist_swap(ULIST list, mod_offset_t index1, mod_offset_t index2) {
   ULIST_LOCK();
-  ulist_offset_t i1 = convert_pylike_offset(list, index1);
-  ulist_offset_t i2 = convert_pylike_offset(list, index2);
+  mod_offset_t i1 = convert_pylike_offset(list, index1);
+  mod_offset_t i2 = convert_pylike_offset(list, index2);
   if (i1 == -1 || i2 == -1) ULIST_UNLOCK_RET(false);
   uint8_t* ptr1 = ULIST_PTR(i1);
   uint8_t* ptr2 = ULIST_PTR(i2);
   uint8_t tmp;
-  for (ulist_size_t i = 0; i < list->isize; i++) {
+  for (mod_size_t i = 0; i < list->isize; i++) {
     tmp = ptr1[i];
     ptr1[i] = ptr2[i];
     ptr2[i] = tmp;
@@ -457,27 +455,27 @@ bool ulist_swap(ULIST list, ulist_offset_t index1, ulist_offset_t index2) {
 }
 
 bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
-                ulist_offset_t start, ulist_offset_t end) {
+                mod_offset_t start, mod_offset_t end) {
   ULIST_LOCK();
-  ulist_offset_t i = convert_pylike_offset(list, start);
-  ulist_offset_t j = convert_pylike_offset(list, end);
+  mod_offset_t i = convert_pylike_offset(list, start);
+  mod_offset_t j = convert_pylike_offset(list, end);
   if (i == -1 || j == -1) ULIST_UNLOCK_RET(false);
   qsort(ULIST_PTR(i), j - i, list->isize, cmp);
   ULIST_UNLOCK_RET(true);
 }
 
-ulist_offset_t ulist_index(ULIST list, const void* ptr) {
+mod_offset_t ulist_index(ULIST list, const void* ptr) {
   ULIST_LOCK();
-  ulist_offset_t i = (uint8_t*)ptr - (uint8_t*)list->data;
+  mod_offset_t i = (uint8_t*)ptr - (uint8_t*)list->data;
   if (i < 0 || i % list->isize != 0) ULIST_UNLOCK_RET(false);
   i /= list->isize;
   if (i >= list->num) ULIST_UNLOCK_RET(false);
   ULIST_UNLOCK_RET(i);
 }
 
-ulist_offset_t ulist_find(ULIST list, const void* ptr) {
+mod_offset_t ulist_find(ULIST list, const void* ptr) {
   ULIST_LOCK();
-  for (ulist_offset_t i = 0; i < list->num; i++) {
+  for (mod_offset_t i = 0; i < list->num; i++) {
     if (_ulist_memcmp(ULIST_PTR(i), ptr, list->isize) == 0) {
       ULIST_UNLOCK_RET(i);
     }
@@ -488,7 +486,7 @@ ulist_offset_t ulist_find(ULIST list, const void* ptr) {
 void* ulist_search_matched(ULIST list, const void* key,
                            bool (*match)(const void* item, const void* key)) {
   ULIST_LOCK();
-  for (ulist_offset_t i = 0; i < list->num; i++) {
+  for (mod_offset_t i = 0; i < list->num; i++) {
     if (match(ULIST_PTR(i), key)) {
       ULIST_UNLOCK_RET((void*)(ULIST_PTR(i)));
     }
@@ -511,7 +509,7 @@ void ulist_mem_shrink(ULIST list, uint8_t force_auto_free) {
 void ulist_clear(ULIST list) {
   ULIST_LOCK();
   if (list->elfree != NULL && list->num > 0) {
-    for (ulist_size_t i = 0; i < list->num; i++) {
+    for (mod_size_t i = 0; i < list->num; i++) {
       list->elfree(ULIST_PTR(i));
     }
   }
@@ -521,12 +519,12 @@ void ulist_clear(ULIST list) {
   ULIST_UNLOCK();
 }
 
-bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
-                ulist_offset_t end, ulist_offset_t step) {
+bool ulist_iter(ULIST list, void** ptrptr, mod_offset_t start, mod_offset_t end,
+                mod_offset_t step) {
   if (step == 0) return false;
   ULIST_LOCK();
-  ulist_offset_t start_n = convert_pylike_offset(list, start);
-  ulist_offset_t end_n = convert_pylike_offset(list, end);
+  mod_offset_t start_n = convert_pylike_offset(list, start);
+  mod_offset_t end_n = convert_pylike_offset(list, end);
   if (start_n == -1 || end_n == -1) ULIST_UNLOCK_RET(false);
   if (step < 0) {  // reverse
     if (start == SLICE_END) start_n = list->num - 1;
@@ -546,15 +544,15 @@ bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
   ULIST_UNLOCK_RET(true);
 }
 
-ulist_offset_t ulist_iter_index(ULIST list) { return list->iter; }
+mod_offset_t ulist_iter_index(ULIST list) { return list->iter; }
 
 void ulist_iter_stop(ULIST list) { list->iter = -1; }
 
-ULIST_ITER ulist_new_iterator(ULIST list, ulist_offset_t start,
-                              ulist_offset_t end, ulist_offset_t step) {
+ULIST_ITER ulist_new_iterator(ULIST list, mod_offset_t start, mod_offset_t end,
+                              mod_offset_t step) {
   ULIST_LOCK();
-  ulist_offset_t start_n = convert_pylike_offset(list, start);
-  ulist_offset_t end_n = convert_pylike_offset(list, end);
+  mod_offset_t start_n = convert_pylike_offset(list, start);
+  mod_offset_t end_n = convert_pylike_offset(list, end);
   if (start_n == -1 || end_n == -1) ULIST_UNLOCK_RET(NULL);
   if (step < 0) {  // reverse
     if (start == SLICE_END) start_n = list->num - 1;
@@ -610,6 +608,6 @@ void* ulist_iterator_now(ULIST_ITER iter) {
                  iter->now * iter->target->isize);
 }
 
-ulist_offset_t ulist_iterator_index(ULIST_ITER iter) { return iter->now; }
+mod_offset_t ulist_iterator_index(ULIST_ITER iter) { return iter->now; }
 
 void ulist_iterator_reset(ULIST_ITER iter) { iter->now = -1; }

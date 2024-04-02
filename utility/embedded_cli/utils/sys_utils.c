@@ -67,7 +67,6 @@ static void list_klite(void) {
   const char *head[] = {"ID", "Pri", "Entry", "Usage", "Free Stack"};
   for (int i = 0; i < sizeof(head) / sizeof(char *); i++)
     TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head[i]));
-  int i = 0;
   size_t sfree, ssize;
   f2 = TT_FMT2_NONE;
   thread_t thread = NULL;
@@ -75,7 +74,7 @@ static void list_klite(void) {
     line = TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " "));
     double usage = (double)thread_time(thread) / (double)kernel_tick_count64();
     thread_stack_info(thread, &sfree, &ssize);
-    TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", i));
+    TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", thread->id));
     TT_GridLine_AddItem(
         line, TT_FmtStr(al, f1, f2, "%d", thread_get_priority(thread)));
     if (thread_get_priority(thread) == 0)
@@ -84,7 +83,6 @@ static void list_klite(void) {
       TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%p", thread->entry));
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.4f%%", usage * 100));
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d / %d", sfree, ssize));
-    i++;
   }
   TT_AddSeparator(tt, TT_FMT1_GREEN, TT_FMT2_BOLD, '-');
   TT_Print(tt);
@@ -107,10 +105,8 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   }
   int id = atoi(embeddedCliGetToken(args, -1));
   thread_t thread = NULL;
-  int i = 0;
   while ((thread = thread_iter(thread)) != NULL) {
-    if (i == id) break;
-    i++;
+    if (thread->id == id) break;
   }
   if (!thread) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);

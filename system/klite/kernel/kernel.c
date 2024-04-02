@@ -74,10 +74,10 @@ void kernel_exit_critical(void) { cpu_leave_critical(); }
 
 void kernel_tick(uint32_t time) {
   m_tick_count += time;
+  cpu_enter_critical();
 #if KLITE_CFG_HOOK_ENABLE
   kernel_hook_tick(time);
 #endif
-  cpu_enter_critical();
   sched_timing(time);
   sched_preempt(true);
   cpu_leave_critical();

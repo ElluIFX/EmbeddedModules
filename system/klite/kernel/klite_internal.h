@@ -62,6 +62,7 @@ struct tcb {
   struct tcb_node node_sched;   // 调度队列节点
   struct tcb_node node_wait;    // 等待队列节点
   struct tcb_node node_manage;  // 管理节点
+  uint32_t id;                  // 线程ID
 };
 
 extern struct tcb *sched_tcb_now;
@@ -119,7 +120,7 @@ void sched_timing(klite_tick_t time);
 // 执行线程切换
 void sched_switch(void);
 
-// 尝试切换线程, 并将当前线程加入就绪队列
+// 尝试抢占线程, 并将当前线程加入就绪队列
 // @param round_robin: 允许同优先级时间片轮转
 void sched_preempt(bool round_robin);
 
@@ -157,10 +158,5 @@ void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
 // @param list: 等待队列
 // @return: 被唤醒的线程控制块, NULL表示无等待线程
 struct tcb *sched_tcb_wake_from(struct tcb_list *list);
-
-// 尝试唤醒等待队列中的最高优先级线程
-// @param list: 等待队列
-// @return: 被唤醒的线程控制块, NULL表示无等待线程
-struct tcb *sched_tcb_wake_from_by_priority(struct tcb_list *list);
 
 #endif

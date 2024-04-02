@@ -78,6 +78,12 @@ choice
         The behavior when a stack overflow is detected.
 endchoice
 
+config KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
+    bool "Wait List Order by Priority (or by FIFO)"
+    default y
+    help
+        The wait list, which is used to store the threads that are waiting for the object like mutex and semaphore, will be ordered by priority.
+
 config KLITE_CFG_INTERFACE_ENABLE
     bool "Enable Kernel Interface"
     default n

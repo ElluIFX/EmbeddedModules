@@ -7,8 +7,6 @@
 
 #include "klite_cfg.h"
 
-typedef struct tcb *thread_t;
-
 #if KLITE_CFG_64BIT_TICK
 typedef uint64_t klite_tick_t;
 #define KLITE_TICK_MAX UINT64_MAX
@@ -18,6 +16,8 @@ typedef uint32_t klite_tick_t;
 #endif
 
 #define KLITE_WAIT_FOREVER KLITE_TICK_MAX
+
+typedef struct tcb *thread_t;
 
 #if KLITE_CFG_OPT_SEM
 typedef struct sem *sem_t;

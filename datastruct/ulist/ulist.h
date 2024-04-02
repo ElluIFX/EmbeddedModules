@@ -17,19 +17,16 @@ extern "C" {
 
 #include "modules.h"
 
-typedef uint32_t ulist_size_t;
-typedef int32_t ulist_offset_t;
-
 #define SLICE_START (INT32_MAX)    // like list[:index] in Python
 #define SLICE_END (INT32_MAX - 1)  // like list[index:] in Python
 
 #pragma pack(1)
 typedef struct {
   void* data;              // 数据缓冲区
-  ulist_size_t num;        // 列表内元素个数
-  ulist_size_t cap;        // 缓冲区容量(元素个数)
-  ulist_size_t isize;      // 元素大小(字节)
-  ulist_offset_t iter;     // 迭代器位置(<0:未初始化)
+  mod_size_t num;          // 列表内元素个数
+  mod_size_t cap;          // 缓冲区容量(元素个数)
+  mod_size_t isize;        // 元素大小(字节)
+  mod_offset_t iter;       // 迭代器位置(<0:未初始化)
   uint8_t cfg;             // 配置
   bool dyn;                // 是否动态分配
   void (*elfree)(void*);   // 元素释放函数
@@ -39,10 +36,10 @@ typedef ulist_t* ULIST;
 
 typedef struct {
   ULIST target;
-  ulist_offset_t step;
-  ulist_offset_t start;
-  ulist_offset_t end;
-  ulist_offset_t now;
+  mod_offset_t step;
+  mod_offset_t start;
+  mod_offset_t end;
+  mod_offset_t now;
 } ulist_iter_t;
 typedef ulist_iter_t* ULIST_ITER;
 #pragma pack()
@@ -70,7 +67,7 @@ typedef ulist_iter_t* ULIST_ITER;
  * @note 需手动调用ulist_clear释放列表
  * @note 对于静态分配的ulist_t, 可手动设置isize代替本函数
  */
-extern bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
+extern bool ulist_init(ULIST list, mod_size_t isize, mod_size_t init_size,
                        uint8_t cfg, void (*elfree)(void* item));
 
 /**
@@ -84,7 +81,7 @@ extern bool ulist_init(ULIST list, ulist_size_t isize, ulist_size_t init_size,
  * @note 需手动调用ulist_free释放列表
  * @note 返回NULL说明内存操作失败
  */
-extern ULIST ulist_new(ulist_size_t isize, ulist_size_t init_size, uint8_t cfg,
+extern ULIST ulist_new(mod_size_t isize, mod_size_t init_size, uint8_t cfg,
                        void (*elfree)(void* item));
 
 /**
@@ -94,7 +91,7 @@ extern ULIST ulist_new(ulist_size_t isize, ulist_size_t init_size, uint8_t cfg,
  * @return         返回追加部分的头指针
  * @note 返回NULL说明内存操作失败
  */
-extern void* ulist_append_multi(ULIST list, ulist_size_t num);
+extern void* ulist_append_multi(ULIST list, mod_size_t num);
 
 /**
  * @brief 将1个空元素追加到列表末尾
@@ -130,7 +127,7 @@ extern bool ulist_extend(ULIST list, ULIST other);
  * @retval         是否插入成功
  * @note 返回false说明内存操作失败
  */
-extern bool ulist_extend_at(ULIST list, ULIST other, ulist_offset_t index);
+extern bool ulist_extend_at(ULIST list, ULIST other, mod_offset_t index);
 
 /**
  * @brief 将1个元素插入到列表中index位置(第index个元素之前)
@@ -140,7 +137,7 @@ extern bool ulist_extend_at(ULIST list, ULIST other, ulist_offset_t index);
  * @note 返回NULL说明内存操作失败或者index越界
  * @note index==`SLICE_END`时, 等价于append
  */
-extern void* ulist_insert(ULIST list, ulist_offset_t index);
+extern void* ulist_insert(ULIST list, mod_offset_t index);
 
 /**
  * @brief 将num个元素插入到列表中index位置(第index个元素之前)
@@ -151,8 +148,7 @@ extern void* ulist_insert(ULIST list, ulist_offset_t index);
  * @note 返回NULL说明内存操作失败或者index越界
  * @note index==`SLICE_END`时, 等价于append
  */
-extern void* ulist_insert_multi(ULIST list, ulist_offset_t index,
-                                ulist_size_t num);
+extern void* ulist_insert_multi(ULIST list, mod_offset_t index, mod_size_t num);
 
 /**
  * @brief 将1个外部元素插入到列表中index位置(第index个元素之前)
@@ -164,8 +160,7 @@ extern void* ulist_insert_multi(ULIST list, ulist_offset_t index,
  * @note index==`SLICE_END`时, 等价于append_buf
  * @note 缓冲区数据需具有和列表元素相同的大小
  */
-extern bool ulist_insert_copy(ULIST list, ulist_offset_t index,
-                              const void* src);
+extern bool ulist_insert_copy(ULIST list, mod_offset_t index, const void* src);
 
 /**
  * @brief 删除列表中给定位置的元素
@@ -174,7 +169,7 @@ extern bool ulist_insert_copy(ULIST list, ulist_offset_t index,
  * @return            是否删除成功
  * @note 返回false说明index越界
  */
-extern bool ulist_delete(ULIST list, ulist_offset_t index);
+extern bool ulist_delete(ULIST list, mod_offset_t index);
 
 /**
  * @brief 删除列表中给定位置的元素
@@ -185,8 +180,7 @@ extern bool ulist_delete(ULIST list, ulist_offset_t index);
  * @note 超出列表范围的num会被截断, 不会导致删除失败
  * @note 返回false说明index越界
  */
-extern bool ulist_delete_multi(ULIST list, ulist_offset_t index,
-                               ulist_size_t num);
+extern bool ulist_delete_multi(ULIST list, mod_offset_t index, mod_size_t num);
 
 /**
  * @brief 删除列表中的给定元素
@@ -196,8 +190,8 @@ extern bool ulist_delete_multi(ULIST list, ulist_offset_t index,
  * @return            是否删除成功
  * @note 返回false说明index越界
  */
-extern bool ulist_delete_slice(ULIST list, ulist_offset_t start,
-                               ulist_offset_t end);
+extern bool ulist_delete_slice(ULIST list, mod_offset_t start,
+                               mod_offset_t end);
 
 /**
  * @brief 删除列表中的给定元素
@@ -218,8 +212,8 @@ extern bool ulist_remove(ULIST list, const void* ptr);
  * @note 返回NULL说明index越界
  * @note 常规意义的切片应使用ulist_get_ptr，此处返回副本
  */
-extern void* ulist_slice_to_newmem(ULIST list, ulist_offset_t start,
-                                   ulist_offset_t end);
+extern void* ulist_slice_to_newmem(ULIST list, mod_offset_t start,
+                                   mod_offset_t end);
 
 /**
  * @brief 返回列表元素的切片(浅拷贝), 写入缓冲区
@@ -231,8 +225,8 @@ extern void* ulist_slice_to_newmem(ULIST list, ulist_offset_t start,
  * @note 超出列表范围的num会导致拷贝失败
  * @note 返回false说明index越界
  */
-extern bool ulist_slice_to_buf(ULIST list, ulist_offset_t start,
-                               ulist_offset_t end, void* buf);
+extern bool ulist_slice_to_buf(ULIST list, mod_offset_t start, mod_offset_t end,
+                               void* buf);
 
 /**
  * @brief 返回列表元素的切片(浅拷贝), 创建新列表
@@ -243,8 +237,8 @@ extern bool ulist_slice_to_buf(ULIST list, ulist_offset_t start,
  * @note 切片后的列表需由用户手动调用ulist_free释放
  * @note 返回NULL说明内存操作失败
  */
-extern ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
-                                    ulist_offset_t end);
+extern ULIST ulist_slice_to_newlist(ULIST list, mod_offset_t start,
+                                    mod_offset_t end);
 
 /**
  * @brief 弹出并删除列表中的元素, 创建新数据块
@@ -255,7 +249,7 @@ extern ULIST ulist_slice_to_newlist(ULIST list, ulist_offset_t start,
  * @note 返回NULL说明index越界
  * @note 建议使用get + delete代替pop
  */
-extern void* ulist_pop_to_newmem(ULIST list, ulist_offset_t index);
+extern void* ulist_pop_to_newmem(ULIST list, mod_offset_t index);
 
 /**
  * @brief 用外部元素更新列表中index位置的元素
@@ -265,7 +259,7 @@ extern void* ulist_pop_to_newmem(ULIST list, ulist_offset_t index);
  * @return            是否更新成功
  * @note 返回false说明index越界
  */
-extern bool ulist_update(ULIST list, ulist_offset_t index, const void* src);
+extern bool ulist_update(ULIST list, mod_offset_t index, const void* src);
 
 /**
  * @brief 获取列表中index位置的元素
@@ -274,7 +268,7 @@ extern bool ulist_update(ULIST list, ulist_offset_t index, const void* src);
  * @return            返回元素指针
  * @note 返回NULL说明index越界
  */
-extern void* ulist_get(ULIST list, ulist_offset_t index);
+extern void* ulist_get(ULIST list, mod_offset_t index);
 
 /**
  * @brief 获取列表中index位置的元素, 写入给定副本中
@@ -284,7 +278,7 @@ extern void* ulist_get(ULIST list, ulist_offset_t index);
  * @return            是否获取成功
  * @note 返回NULL说明index越界
  */
-extern bool ulist_get_item(ULIST list, ulist_offset_t index, void* target);
+extern bool ulist_get_item(ULIST list, mod_offset_t index, void* target);
 
 /**
  * @brief 获取元素指针在列表中的位置
@@ -293,7 +287,7 @@ extern bool ulist_get_item(ULIST list, ulist_offset_t index, void* target);
  * @return            返回元素位置(>=0)
  * @note 返回-1说明指针不在列表中
  */
-extern ulist_offset_t ulist_index(ULIST list, const void* ptr);
+extern mod_offset_t ulist_index(ULIST list, const void* ptr);
 
 /**
  * @brief 查找与对应数据相同的元素在列表中的位置
@@ -303,7 +297,7 @@ extern ulist_offset_t ulist_index(ULIST list, const void* ptr);
  * @note 返回-1说明数据不在列表中
  * @note 数据需具有和列表元素相同的结构
  */
-extern ulist_offset_t ulist_find(ULIST list, const void* ptr);
+extern mod_offset_t ulist_find(ULIST list, const void* ptr);
 
 /**
  * @brief 查找与对应键匹配的元素
@@ -324,8 +318,7 @@ extern void* ulist_search_matched(ULIST list, const void* key,
  * @param  index2     元素2位置(`Python-like`)
  * @return            是否交换成功
  */
-extern bool ulist_swap(ULIST list, ulist_offset_t index1,
-                       ulist_offset_t index2);
+extern bool ulist_swap(ULIST list, mod_offset_t index1, mod_offset_t index2);
 
 /**
  * @brief 列表排序(qsort)
@@ -338,7 +331,7 @@ extern bool ulist_swap(ULIST list, ulist_offset_t index1,
  * @note `<0:p1,p2`  `=0:p?,p?`  `>0:p2,p1`
  */
 extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
-                       ulist_offset_t start, ulist_offset_t end);
+                       mod_offset_t start, mod_offset_t end);
 
 /**
  * @brief 内部迭代列表
@@ -352,8 +345,8 @@ extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
  * @warning 该函数线程不安全
  * @warning 在迭代过程中增删元素会重置迭代器为0
  */
-extern bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
-                       ulist_offset_t end, ulist_offset_t step);
+extern bool ulist_iter(ULIST list, void** ptrptr, mod_offset_t start,
+                       mod_offset_t end, mod_offset_t step);
 
 /**
  * @brief 获取内部迭代器当前元素位置
@@ -361,7 +354,7 @@ extern bool ulist_iter(ULIST list, void** ptrptr, ulist_offset_t start,
  * @retval         返回元素位置
  * @note 返回-1说明迭代结束或迭代器未曾迭代过
  */
-extern ulist_offset_t ulist_iter_index(ULIST list);
+extern mod_offset_t ulist_iter_index(ULIST list);
 
 /**
  * @brief 提前停止内部迭代
@@ -381,8 +374,8 @@ extern void ulist_iter_stop(ULIST list);
  * @note 迭代器需由用户手动调用`ulist_free_iterator`释放
  * @note step为负数时, start应大于end
  */
-extern ULIST_ITER ulist_new_iterator(ULIST list, ulist_offset_t start,
-                                     ulist_offset_t end, ulist_offset_t step);
+extern ULIST_ITER ulist_new_iterator(ULIST list, mod_offset_t start,
+                                     mod_offset_t end, mod_offset_t step);
 
 /**
  * @brief 释放列表迭代器
@@ -422,7 +415,7 @@ extern void* ulist_iterator_now(ULIST_ITER iter);
  * @retval           返回元素位置
  * @note 返回-1说明迭代结束或迭代器未曾迭代过
  */
-extern ulist_offset_t ulist_iterator_index(ULIST_ITER iter);
+extern mod_offset_t ulist_iterator_index(ULIST_ITER iter);
 
 /**
  * @brief 重置迭代器
@@ -455,13 +448,13 @@ extern void ulist_mem_shrink(ULIST list, uint8_t force_auto_free);
  * @brief 获取列表长度
  * @param  list       列表结构体
  */
-static inline ulist_size_t ulist_len(ULIST list) { return list->num; }
+static inline mod_size_t ulist_len(ULIST list) { return list->num; }
 
 /**
  * @brief 获取列表当前存储区长度
  * @param  list       列表结构体
  */
-static inline ulist_size_t ulist_capacity(ULIST list) { return list->cap; }
+static inline mod_size_t ulist_capacity(ULIST list) { return list->cap; }
 
 /**
  * @brief 获取列表对应位置的元素指针
@@ -471,8 +464,8 @@ static inline ulist_size_t ulist_capacity(ULIST list) { return list->cap; }
  */
 #define ulist_get_ptr(list, type, index) ((type*)ulist_get(list, index))
 
-extern void* __ulist_foreach_init_ptr(ULIST list, ulist_offset_t index,
-                                      ulist_offset_t step, bool isStart);
+extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
+                                      mod_offset_t step, bool isStart);
 #define _ulist_foreach_init_ptr(list, type, index, step, isStart) \
   ((type*)__ulist_foreach_init_ptr(list, index, step, isStart))
 /**

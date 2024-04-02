@@ -40,15 +40,15 @@ void cpu_contex_switch(void) { NVIC_INT_CTRL = PEND_INT_SET; }
 void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg,
                       void *exit) {
   uint32_t *sp;
-  sp = (uint32_t *)(((uint32_t)stack_top) & 0xFFFFFFF8);
-  *(--sp) = 0x01000000;       // xPSR
-  *(--sp) = (uint32_t)entry;  // PC
-  *(--sp) = (uint32_t)exit;   // R14(LR)
-  *(--sp) = 0;                // R12
-  *(--sp) = 0;                // R3
-  *(--sp) = 0;                // R2
-  *(--sp) = 0;                // R1
-  *(--sp) = (uint32_t)arg;    // R0
+  sp = (uint32_t *)(((uint32_t)stack_top) & 0xFFFFFFF8);  // 8-byte align
+  *(--sp) = 0x01000000;                                   // xPSR
+  *(--sp) = (uint32_t)entry;                              // PC
+  *(--sp) = (uint32_t)exit;                               // R14(LR)
+  *(--sp) = 0;                                            // R12
+  *(--sp) = 0;                                            // R3
+  *(--sp) = 0;                                            // R2
+  *(--sp) = 0;                                            // R1
+  *(--sp) = (uint32_t)arg;                                // R0
 
 #if CORTEX_M4_7
   *(--sp) = 0xFFFFFFF9;  // LR(EXC_RETURN)

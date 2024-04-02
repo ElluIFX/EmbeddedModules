@@ -34,9 +34,9 @@ struct rwlock {
   mutex_t mutex;
   cond_t read;
   cond_t write;
-  uint32_t read_wait_count;
-  uint32_t write_wait_count;
-  int32_t rw_count;  // -1:写锁 0:无锁 >0:读锁数量
+  uint32_t read_wait_count;   // 等待读锁数量
+  uint32_t write_wait_count;  // 等待写锁数量
+  int32_t rw_count;           // -1:写锁 0:无锁 >0:读锁数量
 };
 
 rwlock_t rwlock_create(void) {
@@ -108,9 +108,9 @@ void rwlock_write_lock(rwlock_t rwlock) {
 void rwlock_write_unlock(rwlock_t rwlock) {
   mutex_lock(rwlock->mutex);
   rwlock->rw_count = 0;
-  if (rwlock->read_wait_count > 0) {
+  if (rwlock->read_wait_count > 0) {  // 优先唤醒读锁
     cond_broadcast(rwlock->read);
-  } else if (rwlock->write_wait_count > 0) {
+  } else if (rwlock->write_wait_count > 0) {  // 唤醒写锁
     cond_signal(rwlock->write);
   }
   mutex_unlock(rwlock->mutex);
