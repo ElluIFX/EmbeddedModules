@@ -7,7 +7,6 @@
 #define _CR_STATE_SLEEPING 3  // 睡眠态
 #define _CR_STATE_STOPPED 4   // 停止态
 
-#pragma pack(1)
 typedef struct {  // 协程句柄结构
   long ptr;       // 协程跳入地址
   void *local;    // 协程局部变量储存区
@@ -23,7 +22,6 @@ typedef struct {         // 协程句柄结构
   void *msg;             // 协程消息指针
   const char *name;      // 协程名
 } __cortn_handle_t;
-#pragma pack()
 
 // 试图报个用户友好的错误
 // 协程句柄兼参数检查

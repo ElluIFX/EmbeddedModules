@@ -54,9 +54,6 @@ void kernel_idle_thread(void* args) {
   (void)args;
 
   while (1) {
-#if KLITE_CFG_HOOK_ENABLE
-    kernel_hook_idle();
-#endif
     thread_clean_up();
     cpu_enter_critical();
     sched_idle();
@@ -75,9 +72,6 @@ void kernel_exit_critical(void) { cpu_leave_critical(); }
 void kernel_tick(uint32_t time) {
   m_tick_count += time;
   cpu_enter_critical();
-#if KLITE_CFG_HOOK_ENABLE
-  kernel_hook_tick(time);
-#endif
   sched_timing(time);
   sched_preempt(true);
   cpu_leave_critical();

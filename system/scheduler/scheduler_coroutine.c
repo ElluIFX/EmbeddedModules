@@ -3,7 +3,6 @@
 #if SCH_CFG_ENABLE_COROUTINE
 #include "scheduler_internal.h"
 
-#pragma pack(1)
 typedef struct {        // 协程任务结构
   ID_NAME_VAR(name);    // 协程名
   cortn_func_t task;    // 任务函数指针
@@ -23,7 +22,6 @@ typedef struct {      // 协程互斥锁结构
   uint8_t locked;     // 锁状态
   ulist_t waitlist;   // 等待的协程列表
 } sch_cortneduler_mutex_t;
-#pragma pack()
 
 static ulist_t cortnlist = {.data = NULL,
                             .cap = 0,

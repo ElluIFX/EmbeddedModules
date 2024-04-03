@@ -20,7 +20,6 @@ extern "C" {
 #define SLICE_START (INT32_MAX)    // like list[:index] in Python
 #define SLICE_END (INT32_MAX - 1)  // like list[index:] in Python
 
-#pragma pack(1)
 typedef struct {
   void* data;              // 数据缓冲区
   mod_size_t num;          // 列表内元素个数
@@ -42,7 +41,6 @@ typedef struct {
   mod_offset_t now;
 } ulist_iter_t;
 typedef ulist_iter_t* ULIST_ITER;
-#pragma pack()
 
 #define ULIST_DIRTY_REGION_FILL_DATA 0x00  // 区域填充值
 #define ULIST_DISABLE_ALL_LOG 0            // 禁用所有日志

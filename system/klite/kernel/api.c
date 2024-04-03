@@ -1,4 +1,5 @@
 #include "klite.h"
+#include "klite_internal.h"
 
 #if KLITE_CFG_INTERFACE_ENABLE
 #include "klite_api.h"
@@ -36,6 +37,8 @@ const klite_api_t klite = {
     .thread.get_priority = thread_get_priority,
     .thread.set_priority = thread_set_priority,
     .thread.stack_info = thread_stack_info,
+    .thread.id = thread_id,
+    .thread.find = thread_find,
     .thread.iter = thread_iter,
 
 #if KLITE_CFG_OPT_SEM
@@ -155,3 +158,9 @@ const klite_api_t klite = {
 };
 
 #endif /* KLITE_CFG_INTERFACE_ENABLE */
+
+#include "log.h"
+
+__weak void heap_alloc_fault_callback(uint32_t size) {
+  LOG_E("klite: failed to alloc %d", size);
+}

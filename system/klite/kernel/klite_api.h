@@ -49,6 +49,8 @@ typedef struct {
     void (*stack_info)(thread_t thread, size_t *stack_free, size_t *stack_size);
     void (*set_priority)(thread_t thread, uint32_t prio);
     uint32_t (*get_priority)(thread_t thread);
+    uint32_t (*id)(thread_t thread);
+    thread_t (*find)(uint32_t id);
     thread_t (*iter)(thread_t thread);
   } thread;
 

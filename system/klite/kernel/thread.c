@@ -61,9 +61,6 @@ thread_t thread_create(void (*entry)(void *), void *arg, uint32_t stack_size,
   tcb->node_manage.tcb = tcb;
   tcb->id = thread_id_counter++;
   cpu_enter_critical();
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_create(tcb);
-#endif
   list_prepend(&m_list_alive, &tcb->node_manage);
   sched_tcb_ready(tcb);
   cpu_leave_critical();
@@ -74,9 +71,6 @@ void thread_delete(thread_t thread) {
   if (!thread) thread = sched_tcb_now;
   if (thread == sched_tcb_now) return thread_exit();
   cpu_enter_critical();
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_delete(thread);
-#endif
   list_remove(&m_list_alive, &thread->node_manage);
   sched_tcb_remove(thread);
   cpu_leave_critical();
@@ -86,9 +80,6 @@ void thread_delete(thread_t thread) {
 void thread_suspend(thread_t thread) {
   if (!thread) thread = sched_tcb_now;
   cpu_enter_critical();
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_suspend(thread);
-#endif
   sched_tcb_remove(thread);
   if (thread == sched_tcb_now) sched_switch();
   cpu_leave_critical();
@@ -97,9 +88,6 @@ void thread_suspend(thread_t thread) {
 void thread_resume(thread_t thread) {
   if (!thread) thread = sched_tcb_now;  // not possible
   cpu_enter_critical();
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_resume(thread);
-#endif
   sched_tcb_ready(thread);
   cpu_leave_critical();
 }
@@ -139,9 +127,6 @@ void thread_sleep(klite_tick_t time) {
   }
   if (!time) return thread_yield();
   cpu_enter_critical();
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_sleep(sched_tcb_now, time);
-#endif
   sched_tcb_sleep(sched_tcb_now, time);
   sched_switch();
   cpu_leave_critical();
@@ -166,15 +151,30 @@ void thread_set_priority(thread_t thread, uint32_t prio) {
   cpu_enter_critical();
   sched_tcb_reset_prio(thread, prio);
   sched_preempt(false);
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_prio_change(thread, prio);
-#endif
   cpu_leave_critical();
 }
 
 uint32_t thread_get_priority(thread_t thread) {
   if (!thread) thread = sched_tcb_now;
   return thread->prio;
+}
+
+uint32_t thread_id(thread_t thread) {
+  if (!thread) thread = sched_tcb_now;
+  return thread->id;
+}
+
+thread_t thread_find(uint32_t id) {
+  cpu_enter_critical();
+  struct tcb_node *node = m_list_alive.head;
+  while (node) {
+    if (((thread_t)node->tcb)->id == id) {
+      break;
+    }
+    node = node->next;
+  }
+  cpu_leave_critical();
+  return node ? (thread_t)node->tcb : NULL;
 }
 
 thread_t thread_iter(thread_t thread) {
@@ -191,9 +191,6 @@ thread_t thread_iter(thread_t thread) {
 
 void thread_exit(void) {
   cpu_enter_critical();
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_delete(sched_tcb_now);
-#endif
   sched_tcb_remove(sched_tcb_now);
   list_remove(&m_list_alive, &sched_tcb_now->node_manage);
   list_append(&m_list_dead, &sched_tcb_now->node_manage);

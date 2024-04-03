@@ -2,7 +2,6 @@
 
 #include "scheduler_internal.h"
 #if SCH_CFG_ENABLE_TASK
-#pragma pack(1)
 typedef struct {      // 用户任务结构
   ID_NAME_VAR(name);  // 任务名
   task_func_t task;   // 任务函数指针
@@ -21,7 +20,6 @@ typedef struct {      // 用户任务结构
   uint8_t unsync;       // 丢失同步
 #endif
 } scheduler_task_t;
-#pragma pack()
 
 static ulist_t tasklist = {.data = NULL,
                            .cap = 0,

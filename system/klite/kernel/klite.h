@@ -274,94 +274,25 @@ void thread_set_priority(thread_t thread, uint32_t prio);
 uint32_t thread_get_priority(thread_t thread);
 
 /**
+ * @brief 获取线程ID
+ * @param thread 线程标识符
+ * @retval 线程ID
+ */
+uint32_t thread_id(thread_t thread);
+
+/**
+ * @brief 通过线程ID查找线程
+ * @param id 线程ID
+ * @retval 返回线程标识符, 如果返回NULL则说明没有找到
+ */
+thread_t thread_find(uint32_t id);
+
+/**
  * @brief 迭代获取所有线程
  * @param thread NULL:获取第1个线程, 其它:获取下一个线程
  * @retval 返回线程标识符, 如果返回NULL则说明没有更多线程
  */
 thread_t thread_iter(thread_t thread);
-
-/******************************************************************************
- * hook
- ******************************************************************************/
-
-#if KLITE_CFG_HOOK_ENABLE
-
-/**
- * @brief 内核空闲钩子函数
- */
-void kernel_hook_idle(void);
-
-/**
- * @param time 当前滴答加数
- * @brief 内核滴答钩子函数
- */
-void kernel_hook_tick(klite_tick_t time);
-
-/**
- * @brief 内核堆内存分配错误钩子函数
- * @param size 内存大小
- */
-void heap_hook_fault(uint32_t size);
-
-#define HEAP_HOOK_OP_ALLOC 0
-#define HEAP_HOOK_OP_FREE 1
-#define HEAP_HOOK_OP_REALLOC 2
-
-/**
- * @brief 内核堆内存操作钩子函数
- * @param addr1 内存地址1
- * @param addr2 内存地址2
- * @param size 内存大小
- * @param op 操作类型 0:分配 1:释放 2:重新分配
- */
-void heap_hook_operation(void *addr1, void *addr2, uint32_t size, uint8_t op);
-
-/**
- * @brief 内核线程创建钩子函数
- * @param thread 线程标识符
- */
-void thread_hook_create(thread_t thread);
-
-/**
- * @brief 内核线程删除/退出钩子函数
- * @param thread 线程标识符
- */
-void thread_hook_delete(thread_t thread);
-
-/**
- * @brief 内核线程优先级改变钩子函数
- * @param thread 线程标识符
- * @param prio 新的优先级
- */
-void thread_hook_prio_change(thread_t thread, uint32_t prio);
-
-/**
- * @brief 内核线程挂起钩子函数
- * @param thread 线程标识符
- */
-void thread_hook_suspend(thread_t thread);
-
-/**
- * @brief 内核线程恢复钩子函数
- * @param thread 线程标识符
- */
-void thread_hook_resume(thread_t thread);
-
-/**
- * @brief 内核线程切换钩子函数
- * @param from 当前线程标识符
- * @param to 目标线程标识符
- */
-void thread_hook_switch(thread_t from, thread_t to);
-
-/**
- * @brief 内核线程休眠钩子函数
- * @param thread 线程标识符
- * @param time 休眠时间
- */
-void thread_hook_sleep(thread_t thread, klite_tick_t time);
-
-#endif  // KLITE_CFG_HOOK_ENABLE
 
 /******************************************************************************
  * mutex

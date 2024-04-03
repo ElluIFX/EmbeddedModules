@@ -18,7 +18,6 @@ extern "C" {
 #include "modules.h"
 #include "ulist.h"
 
-#pragma pack(1)
 typedef struct udict_node {
   char* key;
   void* value;
@@ -32,7 +31,6 @@ typedef struct udict {
   bool dyn;
 } udict_t;
 typedef udict_t* UDICT;
-#pragma pack()
 
 /**
  * @brief 初始化一个已创建的字典

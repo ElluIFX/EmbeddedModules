@@ -30,13 +30,13 @@
 #include "heap4.h"
 
 volatile static uint8_t heap_lock = 0;
-static struct tcb_list heap_tcb;
+static struct tcb_list heap_waitlist;
 static void heap_mutex_lock(void) {
   cpu_enter_critical();
   if (!heap_lock) {
     heap_lock = 1;
   } else {
-    sched_tcb_wait(sched_tcb_now, &heap_tcb);
+    sched_tcb_wait(sched_tcb_now, &heap_waitlist);
     sched_switch();
   }
   cpu_leave_critical();
@@ -44,7 +44,7 @@ static void heap_mutex_lock(void) {
 
 static void heap_mutex_unlock(void) {
   cpu_enter_critical();
-  if (sched_tcb_wake_from(&heap_tcb)) {
+  if (sched_tcb_wake_from(&heap_waitlist)) {
     sched_preempt(false);
   } else {
     heap_lock = 0;
@@ -59,13 +59,7 @@ void heap_create(void *addr, uint32_t size) {
 void *heap_alloc(uint32_t size) {
   heap_mutex_lock();
   void *mem = pvPortMalloc(size);
-#if KLITE_CFG_HOOK_ENABLE
-  if (mem == NULL) {
-    heap_hook_fault(size);
-  } else {
-    heap_hook_operation(mem, NULL, size, HEAP_HOOK_OP_ALLOC);
-  }
-#endif
+  if (!mem) heap_alloc_fault_callback(size);
   heap_mutex_unlock();
   return mem;
 }
@@ -73,22 +67,13 @@ void *heap_alloc(uint32_t size) {
 void heap_free(void *mem) {
   heap_mutex_lock();
   vPortFree(mem);
-#if KLITE_CFG_HOOK_ENABLE
-  heap_hook_operation(mem, NULL, 0, HEAP_HOOK_OP_FREE);
-#endif
   heap_mutex_unlock();
 }
 
 void *heap_realloc(void *mem, uint32_t size) {
   heap_mutex_lock();
   void *new_mem = pvPortRealloc(mem, size);
-#if KLITE_CFG_HOOK_ENABLE
-  if (new_mem == NULL) {
-    heap_hook_fault(size);
-  } else {
-    heap_hook_operation(mem, new_mem, size, HEAP_HOOK_OP_REALLOC);
-  }
-#endif
+  if (!new_mem) heap_alloc_fault_callback(size);
   heap_mutex_unlock();
   return new_mem;
 }

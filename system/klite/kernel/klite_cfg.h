@@ -13,7 +13,6 @@
 #define KLITE_CFG_IDLE_THREAD_STACK_SIZE 256  // 空闲线程栈大小
 #define KLITE_CFG_DEFAULT_STACK_SIZE 1024     // 默认线程栈大小
 #define KLITE_CFG_INTERFACE_ENABLE 0          // 统一接口使能
-#define KLITE_CFG_HOOK_ENABLE 0               // 钩子使能
 
 #define KLITE_CFG_STACK_OVERFLOW_DETECT 1      // 栈溢出保护
 #define KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET 1  // 栈溢出时系统复位

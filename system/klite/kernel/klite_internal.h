@@ -101,6 +101,9 @@ void cpu_leave_critical(void);
 // 内核空闲线程
 void kernel_idle_thread(void *args);
 
+// 堆分配失败回调
+void heap_alloc_fault_callback(uint32_t size);
+
 // 清理待删除线程
 void thread_clean_up(void);
 

@@ -211,9 +211,6 @@ void sched_switch(void) {
   }
   tcb->list_sched = NULL;
   sched_tcb_next = tcb;
-#if KLITE_CFG_HOOK_ENABLE
-  thread_hook_switch(sched_tcb_now, sched_tcb_next);
-#endif
   cpu_contex_switch();
 }
 

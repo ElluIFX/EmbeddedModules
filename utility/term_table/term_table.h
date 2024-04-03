@@ -14,7 +14,6 @@
 #include "term_table.h"
 #include "ulist.h"
 
-#pragma pack(1)
 typedef enum {
   TT_ALIGN_LEFT,    // 左对齐
   TT_ALIGN_CENTER,  // 居中对齐
@@ -162,8 +161,6 @@ typedef struct {
 } term_table_item_progress_t;
 
 typedef term_table_item_progress_t* TT_ITEM_PROGRESS;
-
-#pragma pack()
 
 /**
  * @brief  创建一个表格

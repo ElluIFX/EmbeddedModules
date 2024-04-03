@@ -57,7 +57,6 @@ typedef enum {
 // 按键x多击N次
 #define KEYx_IS_MULTI(IDx, N) (KEY_EVENT_MULTI(N) | IDx << 8)
 
-#pragma pack(1)
 typedef struct {              // 按键设备设置(key_dev->setting)
   uint16_t check_period_ms;   // 按键检测周期 (Key_Tick调用周期)
   uint16_t shake_filter_ms;   // 按键抖动滤波周期 (N*check_period_ms)
@@ -92,7 +91,6 @@ typedef struct __key_dev {  // 按键设备结构体
     uint8_t multi_count;                                  // 多击计数
   } key_arr[];
 } key_dev_t;
-#pragma pack()
 
 // 默认按键设置
 #define default_key_setting                                             \

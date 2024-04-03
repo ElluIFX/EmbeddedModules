@@ -72,7 +72,6 @@ choice
 
     config KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
         bool "Callback [void klite_stack_overflow_callback(void)]"
-        select KLITE_CFG_HOOK_ENABLE
 
     help
         The behavior when a stack overflow is detected.
@@ -95,12 +94,6 @@ config KLITE_CFG_64BIT_TICK
     default y
     help
         Use 64-bit (uint64_t) tick for the user space.
-
-config KLITE_CFG_HOOK_ENABLE
-    bool "Enable Function Hooks"
-    default n
-    help
-        Enable the internal hooks.
 
 menuconfig KLITE_CFG_OPT_ENABLE
     bool "Optional Features"

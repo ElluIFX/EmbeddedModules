@@ -104,29 +104,22 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   int id = atoi(embeddedCliGetToken(args, -1));
-  thread_t thread = NULL;
-  while ((thread = thread_iter(thread)) != NULL) {
-    if (thread->id == id) break;
-  }
+  thread_t thread = thread_find(id);
   if (!thread) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);
     return;
   }
+  if (thread_get_priority(thread) == 0) {
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot operate on idle thread" T_RST);
+    return;
+  }
   if (embeddedCliCheckToken(args, "-s", 1)) {
-    if (thread_get_priority(thread) == 0) {
-      PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot suspend idle thread" T_RST);
-      return;
-    }
     thread_suspend(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d suspended" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
     thread_resume(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d resumed" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
-    if (thread_get_priority(thread) == 0) {
-      PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot delete idle thread" T_RST);
-      return;
-    }
     thread_delete(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d deleted" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-p", 1)) {

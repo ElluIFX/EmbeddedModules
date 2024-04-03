@@ -130,13 +130,7 @@ void *heap_alloc(uint32_t size) {
       break;
     }
   }
-#if KLITE_CFG_HOOK_ENABLE
-  if (mem == NULL) {
-    heap_hook_fault(size);
-  } else {
-    heap_hook_operation(mem, NULL, size, HEAP_HOOK_OP_ALLOC);
-  }
-#endif
+  if (!mem) heap_alloc_fault_callback(size);
   heap_mutex_unlock();
   return mem;
 }
@@ -152,26 +146,17 @@ void heap_free(void *mem) {
       heap->free = node->prev;
     }
   }
-#if KLITE_CFG_HOOK_ENABLE
-  heap_hook_operation(mem, NULL, 0, HEAP_HOOK_OP_FREE);
-#endif
   heap_mutex_unlock();
 }
 
 void *heap_realloc(void *mem, uint32_t size) {
   void *new_mem;
   new_mem = heap_alloc(size);
-#if KLITE_CFG_HOOK_ENABLE
-  if (new_mem == NULL) {
-    heap_hook_fault(size);
-  } else {
-    heap_hook_operation(mem, new_mem, size, HEAP_HOOK_OP_REALLOC);
-  }
-#endif
   if (new_mem) {
     memcpy(new_mem, mem, size);
     heap_free(mem);
   }
+  if (!new_mem) heap_alloc_fault_callback(size);
   return new_mem;
 }
 

@@ -11,13 +11,11 @@ typedef void (*cl_func_arg_t)(
 #include "scheduler_runlater_arg.h"
     EXPAND_ARGS_X(SCH_CFG_CALLLATER_MAX_ARG));
 typedef void (*cl_func_noarg_t)(void);
-#pragma pack(1)
 typedef struct {       // 延时调用任务结构
   void *task;          // 任务函数指针
   uint64_t runTimeUs;  // 执行时间(us)
   cl_arg_t *args;      // 参数区
 } scheduler_runlater_t;
-#pragma pack()
 
 static ulist_t clist = {.data = NULL,
                         .cap = 0,

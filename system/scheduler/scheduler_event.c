@@ -2,7 +2,6 @@
 
 #include "scheduler_internal.h"
 #if SCH_CFG_ENABLE_EVENT
-#pragma pack(1)
 typedef struct {      // 事件结构
   ID_NAME_VAR(name);  // 事件名
   event_func_t task;  // 事件回调函数指针
@@ -26,7 +25,6 @@ typedef struct {              // 事件触发结构
   scheduler_event_t *event;  // 源事件指针
 #endif
 } scheduler_triggered_event_t;
-#pragma pack()
 
 static ulist_t eventlist = {.data = NULL,
                             .cap = 0,

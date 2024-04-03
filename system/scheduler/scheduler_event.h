@@ -6,13 +6,11 @@ extern "C" {
 
 #include "scheduler.h"
 #if SCH_CFG_ENABLE_EVENT
-#pragma pack(1)
 typedef struct {
   uint8_t type;  // 事件参数类型
   void *ptr;     // 参数指针
   size_t size;   // 参数大小
 } sch_eventeduler_arg_t;
-#pragma pack()
 
 // 事件回调函数指针类型
 typedef void (*event_func_t)(sch_eventeduler_arg_t arg);
