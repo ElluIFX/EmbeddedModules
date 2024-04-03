@@ -30,26 +30,26 @@
 
 #include "klite_internal.h"
 
-struct barrier {
-  struct tcb_list list;
+struct kl_barrier {
+  struct kl_tcb_list list;
   uint32_t value;
   uint32_t target;
 };
 
-barrier_t barrier_create(uint32_t target) {
-  struct barrier *barrier;
-  barrier = heap_alloc(sizeof(struct barrier));
+kl_barrier_t kl_barrier_create(uint32_t target) {
+  struct kl_barrier *barrier;
+  barrier = kl_heap_alloc(sizeof(struct kl_barrier));
   if (barrier != NULL) {
-    memset(barrier, 0, sizeof(struct barrier));
+    memset(barrier, 0, sizeof(struct kl_barrier));
     barrier->target = target;
     barrier->value = 0;
   }
-  return (barrier_t)barrier;
+  return (kl_barrier_t)barrier;
 }
 
-void barrier_delete(barrier_t barrier) { heap_free(barrier); }
+void kl_barrier_delete(kl_barrier_t barrier) { kl_heap_free(barrier); }
 
-static bool barrier_check(struct barrier *barrier) {
+static bool kl_barrier_check(struct kl_barrier *barrier) {
   if (barrier->value >= barrier->target) {
     barrier->value = 0;
     while (sched_tcb_wake_from(&barrier->list))
@@ -60,19 +60,19 @@ static bool barrier_check(struct barrier *barrier) {
   return false;
 }
 
-void barrier_set(barrier_t barrier, uint32_t target) {
+void kl_barrier_set(kl_barrier_t barrier, uint32_t target) {
   cpu_enter_critical();
   barrier->target = target;
-  barrier_check(barrier);
+  kl_barrier_check(barrier);
   cpu_leave_critical();
 }
 
-uint32_t barrier_get(barrier_t barrier) { return barrier->value; }
+uint32_t kl_barrier_get(kl_barrier_t barrier) { return barrier->value; }
 
-void barrier_wait(barrier_t barrier) {
+void kl_barrier_wait(kl_barrier_t barrier) {
   cpu_enter_critical();
   barrier->value++;
-  if (!barrier_check(barrier)) {
+  if (!kl_barrier_check(barrier)) {
     sched_tcb_wait(sched_tcb_now, &barrier->list);
     sched_switch();
   }

@@ -31,52 +31,52 @@
 
 #include <string.h>
 
-struct event_flags {
-  mutex_t mutex;
-  cond_t cond;
+struct kl_event_flags {
+  kl_mutex_t mutex;
+  kl_cond_t cond;
   uint32_t bits;
 };
 
-event_flags_t event_flags_create(void) {
-  struct event_flags *flags;
-  flags = heap_alloc(sizeof(struct event_flags));
+kl_event_flags_t kl_event_flags_create(void) {
+  struct kl_event_flags *flags;
+  flags = kl_heap_alloc(sizeof(struct kl_event_flags));
   if (flags != NULL) {
-    memset(flags, 0, sizeof(struct event_flags));
-    flags->mutex = mutex_create();
+    memset(flags, 0, sizeof(struct kl_event_flags));
+    flags->mutex = kl_mutex_create();
     if (flags->mutex == NULL) {
-      heap_free(flags);
+      kl_heap_free(flags);
       return NULL;
     }
-    flags->cond = cond_create();
+    flags->cond = kl_cond_create();
     if (flags->cond == NULL) {
-      mutex_delete(flags->mutex);
-      heap_free(flags);
+      kl_mutex_delete(flags->mutex);
+      kl_heap_free(flags);
       return NULL;
     }
   }
   return flags;
 }
 
-void event_flags_delete(event_flags_t flags) {
-  mutex_delete(flags->mutex);
-  cond_delete(flags->cond);
-  heap_free(flags);
+void kl_event_flags_delete(kl_event_flags_t flags) {
+  kl_mutex_delete(flags->mutex);
+  kl_cond_delete(flags->cond);
+  kl_heap_free(flags);
 }
 
-void event_flags_set(event_flags_t flags, uint32_t bits) {
-  mutex_lock(flags->mutex);
+void kl_event_flags_set(kl_event_flags_t flags, uint32_t bits) {
+  kl_mutex_lock(flags->mutex);
   flags->bits |= bits;
-  mutex_unlock(flags->mutex);
-  cond_broadcast(flags->cond);
+  kl_mutex_unlock(flags->mutex);
+  kl_cond_broadcast(flags->cond);
 }
 
-void event_flags_reset(event_flags_t flags, uint32_t bits) {
-  mutex_lock(flags->mutex);
+void kl_event_flags_reset(kl_event_flags_t flags, uint32_t bits) {
+  kl_mutex_lock(flags->mutex);
   flags->bits &= ~bits;
-  mutex_unlock(flags->mutex);
+  kl_mutex_unlock(flags->mutex);
 }
 
-static uint32_t try_wait_bits(event_flags_t flags, uint32_t bits,
+static uint32_t try_wait_bits(kl_event_flags_t flags, uint32_t bits,
                               uint32_t ops) {
   uint32_t cmp;
   uint32_t wait_all;
@@ -91,32 +91,33 @@ static uint32_t try_wait_bits(event_flags_t flags, uint32_t bits,
   return 0;
 }
 
-uint32_t event_flags_wait(event_flags_t flags, uint32_t bits, uint32_t ops) {
+uint32_t kl_event_flags_wait(kl_event_flags_t flags, uint32_t bits,
+                             uint32_t ops) {
   uint32_t ret;
-  mutex_lock(flags->mutex);
+  kl_mutex_lock(flags->mutex);
   while (1) {
     ret = try_wait_bits(flags, bits, ops);
     if (ret != 0) {
       break;
     }
-    cond_wait(flags->cond, flags->mutex);
+    kl_cond_wait(flags->cond, flags->mutex);
   }
-  mutex_unlock(flags->mutex);
+  kl_mutex_unlock(flags->mutex);
   return ret;
 }
 
-uint32_t event_flags_timed_wait(event_flags_t flags, uint32_t bits,
-                                    uint32_t ops, klite_tick_t timeout) {
+uint32_t kl_event_flags_timed_wait(kl_event_flags_t flags, uint32_t bits,
+                                   uint32_t ops, kl_tick_t timeout) {
   uint32_t ret;
-  mutex_lock(flags->mutex);
+  kl_mutex_lock(flags->mutex);
   while (1) {
     ret = try_wait_bits(flags, bits, ops);
     if ((ret != 0) || (timeout == 0)) {
       break;
     }
-    timeout = cond_timed_wait(flags->cond, flags->mutex, timeout);
+    timeout = kl_cond_timed_wait(flags->cond, flags->mutex, timeout);
   }
-  mutex_unlock(flags->mutex);
+  kl_mutex_unlock(flags->mutex);
   return ret;
 }
 

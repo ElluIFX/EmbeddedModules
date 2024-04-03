@@ -31,9 +31,9 @@
 
 #include <string.h>
 
-struct mpool {
-  mutex_t mutex;
-  cond_t wait;
+struct kl_mpool {
+  kl_mutex_t mutex;
+  kl_cond_t wait;
   uint8_t **block_list;
   uint32_t block_count;
   uint32_t free_count;
@@ -41,42 +41,42 @@ struct mpool {
   uint32_t free_tail;
 };
 
-mpool_t mpool_create(uint32_t block_size, uint32_t block_count) {
+kl_mpool_t kl_mpool_create(uint32_t block_size, uint32_t block_count) {
   uint32_t i;
   uint32_t msize;
-  mpool_t mpool;
+  kl_mpool_t mpool;
   uint8_t *block;
   msize =
-      sizeof(struct mpool) + block_count * (sizeof(uint32_t *) + block_size);
-  mpool = heap_alloc(msize);
+      sizeof(struct kl_mpool) + block_count * (sizeof(uint32_t *) + block_size);
+  mpool = kl_heap_alloc(msize);
   if (mpool != NULL) {
     memset(mpool, 0, msize);
-    mpool->mutex = mutex_create();
-    mpool->wait = cond_create();
+    mpool->mutex = kl_mutex_create();
+    mpool->wait = kl_cond_create();
     if (mpool->mutex != NULL) {
       mpool->block_list = (uint8_t **)(mpool + 1);
       mpool->block_count = block_count;
       block = mpool->block_list[block_count];
       for (i = 0; i < block_count; i++) {
-        mpool_free(mpool, block);
+        kl_mpool_free(mpool, block);
         block += block_size;
       }
       return mpool;
     }
-    heap_free(mpool);
+    kl_heap_free(mpool);
   }
   return NULL;
 }
 
-void mpool_delete(mpool_t mpool) {
-  mutex_delete(mpool->mutex);
-  cond_delete(mpool->wait);
-  heap_free(mpool);
+void kl_mpool_delete(kl_mpool_t mpool) {
+  kl_mutex_delete(mpool->mutex);
+  kl_cond_delete(mpool->wait);
+  kl_heap_free(mpool);
 }
 
-void *mpool_alloc(mpool_t mpool) {
+void *kl_mpool_alloc(kl_mpool_t mpool) {
   void *block = NULL;
-  mutex_lock(mpool->mutex);
+  kl_mutex_lock(mpool->mutex);
   if (mpool->free_count > 0) {
     block = mpool->block_list[mpool->free_head];
     mpool->free_count--;
@@ -85,15 +85,15 @@ void *mpool_alloc(mpool_t mpool) {
       mpool->free_head = 0;
     }
   }
-  mutex_unlock(mpool->mutex);
+  kl_mutex_unlock(mpool->mutex);
   return block;
 }
 
-void *mpool_timed_alloc(mpool_t mpool, klite_tick_t timeout) {
+void *kl_mpool_timed_alloc(kl_mpool_t mpool, kl_tick_t timeout) {
   void *block = NULL;
-  mutex_lock(mpool->mutex);
+  kl_mutex_lock(mpool->mutex);
   if (mpool->free_count == 0 && timeout > 0) {
-    cond_timed_wait(mpool->wait, mpool->mutex, timeout);
+    kl_cond_timed_wait(mpool->wait, mpool->mutex, timeout);
   }
   if (mpool->free_count > 0) {
     block = mpool->block_list[mpool->free_head];
@@ -103,32 +103,32 @@ void *mpool_timed_alloc(mpool_t mpool, klite_tick_t timeout) {
       mpool->free_head = 0;
     }
   }
-  mutex_unlock(mpool->mutex);
+  kl_mutex_unlock(mpool->mutex);
   return block;
 }
 
-void *mpool_blocked_alloc(mpool_t mpool) {
+void *kl_mpool_blocked_alloc(kl_mpool_t mpool) {
   void *block = NULL;
-  mutex_lock(mpool->mutex);
+  kl_mutex_lock(mpool->mutex);
   while (mpool->free_count == 0) {
-    cond_wait(mpool->wait, mpool->mutex);
+    kl_cond_wait(mpool->wait, mpool->mutex);
   }
   block = mpool->block_list[mpool->free_head];
   mpool->free_count--;
-  mutex_unlock(mpool->mutex);
+  kl_mutex_unlock(mpool->mutex);
   return block;
 }
 
-void mpool_free(mpool_t mpool, void *block) {
-  mutex_lock(mpool->mutex);
+void kl_mpool_free(kl_mpool_t mpool, void *block) {
+  kl_mutex_lock(mpool->mutex);
   mpool->block_list[mpool->free_tail] = block;
   mpool->free_count++;
   mpool->free_tail++;
   if (mpool->free_tail >= mpool->block_count) {
     mpool->free_tail = 0;
   }
-  cond_signal(mpool->wait);
-  mutex_unlock(mpool->mutex);
+  kl_cond_signal(mpool->wait);
+  kl_mutex_unlock(mpool->mutex);
 }
 
 #endif /* KLITE_CFG_OPT_MPOOL */

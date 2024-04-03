@@ -31,88 +31,88 @@
 
 #include "klite_internal_fifo.h"
 
-struct mailbox {
+struct kl_mailbox {
   fifo_t fifo;
-  mutex_t mutex;
-  cond_t write;
-  cond_t read;
+  kl_mutex_t mutex;
+  kl_cond_t write;
+  kl_cond_t read;
 };
 
-mailbox_t mailbox_create(uint32_t size) {
-  struct mailbox *mailbox;
-  mailbox = heap_alloc(sizeof(struct mailbox) + size);
+kl_mailbox_t kl_mailbox_create(uint32_t size) {
+  struct kl_mailbox *mailbox;
+  mailbox = kl_heap_alloc(sizeof(struct kl_mailbox) + size);
   if (mailbox != NULL) {
     fifo_init(&mailbox->fifo, mailbox + 1, size);
 
-    mailbox->mutex = mutex_create();
+    mailbox->mutex = kl_mutex_create();
     if (mailbox->mutex == NULL) {
-      heap_free(mailbox);
+      kl_heap_free(mailbox);
       return NULL;
     }
 
-    mailbox->write = cond_create();
+    mailbox->write = kl_cond_create();
     if (mailbox->write == NULL) {
-      mutex_delete(mailbox->mutex);
-      heap_free(mailbox);
+      kl_mutex_delete(mailbox->mutex);
+      kl_heap_free(mailbox);
       return NULL;
     }
 
-    mailbox->read = cond_create();
+    mailbox->read = kl_cond_create();
     if (mailbox->read == NULL) {
-      mutex_delete(mailbox->mutex);
-      cond_delete(mailbox->write);
-      heap_free(mailbox);
+      kl_mutex_delete(mailbox->mutex);
+      kl_cond_delete(mailbox->write);
+      kl_heap_free(mailbox);
       return NULL;
     }
   }
   return mailbox;
 }
 
-void mailbox_delete(mailbox_t mailbox) {
-  mutex_delete(mailbox->mutex);
-  cond_delete(mailbox->write);
-  cond_delete(mailbox->read);
-  heap_free(mailbox);
+void kl_mailbox_delete(kl_mailbox_t mailbox) {
+  kl_mutex_delete(mailbox->mutex);
+  kl_cond_delete(mailbox->write);
+  kl_cond_delete(mailbox->read);
+  kl_heap_free(mailbox);
 }
 
-void mailbox_clear(mailbox_t mailbox) {
-  mutex_lock(mailbox->mutex);
+void kl_mailbox_clear(kl_mailbox_t mailbox) {
+  kl_mutex_lock(mailbox->mutex);
   fifo_clear(&mailbox->fifo);
-  mutex_unlock(mailbox->mutex);
-  cond_broadcast(mailbox->write);
+  kl_mutex_unlock(mailbox->mutex);
+  kl_cond_broadcast(mailbox->write);
 }
 
-uint32_t mailbox_post(mailbox_t mailbox, void *buf, uint32_t len,
-                      klite_tick_t timeout) {
+uint32_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, uint32_t len,
+                         kl_tick_t timeout) {
   uint32_t ret;
   uint32_t ttl;
   ttl = len + sizeof(uint32_t);
-  mutex_lock(mailbox->mutex);
+  kl_mutex_lock(mailbox->mutex);
   while (1) {
     ret = fifo_get_free(&mailbox->fifo);
     if (ret >= ttl) {
       fifo_write(&mailbox->fifo, &len, sizeof(uint32_t));
       fifo_write(&mailbox->fifo, buf, len);
-      mutex_unlock(mailbox->mutex);
-      cond_broadcast(mailbox->read);
+      kl_mutex_unlock(mailbox->mutex);
+      kl_cond_broadcast(mailbox->read);
       return len;
     }
     if (timeout > 0) {
-      timeout = cond_timed_wait(mailbox->write, mailbox->mutex, timeout);
+      timeout = kl_cond_timed_wait(mailbox->write, mailbox->mutex, timeout);
       if (timeout != 0) continue;
     }
-    mutex_unlock(mailbox->mutex);
+    kl_mutex_unlock(mailbox->mutex);
     return 0;
   }
 }
 
-uint32_t mailbox_read(mailbox_t mailbox, void *buf, uint32_t len,
-                      klite_tick_t timeout) {
+uint32_t kl_mailbox_read(kl_mailbox_t mailbox, void *buf, uint32_t len,
+                         kl_tick_t timeout) {
   uint32_t ret;
   uint32_t ttl;
   uint32_t over;
   uint8_t dummy;
-  mutex_lock(mailbox->mutex);
+  kl_mutex_lock(mailbox->mutex);
   while (1) {
     ret = fifo_read(&mailbox->fifo, &ttl, sizeof(uint32_t));
     if (ret != 0) {
@@ -123,15 +123,15 @@ uint32_t mailbox_read(mailbox_t mailbox, void *buf, uint32_t len,
           fifo_read(&mailbox->fifo, &dummy, 1);
         }
       }
-      mutex_unlock(mailbox->mutex);
-      cond_broadcast(mailbox->write);
+      kl_mutex_unlock(mailbox->mutex);
+      kl_cond_broadcast(mailbox->write);
       return ttl;
     }
     if (timeout > 0) {
-      timeout = cond_timed_wait(mailbox->read, mailbox->mutex, timeout);
+      timeout = kl_cond_timed_wait(mailbox->read, mailbox->mutex, timeout);
       if (timeout != 0) continue;
     }
-    mutex_unlock(mailbox->mutex);
+    kl_mutex_unlock(mailbox->mutex);
     return 0;
   }
 }

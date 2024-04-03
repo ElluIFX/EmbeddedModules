@@ -33,9 +33,9 @@
 
 #include "klite_internal_list.h"
 
-struct soft_timer {
-  struct soft_timer *prev;
-  struct soft_timer *next;
+struct kl_soft_timer {
+  struct kl_soft_timer *prev;
+  struct kl_soft_timer *next;
   void (*handler)(void *);
   void *arg;
   uint32_t reload;
@@ -43,19 +43,19 @@ struct soft_timer {
 };
 
 struct timer_list {
-  struct soft_timer *head;
-  struct soft_timer *tail;
+  struct kl_soft_timer *head;
+  struct kl_soft_timer *tail;
 };
 
 static struct timer_list m_timer_list;
-static mutex_t m_timer_mutex;
-static event_t m_timer_event;
-static thread_t m_timer_thread;
+static kl_mutex_t m_timer_mutex;
+static kl_event_t m_timer_event;
+static kl_thread_t m_timer_thread;
 
-static uint32_t soft_timer_process(uint32_t time) {
-  struct soft_timer *node;
+static uint32_t kl_soft_timer_process(uint32_t time) {
+  struct kl_soft_timer *node;
   uint32_t timeout = UINT32_MAX;
-  mutex_lock(m_timer_mutex);
+  kl_mutex_lock(m_timer_mutex);
   for (node = m_timer_list.head; node != NULL; node = node->next) {
     if (node->reload == 0) {
       continue;
@@ -70,108 +70,108 @@ static uint32_t soft_timer_process(uint32_t time) {
       timeout = node->timeout;
     }
   }
-  mutex_unlock(m_timer_mutex);
+  kl_mutex_unlock(m_timer_mutex);
   return timeout;
 }
 
-static void soft_timer_service(void *arg) {
+static void kl_soft_timer_service(void *arg) {
   uint32_t last;
   uint32_t time;
   uint32_t timeout;
-  last = kernel_tick_count();
+  last = kl_kernel_tick_count();
   while (1) {
-    time = kernel_tick_count() - last;
-    last = kernel_tick_count();
-    timeout = soft_timer_process(time);
-    time = kernel_tick_count() - last;
+    time = kl_kernel_tick_count() - last;
+    last = kl_kernel_tick_count();
+    timeout = kl_soft_timer_process(time);
+    time = kl_kernel_tick_count() - last;
     if (timeout > time) {
-      event_timed_wait(m_timer_event, timeout - time);
+      kl_event_timed_wait(m_timer_event, timeout - time);
     }
   }
 }
 
-bool soft_timer_init(uint32_t stack_size, uint32_t priority) {
+bool kl_soft_timer_init(uint32_t stack_size, uint32_t priority) {
   if (m_timer_thread != NULL) {
     return true;
   }
   memset(&m_timer_list, 0, sizeof(struct timer_list));
-  m_timer_mutex = mutex_create();
+  m_timer_mutex = kl_mutex_create();
   if (m_timer_mutex == NULL) {
     return false;
   }
-  m_timer_event = event_create(true);
+  m_timer_event = kl_event_create(true);
   if (m_timer_event == NULL) {
-    mutex_delete(m_timer_mutex);
+    kl_mutex_delete(m_timer_mutex);
     return false;
   }
   m_timer_thread =
-      thread_create(soft_timer_service, NULL, stack_size, priority);
+      kl_thread_create(kl_soft_timer_service, NULL, stack_size, priority);
   if (m_timer_thread == NULL) {
-    mutex_delete(m_timer_mutex);
-    event_delete(m_timer_event);
+    kl_mutex_delete(m_timer_mutex);
+    kl_event_delete(m_timer_event);
     return false;
   }
   return true;
 }
 
-void soft_timer_deinit(void) {
-  struct soft_timer *node;
+void kl_soft_timer_deinit(void) {
+  struct kl_soft_timer *node;
   if (m_timer_thread == NULL) {
     return;
   }
-  thread_delete(m_timer_thread);
+  kl_thread_delete(m_timer_thread);
   m_timer_thread = NULL;
-  event_delete(m_timer_event);
+  kl_event_delete(m_timer_event);
   m_timer_event = NULL;
-  mutex_lock(m_timer_mutex);
+  kl_mutex_lock(m_timer_mutex);
   while (m_timer_list.head != NULL) {
     node = m_timer_list.head;
     list_remove(&m_timer_list, node);
-    heap_free(node);
+    kl_heap_free(node);
   }
-  mutex_unlock(m_timer_mutex);
-  mutex_delete(m_timer_mutex);
+  kl_mutex_unlock(m_timer_mutex);
+  kl_mutex_delete(m_timer_mutex);
 }
 
-soft_timer_t soft_timer_create(void (*handler)(void *), void *arg) {
-  struct soft_timer *timer;
+kl_soft_timer_t kl_soft_timer_create(void (*handler)(void *), void *arg) {
+  struct kl_soft_timer *timer;
   if (!m_timer_thread) {
-    if (!soft_timer_init(0, 0)) {  // use default value
+    if (!kl_soft_timer_init(0, 0)) {  // use default value
       return NULL;
     }
   }
-  timer = heap_alloc(sizeof(struct soft_timer));
+  timer = kl_heap_alloc(sizeof(struct kl_soft_timer));
   if (timer != NULL) {
-    memset(timer, 0, sizeof(struct soft_timer));
+    memset(timer, 0, sizeof(struct kl_soft_timer));
     timer->handler = handler;
     timer->arg = arg;
-    mutex_lock(m_timer_mutex);
+    kl_mutex_lock(m_timer_mutex);
     list_append(&m_timer_list, timer);
-    mutex_unlock(m_timer_mutex);
+    kl_mutex_unlock(m_timer_mutex);
   }
   return timer;
 }
 
-void soft_timer_delete(soft_timer_t timer) {
-  mutex_lock(m_timer_mutex);
+void kl_soft_timer_delete(kl_soft_timer_t timer) {
+  kl_mutex_lock(m_timer_mutex);
   list_remove(&m_timer_list, timer);
-  mutex_unlock(m_timer_mutex);
-  heap_free(timer);
+  kl_mutex_unlock(m_timer_mutex);
+  kl_heap_free(timer);
 }
 
-void soft_timer_start(soft_timer_t timer, klite_tick_t timeout) {
-  mutex_lock(m_timer_mutex);
+void kl_soft_timer_start(kl_soft_timer_t timer, kl_tick_t timeout) {
+  kl_mutex_lock(m_timer_mutex);
   timer->reload = (timeout > 0) ? timeout : 1; /* timeout can't be 0 */
   timer->timeout = timer->reload;
-  mutex_unlock(m_timer_mutex);
-  event_set(m_timer_event);
+  kl_mutex_unlock(m_timer_mutex);
+  kl_event_set(m_timer_event);
 }
 
-void soft_timer_stop(soft_timer_t timer) {
-  mutex_lock(m_timer_mutex);
+void kl_soft_timer_stop(kl_soft_timer_t timer) {
+  kl_mutex_lock(m_timer_mutex);
   timer->reload = 0;
-  mutex_unlock(m_timer_mutex);
-  event_set(m_timer_event);
+  kl_mutex_unlock(m_timer_mutex);
+  kl_event_set(m_timer_event);
 }
 
 #endif /* KLITE_CFG_OPT_SOFT_TIMER */

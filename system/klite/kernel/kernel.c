@@ -31,21 +31,21 @@
 #define KERNEL_VERSION_CODE MAKE_VERSION_CODE(5, 1, 0)
 
 static uint64_t m_tick_count;
-static thread_t m_idle_thread;
+static kl_thread_t m_idle_thread;
 
-void kernel_init(void* heap_addr, uint32_t heap_size) {
+void kl_kernel_init(void* heap_addr, uint32_t heap_size) {
   m_tick_count = 0;
   m_idle_thread = NULL;
   cpu_sys_init();
   sched_init();
-  heap_create(heap_addr, heap_size);
+  kl_heap_init(heap_addr, heap_size);
 
   /* 创建idle线程 */
-  m_idle_thread = thread_create(kernel_idle_thread, NULL,
-                                KLITE_CFG_IDLE_THREAD_STACK_SIZE, 0);
+  m_idle_thread = kl_thread_create(kernel_idle_thread, NULL,
+                                   KLITE_CFG_IDLE_THREAD_STACK_SIZE, 0);
 }
 
-void kernel_start(void) {
+void kl_kernel_start(void) {
   sched_switch();
   cpu_sys_start();
 }
@@ -61,15 +61,15 @@ void kernel_idle_thread(void* args) {
   }
 }
 
-klite_tick_t kernel_idle_time(void) {
-  return m_idle_thread ? thread_time(m_idle_thread) : 0;
+kl_tick_t kl_kernel_idle_time(void) {
+  return m_idle_thread ? kl_thread_time(m_idle_thread) : 0;
 }
 
-void kernel_enter_critical(void) { cpu_enter_critical(); }
+void kl_kernel_enter_critical(void) { cpu_enter_critical(); }
 
-void kernel_exit_critical(void) { cpu_leave_critical(); }
+void kl_kernel_exit_critical(void) { cpu_leave_critical(); }
 
-void kernel_tick(uint32_t time) {
+void kl_kernel_tick_source(uint32_t time) {
   m_tick_count += time;
   cpu_enter_critical();
   sched_timing(time);
@@ -77,8 +77,8 @@ void kernel_tick(uint32_t time) {
   cpu_leave_critical();
 }
 
-klite_tick_t kernel_tick_count(void) { return (klite_tick_t)m_tick_count; }
+kl_tick_t kl_kernel_tick_count(void) { return (kl_tick_t)m_tick_count; }
 
-uint64_t kernel_tick_count64(void) { return m_tick_count; }
+uint64_t kl_kernel_tick_count64(void) { return m_tick_count; }
 
-uint32_t kernel_version(void) { return KERNEL_VERSION_CODE; }
+uint32_t kl_kernel_version(void) { return KERNEL_VERSION_CODE; }

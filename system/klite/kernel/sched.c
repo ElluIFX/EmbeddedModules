@@ -28,21 +28,21 @@
 #include "klite_internal.h"
 #include "klite_internal_list.h"
 
-struct tcb *sched_tcb_now;
-struct tcb *sched_tcb_next;
-static struct tcb_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
-static struct tcb_list m_list_sleep;
-static klite_tick_t m_idle_elapse;
-static klite_tick_t m_idle_timeout;
+struct kl_tcb *sched_tcb_now;
+struct kl_tcb *sched_tcb_next;
+static struct kl_tcb_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
+static struct kl_tcb_list m_list_sleep;
+static kl_tick_t m_idle_elapse;
+static kl_tick_t m_idle_timeout;
 static uint32_t m_prio_highest;
 static uint32_t m_prio_bitmap;
 
 volatile uint32_t sched_susp_nesting = 0;
 
-static inline void list_insert_by_priority(struct tcb_list *list,
-                                           struct tcb_node *node) {
+static inline void list_insert_by_priority(struct kl_tcb_list *list,
+                                           struct kl_tcb_node *node) {
   uint32_t prio;
-  struct tcb_node *find;
+  struct kl_tcb_node *find;
   prio = node->tcb->prio;
   for (find = list->tail; find != NULL; find = find->prev) {
     if (find->tcb->prio >= prio) {
@@ -61,12 +61,12 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
   return highest;
 }
 
-static inline void remove_list_wait(struct tcb *tcb) {
+static inline void remove_list_wait(struct kl_tcb *tcb) {
   list_remove(tcb->list_wait, &tcb->node_wait);
   tcb->list_wait = NULL;
 }
 
-static inline void remove_list_sched(struct tcb *tcb) {
+static inline void remove_list_sched(struct kl_tcb *tcb) {
   list_remove(tcb->list_sched, &tcb->node_sched);
   if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
   {
@@ -78,7 +78,7 @@ static inline void remove_list_sched(struct tcb *tcb) {
   tcb->list_sched = NULL;
 }
 
-void sched_tcb_remove(struct tcb *tcb) {
+void sched_tcb_remove(struct kl_tcb *tcb) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -87,7 +87,7 @@ void sched_tcb_remove(struct tcb *tcb) {
   }
 }
 
-void sched_tcb_reset_prio(struct tcb *tcb, uint32_t prio) {
+void sched_tcb_reset_prio(struct kl_tcb *tcb, uint32_t prio) {
   uint32_t old_prio;
   old_prio = tcb->prio;
   tcb->prio = prio;
@@ -115,7 +115,7 @@ void sched_tcb_reset_prio(struct tcb *tcb, uint32_t prio) {
   }
 }
 
-void sched_tcb_ready(struct tcb *tcb) {
+void sched_tcb_ready(struct kl_tcb *tcb) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
@@ -127,7 +127,7 @@ void sched_tcb_ready(struct tcb *tcb) {
   }
 }
 
-void sched_tcb_sleep(struct tcb *tcb, klite_tick_t timeout) {
+void sched_tcb_sleep(struct kl_tcb *tcb, kl_tick_t timeout) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
@@ -139,7 +139,7 @@ void sched_tcb_sleep(struct tcb *tcb, klite_tick_t timeout) {
   }
 }
 
-void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list) {
+void sched_tcb_wait(struct kl_tcb *tcb, struct kl_tcb_list *list) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -151,13 +151,13 @@ void sched_tcb_wait(struct tcb *tcb, struct tcb_list *list) {
 #endif
 }
 
-void sched_tcb_timed_wait(struct tcb *tcb, struct tcb_list *list,
-                          klite_tick_t timeout) {
+void sched_tcb_timed_wait(struct kl_tcb *tcb, struct kl_tcb_list *list,
+                          kl_tick_t timeout) {
   sched_tcb_wait(tcb, list);
   if (timeout != KLITE_WAIT_FOREVER) sched_tcb_sleep(tcb, timeout);
 }
 
-static inline void sched_tcb_wake_up(struct tcb *tcb) {
+static inline void sched_tcb_wake_up(struct kl_tcb *tcb) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -167,8 +167,8 @@ static inline void sched_tcb_wake_up(struct tcb *tcb) {
   sched_tcb_ready(tcb);
 }
 
-struct tcb *sched_tcb_wake_from(struct tcb_list *list) {
-  struct tcb *tcb;
+struct kl_tcb *sched_tcb_wake_from(struct kl_tcb_list *list) {
+  struct kl_tcb *tcb;
   if (list->head) {
     tcb = list->head->tcb;
     sched_tcb_wake_up(tcb);
@@ -181,7 +181,7 @@ void sched_switch(void) {
   if (sched_susp_nesting) { /* in critical section */
     return;
   }
-  struct tcb *tcb;
+  struct kl_tcb *tcb;
   tcb = m_list_ready[m_prio_highest].head->tcb;
 #if KLITE_CFG_STACK_OVERFLOW_DETECT
   uint8_t *stack = (uint8_t *)(tcb + 1);
@@ -199,8 +199,7 @@ void sched_switch(void) {
 #elif KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
     ((void (*)(void))0x10)();
 #elif KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
-    void klite_stack_overflow_callback(void);
-    klite_stack_overflow_callback();
+    kl_stack_overflow_callback();
 #endif
   }
 #endif
@@ -233,9 +232,9 @@ void sched_preempt(bool round_robin) {
 }
 
 static inline void sched_timeout(void) {
-  struct tcb *tcb;
-  struct tcb_node *node;
-  struct tcb_node *next;
+  struct kl_tcb *tcb;
+  struct kl_tcb_node *node;
+  struct kl_tcb_node *next;
   m_idle_timeout = UINT32_MAX;
   for (node = m_list_sleep.head; node != NULL; node = next) {
     next = node->next;
@@ -252,7 +251,7 @@ static inline void sched_timeout(void) {
   }
 }
 
-void sched_timing(klite_tick_t time) {
+void sched_timing(kl_tick_t time) {
   m_idle_elapse += time;
   sched_tcb_now->time += time;
   if (m_idle_elapse >= m_idle_timeout) {

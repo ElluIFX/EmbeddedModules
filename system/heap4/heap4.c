@@ -67,9 +67,9 @@
 
 #if MOD_CFG_USE_OS_KLITE
 #include "klite.h"
-#define taskENTER_CRITICAL() kernel_enter_critical()
+#define taskENTER_CRITICAL() kl_kernel_enter_critical()
 
-#define taskEXIT_CRITICAL() kernel_exit_critical()
+#define taskEXIT_CRITICAL() kl_kernel_exit_critical()
 #else
 #define taskENTER_CRITICAL() ((void)0)
 

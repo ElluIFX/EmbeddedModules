@@ -71,7 +71,7 @@ choice
         bool "Hard Fault (by accessing 0x10 address)"
 
     config KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
-        bool "Callback [void klite_stack_overflow_callback(void)]"
+        bool "Callback [void kl_stack_overflow_callback(kl_thread_t)]"
 
     help
         The behavior when a stack overflow is detected.

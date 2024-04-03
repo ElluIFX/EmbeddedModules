@@ -69,15 +69,16 @@ static void list_klite(void) {
     TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head[i]));
   size_t sfree, ssize;
   f2 = TT_FMT2_NONE;
-  thread_t thread = NULL;
-  while ((thread = thread_iter(thread)) != NULL) {
+  kl_thread_t thread = NULL;
+  while ((thread = kl_thread_iter(thread)) != NULL) {
     line = TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " "));
-    double usage = (double)thread_time(thread) / (double)kernel_tick_count64();
-    thread_stack_info(thread, &sfree, &ssize);
+    double usage =
+        (double)kl_thread_time(thread) / (double)kl_kernel_tick_count64();
+    kl_thread_stack_info(thread, &sfree, &ssize);
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", thread->id));
     TT_GridLine_AddItem(
-        line, TT_FmtStr(al, f1, f2, "%d", thread_get_priority(thread)));
-    if (thread_get_priority(thread) == 0)
+        line, TT_FmtStr(al, f1, f2, "%d", kl_thread_get_priority(thread)));
+    if (kl_thread_get_priority(thread) == 0)
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "[Idle]"));
     else
       TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%p", thread->entry));
@@ -104,23 +105,23 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     return;
   }
   int id = atoi(embeddedCliGetToken(args, -1));
-  thread_t thread = thread_find(id);
+  kl_thread_t thread = kl_thread_find(id);
   if (!thread) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);
     return;
   }
-  if (thread_get_priority(thread) == 0) {
+  if (kl_thread_get_priority(thread) == 0) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot operate on idle thread" T_RST);
     return;
   }
   if (embeddedCliCheckToken(args, "-s", 1)) {
-    thread_suspend(thread);
+    kl_thread_suspend(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d suspended" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
-    thread_resume(thread);
+    kl_thread_resume(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d resumed" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-d", 1)) {
-    thread_delete(thread);
+    kl_thread_delete(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d deleted" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-p", 1)) {
     if (argc < 3) {
@@ -132,7 +133,7 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       PRINTLN(T_FMT(T_BOLD, T_RED) "Priority must be 0-%d", KLITE_CFG_MAX_PRIO);
       return;
     }
-    thread_set_priority(thread, pri);
+    kl_thread_set_priority(thread, pri);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d priority set to %d" T_RST, id,
             pri);
   } else {
@@ -183,21 +184,22 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
       '-');
   kv = TT_AddKVPair(tt, 0);
 #if SHOWKLITE
-  uint16_t thread_num = 0;
-  thread_t thread = NULL;
-  while ((thread = thread_iter(thread)) != NULL) thread_num++;
+  uint16_t kl_thread_num = 0;
+  kl_thread_t thread = NULL;
+  while ((thread = kl_thread_iter(thread)) != NULL) kl_thread_num++;
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Thread Num"),
-                    TT_FmtStr(al, f1, f2, "%d", thread_num), sep);
+                    TT_FmtStr(al, f1, f2, "%d", kl_thread_num), sep);
 #endif
   static uint64_t last_kernel_tick = 0;
   static uint64_t last_idle_time = 0;
-  uint64_t kernel_tick = kernel_tick_count64();
-  uint64_t idle_time = kernel_idle_time();
-  float usage =
-      (float)((kernel_tick - last_kernel_tick) - (idle_time - last_idle_time)) /
-      (float)(kernel_tick - last_kernel_tick);
-  float usage_avg = (float)(kernel_tick - idle_time) / (float)kernel_tick;
-  last_kernel_tick = kernel_tick;
+  uint64_t kl_kernel_tick_source = kl_kernel_tick_count64();
+  uint64_t idle_time = kl_kernel_idle_time();
+  float usage = (float)((kl_kernel_tick_source - last_kernel_tick) -
+                        (idle_time - last_idle_time)) /
+                (float)(kl_kernel_tick_source - last_kernel_tick);
+  float usage_avg =
+      (float)(kl_kernel_tick_source - idle_time) / (float)kl_kernel_tick_source;
+  last_kernel_tick = kl_kernel_tick_source;
   last_idle_time = idle_time;
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "System Usage"),
                     TT_FmtStr(al, f1, f2, "%.2f%%", usage * 100), sep);

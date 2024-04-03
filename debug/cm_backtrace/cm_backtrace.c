@@ -224,7 +224,7 @@ static void get_cur_thread_stack_info(uint32_t *sp, uint32_t *start_addr,
   *start_addr = (uint32_t)thread->stack_mem;
   *size = thread->stack_size;
 #elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_KLITE)
-  struct tcb *th = thread_self();
+  kl_thread_t th = kl_thread_self();
   *sp = (uint32_t)th->stack;
   *start_addr = (uint32_t)(th + 1);
   *size = (size_t)th->stack_size;

@@ -106,13 +106,13 @@ typedef uint64_t m_time_t;
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif MOD_CFG_DELAY_MATHOD_KLITE  // klite
 #include "klite.h"
-#define m_delay_us(x) thread_sleep((x) / (1000000U / KLITE_CFG_FREQ))
+#define m_delay_us(x) kl_thread_sleep((x) / (1000000U / KLITE_CFG_FREQ))
 #if KLITE_CFG_FREQ >= 1000
-#define m_delay_ms(x) thread_sleep((x) * (KLITE_CFG_FREQ / 1000U))
+#define m_delay_ms(x) kl_thread_sleep((x) * (KLITE_CFG_FREQ / 1000U))
 #else
-#define m_delay_ms(x) thread_sleep((x) / (1000U / KLITE_CFG_FREQ))
+#define m_delay_ms(x) kl_thread_sleep((x) / (1000U / KLITE_CFG_FREQ))
 #endif
-#define m_delay_s(x) thread_sleep((x) * KLITE_CFG_FREQ)
+#define m_delay_s(x) kl_thread_sleep((x) * KLITE_CFG_FREQ)
 #elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"                // period = 1ms
 #include "task.h"
@@ -156,9 +156,9 @@ typedef uint64_t m_time_t;
 #include "klite.h"
 // You should init klite instead of using this!
 #define init_module_heap(ptr, size) (YOU_SHOULD_CONFIG_KLITE_INSTEAD)
-#define m_alloc(size) heap_alloc(size)
-#define m_free(ptr) heap_free((ptr))
-#define m_realloc(ptr, size) heap_realloc((ptr), size)
+#define m_alloc(size) kl_heap_alloc(size)
+#define m_free(ptr) kl_heap_free((ptr))
+#define m_realloc(ptr, size) kl_heap_realloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"
 // You should init freertos instead of using this!
@@ -200,21 +200,21 @@ typedef uint64_t m_time_t;
 #define MOD_SEM_DELETE(sem) ((void)0)
 #elif MOD_CFG_USE_OS_KLITE  // klite
 #include "klite.h"
-#define MOD_MUTEX_HANDLE mutex_t
-#define MOD_MUTEX_CREATE(name) mutex_create()
-#define MOD_MUTEX_ACQUIRE(mutex) mutex_lock(mutex)
+#define MOD_MUTEX_HANDLE kl_mutex_t
+#define MOD_MUTEX_CREATE(name) kl_mutex_create()
+#define MOD_MUTEX_ACQUIRE(mutex) kl_mutex_lock(mutex)
 #define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
-  mutex_timed_lock(mutex, kernel_ms_to_ticks(ms))
-#define MOD_MUTEX_RELEASE(mutex) mutex_unlock(mutex)
-#define MOD_MUTEX_DELETE(mutex) mutex_delete(mutex)
+  kl_mutex_timed_lock(mutex, kl_ms_to_ticks(ms))
+#define MOD_MUTEX_RELEASE(mutex) kl_mutex_unlock(mutex)
+#define MOD_MUTEX_DELETE(mutex) kl_mutex_delete(mutex)
 
-#define MOD_SEM_HANDLE sem_t
-#define MOD_SEM_CREATE(name, init) sem_create(init)
-#define MOD_SEM_TAKE(sem) sem_take(sem)
-#define MOD_SEM_TRY_TAKE(sem, ms) sem_timed_take(sem, kernel_ms_to_ticks(ms))
-#define MOD_SEM_GIVE(sem) sem_give(sem)
-#define MOD_SEM_VALUE(sem) sem_value(sem)
-#define MOD_SEM_DELETE(sem) sem_delete(sem)
+#define MOD_SEM_HANDLE kl_sem_t
+#define MOD_SEM_CREATE(name, init) kl_sem_create(init)
+#define MOD_SEM_TAKE(sem) kl_sem_take(sem)
+#define MOD_SEM_TRY_TAKE(sem, ms) kl_sem_timed_take(sem, kl_ms_to_ticks(ms))
+#define MOD_SEM_GIVE(sem) kl_sem_give(sem)
+#define MOD_SEM_VALUE(sem) kl_sem_value(sem)
+#define MOD_SEM_DELETE(sem) kl_sem_delete(sem)
 #elif MOD_CFG_USE_OS_FREERTOS  // freertos
 #include "FreeRTOS.h"
 #define MOD_MUTEX_HANDLE SemaphoreHandle_t

@@ -30,55 +30,56 @@
 
 #include "klite_internal.h"
 
-struct cond {
-  struct tcb_list list;
+struct kl_cond {
+  struct kl_tcb_list list;
 };
 
-cond_t cond_create(void) {
-  struct cond *cond;
-  cond = heap_alloc(sizeof(struct cond));
+kl_cond_t kl_cond_create(void) {
+  struct kl_cond *cond;
+  cond = kl_heap_alloc(sizeof(struct kl_cond));
   if (cond != NULL) {
-    memset(cond, 0, sizeof(struct cond));
+    memset(cond, 0, sizeof(struct kl_cond));
   }
-  return (cond_t)cond;
+  return (kl_cond_t)cond;
 }
 
-void cond_delete(cond_t cond) { heap_free(cond); }
+void kl_cond_delete(kl_cond_t cond) { kl_heap_free(cond); }
 
-void cond_signal(cond_t cond) {
+void kl_cond_signal(kl_cond_t cond) {
   cpu_enter_critical();
-  if (sched_tcb_wake_from((struct tcb_list *)cond)) sched_preempt(false);
+  if (sched_tcb_wake_from((struct kl_tcb_list *)cond)) sched_preempt(false);
   cpu_leave_critical();
 }
 
-void cond_broadcast(cond_t cond) {
+void kl_cond_broadcast(kl_cond_t cond) {
   bool preempt = false;
   cpu_enter_critical();
-  while (sched_tcb_wake_from((struct tcb_list *)cond)) preempt = true;
+  while (sched_tcb_wake_from((struct kl_tcb_list *)cond)) preempt = true;
   if (preempt) sched_preempt(false);
   cpu_leave_critical();
 }
 
-void cond_wait(cond_t cond, mutex_t mutex) {
+void kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex) {
   cpu_enter_critical();
-  sched_tcb_wait(sched_tcb_now, (struct tcb_list *)cond);
-  if (mutex) mutex_unlock(mutex);
+  sched_tcb_wait(sched_tcb_now, (struct kl_tcb_list *)cond);
+  if (mutex) kl_mutex_unlock(mutex);
   sched_switch();
   cpu_leave_critical();
-  if (mutex) mutex_lock(mutex);
+  if (mutex) kl_mutex_lock(mutex);
 }
 
-klite_tick_t cond_timed_wait(cond_t cond, mutex_t mutex, klite_tick_t timeout) {
+kl_tick_t kl_cond_timed_wait(kl_cond_t cond, kl_mutex_t mutex,
+                             kl_tick_t timeout) {
   cpu_enter_critical();
   if (timeout == 0) {
     cpu_leave_critical();
     return false;
   }
-  sched_tcb_timed_wait(sched_tcb_now, (struct tcb_list *)cond, timeout);
-  if (mutex) mutex_unlock(mutex);
+  sched_tcb_timed_wait(sched_tcb_now, (struct kl_tcb_list *)cond, timeout);
+  if (mutex) kl_mutex_unlock(mutex);
   sched_switch();
   cpu_leave_critical();
-  if (mutex) mutex_lock(mutex);
+  if (mutex) kl_mutex_lock(mutex);
   return sched_tcb_now->timeout;
 }
 

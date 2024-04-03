@@ -30,24 +30,24 @@
 
 #include "klite_internal.h"
 
-struct mutex {
-  struct tcb_list list;
-  struct tcb *owner;
+struct kl_mutex {
+  struct kl_tcb_list list;
+  struct kl_tcb *owner;
   uint32_t lock;
 };
 
-mutex_t mutex_create(void) {
-  struct mutex *mutex;
-  mutex = heap_alloc(sizeof(struct mutex));
+kl_mutex_t kl_mutex_create(void) {
+  struct kl_mutex *mutex;
+  mutex = kl_heap_alloc(sizeof(struct kl_mutex));
   if (mutex != NULL) {
-    memset(mutex, 0, sizeof(struct mutex));
+    memset(mutex, 0, sizeof(struct kl_mutex));
   }
-  return (mutex_t)mutex;
+  return (kl_mutex_t)mutex;
 }
 
-void mutex_delete(mutex_t mutex) { heap_free(mutex); }
+void kl_mutex_delete(kl_mutex_t mutex) { kl_heap_free(mutex); }
 
-bool mutex_try_lock(mutex_t mutex) {
+bool kl_mutex_try_lock(kl_mutex_t mutex) {
   cpu_enter_critical();
   if (mutex->owner == NULL) {
     mutex->lock++;
@@ -64,7 +64,7 @@ bool mutex_try_lock(mutex_t mutex) {
   return false;
 }
 
-klite_tick_t mutex_timed_lock(mutex_t mutex, klite_tick_t timeout) {
+kl_tick_t kl_mutex_timed_lock(kl_mutex_t mutex, kl_tick_t timeout) {
   cpu_enter_critical();
   if (mutex->owner == NULL) {
     mutex->lock++;
@@ -87,7 +87,7 @@ klite_tick_t mutex_timed_lock(mutex_t mutex, klite_tick_t timeout) {
   return sched_tcb_now->timeout;
 }
 
-void mutex_lock(mutex_t mutex) {
+void kl_mutex_lock(kl_mutex_t mutex) {
   cpu_enter_critical();
   if (mutex->owner == NULL) mutex->owner = sched_tcb_now;
   if (mutex->owner == sched_tcb_now) {
@@ -101,7 +101,7 @@ void mutex_lock(mutex_t mutex) {
   return;
 }
 
-void mutex_unlock(mutex_t mutex) {
+void kl_mutex_unlock(kl_mutex_t mutex) {
   cpu_enter_critical();
   mutex->lock--;
   if (mutex->lock == 0) {

@@ -27,12 +27,14 @@
 #include "klite.h"
 #include "klite_internal.h"
 #if KLITE_CFG_HEAP_USE_LWMEM
+#include <string.h>
+
 #include "log.h"
 #include "lwmem.h"
 
 volatile static uint8_t heap_lock = 0;
-static struct tcb_list heap_waitlist;
-static void heap_mutex_lock(void) {
+static struct kl_tcb_list heap_waitlist;
+static void heap_kl_mutex_lock(void) {
   cpu_enter_critical();
   if (heap_lock == 0) {
     heap_lock = 1;
@@ -43,7 +45,7 @@ static void heap_mutex_lock(void) {
   cpu_leave_critical();
 }
 
-static void heap_mutex_unlock(void) {
+static void heap_kl_mutex_unlock(void) {
   cpu_enter_critical();
   if (sched_tcb_wake_from(&heap_waitlist)) {
     sched_preempt(false);
@@ -59,41 +61,47 @@ static lwmem_region_t regions[] = {
     {NULL, 0},
 };
 
-void heap_create(void *addr, uint32_t size) {
+void kl_heap_init(void *addr, uint32_t size) {
   regions[0].start_addr = addr;
   regions[0].size = size;
   lwmem_assignmem(regions);
 }
 
-void *heap_alloc(uint32_t size) {
-  heap_mutex_lock();
+void *kl_heap_alloc(uint32_t size) {
+  heap_kl_mutex_lock();
   void *mem = lwmem_malloc(size);
-  if (!mem) heap_alloc_fault_callback(size);
-  heap_mutex_unlock();
+  if (!mem) mem = kl_heap_alloc_fault_callback(size);
+  heap_kl_mutex_unlock();
   return mem;
 }
 
-void heap_free(void *mem) {
-  heap_mutex_lock();
+void kl_heap_free(void *mem) {
+  heap_kl_mutex_lock();
   lwmem_free(mem);
-  heap_mutex_unlock();
+  heap_kl_mutex_unlock();
 }
 
-void *heap_realloc(void *mem, uint32_t size) {
-  heap_mutex_lock();
+void *kl_heap_realloc(void *mem, uint32_t size) {
+  heap_kl_mutex_lock();
   void *new_mem = lwmem_realloc(mem, size);
-  if (!new_mem) heap_alloc_fault_callback(size);
-  heap_mutex_unlock();
+  if (!new_mem) {
+    new_mem = kl_heap_alloc_fault_callback(size);
+    if (new_mem) {
+      memmove(new_mem, mem, size);
+      lwmem_free(mem);
+    }
+  }
+  heap_kl_mutex_unlock();
   return new_mem;
 }
 lwmem_stats_t stats;
-void heap_usage(uint32_t *used, uint32_t *free) {
+void kl_heap_info(uint32_t *used, uint32_t *free) {
   lwmem_get_stats(&stats);
   *free = stats.mem_available_bytes;
   *used = stats.mem_size_bytes - stats.mem_available_bytes;
 }
 
-float heap_usage_percent(void) {
+float kl_heap_usage(void) {
   lwmem_get_stats(&stats);
   return (float)(stats.mem_size_bytes - stats.mem_available_bytes) /
          (float)stats.mem_size_bytes;
