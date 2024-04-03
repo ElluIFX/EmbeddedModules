@@ -25,17 +25,11 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#include "klite.h"
+#include "klite_internal.h"
 
 #if KLITE_CFG_OPT_EVENT_FLAGS
 
 #include <string.h>
-
-struct kl_event_flags {
-  kl_mutex_t mutex;
-  kl_cond_t cond;
-  uint32_t bits;
-};
 
 kl_event_flags_t kl_event_flags_create(void) {
   struct kl_event_flags *flags;
@@ -81,9 +75,9 @@ static uint32_t try_wait_bits(kl_event_flags_t flags, uint32_t bits,
   uint32_t cmp;
   uint32_t wait_all;
   cmp = flags->bits & bits;
-  wait_all = ops & EVENT_FLAGS_WAIT_ALL;
+  wait_all = ops & KL_EVENT_FLAGS_WAIT_ALL;
   if ((wait_all && (cmp == bits)) || ((!wait_all) && (cmp != 0))) {
-    if (ops & EVENT_FLAGS_AUTO_RESET) {
+    if (ops & KL_EVENT_FLAGS_AUTO_RESET) {
       flags->bits &= ~bits;
     }
     return cmp;

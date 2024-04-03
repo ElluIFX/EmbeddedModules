@@ -25,21 +25,11 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#include "klite.h"
+#include "klite_internal.h"
 
 #if KLITE_CFG_OPT_MPOOL
 
 #include <string.h>
-
-struct kl_mpool {
-  kl_mutex_t mutex;
-  kl_cond_t wait;
-  uint8_t **block_list;
-  uint32_t block_count;
-  uint32_t free_count;
-  uint32_t free_head;
-  uint32_t free_tail;
-};
 
 kl_mpool_t kl_mpool_create(uint32_t block_size, uint32_t block_count) {
   uint32_t i;

@@ -25,28 +25,13 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#include "klite.h"
+#include "klite_internal.h"
 
 #if KLITE_CFG_OPT_MSG_QUEUE
 
 #include <string.h>
 
 #include "klite_internal_list.h"
-
-struct kl_msg_queue_node {
-  struct kl_msg_queue_node *prev;
-  struct kl_msg_queue_node *next;
-  uint8_t data[4];
-};
-
-struct kl_msg_queue {
-  struct kl_msg_queue_node *head;
-  struct kl_msg_queue_node *tail;
-  kl_sem_t sem;
-  kl_mutex_t mutex;
-  kl_mpool_t mpool;
-  uint32_t size;
-};
 
 kl_msg_queue_t kl_msg_queue_create(uint32_t item_size, uint32_t queue_depth) {
   kl_msg_queue_t queue;
@@ -93,7 +78,8 @@ void kl_msg_queue_clear(kl_msg_queue_t queue) {
 void kl_msg_queue_send(kl_msg_queue_t queue, void *item) {
   struct kl_msg_queue_node *node;
   node = kl_mpool_blocked_alloc(queue->mpool);
-  memset(node, 0, sizeof(struct kl_msg_queue_node));
+  node->prev = NULL;
+  node->next = NULL;
   memcpy(node->data, item, queue->size);
   kl_mutex_lock(queue->mutex);
   list_append(queue, node);

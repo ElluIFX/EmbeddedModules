@@ -384,7 +384,6 @@ extern char *vTaskName(void);
 #elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_RTX5)
 #include "rtx_os.h"
 #elif (CMB_OS_PLATFORM_TYPE == CMB_OS_PLATFORM_KLITE)
-#include "klite.h"
 #include "klite_internal.h"
 #else
 #error "not supported OS type"

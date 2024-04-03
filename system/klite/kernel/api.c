@@ -1,8 +1,7 @@
-#include "klite.h"
+#include "klite_api.h"
 #include "klite_internal.h"
 
 #if KLITE_CFG_INTERFACE_ENABLE
-#include "klite_api.h"
 
 const klite_api_t klite = {
     .ms_to_ticks = kl_ms_to_ticks,
@@ -14,9 +13,11 @@ const klite_api_t klite = {
     .kernel.start = kl_kernel_start,
     .kernel.enter_critical = kl_kernel_enter_critical,
     .kernel.exit_critical = kl_kernel_exit_critical,
+    .kernel.suspend_all = kl_kernel_suspend_all,
+    .kernel.resume_all = kl_kernel_resume_all,
     .kernel.idle_time = kl_kernel_idle_time,
-    .kernel.tick_count = kl_kernel_tick_count,
-    .kernel.tick_count64 = kl_kernel_tick_count64,
+    .kernel.tick = kl_kernel_tick,
+    .kernel.tick64 = kl_kernel_tick64,
 
     .heap.alloc = kl_heap_alloc,
     .heap.free = kl_heap_free,
@@ -30,8 +31,6 @@ const klite_api_t klite = {
     .thread.suspend = kl_thread_suspend,
     .thread.resume = kl_thread_resume,
     .thread.sleep = kl_thread_sleep,
-    .thread.suspend_all = kl_thread_suspend_all,
-    .thread.resume_all = kl_thread_resume_all,
     .thread.yield = kl_thread_yield,
     .thread.exit = kl_thread_exit,
     .thread.time = kl_thread_time,
@@ -168,5 +167,5 @@ __weak void* kl_heap_alloc_fault_callback(uint32_t size) {
 }
 
 __weak void kl_stack_overflow_callback(kl_thread_t thread) {
-  LOG_E("klite: stack overflow on thread-%d", thread->id);
+  LOG_E("klite: stack overflow on thread-%d", kl_thread_id(thread));
 }

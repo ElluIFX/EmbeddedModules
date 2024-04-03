@@ -24,16 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
-
-#if KLITE_CFG_OPT_SEM
-
 #include "klite_internal.h"
 
-struct kl_sem {
-  struct kl_tcb_list list;
-  uint32_t value;
-};
+#if KLITE_CFG_OPT_SEM
 
 kl_sem_t kl_sem_create(uint32_t value) {
   struct kl_sem *sem;

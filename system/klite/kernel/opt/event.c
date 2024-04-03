@@ -24,17 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
-
-#if KLITE_CFG_OPT_EVENT
-
 #include "klite_internal.h"
 
-struct kl_event {
-  struct kl_tcb_list list;
-  bool auto_reset;
-  bool state;
-};
+#if KLITE_CFG_OPT_EVENT
 
 kl_event_t kl_event_create(bool auto_reset) {
   struct kl_event *event;

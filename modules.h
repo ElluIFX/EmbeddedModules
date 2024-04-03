@@ -17,6 +17,11 @@ extern "C" {
 
 #include "main.h"
 
+#ifndef __has_include
+// Compatibility with non-clang compilers.
+#define __has_include(x) 1
+#endif
+
 #if __has_include("modules_config.h")
 #include "modules_config.h"
 #define KCONFIG_AVAILABLE 1
@@ -277,10 +282,6 @@ typedef int32_t mod_atomic_offset_t;
 #define MOD_ATOMIC_ORDER_ACQUIRE 0
 #define MOD_ATOMIC_ORDER_RELEASE 0
 #define MOD_ATOMIC_ORDER_RELAXED 0
-#endif
-
-#ifndef __has_include
-#define __has_include(x) 1  // Compatibility with non-clang compilers.
 #endif
 
 #ifdef __cplusplus

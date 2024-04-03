@@ -24,15 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
-
-#if KLITE_CFG_OPT_COND
-
 #include "klite_internal.h"
 
-struct kl_cond {
-  struct kl_tcb_list list;
-};
+#if KLITE_CFG_OPT_COND
 
 kl_cond_t kl_cond_create(void) {
   struct kl_cond *cond;
@@ -47,21 +41,21 @@ void kl_cond_delete(kl_cond_t cond) { kl_heap_free(cond); }
 
 void kl_cond_signal(kl_cond_t cond) {
   cpu_enter_critical();
-  if (sched_tcb_wake_from((struct kl_tcb_list *)cond)) sched_preempt(false);
+  if (sched_tcb_wake_from((struct kl_thread_list *)cond)) sched_preempt(false);
   cpu_leave_critical();
 }
 
 void kl_cond_broadcast(kl_cond_t cond) {
   bool preempt = false;
   cpu_enter_critical();
-  while (sched_tcb_wake_from((struct kl_tcb_list *)cond)) preempt = true;
+  while (sched_tcb_wake_from((struct kl_thread_list *)cond)) preempt = true;
   if (preempt) sched_preempt(false);
   cpu_leave_critical();
 }
 
 void kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex) {
   cpu_enter_critical();
-  sched_tcb_wait(sched_tcb_now, (struct kl_tcb_list *)cond);
+  sched_tcb_wait(sched_tcb_now, (struct kl_thread_list *)cond);
   if (mutex) kl_mutex_unlock(mutex);
   sched_switch();
   cpu_leave_critical();
@@ -75,7 +69,7 @@ kl_tick_t kl_cond_timed_wait(kl_cond_t cond, kl_mutex_t mutex,
     cpu_leave_critical();
     return false;
   }
-  sched_tcb_timed_wait(sched_tcb_now, (struct kl_tcb_list *)cond, timeout);
+  sched_tcb_timed_wait(sched_tcb_now, (struct kl_thread_list *)cond, timeout);
   if (mutex) kl_mutex_unlock(mutex);
   sched_switch();
   cpu_leave_critical();

@@ -37,62 +37,62 @@ typedef struct {
   uint32_t rp;
 } fifo_t;
 
-static void fifo_init(fifo_t *fifo, void *buf, uint32_t size) {
-  fifo->buf = buf;
-  fifo->size = size;
-  fifo->rp = 0;
-  fifo->wp = 0;
+static void fifo_init(void *fifo, void *buf, uint32_t size) {
+  ((fifo_t *)fifo)->buf = buf;
+  ((fifo_t *)fifo)->size = size;
+  ((fifo_t *)fifo)->rp = 0;
+  ((fifo_t *)fifo)->wp = 0;
 }
 
-static uint32_t fifo_read(fifo_t *fifo, void *buf, uint32_t size) {
+static inline uint32_t fifo_read(void *fifo, void *buf, uint32_t size) {
   uint32_t i;
   for (i = 0; i < size; i++) {
-    if (fifo->rp == fifo->wp) {
+    if (((fifo_t *)fifo)->rp == ((fifo_t *)fifo)->wp) {
       break;
     }
-    ((uint8_t *)buf)[i] = fifo->buf[fifo->rp++];
-    if (fifo->rp == fifo->size) {
-      fifo->rp = 0;
+    ((uint8_t *)buf)[i] = ((fifo_t *)fifo)->buf[((fifo_t *)fifo)->rp++];
+    if (((fifo_t *)fifo)->rp == ((fifo_t *)fifo)->size) {
+      ((fifo_t *)fifo)->rp = 0;
     }
   }
   return i;
 }
 
-static uint32_t fifo_write(fifo_t *fifo, void *buf, uint32_t size) {
+static inline uint32_t fifo_write(void *fifo, void *buf, uint32_t size) {
   uint32_t i;
   uint32_t pos;
   for (i = 0; i < size; i++) {
-    pos = fifo->wp + 1;
-    if (pos == fifo->size) {
+    pos = ((fifo_t *)fifo)->wp + 1;
+    if (pos == ((fifo_t *)fifo)->size) {
       pos = 0;
     }
-    if (pos == fifo->rp) {
+    if (pos == ((fifo_t *)fifo)->rp) {
       break;
     }
-    fifo->buf[fifo->wp] = ((uint8_t *)buf)[i];
-    fifo->wp = pos;
+    ((fifo_t *)fifo)->buf[((fifo_t *)fifo)->wp] = ((uint8_t *)buf)[i];
+    ((fifo_t *)fifo)->wp = pos;
   }
   return i;
 }
 
-static void fifo_clear(fifo_t *fifo) {
-  fifo->wp = 0;
-  fifo->rp = 0;
+static inline void fifo_clear(void *fifo) {
+  ((fifo_t *)fifo)->wp = 0;
+  ((fifo_t *)fifo)->rp = 0;
 }
 
-static uint32_t fifo_get_free(fifo_t *fifo) {
-  if (fifo->rp > fifo->wp) {
-    return fifo->rp - fifo->wp - 1;
+static inline uint32_t fifo_get_free(void *fifo) {
+  if (((fifo_t *)fifo)->rp > ((fifo_t *)fifo)->wp) {
+    return ((fifo_t *)fifo)->rp - ((fifo_t *)fifo)->wp - 1;
   } else {
-    return fifo->rp + fifo->size - fifo->wp;
+    return ((fifo_t *)fifo)->rp + ((fifo_t *)fifo)->size - ((fifo_t *)fifo)->wp;
   }
 }
 
 static uint32_t fifo_get_used(fifo_t *fifo) {
-  if (fifo->wp >= fifo->rp) {
-    return fifo->wp - fifo->rp;
+  if (((fifo_t *)fifo)->wp >= ((fifo_t *)fifo)->rp) {
+    return ((fifo_t *)fifo)->wp - ((fifo_t *)fifo)->rp;
   } else {
-    return fifo->wp + fifo->size - fifo->rp;
+    return ((fifo_t *)fifo)->wp + ((fifo_t *)fifo)->size - ((fifo_t *)fifo)->rp;
   }
 }
 

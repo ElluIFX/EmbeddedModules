@@ -33,6 +33,6 @@
 #define KLITE_CFG_OPT_SOFT_TIMER 0   // 编译软定时器功能
 #define KLITE_CFG_OPT_THREAD_POOL 0  // 编译线程池功能
 
-#endif
+#endif /* !KCONFIG_AVAILABLE */
 
-#endif
+#endif /* KLITE_CFG_H */

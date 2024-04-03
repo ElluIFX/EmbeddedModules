@@ -24,7 +24,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
 #include "klite_internal.h"
 
 #define MAKE_VERSION_CODE(a, b, c) ((a << 24) | (b << 16) | (c))
@@ -50,6 +49,14 @@ void kl_kernel_start(void) {
   cpu_sys_start();
 }
 
+void kernel_tick_source(uint32_t time) {
+  m_tick_count += time;
+  cpu_enter_critical();
+  sched_timing(time);
+  sched_preempt(true);
+  cpu_leave_critical();
+}
+
 void kernel_idle_thread(void* args) {
   (void)args;
 
@@ -69,16 +76,23 @@ void kl_kernel_enter_critical(void) { cpu_enter_critical(); }
 
 void kl_kernel_exit_critical(void) { cpu_leave_critical(); }
 
-void kl_kernel_tick_source(uint32_t time) {
-  m_tick_count += time;
+void kl_kernel_suspend_all(void) {
   cpu_enter_critical();
-  sched_timing(time);
-  sched_preempt(true);
+  sched_susp_nesting++;
   cpu_leave_critical();
 }
 
-kl_tick_t kl_kernel_tick_count(void) { return (kl_tick_t)m_tick_count; }
+void kl_kernel_resume_all(void) {
+  if (sched_susp_nesting == 0) return;
+  cpu_enter_critical();
+  if (--sched_susp_nesting == 0) {
+    sched_preempt(false);
+  }
+  cpu_leave_critical();
+}
 
-uint64_t kl_kernel_tick_count64(void) { return m_tick_count; }
+kl_tick_t kl_kernel_tick(void) { return (kl_tick_t)m_tick_count; }
+
+uint64_t kl_kernel_tick64(void) { return m_tick_count; }
 
 uint32_t kl_kernel_version(void) { return KERNEL_VERSION_CODE; }

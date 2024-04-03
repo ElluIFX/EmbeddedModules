@@ -24,20 +24,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
+#include "klite_internal.h"
 
 #if KLITE_CFG_OPT_RWLOCK
 
 #include <string.h>
-
-struct kl_rwlock {
-  kl_mutex_t mutex;
-  kl_cond_t read;
-  kl_cond_t write;
-  uint32_t read_wait_count;   // 等待读锁数量
-  uint32_t write_wait_count;  // 等待写锁数量
-  int32_t rw_count;           // -1:写锁 0:无锁 >0:读锁数量
-};
 
 kl_rwlock_t kl_rwlock_create(void) {
   struct kl_rwlock *rwlock;

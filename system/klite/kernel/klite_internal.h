@@ -32,6 +32,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "klite.h"
+#include "klite_cfg.h"
+#include "klite_def.h"
+
 /* Compatible with armcc5 armcc6 gcc icc */
 #if defined(__GNUC__) || (__ARMCC_VERSION >= 6100100)
 #define __weak __attribute__((weak))
@@ -39,36 +43,9 @@
 
 #define STACK_MAGIC_VALUE 0xAC
 
-struct kl_tcb_list {
-  struct kl_tcb_node *head;
-  struct kl_tcb_node *tail;
-};
-
-struct kl_tcb_node {
-  struct kl_tcb_node *prev;
-  struct kl_tcb_node *next;
-  struct kl_tcb *tcb;
-};
-
-struct kl_tcb {
-  void *stack;                     // 栈基地址
-  uint32_t stack_size;             // 栈大小
-  void (*entry)(void *);           // 线程入口
-  uint32_t prio;                   // 线程优先级
-  kl_tick_t time;                  // 线程运行时间
-  kl_tick_t timeout;               // 睡眠超时时间
-  struct kl_tcb_list *list_sched;  // 当前所处调度队列
-  struct kl_tcb_list *list_wait;   // 当前所处等待队列
-  struct kl_tcb_node node_sched;   // 调度队列节点
-  struct kl_tcb_node node_wait;    // 等待队列节点
-  struct kl_tcb_node node_manage;  // 管理节点
-  uint32_t id;                     // 线程ID
-};
-
-extern struct kl_tcb *sched_tcb_now;
-extern struct kl_tcb *sched_tcb_next;
-
-extern volatile uint32_t sched_susp_nesting;
+extern struct kl_thread *sched_tcb_now;
+extern struct kl_thread *sched_tcb_next;
+extern uint32_t sched_susp_nesting;
 
 // 平台实现: 进入临界区, 并执行需要在内核初始化前执行的操作
 void cpu_sys_init(void);
@@ -89,6 +66,7 @@ void cpu_contex_switch(void);
 // @param entry: 线程入口地址
 // @param arg: 线程参数
 // @param exit: 线程结束回调地址
+// @return: 线程栈指针
 void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg,
                       void *exit);
 
@@ -97,6 +75,9 @@ void cpu_enter_critical(void);
 
 // 平台实现: 退出临界区
 void cpu_leave_critical(void);
+
+// 内核时钟递增
+void kernel_tick_source(uint32_t time);
 
 // 内核空闲线程
 void kernel_idle_thread(void *args);
@@ -127,36 +108,44 @@ void sched_preempt(bool round_robin);
 // 重置线程优先级
 // @param tcb: 线程控制块
 // @param prio: 优先级
-void sched_tcb_reset_prio(struct kl_tcb *tcb, uint32_t prio);
+void sched_tcb_reset_prio(struct kl_thread *tcb, uint32_t prio);
 
 // 从调度器移除线程
 // @param tcb: 线程控制块
-void sched_tcb_remove(struct kl_tcb *tcb);
+void sched_tcb_remove(struct kl_thread *tcb);
 
 // 将线程加入就绪队列
 // @param tcb: 线程控制块
-void sched_tcb_ready(struct kl_tcb *tcb);
+void sched_tcb_ready(struct kl_thread *tcb);
+
+// 将线程挂起
+// @param tcb: 线程控制块
+void sched_tcb_suspend(struct kl_thread *tcb);
+
+// 将线程恢复
+// @param tcb: 线程控制块
+void sched_tcb_resume(struct kl_thread *tcb);
 
 // 将线程加入睡眠队列
 // @param tcb: 线程控制块
 // @param timeout: 睡眠时间
-void sched_tcb_sleep(struct kl_tcb *tcb, kl_tick_t timeout);
+void sched_tcb_sleep(struct kl_thread *tcb, kl_tick_t timeout);
 
 // 将线程加入等待队列
 // @param tcb: 线程控制块
 // @param list: 等待队列
-void sched_tcb_wait(struct kl_tcb *tcb, struct kl_tcb_list *list);
+void sched_tcb_wait(struct kl_thread *tcb, struct kl_thread_list *list);
 
 // 将线程同时加入等待队列和睡眠队列
 // @param tcb: 线程控制块
 // @param list: 等待队列
 // @param timeout: 睡眠时间(等待超时时间)
-void sched_tcb_timed_wait(struct kl_tcb *tcb, struct kl_tcb_list *list,
+void sched_tcb_timed_wait(struct kl_thread *tcb, struct kl_thread_list *list,
                           kl_tick_t timeout);
 
 // 尝试唤醒等待队列中的线程
 // @param list: 等待队列
 // @return: 被唤醒的线程控制块, NULL表示无等待线程
-struct kl_tcb *sched_tcb_wake_from(struct kl_tcb_list *list);
+struct kl_thread *sched_tcb_wake_from(struct kl_thread_list *list);
 
 #endif

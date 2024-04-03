@@ -24,10 +24,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
 #include "klite_internal.h"
+
 #if KLITE_CFG_HEAP_USE_BARE
-#include "log.h"
+#include <string.h>
 
 #define MEM_ALIGN_BYTE (8)
 #define MEM_ALIGN_MASK (MEM_ALIGN_BYTE - 1)
@@ -41,7 +41,7 @@ struct heap_node {
 };
 
 struct heap {
-  struct kl_tcb_list list;
+  struct kl_thread_list list;
   uint32_t lock;
   uint32_t size;
   struct heap_node *head;

@@ -27,7 +27,7 @@
 #define SHOWRTTHREAD 1
 #endif
 #if MOD_CFG_USE_OS_KLITE
-#include "klite.h"
+#include "klite_internal.h"
 #define SHOWKLITE 1
 #endif
 
@@ -54,7 +54,6 @@
 
 // Private Functions ------------------------
 #if SHOWKLITE
-#include "klite_internal.h"
 static void list_klite(void) {
   TT tt = TT_NewTable(-1);
   TT_FMT1 f1 = TT_FMT1_GREEN;
@@ -64,20 +63,31 @@ static void list_klite(void) {
   TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
   TT_ITEM_GRID_LINE line =
       TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-  const char *head[] = {"ID", "Pri", "Entry", "Usage", "Free Stack"};
+  const char *head[] = {"ID", "Pri", "State", "Entry", "Usage", "Free Stack"};
   for (int i = 0; i < sizeof(head) / sizeof(char *); i++)
     TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head[i]));
   size_t sfree, ssize;
   f2 = TT_FMT2_NONE;
   kl_thread_t thread = NULL;
+  uint8_t flags = 0;
   while ((thread = kl_thread_iter(thread)) != NULL) {
     line = TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " "));
-    double usage =
-        (double)kl_thread_time(thread) / (double)kl_kernel_tick_count64();
+    double usage = (double)kl_thread_time(thread) / (double)kl_kernel_tick64();
+    flags = kl_thread_flags(thread);
     kl_thread_stack_info(thread, &sfree, &ssize);
-    TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", thread->id));
+    TT_GridLine_AddItem(line,
+                        TT_FmtStr(al, f1, f2, "%d", kl_thread_id(thread)));
     TT_GridLine_AddItem(
         line, TT_FmtStr(al, f1, f2, "%d", kl_thread_get_priority(thread)));
+    TT_GridLine_AddItem(
+        line,
+        TT_Str(al, f1, f2,
+               (flags & KL_THREAD_FLAGS_SUSPEND)
+                   ? "SUSPEND"
+                   : ((flags & KL_THREAD_FLAGS_WAIT)
+                          ? "WAIT"
+                          : ((flags & KL_THREAD_FLAGS_SLEEP) ? "SLEEP"
+                                                             : "READY"))));
     if (kl_thread_get_priority(thread) == 0)
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "[Idle]"));
     else
@@ -192,14 +202,13 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 #endif
   static uint64_t last_kernel_tick = 0;
   static uint64_t last_idle_time = 0;
-  uint64_t kl_kernel_tick_source = kl_kernel_tick_count64();
+  uint64_t tick = kl_kernel_tick64();
   uint64_t idle_time = kl_kernel_idle_time();
-  float usage = (float)((kl_kernel_tick_source - last_kernel_tick) -
-                        (idle_time - last_idle_time)) /
-                (float)(kl_kernel_tick_source - last_kernel_tick);
-  float usage_avg =
-      (float)(kl_kernel_tick_source - idle_time) / (float)kl_kernel_tick_source;
-  last_kernel_tick = kl_kernel_tick_source;
+  float usage =
+      (float)((tick - last_kernel_tick) - (idle_time - last_idle_time)) /
+      (float)(tick - last_kernel_tick);
+  float usage_avg = (float)(tick - idle_time) / (float)tick;
+  last_kernel_tick = tick;
   last_idle_time = idle_time;
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "System Usage"),
                     TT_FmtStr(al, f1, f2, "%.2f%%", usage * 100), sep);

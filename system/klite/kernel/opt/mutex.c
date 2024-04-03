@@ -24,17 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
-
-#if KLITE_CFG_OPT_MUTEX
-
 #include "klite_internal.h"
 
-struct kl_mutex {
-  struct kl_tcb_list list;
-  struct kl_tcb *owner;
-  uint32_t lock;
-};
+#if KLITE_CFG_OPT_MUTEX
 
 kl_mutex_t kl_mutex_create(void) {
   struct kl_mutex *mutex;

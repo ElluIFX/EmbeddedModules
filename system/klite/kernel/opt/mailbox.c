@@ -25,18 +25,11 @@
  * SOFTWARE.
  ******************************************************************************/
 
-#include "klite.h"
+#include "klite_internal.h"
 
 #if KLITE_CFG_OPT_MAILBOX
 
 #include "klite_internal_fifo.h"
-
-struct kl_mailbox {
-  fifo_t fifo;
-  kl_mutex_t mutex;
-  kl_cond_t write;
-  kl_cond_t read;
-};
 
 kl_mailbox_t kl_mailbox_create(uint32_t size) {
   struct kl_mailbox *mailbox;

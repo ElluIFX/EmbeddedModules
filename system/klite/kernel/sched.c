@@ -24,25 +24,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
 #include "klite_internal.h"
 #include "klite_internal_list.h"
 
-struct kl_tcb *sched_tcb_now;
-struct kl_tcb *sched_tcb_next;
-static struct kl_tcb_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
-static struct kl_tcb_list m_list_sleep;
+struct kl_thread *sched_tcb_now;
+struct kl_thread *sched_tcb_next;
+static struct kl_thread_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
+static struct kl_thread_list m_list_sleep;
 static kl_tick_t m_idle_elapse;
 static kl_tick_t m_idle_timeout;
 static uint32_t m_prio_highest;
 static uint32_t m_prio_bitmap;
 
-volatile uint32_t sched_susp_nesting = 0;
+uint32_t sched_susp_nesting = 0;
 
-static inline void list_insert_by_priority(struct kl_tcb_list *list,
-                                           struct kl_tcb_node *node) {
+#define SET_8FLAG(flags, mask) ((flags) |= (mask))
+#define CLR_8FLAG(flags, mask) ((flags) &= ~((uint32_t)mask))
+#define GET_8FLAG(flags, mask) ((flags) & (mask))
+
+static inline void list_insert_by_priority(struct kl_thread_list *list,
+                                           struct kl_thread_node *node) {
   uint32_t prio;
-  struct kl_tcb_node *find;
+  struct kl_thread_node *find;
   prio = node->tcb->prio;
   for (find = list->tail; find != NULL; find = find->prev) {
     if (find->tcb->prio >= prio) {
@@ -61,12 +64,13 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
   return highest;
 }
 
-static inline void remove_list_wait(struct kl_tcb *tcb) {
+static inline void remove_list_wait(struct kl_thread *tcb) {
   list_remove(tcb->list_wait, &tcb->node_wait);
   tcb->list_wait = NULL;
+  CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
 }
 
-static inline void remove_list_sched(struct kl_tcb *tcb) {
+static inline void remove_list_sched(struct kl_thread *tcb) {
   list_remove(tcb->list_sched, &tcb->node_sched);
   if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
   {
@@ -76,9 +80,11 @@ static inline void remove_list_sched(struct kl_tcb *tcb) {
     }
   }
   tcb->list_sched = NULL;
+  CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
+  CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
 }
 
-void sched_tcb_remove(struct kl_tcb *tcb) {
+void sched_tcb_remove(struct kl_thread *tcb) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -87,13 +93,73 @@ void sched_tcb_remove(struct kl_tcb *tcb) {
   }
 }
 
-void sched_tcb_reset_prio(struct kl_tcb *tcb, uint32_t prio) {
+void sched_tcb_ready(struct kl_thread *tcb) {
+  if (tcb->list_sched) {
+    remove_list_sched(tcb);
+  }
+  tcb->list_sched = &m_list_ready[tcb->prio];
+  list_append(tcb->list_sched, &tcb->node_sched);
+  m_prio_bitmap |= (1 << tcb->prio);
+  if (m_prio_highest < tcb->prio) {
+    m_prio_highest = tcb->prio;
+  }
+  // SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_READY); // 0x00
+}
+
+void sched_tcb_suspend(struct kl_thread *tcb) {
+  struct kl_thread_list *list; /* keep list pointer for resume */
+  if (tcb->list_wait) {        /* remove wait */
+    list = tcb->list_wait;
+    remove_list_wait(tcb);
+    tcb->list_wait = list;
+  }
+  if (tcb->list_sched) { /* remove sched */
+    list = tcb->list_sched;
+    remove_list_sched(tcb);
+    tcb->list_sched = list;
+    if (tcb->list_sched == &m_list_sleep && tcb->timeout > m_idle_elapse) {
+      tcb->timeout -= m_idle_elapse; /* remain sleep time */
+    }
+  }
+  SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND);
+}
+
+void sched_tcb_resume(struct kl_thread *tcb) {
+  if (GET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND)) {
+    CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND);
+    if (tcb->list_wait) { /* set wait */
+#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
+      list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
+#else  // FIFO
+      list_append(tcb->list_wait, &tcb->node_wait);
+#endif
+      SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
+    }
+    if (tcb->list_sched == &m_list_sleep) { /* set sleep */
+      tcb->timeout += m_idle_elapse;
+      list_append(tcb->list_sched, &tcb->node_sched);
+      if (tcb->timeout < m_idle_timeout) {
+        m_idle_timeout = tcb->timeout;
+      }
+      SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
+    } else if (tcb->list_sched) { /* set ready */
+      tcb->list_sched = NULL;
+      sched_tcb_ready(tcb);
+    }
+  }
+}
+
+void sched_tcb_reset_prio(struct kl_thread *tcb, uint32_t prio) {
   uint32_t old_prio;
   old_prio = tcb->prio;
   tcb->prio = prio;
   if (tcb->list_wait) {
     list_remove(tcb->list_wait, &tcb->node_wait);
+#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
     list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
+#else  // FIFO
+    list_append(tcb->list_wait, &tcb->node_wait);
+#endif
   }
   if (tcb->list_sched) {
     if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
@@ -115,19 +181,7 @@ void sched_tcb_reset_prio(struct kl_tcb *tcb, uint32_t prio) {
   }
 }
 
-void sched_tcb_ready(struct kl_tcb *tcb) {
-  if (tcb->list_sched) {
-    remove_list_sched(tcb);
-  }
-  tcb->list_sched = &m_list_ready[tcb->prio];
-  list_append(tcb->list_sched, &tcb->node_sched);
-  m_prio_bitmap |= (1 << tcb->prio);
-  if (m_prio_highest < tcb->prio) {
-    m_prio_highest = tcb->prio;
-  }
-}
-
-void sched_tcb_sleep(struct kl_tcb *tcb, kl_tick_t timeout) {
+void sched_tcb_sleep(struct kl_thread *tcb, kl_tick_t timeout) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
@@ -137,9 +191,10 @@ void sched_tcb_sleep(struct kl_tcb *tcb, kl_tick_t timeout) {
   if (tcb->timeout < m_idle_timeout) {
     m_idle_timeout = tcb->timeout;
   }
+  SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
 }
 
-void sched_tcb_wait(struct kl_tcb *tcb, struct kl_tcb_list *list) {
+void sched_tcb_wait(struct kl_thread *tcb, struct kl_thread_list *list) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -149,15 +204,16 @@ void sched_tcb_wait(struct kl_tcb *tcb, struct kl_tcb_list *list) {
 #else  // FIFO
   list_append(list, &tcb->node_wait);
 #endif
+  SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
 }
 
-void sched_tcb_timed_wait(struct kl_tcb *tcb, struct kl_tcb_list *list,
+void sched_tcb_timed_wait(struct kl_thread *tcb, struct kl_thread_list *list,
                           kl_tick_t timeout) {
   sched_tcb_wait(tcb, list);
   if (timeout != KLITE_WAIT_FOREVER) sched_tcb_sleep(tcb, timeout);
 }
 
-static inline void sched_tcb_wake_up(struct kl_tcb *tcb) {
+static inline void sched_tcb_wake_up(struct kl_thread *tcb) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -167,8 +223,8 @@ static inline void sched_tcb_wake_up(struct kl_tcb *tcb) {
   sched_tcb_ready(tcb);
 }
 
-struct kl_tcb *sched_tcb_wake_from(struct kl_tcb_list *list) {
-  struct kl_tcb *tcb;
+struct kl_thread *sched_tcb_wake_from(struct kl_thread_list *list) {
+  struct kl_thread *tcb;
   if (list->head) {
     tcb = list->head->tcb;
     sched_tcb_wake_up(tcb);
@@ -178,10 +234,10 @@ struct kl_tcb *sched_tcb_wake_from(struct kl_tcb_list *list) {
 }
 
 void sched_switch(void) {
-  if (sched_susp_nesting) { /* in critical section */
+  if (sched_susp_nesting) { /* in suspend state */
     return;
   }
-  struct kl_tcb *tcb;
+  struct kl_thread *tcb;
   tcb = m_list_ready[m_prio_highest].head->tcb;
 #if KLITE_CFG_STACK_OVERFLOW_DETECT
   uint8_t *stack = (uint8_t *)(tcb + 1);
@@ -192,7 +248,7 @@ void sched_switch(void) {
       *(stack + 13) != STACK_MAGIC_VALUE ||
       *(stack + 15) != STACK_MAGIC_VALUE) {
 #if KLITE_CFG_STACKOF_BEHAVIOR_SUSPEND
-    sched_tcb_remove(tcb);
+    sched_tcb_suspend(tcb);
     tcb = m_list_ready[m_prio_highest].head->tcb;
 #elif KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
     NVIC_SystemReset();
@@ -232,9 +288,9 @@ void sched_preempt(bool round_robin) {
 }
 
 static inline void sched_timeout(void) {
-  struct kl_tcb *tcb;
-  struct kl_tcb_node *node;
-  struct kl_tcb_node *next;
+  struct kl_thread *tcb;
+  struct kl_thread_node *node;
+  struct kl_thread_node *next;
   m_idle_timeout = UINT32_MAX;
   for (node = m_list_sleep.head; node != NULL; node = next) {
     next = node->next;

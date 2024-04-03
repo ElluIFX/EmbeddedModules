@@ -24,13 +24,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
 #include "klite_internal.h"
 #include "klite_internal_list.h"
 
-static struct kl_tcb_list m_list_alive;  // 运行中线程列表
-static struct kl_tcb_list m_list_dead;   // 待删除线程列表
-static uint32_t kl_thread_id_counter;    // 线程ID计数器
+static struct kl_thread_list m_list_manage;  // 运行中线程列表
+static struct kl_thread_list m_list_dead;    // 待删除线程列表
+static uint32_t kl_thread_id_counter;        // 线程ID计数器
 
 kl_thread_t kl_thread_self(void) { return (kl_thread_t)sched_tcb_now; }
 
@@ -42,14 +41,14 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
   if (!prio && entry != kernel_idle_thread) prio = KLITE_CFG_DEFAULT_PRIO;
   if (!stack_size) stack_size = KLITE_CFG_DEFAULT_STACK_SIZE;
 
-  struct kl_tcb *tcb;
+  struct kl_thread *tcb;
   uint8_t *stack_base;
-  tcb = kl_heap_alloc(sizeof(struct kl_tcb) + stack_size);
+  tcb = kl_heap_alloc(sizeof(struct kl_thread) + stack_size);
   if (tcb == NULL) {
     return NULL;
   }
   stack_base = (uint8_t *)(tcb + 1);
-  memset(tcb, 0, sizeof(struct kl_tcb));
+  memset(tcb, 0, sizeof(struct kl_thread));
   memset(stack_base, STACK_MAGIC_VALUE, stack_size);
   tcb->prio = prio;
   tcb->stack = cpu_contex_init(stack_base, stack_base + stack_size,
@@ -59,9 +58,9 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
   tcb->node_wait.tcb = tcb;
   tcb->node_sched.tcb = tcb;
   tcb->node_manage.tcb = tcb;
-  tcb->id = kl_thread_id_counter++;
+  tcb->flags = (kl_thread_id_counter++) << 8;  // 高24位
   cpu_enter_critical();
-  list_prepend(&m_list_alive, &tcb->node_manage);
+  list_prepend(&m_list_manage, &tcb->node_manage);
   sched_tcb_ready(tcb);
   cpu_leave_critical();
   return (kl_thread_t)tcb;
@@ -71,7 +70,7 @@ void kl_thread_delete(kl_thread_t thread) {
   if (!thread) thread = sched_tcb_now;
   if (thread == sched_tcb_now) return kl_thread_exit();
   cpu_enter_critical();
-  list_remove(&m_list_alive, &thread->node_manage);
+  list_remove(&m_list_manage, &thread->node_manage);
   sched_tcb_remove(thread);
   cpu_leave_critical();
   kl_heap_free(thread);
@@ -80,30 +79,16 @@ void kl_thread_delete(kl_thread_t thread) {
 void kl_thread_suspend(kl_thread_t thread) {
   if (!thread) thread = sched_tcb_now;
   cpu_enter_critical();
-  sched_tcb_remove(thread);
+  sched_tcb_suspend(thread);
   if (thread == sched_tcb_now) sched_switch();
   cpu_leave_critical();
 }
 
 void kl_thread_resume(kl_thread_t thread) {
-  if (!thread) thread = sched_tcb_now;  // not possible
+  if (!thread) return;
   cpu_enter_critical();
-  sched_tcb_ready(thread);
-  cpu_leave_critical();
-}
-
-void kl_thread_suspend_all(void) {
-  cpu_enter_critical();
-  sched_susp_nesting++;
-  cpu_leave_critical();
-}
-
-void kl_thread_resume_all(void) {
-  if (sched_susp_nesting == 0) return;
-  cpu_enter_critical();
-  if (--sched_susp_nesting == 0) {
-    sched_preempt(false);
-  }
+  sched_tcb_resume(thread);
+  sched_preempt(false);
   cpu_leave_critical();
 }
 
@@ -116,11 +101,11 @@ void kl_thread_yield(void) {
 
 void kl_thread_sleep(kl_tick_t time) {
   if (sched_susp_nesting) {  // 挂起状态直接死等
-    uint64_t start = kl_kernel_tick_count64();
-    while (kl_kernel_tick_count64() - start < time) {
-      cpu_sys_sleep(kl_kernel_tick_count64() - start);
+    uint64_t start = kl_kernel_tick64();
+    while (kl_kernel_tick64() - start < time) {
+      cpu_sys_sleep(kl_kernel_tick64() - start);
       if (!sched_susp_nesting) {
-        return kl_thread_sleep(time - (kl_kernel_tick_count64() - start));
+        return kl_thread_sleep(time - (kl_kernel_tick64() - start));
       }
     }
     return;
@@ -161,14 +146,19 @@ uint32_t kl_thread_get_priority(kl_thread_t thread) {
 
 uint32_t kl_thread_id(kl_thread_t thread) {
   if (!thread) thread = sched_tcb_now;
-  return thread->id;
+  return thread->flags >> 8;  // 高24位
+}
+
+uint8_t kl_thread_flags(kl_thread_t thread) {
+  if (!thread) thread = sched_tcb_now;
+  return thread->flags & 0xff;  // 低8位
 }
 
 kl_thread_t kl_thread_find(uint32_t id) {
   cpu_enter_critical();
-  struct kl_tcb_node *node = m_list_alive.head;
+  struct kl_thread_node *node = m_list_manage.head;
   while (node) {
-    if (((kl_thread_t)node->tcb)->id == id) {
+    if (((kl_thread_t)node->tcb)->flags >> 8 == id) {
       break;
     }
     node = node->next;
@@ -178,12 +168,12 @@ kl_thread_t kl_thread_find(uint32_t id) {
 }
 
 kl_thread_t kl_thread_iter(kl_thread_t thread) {
-  struct kl_tcb_node *node = NULL;
+  struct kl_thread_node *node = NULL;
   cpu_enter_critical();
   if (thread) {
     node = thread->node_manage.next;
   } else {
-    node = m_list_alive.head;
+    node = m_list_manage.head;
   }
   cpu_leave_critical();
   return node ? (kl_thread_t)node->tcb : NULL;
@@ -192,14 +182,14 @@ kl_thread_t kl_thread_iter(kl_thread_t thread) {
 void kl_thread_exit(void) {
   cpu_enter_critical();
   sched_tcb_remove(sched_tcb_now);
-  list_remove(&m_list_alive, &sched_tcb_now->node_manage);
+  list_remove(&m_list_manage, &sched_tcb_now->node_manage);
   list_append(&m_list_dead, &sched_tcb_now->node_manage);
   sched_switch();
   cpu_leave_critical();
 }
 
 void thread_clean_up(void) {
-  struct kl_tcb_node *node;
+  struct kl_thread_node *node;
   while (m_list_dead.head) {
     cpu_enter_critical();
     node = m_list_dead.head;

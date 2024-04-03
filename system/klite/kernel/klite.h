@@ -34,6 +34,74 @@
 #include "klite_def.h"
 
 /******************************************************************************
+ * kernel
+ ******************************************************************************/
+
+/**
+ * @param heap_addr 内核堆起始地址
+ * @param heap_size 内核堆大小
+ * @brief 用于内核初始化在调用内核初始化时需保证中断处于关闭状态,
+ * @warning 此函数只能执行一次, 在初始化内核之前不可调用内核其它函数。
+ */
+void kl_kernel_init(void *heap_addr, uint32_t heap_size);
+
+/**
+ * @brief 用于启动内核, 此函正常情况下不会返回
+ * @warning 在调用之前至少要创建一个线程
+ */
+void kl_kernel_start(void);
+
+/**
+ * @brief 进入临界区, 禁止中断
+ * @note 允许嵌套
+ */
+void kl_kernel_enter_critical(void);
+
+/**
+ * @brief 退出临界区, 允许中断
+ * @note 允许嵌套
+ */
+void kl_kernel_exit_critical(void);
+
+/**
+ * @brief 挂起调度器, 暂停线程调度
+ * @note 允许嵌套
+ * @warning 非中断安全, 挂起期间禁止调用内核API
+ */
+void kl_kernel_suspend_all(void);
+
+/**
+ * @brief 恢复调度器, 继续线程调度
+ * @note 允许嵌套
+ * @warning 非中断安全, 挂起期间禁止调用内核API
+ */
+void kl_kernel_resume_all(void);
+
+/**
+ * @retval KLite版本号, BIT[31:24]主版本号, BIT[23:16]次版本号, BIT[15:0]修订号
+ */
+uint32_t kl_kernel_version(void);
+
+/**
+ * @brief 获取系统从启动到现在空闲线程占用CPU的总时间
+ * @note 可使用此函数和kernel_tick_count()一起计算CPU占用率
+ * @retval 系统空闲时间(Tick)
+ */
+kl_tick_t kl_kernel_idle_time(void);
+
+/**
+ * @brief 此函数可以获取内核从启动到现在所运行的总时间
+ * @retval 系统运行时间(Tick)
+ */
+kl_tick_t kl_kernel_tick(void);
+
+/**
+ * @brief 此函数可以获取内核从启动到现在所运行的总时间
+ * @retval 系统运行时间(Tick)
+ */
+uint64_t kl_kernel_tick64(void);
+
+/******************************************************************************
  * timebase
  ******************************************************************************/
 
@@ -70,66 +138,12 @@ static inline kl_tick_t kl_us_to_ticks(kl_tick_t us) {
  * @retval 返回Tick对应的微秒数
  */
 static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
-  return ((uint64_t)tick * 1000000) / KLITE_CFG_FREQ;
+  return (uint64_t)tick * (1000000 / KLITE_CFG_FREQ);
 }
 
 /******************************************************************************
- * kernel
+ * callback
  ******************************************************************************/
-
-/**
- * @param heap_addr 内核堆起始地址
- * @param heap_size 内核堆大小
- * @brief 用于内核初始化在调用内核初始化时需保证中断处于关闭状态,
- * @warning 此函数只能执行一次, 在初始化内核之前不可调用内核其它函数。
- */
-void kl_kernel_init(void *heap_addr, uint32_t heap_size);
-
-/**
- * @brief 用于启动内核, 此函正常情况下不会返回, 在调用之前至少要创建一个线程
- */
-void kl_kernel_start(void);
-
-/**
- * @brief 进入临界区, 禁止中断, 允许嵌套
- */
-void kl_kernel_enter_critical(void);
-
-/**
- * @brief 退出临界区, 允许中断, 允许嵌套
- */
-void kl_kernel_exit_critical(void);
-
-/**
- * @retval KLite版本号, BIT[31:24]主版本号, BIT[23:16]次版本号, BIT[15:0]修订号
- */
-uint32_t kl_kernel_version(void);
-
-/**
- * @brief 获取系统从启动到现在空闲线程占用CPU的总时间
- * @note 可使用此函数和kernel_tick_count()一起计算CPU占用率
- * @retval 系统空闲时间(Tick)
- */
-kl_tick_t kl_kernel_idle_time(void);
-
-/**
- * @brief 此函数不是用户API, 而是由CPU的滴答时钟中断程序调用, 为系统提供时钟源。
- * @note 滴答定时器的周期决定了系统计时功能的细粒度 (1/KLITE_CFG_FREQ)
- * @param time 递增Tick数
- */
-void kl_kernel_tick_source(uint32_t time);
-
-/**
- * @brief 此函数可以获取内核从启动到现在所运行的总时间
- * @retval 系统运行时间(Tick)
- */
-kl_tick_t kl_kernel_tick_count(void);
-
-/**
- * @brief 此函数可以获取内核从启动到现在所运行的总时间
- * @retval 系统运行时间(Tick)
- */
-uint64_t kl_kernel_tick_count64(void);
 
 /**
  * @brief 内核内存分配失败回调函数
@@ -209,8 +223,7 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
 /**
  * @brief 删除线程, 并释放内存
  * @param thread 被删除的线程标识符
- * @warning 该函数不能用来结束当前线程, 如果想要结束当前线程,
- * 请使用kl_thread_exit()或直接使用return退出主循环
+ * @note 当删除当前线程时, 等价于调用kl_thread_exit()
  */
 void kl_thread_delete(kl_thread_t thread);
 
@@ -227,18 +240,6 @@ void kl_thread_suspend(kl_thread_t thread);
 void kl_thread_resume(kl_thread_t thread);
 
 /**
- * @brief 挂起所有线程, 禁止线程调度, 允许嵌套
- * @warning 非中断安全, 挂起期间禁止调用内核API
- */
-void kl_thread_suspend_all(void);
-
-/**
- * @brief 恢复所有线程, 允许线程调度, 允许嵌套
- * @warning 非中断安全, 挂起期间禁止调用内核API
- */
-void kl_thread_resume_all(void);
-
-/**
  * @brief 使当前线程立即释放CPU控制权, 并进入就绪队列
  */
 void kl_thread_yield(void);
@@ -251,7 +252,7 @@ void kl_thread_sleep(kl_tick_t time);
 
 /**
  * @brief 退出当前线程
- * @note 此函数不会立即释放线程占用的内存, 由idle线程负责释放
+ * @note 此函数不会立即释放线程占用的内存, 由idle线程释放
  */
 void kl_thread_exit(void);
 
@@ -299,6 +300,17 @@ uint32_t kl_thread_get_priority(kl_thread_t thread);
  * @retval 线程ID
  */
 uint32_t kl_thread_id(kl_thread_t thread);
+
+/**
+ * @brief 获取线程状态
+ * @param thread 线程标识符
+ * @retval 线程状态
+ * @note KL_THREAD_FLAGS_READY   线程就绪
+ * @note KL_THREAD_FLAGS_SLEEP   线程休眠
+ * @note KL_THREAD_FLAGS_WAIT    线程等待
+ * @note KL_THREAD_FLAGS_SUSPEND 线程挂起
+ */
+uint8_t kl_thread_flags(kl_thread_t thread);
 
 /**
  * @brief 通过线程ID查找线程
@@ -396,14 +408,14 @@ void kl_cond_broadcast(kl_cond_t cond);
 /**
  * @brief 阻塞线程, 并等待被条件变量唤醒
  * @param cond 条件变量标识符
- * @param mutex 互斥锁标识符
+ * @param mutex 互斥锁标识符 (锁定状态)
  */
 void kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex);
 
 /**
  * @brief 定时阻塞线程, 并等待被条件变量唤醒
  * @param cond 条件变量标识符
- * @param mutex 互斥锁标识符
+ * @param mutex 互斥锁标识符 (锁定状态)
  * @param timeout 超时时间（Tick）
  * @retval 剩余等待时间, 如果返回0则说明等待超时
  */
@@ -691,9 +703,9 @@ void kl_event_flags_reset(kl_event_flags_t flags, uint32_t bits);
  * @param event 事件组标识符
  * @param bits 想要等待的标志位
  * @param ops 等待标志位的行为
- *      EVENT_FLAGS_WAIT_ANY: 只要bits中的任意一位有效，函数立即返回；
- *      EVENT_FLAGS_WAIT_ALL: 只有bits中的所有位都有效，函数才能返回；
- *      EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
+ *      KL_EVENT_FLAGS_WAIT_ANY: 只要bits中的任意一位有效，函数立即返回；
+ *      KL_EVENT_FLAGS_WAIT_ALL: 只有bits中的所有位都有效，函数才能返回；
+ *      KL_EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
  * @retval 实际获取到的标志位状态
  */
 uint32_t kl_event_flags_wait(kl_event_flags_t flags, uint32_t bits,
@@ -704,9 +716,9 @@ uint32_t kl_event_flags_wait(kl_event_flags_t flags, uint32_t bits,
  * @param event 事件组标识符
  * @param bits 想要等待的标志位
  * @param ops 等待标志位的行为
- *      EVENT_FLAGS_WAIT_ANY: 只要bits中的任意一位有效，函数立即返回；
- *      EVENT_FLAGS_WAIT_ALL: 只有bits中的所有位都有效，函数才能返回；
- *      EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
+ *      KL_EVENT_FLAGS_WAIT_ANY: 只要bits中的任意一位有效，函数立即返回；
+ *      KL_EVENT_FLAGS_WAIT_ALL: 只有bits中的所有位都有效，函数才能返回；
+ *      KL_EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
  * @param timeout 等待超时时间(毫秒)
  * @retval 实际获取到的标志位状态
  */

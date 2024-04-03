@@ -24,16 +24,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
 #include "klite_internal.h"
+
 #if KLITE_CFG_HEAP_USE_LWMEM
 #include <string.h>
 
-#include "log.h"
 #include "lwmem.h"
 
 volatile static uint8_t heap_lock = 0;
-static struct kl_tcb_list heap_waitlist;
+static struct kl_thread_list heap_waitlist;
 static void heap_kl_mutex_lock(void) {
   cpu_enter_critical();
   if (heap_lock == 0) {

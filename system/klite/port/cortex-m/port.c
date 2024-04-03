@@ -24,12 +24,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
+#include "klite_internal.h"
+#include "main.h"  // or manual specify cmsis header
 
 #if (defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_7M__) || \
      defined(__ARM_ARCH_7EM) || defined(__ARM_ARCH_4T__) ||   \
      defined(__ARM_ARCH_4T))
-#define CORTEX_M4_7 1
+#define CORTEX_M4_M7 1
 #endif
 
 #define NVIC_INT_CTRL (*((volatile uint32_t *)0xE000ED04))
@@ -50,8 +51,8 @@ void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg,
   *(--sp) = 0;                                            // R1
   *(--sp) = (uint32_t)arg;                                // R0
 
-#if CORTEX_M4_7
-  *(--sp) = 0xFFFFFFF9;  // LR(EXC_RETURN)
+#if CORTEX_M4_M7
+  *(--sp) = 0xFFFFFFF9;  // LR(EXC_RETURN) set to thread mode
 #endif
 
   // cortex-m3/4/7: R11, R10, R9, R8, R7, R6, R5, R4
@@ -65,4 +66,52 @@ void *cpu_contex_init(void *stack_base, void *stack_top, void *entry, void *arg,
   *(--sp) = 0;
   *(--sp) = 0;
   return sp;
+}
+
+static uint32_t cpu_critical_nesting;
+
+void cpu_enter_critical(void) {
+  __disable_irq();
+  cpu_critical_nesting++;
+}
+
+void cpu_leave_critical(void) {
+  if (cpu_critical_nesting == 0) return;
+  cpu_critical_nesting--;
+  if (!cpu_critical_nesting) __enable_irq();
+}
+
+void cpu_sys_init(void) {
+  cpu_enter_critical();
+  NVIC_SetPriority(PendSV_IRQn, 255);
+  NVIC_SetPriority(SysTick_IRQn, 255);
+}
+
+void cpu_sys_start(void) {
+  SystemCoreClockUpdate();
+  SysTick_Config(SystemCoreClock / KLITE_CFG_FREQ);
+  cpu_leave_critical();
+}
+
+void cpu_sys_sleep(kl_tick_t time) {
+  // Call wfi() can enter low power mode
+  // But SysTick may be stopped after call wfi() on some device.
+#if MOD_CFG_WFI_WHEN_SYSTEM_IDLE
+  __wfi();
+#endif
+}
+
+extern __IO uint32_t uwTick;
+void SysTick_Handler(void) {
+  kernel_tick_source(1);
+
+#if KLITE_CFG_FREQ >= 1000
+  static uint16_t tick_scaler = 0;
+  if (++tick_scaler >= (KLITE_CFG_FREQ / 1000)) {  // us -> ms
+    uwTick++;                                      // for HAL_Delay()
+    tick_scaler = 0;
+  }
+#else
+  uwTick += 1000 / KLITE_CFG_FREQ;
+#endif
 }

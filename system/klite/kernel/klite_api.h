@@ -21,9 +21,11 @@ typedef struct {
     void (*start)(void);
     void (*enter_critical)(void);
     void (*exit_critical)(void);
+    void (*suspend_all)(void);
+    void (*resume_all)(void);
     kl_tick_t (*idle_time)(void);
-    kl_tick_t (*tick_count)(void);
-    uint64_t (*tick_count64)(void);
+    kl_tick_t (*tick)(void);
+    uint64_t (*tick64)(void);
   } kernel;
 
   struct {
@@ -40,8 +42,6 @@ typedef struct {
     void (*delete)(kl_thread_t thread);
     void (*suspend)(kl_thread_t thread);
     void (*resume)(kl_thread_t thread);
-    void (*suspend_all)(void);
-    void (*resume_all)(void);
     void (*yield)(void);
     void (*sleep)(kl_tick_t time);
     void (*exit)(void);

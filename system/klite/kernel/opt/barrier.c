@@ -24,17 +24,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  ******************************************************************************/
-#include "klite.h"
-
-#if KLITE_CFG_OPT_BARRIER
-
 #include "klite_internal.h"
 
-struct kl_barrier {
-  struct kl_tcb_list list;
-  uint32_t value;
-  uint32_t target;
-};
+#if KLITE_CFG_OPT_BARRIER
 
 kl_barrier_t kl_barrier_create(uint32_t target) {
   struct kl_barrier *barrier;

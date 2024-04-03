@@ -33,15 +33,6 @@
 
 #include "klite_internal_list.h"
 
-struct kl_soft_timer {
-  struct kl_soft_timer *prev;
-  struct kl_soft_timer *next;
-  void (*handler)(void *);
-  void *arg;
-  uint32_t reload;
-  uint32_t timeout;
-};
-
 struct timer_list {
   struct kl_soft_timer *head;
   struct kl_soft_timer *tail;
@@ -78,12 +69,12 @@ static void kl_soft_timer_service(void *arg) {
   uint32_t last;
   uint32_t time;
   uint32_t timeout;
-  last = kl_kernel_tick_count();
+  last = kl_kernel_tick();
   while (1) {
-    time = kl_kernel_tick_count() - last;
-    last = kl_kernel_tick_count();
+    time = kl_kernel_tick() - last;
+    last = kl_kernel_tick();
     timeout = kl_soft_timer_process(time);
-    time = kl_kernel_tick_count() - last;
+    time = kl_kernel_tick() - last;
     if (timeout > time) {
       kl_event_timed_wait(m_timer_event, timeout - time);
     }

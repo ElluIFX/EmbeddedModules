@@ -1,21 +1,12 @@
-#include "klite.h"
+#include "klite_internal.h"
 
 #if KLITE_CFG_OPT_THREAD_POOL
 
 #include <string.h>
 
-#include "klite_internal.h"
-
 struct kl_thread_pool_task {
   void (*process)(void *arg);
   void *arg;
-};
-
-struct kl_thread_pool {
-  kl_msg_queue_t task_queue;
-  kl_thread_t *thread_list;
-  kl_sem_t idle_sem;
-  uint8_t worker_num;
 };
 
 static void thread_job(void *arg) {
