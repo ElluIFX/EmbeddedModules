@@ -5,6 +5,11 @@
 #include "klite_api.h"
 
 const klite_api_t klite = {
+    .ms_to_ticks = kl_ms_to_ticks,
+    .ticks_to_ms = kl_ticks_to_ms,
+    .us_to_ticks = kl_us_to_ticks,
+    .ticks_to_us = kl_ticks_to_us,
+
     .kernel.init = kl_kernel_init,
     .kernel.start = kl_kernel_start,
     .kernel.enter_critical = kl_kernel_enter_critical,
@@ -12,10 +17,6 @@ const klite_api_t klite = {
     .kernel.idle_time = kl_kernel_idle_time,
     .kernel.tick_count = kl_kernel_tick_count,
     .kernel.tick_count64 = kl_kernel_tick_count64,
-    .kernel.ms_to_ticks = kl_ms_to_ticks,
-    .kernel.ticks_to_ms = kl_ticks_to_ms,
-    .kernel.us_to_ticks = kl_us_to_ticks,
-    .kernel.ticks_to_us = kl_ticks_to_us,
 
     .heap.alloc = kl_heap_alloc,
     .heap.free = kl_heap_free,

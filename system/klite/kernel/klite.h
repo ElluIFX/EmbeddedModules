@@ -34,6 +34,46 @@
 #include "klite_def.h"
 
 /******************************************************************************
+ * timebase
+ ******************************************************************************/
+
+/**
+ * @brief 计算ms对应的Tick数
+ * @param ms 毫秒
+ * @retval 返回ms对应的Tick数
+ */
+static inline kl_tick_t kl_ms_to_ticks(kl_tick_t ms) {
+  return ((uint64_t)ms * KLITE_CFG_FREQ) / 1000;
+}
+
+/**
+ * @brief 计算Tick对应的毫秒数
+ * @param tick Tick数
+ * @retval 返回Tick对应的毫秒数
+ */
+static inline kl_tick_t kl_ticks_to_ms(kl_tick_t tick) {
+  return ((uint64_t)tick * 1000) / KLITE_CFG_FREQ;
+}
+
+/**
+ * @brief 计算us对应的Tick数
+ * @param us 微秒
+ * @retval 返回us对应的Tick数
+ */
+static inline kl_tick_t kl_us_to_ticks(kl_tick_t us) {
+  return ((uint64_t)us * KLITE_CFG_FREQ) / 1000000;
+}
+
+/**
+ * @brief 计算Tick对应的微秒数
+ * @param tick Tick数
+ * @retval 返回Tick对应的微秒数
+ */
+static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
+  return ((uint64_t)tick * 1000000) / KLITE_CFG_FREQ;
+}
+
+/******************************************************************************
  * kernel
  ******************************************************************************/
 
@@ -90,42 +130,6 @@ kl_tick_t kl_kernel_tick_count(void);
  * @retval 系统运行时间(Tick)
  */
 uint64_t kl_kernel_tick_count64(void);
-
-/**
- * @brief 计算ms对应的Tick数
- * @param ms 毫秒
- * @retval 返回ms对应的Tick数
- */
-static inline kl_tick_t kl_ms_to_ticks(kl_tick_t ms) {
-  return ((uint64_t)ms * KLITE_CFG_FREQ) / 1000;
-}
-
-/**
- * @brief 计算Tick对应的毫秒数
- * @param tick Tick数
- * @retval 返回Tick对应的毫秒数
- */
-static inline kl_tick_t kl_ticks_to_ms(kl_tick_t tick) {
-  return ((uint64_t)tick * 1000) / KLITE_CFG_FREQ;
-}
-
-/**
- * @brief 计算us对应的Tick数
- * @param us 微秒
- * @retval 返回us对应的Tick数
- */
-static inline kl_tick_t kl_us_to_ticks(kl_tick_t us) {
-  return ((uint64_t)us * KLITE_CFG_FREQ) / 1000000;
-}
-
-/**
- * @brief 计算Tick对应的微秒数
- * @param tick Tick数
- * @retval 返回Tick对应的微秒数
- */
-static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
-  return ((uint64_t)tick * 1000000) / KLITE_CFG_FREQ;
-}
 
 /**
  * @brief 内核内存分配失败回调函数

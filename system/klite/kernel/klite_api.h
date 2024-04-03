@@ -11,6 +11,11 @@
 #if KLITE_CFG_INTERFACE_ENABLE
 
 typedef struct {
+  kl_tick_t (*ms_to_ticks)(kl_tick_t ms);
+  kl_tick_t (*ticks_to_ms)(kl_tick_t tick);
+  kl_tick_t (*us_to_ticks)(kl_tick_t us);
+  kl_tick_t (*ticks_to_us)(kl_tick_t tick);
+
   struct {
     void (*init)(void *heap_addr, uint32_t heap_size);
     void (*start)(void);
@@ -19,10 +24,6 @@ typedef struct {
     kl_tick_t (*idle_time)(void);
     kl_tick_t (*tick_count)(void);
     uint64_t (*tick_count64)(void);
-    kl_tick_t (*ms_to_ticks)(kl_tick_t ms);
-    kl_tick_t (*ticks_to_ms)(kl_tick_t tick);
-    kl_tick_t (*us_to_ticks)(kl_tick_t us);
-    kl_tick_t (*ticks_to_us)(kl_tick_t tick);
   } kernel;
 
   struct {
