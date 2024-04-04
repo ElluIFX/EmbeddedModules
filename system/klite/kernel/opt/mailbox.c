@@ -29,9 +29,9 @@
 
 #if KLITE_CFG_OPT_MAILBOX
 
-#include "klite_internal_fifo.h"
+#include "klite_fifo.h"
 
-kl_mailbox_t kl_mailbox_create(uint32_t size) {
+kl_mailbox_t kl_mailbox_create(kl_size_t size) {
   struct kl_mailbox *mailbox;
   mailbox = kl_heap_alloc(sizeof(struct kl_mailbox) + size);
   if (mailbox != NULL) {
@@ -75,17 +75,17 @@ void kl_mailbox_clear(kl_mailbox_t mailbox) {
   kl_cond_broadcast(mailbox->write);
 }
 
-uint32_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, uint32_t len,
-                         kl_tick_t timeout) {
-  uint32_t ret;
-  uint32_t ttl;
-  ttl = len + sizeof(uint32_t);
+kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, kl_size_t len,
+                          kl_tick_t timeout) {
+  kl_size_t ret;
+  kl_size_t ttl;
+  ttl = len + sizeof(kl_size_t);
   if (ttl > mailbox->fifo.size) return 0;
   kl_mutex_lock(mailbox->mutex);
   while (1) {
     ret = fifo_get_free(&mailbox->fifo);
     if (ret >= ttl) {
-      fifo_write(&mailbox->fifo, &len, sizeof(uint32_t));
+      fifo_write(&mailbox->fifo, &len, sizeof(kl_size_t));
       fifo_write(&mailbox->fifo, buf, len);
       kl_mutex_unlock(mailbox->mutex);
       kl_cond_broadcast(mailbox->read);
@@ -100,15 +100,15 @@ uint32_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, uint32_t len,
   }
 }
 
-uint32_t kl_mailbox_read(kl_mailbox_t mailbox, void *buf, uint32_t len,
-                         kl_tick_t timeout) {
-  uint32_t ret;
-  uint32_t ttl;
-  uint32_t over;
+kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void *buf, kl_size_t len,
+                          kl_tick_t timeout) {
+  kl_size_t ret;
+  kl_size_t ttl;
+  kl_size_t over;
   uint8_t dummy;
   kl_mutex_lock(mailbox->mutex);
   while (1) {
-    ret = fifo_read(&mailbox->fifo, &ttl, sizeof(uint32_t));
+    ret = fifo_read(&mailbox->fifo, &ttl, sizeof(kl_size_t));
     if (ret != 0) {
       ret = fifo_read(&mailbox->fifo, buf, (len < ttl) ? len : ttl);
       if (ret < ttl) {

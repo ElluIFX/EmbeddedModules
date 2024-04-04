@@ -17,7 +17,7 @@ typedef struct {
   kl_tick_t (*ticks_to_us)(kl_tick_t tick);
 
   struct {
-    void (*init)(void *heap_addr, uint32_t heap_size);
+    void (*init)(void *heap_addr, kl_size_t heap_size);
     void (*start)(void);
     void (*enter_critical)(void);
     void (*exit_critical)(void);
@@ -29,16 +29,16 @@ typedef struct {
   } kernel;
 
   struct {
-    void *(*alloc)(uint32_t size);
+    void *(*alloc)(kl_size_t size);
     void (*free)(void *mem);
-    void *(*realloc)(void *mem, uint32_t size);
-    void (*usage)(uint32_t *used, uint32_t *free);
+    void *(*realloc)(void *mem, kl_size_t size);
+    void (*usage)(kl_size_t *used, kl_size_t *free);
     float (*usage_percent)(void);
   } heap;
 
   struct {
-    kl_thread_t (*create)(void (*entry)(void *), void *arg, uint32_t stack_size,
-                          uint32_t prio);
+    kl_thread_t (*create)(void (*entry)(void *), void *arg,
+                          kl_size_t stack_size, uint32_t prio);
     void (*delete)(kl_thread_t thread);
     void (*suspend)(kl_thread_t thread);
     void (*resume)(kl_thread_t thread);
@@ -47,8 +47,8 @@ typedef struct {
     void (*exit)(void);
     kl_thread_t (*self)(void);
     kl_tick_t (*time)(kl_thread_t thread);
-    void (*stack_info)(kl_thread_t thread, size_t *stack_free,
-                       size_t *stack_size);
+    void (*stack_info)(kl_thread_t thread, kl_size_t *stack_free,
+                       kl_size_t *stack_size);
     void (*set_priority)(kl_thread_t thread, uint32_t prio);
     uint32_t (*get_priority)(kl_thread_t thread);
     uint32_t (*id)(kl_thread_t thread);
@@ -112,6 +112,7 @@ typedef struct {
     void (*read_unlock)(kl_rwlock_t rwlock);
     void (*write_lock)(kl_rwlock_t rwlock);
     void (*write_unlock)(kl_rwlock_t rwlock);
+    void (*unlock)(kl_rwlock_t rwlock);
     bool (*try_read_lock)(kl_rwlock_t rwlock);
     bool (*try_write_lock)(kl_rwlock_t rwlock);
     kl_tick_t (*timed_read_lock)(kl_rwlock_t rwlock, kl_tick_t timeout);
@@ -143,43 +144,41 @@ typedef struct {
 
 #if KLITE_CFG_OPT_MAILBOX
   struct {
-    kl_mailbox_t (*create)(uint32_t size);
+    kl_mailbox_t (*create)(kl_size_t size);
     void (*delete)(kl_mailbox_t mailbox);
     void (*clear)(kl_mailbox_t mailbox);
-    uint32_t (*post)(kl_mailbox_t mailbox, void *buf, uint32_t len,
-                     kl_tick_t timeout);
-    uint32_t (*read)(kl_mailbox_t mailbox, void *buf, uint32_t len,
-                     kl_tick_t timeout);
+    kl_size_t (*post)(kl_mailbox_t mailbox, void *buf, kl_size_t len,
+                      kl_tick_t timeout);
+    kl_size_t (*read)(kl_mailbox_t mailbox, void *buf, kl_size_t len,
+                      kl_tick_t timeout);
   } mailbox;
 #endif
 
 #if KLITE_CFG_OPT_MPOOL
   struct {
-    kl_mpool_t (*create)(uint32_t block_size, uint32_t block_count);
+    kl_mpool_t (*create)(kl_size_t block_size, kl_size_t block_count);
     void (*delete)(kl_mpool_t mpool);
-    void *(*alloc)(kl_mpool_t mpool);
     void *(*timed_alloc)(kl_mpool_t mpool, kl_tick_t timeout);
-    void *(*blocked_alloc)(kl_mpool_t mpool);
+    void *(*alloc)(kl_mpool_t mpool);
     void (*free)(kl_mpool_t mpool, void *block);
   } mpool;
 #endif
 
 #if KLITE_CFG_OPT_MSG_QUEUE
   struct {
-    kl_msg_queue_t (*create)(uint32_t msg_size, uint32_t queue_depth);
+    kl_msg_queue_t (*create)(kl_size_t msg_size, kl_size_t queue_depth);
     void (*delete)(kl_msg_queue_t queue);
     void (*clear)(kl_msg_queue_t queue);
-    void (*send)(kl_msg_queue_t queue, void *item);
-    void (*recv)(kl_msg_queue_t queue, void *item);
-    bool (*timed_send)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
-    bool (*timed_recv)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
-    uint32_t (*count)(kl_msg_queue_t queue);
+    bool (*send)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
+    bool (*send_urgent)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
+    bool (*recv)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
+    kl_size_t (*count)(kl_msg_queue_t queue);
   } msg_queue;
 #endif
 
 #if KLITE_CFG_OPT_SOFT_TIMER
   struct {
-    bool (*init)(uint32_t stack_size, uint32_t priority);
+    bool (*init)(kl_size_t stack_size, uint32_t priority);
     void (*deinit)(void);
     kl_soft_timer_t (*create)(void (*handler)(void *), void *arg);
     void (*delete)(kl_soft_timer_t timer);
@@ -190,13 +189,15 @@ typedef struct {
 
 #if KLITE_CFG_OPT_THREAD_POOL
   struct {
-    kl_thread_pool_t (*create)(uint8_t worker_num, uint32_t worker_stack_size,
-                               uint32_t worker_priority, uint32_t max_task_num);
+    kl_thread_pool_t (*create)(kl_size_t worker_num,
+                               kl_size_t worker_stack_size,
+                               uint32_t worker_priority,
+                               kl_size_t max_task_num);
     bool (*submit)(kl_thread_pool_t pool, void (*process)(void *arg), void *arg,
                    kl_tick_t timeout);
     void (*shutdown)(kl_thread_pool_t pool);
     void (*join)(kl_thread_pool_t pool);
-    uint16_t (*pending_task)(kl_thread_pool_t pool);
+    kl_size_t (*pending_task)(kl_thread_pool_t pool);
   } thread_pool;
 #endif
 } klite_api_t;

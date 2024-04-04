@@ -32,39 +32,39 @@
 static uint64_t m_tick_count;
 static kl_thread_t m_idle_thread;
 
-void kl_kernel_init(void* heap_addr, uint32_t heap_size) {
+void kl_kernel_init(void* heap_addr, kl_size_t heap_size) {
   m_tick_count = 0;
   m_idle_thread = NULL;
-  cpu_sys_init();
-  sched_init();
-  kernel_heap_init(heap_addr, heap_size);
+  kl_port_sys_init();
+  kl_sched_init();
+  kl_heap_init(heap_addr, heap_size);
 
   /* 创建idle线程 */
-  m_idle_thread = kl_thread_create(kernel_idle_thread, NULL,
+  m_idle_thread = kl_thread_create(kl_kernel_idle_entry, NULL,
                                    KLITE_CFG_IDLE_THREAD_STACK_SIZE, 0);
 }
 
 void kl_kernel_start(void) {
-  sched_switch();
-  cpu_sys_start();
+  kl_sched_switch();
+  kl_port_sys_start();
 }
 
-void kernel_tick_source(uint32_t time) {
+void kl_kernel_tick_source(kl_tick_t time) {
   m_tick_count += time;
-  cpu_enter_critical();
-  sched_timing(time);
-  sched_preempt(true);
-  cpu_leave_critical();
+  kl_port_enter_critical();
+  kl_sched_timing(time);
+  kl_sched_preempt(true);
+  kl_port_leave_critical();
 }
 
-void kernel_idle_thread(void* args) {
+void kl_kernel_idle_entry(void* args) {
   (void)args;
 
   while (1) {
-    thread_clean_up();
-    cpu_enter_critical();
-    sched_idle();
-    cpu_leave_critical();
+    kl_thread_clean_up();
+    kl_port_enter_critical();
+    kl_sched_idle();
+    kl_port_leave_critical();
   }
 }
 
@@ -72,23 +72,20 @@ kl_tick_t kl_kernel_idle_time(void) {
   return m_idle_thread ? kl_thread_time(m_idle_thread) : 0;
 }
 
-void kl_kernel_enter_critical(void) { cpu_enter_critical(); }
+void kl_kernel_enter_critical(void) { kl_port_enter_critical(); }
 
-void kl_kernel_exit_critical(void) { cpu_leave_critical(); }
+void kl_kernel_exit_critical(void) { kl_port_leave_critical(); }
 
 void kl_kernel_suspend_all(void) {
-  cpu_enter_critical();
-  sched_susp_nesting++;
-  cpu_leave_critical();
+  kl_port_enter_critical();
+  kl_sched_suspend();
+  kl_port_leave_critical();
 }
 
 void kl_kernel_resume_all(void) {
-  if (sched_susp_nesting == 0) return;
-  cpu_enter_critical();
-  if (--sched_susp_nesting == 0) {
-    sched_preempt(false);
-  }
-  cpu_leave_critical();
+  kl_port_enter_critical();
+  kl_sched_resume();
+  kl_port_leave_critical();
 }
 
 kl_tick_t kl_kernel_tick(void) { return (kl_tick_t)m_tick_count; }

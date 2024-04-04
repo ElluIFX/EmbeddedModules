@@ -28,15 +28,15 @@
 .text
 .thumb
 
-.extern sched_tcb_now
-.extern sched_tcb_next
+.extern kl_sched_tcb_now
+.extern kl_sched_tcb_next
 
 .global PendSV_Handler
 
 .thumb_func
 PendSV_Handler:
 	CPSID   I
-	LDR     R0, =sched_tcb_now
+	LDR     R0, =kl_sched_tcb_now
 	LDR     R1, [R0]
 	CBZ     R1, POPSTACK
 	TST     LR, #0x10
@@ -47,7 +47,7 @@ PendSV_Handler:
 	STR     SP, [R1]
 
 POPSTACK:
-	LDR     R2, =sched_tcb_next
+	LDR     R2, =kl_sched_tcb_next
 	LDR     R3, [R2]
 	STR     R3, [R0]
 	LDR     SP, [R3]

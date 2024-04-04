@@ -31,7 +31,7 @@
 
 #include <string.h>
 
-#include "klite_internal_list.h"
+#include "klite_list.h"
 
 struct timer_list {
   struct kl_soft_timer *head;
@@ -43,9 +43,9 @@ static kl_mutex_t m_timer_mutex;
 static kl_event_t m_timer_event;
 static kl_thread_t m_timer_thread;
 
-static uint32_t kl_soft_timer_process(uint32_t time) {
+static kl_tick_t kl_soft_timer_process(kl_tick_t time) {
   struct kl_soft_timer *node;
-  uint32_t timeout = UINT32_MAX;
+  kl_tick_t timeout = KL_WAIT_FOREVER;
   kl_mutex_lock(m_timer_mutex);
   for (node = m_timer_list.head; node != NULL; node = node->next) {
     if (node->reload == 0) {
@@ -66,13 +66,13 @@ static uint32_t kl_soft_timer_process(uint32_t time) {
 }
 
 static void kl_soft_timer_service(void *arg) {
-  uint32_t last;
-  uint32_t time;
-  uint32_t timeout;
+  kl_tick_t last;
+  kl_tick_t time;
+  kl_tick_t timeout;
   last = kl_kernel_tick();
   while (1) {
     time = kl_kernel_tick() - last;
-    last = kl_kernel_tick();
+    last += time;
     timeout = kl_soft_timer_process(time);
     time = kl_kernel_tick() - last;
     if (timeout > time) {

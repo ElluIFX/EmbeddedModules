@@ -14,17 +14,17 @@ static void thread_job(void *arg) {
   struct kl_thread_pool_task temp_task;
   kl_sem_give(pool->idle_sem);
   while (1) {
-    kl_msg_queue_recv(pool->task_queue, &temp_task);
+    kl_msg_queue_recv(pool->task_queue, &temp_task, KL_WAIT_FOREVER);
     kl_sem_take(pool->idle_sem);
     temp_task.process(temp_task.arg);
     kl_sem_give(pool->idle_sem);
   }
 }
 
-kl_thread_pool_t kl_thread_pool_create(uint8_t worker_num,
-                                       uint32_t worker_stack_size,
+kl_thread_pool_t kl_thread_pool_create(kl_size_t worker_num,
+                                       kl_size_t worker_stack_size,
                                        uint32_t worker_priority,
-                                       uint32_t max_task_num) {
+                                       kl_size_t max_task_num) {
   kl_thread_pool_t pool =
       (kl_thread_pool_t)kl_heap_alloc(sizeof(struct kl_thread_pool));
   if (pool == NULL) {
@@ -64,13 +64,13 @@ bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void *arg),
       .process = process,
       .arg = arg,
   };
-  if (kl_msg_queue_timed_send(pool->task_queue, &task, timeout)) {
+  if (kl_msg_queue_send(pool->task_queue, &task, timeout)) {
     return false;
   }
   return true;
 }
 
-uint16_t kl_thread_pool_pending_task(kl_thread_pool_t pool) {
+kl_size_t kl_thread_pool_pending_task(kl_thread_pool_t pool) {
   return kl_msg_queue_count(pool->task_queue) +
          (pool->worker_num - kl_sem_value(pool->idle_sem));
 }

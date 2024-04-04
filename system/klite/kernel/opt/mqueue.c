@@ -31,9 +31,9 @@
 
 #include <string.h>
 
-#include "klite_internal_list.h"
+#include "klite_list.h"
 
-kl_msg_queue_t kl_msg_queue_create(uint32_t msg_size, uint32_t queue_depth) {
+kl_msg_queue_t kl_msg_queue_create(kl_size_t msg_size, kl_size_t queue_depth) {
   kl_msg_queue_t queue;
   queue = kl_heap_alloc(sizeof(struct kl_msg_queue));
   if (queue != NULL) {
@@ -75,31 +75,7 @@ void kl_msg_queue_clear(kl_msg_queue_t queue) {
   }
 }
 
-void kl_msg_queue_send(kl_msg_queue_t queue, void *item) {
-  struct kl_msg_queue_node *node;
-  node = kl_mpool_blocked_alloc(queue->mpool);
-  node->prev = NULL;
-  node->next = NULL;
-  memcpy(node->data, item, queue->size);
-  kl_mutex_lock(queue->mutex);
-  list_append(queue, node);
-  kl_mutex_unlock(queue->mutex);
-  kl_sem_give(queue->sem);
-}
-
-void kl_msg_queue_recv(kl_msg_queue_t queue, void *item) {
-  struct kl_msg_queue_node *node;
-  kl_sem_take(queue->sem);
-  kl_mutex_lock(queue->mutex);
-  node = queue->head;
-  memcpy(item, node->data, queue->size);
-  list_remove(queue, node);
-  kl_mutex_unlock(queue->mutex);
-  kl_mpool_free(queue->mpool, node);
-}
-
-bool kl_msg_queue_timed_send(kl_msg_queue_t queue, void *item,
-                             kl_tick_t timeout) {
+bool kl_msg_queue_send(kl_msg_queue_t queue, void *item, kl_tick_t timeout) {
   struct kl_msg_queue_node *node;
   node = kl_mpool_timed_alloc(queue->mpool, timeout);
   if (node != NULL) {
@@ -114,8 +90,23 @@ bool kl_msg_queue_timed_send(kl_msg_queue_t queue, void *item,
   return false;
 }
 
-bool kl_msg_queue_timed_recv(kl_msg_queue_t queue, void *item,
-                             kl_tick_t timeout) {
+bool kl_msg_queue_send_urgent(kl_msg_queue_t queue, void *item,
+                              kl_tick_t timeout) {
+  struct kl_msg_queue_node *node;
+  node = kl_mpool_timed_alloc(queue->mpool, timeout);
+  if (node != NULL) {
+    memset(node, 0, sizeof(struct kl_msg_queue_node));
+    memcpy(node->data, item, queue->size);
+    kl_mutex_lock(queue->mutex);
+    list_prepend(queue, node);
+    kl_mutex_unlock(queue->mutex);
+    kl_sem_give(queue->sem);
+    return true;
+  }
+  return false;
+}
+
+bool kl_msg_queue_recv(kl_msg_queue_t queue, void *item, kl_tick_t timeout) {
   struct kl_msg_queue_node *node;
   if (kl_sem_timed_take(queue->sem, timeout)) {
     kl_mutex_lock(queue->mutex);
@@ -129,8 +120,8 @@ bool kl_msg_queue_timed_recv(kl_msg_queue_t queue, void *item,
   return false;
 }
 
-uint32_t kl_msg_queue_count(kl_msg_queue_t queue) {
-  uint32_t count = 0;
+kl_size_t kl_msg_queue_count(kl_msg_queue_t queue) {
+  kl_size_t count = 0;
   kl_mutex_lock(queue->mutex);
   for (struct kl_msg_queue_node *node = queue->head; node != NULL;
        node = node->next) {

@@ -44,31 +44,31 @@ void kl_barrier_delete(kl_barrier_t barrier) { kl_heap_free(barrier); }
 static bool kl_barrier_check(struct kl_barrier *barrier) {
   if (barrier->value >= barrier->target) {
     barrier->value = 0;
-    while (sched_tcb_wake_from(&barrier->list))
+    while (kl_sched_tcb_wake_from(&barrier->list))
       ;
-    sched_preempt(false);
+    kl_sched_preempt(false);
     return true;
   }
   return false;
 }
 
 void kl_barrier_set(kl_barrier_t barrier, uint32_t target) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   barrier->target = target;
   kl_barrier_check(barrier);
-  cpu_leave_critical();
+  kl_port_leave_critical();
 }
 
 uint32_t kl_barrier_get(kl_barrier_t barrier) { return barrier->value; }
 
 void kl_barrier_wait(kl_barrier_t barrier) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   barrier->value++;
   if (!kl_barrier_check(barrier)) {
-    sched_tcb_wait(sched_tcb_now, &barrier->list);
-    sched_switch();
+    kl_sched_tcb_wait(kl_sched_tcb_now, &barrier->list);
+    kl_sched_switch();
   }
-  cpu_leave_critical();
+  kl_port_leave_critical();
 }
 
 #endif

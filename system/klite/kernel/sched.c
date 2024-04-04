@@ -25,18 +25,22 @@
  * SOFTWARE.
  ******************************************************************************/
 #include "klite_internal.h"
-#include "klite_internal_list.h"
+#include "klite_list.h"
 
-struct kl_thread *sched_tcb_now;
-struct kl_thread *sched_tcb_next;
+kl_thread_t kl_sched_tcb_now;
+kl_thread_t kl_sched_tcb_next;
 static struct kl_thread_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
 static struct kl_thread_list m_list_sleep;
 static kl_tick_t m_idle_elapse;
 static kl_tick_t m_idle_timeout;
 static uint32_t m_prio_highest;
 static uint32_t m_prio_bitmap;
+static uint32_t m_susp_nesting;
+static uint8_t m_susp_pending_flags;
 
-uint32_t sched_susp_nesting = 0;
+#define SUSPEND_SWITCH_PENDING 0x01
+#define SUSPEND_PREEMPT_PENDING 0x02
+#define SUSPEND_PREEMPT_ROUND_ROBIN 0x04
 
 #define SET_8FLAG(flags, mask) ((flags) |= (mask))
 #define CLR_8FLAG(flags, mask) ((flags) &= ~((uint32_t)(mask)))
@@ -64,13 +68,13 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
   return highest;
 }
 
-static inline void remove_list_wait(struct kl_thread *tcb) {
+static inline void remove_list_wait(kl_thread_t tcb) {
   list_remove(tcb->list_wait, &tcb->node_wait);
   tcb->list_wait = NULL;
   CLR_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
 }
 
-static inline void remove_list_sched(struct kl_thread *tcb) {
+static inline void remove_list_sched(kl_thread_t tcb) {
   list_remove(tcb->list_sched, &tcb->node_sched);
   if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
   {
@@ -83,7 +87,7 @@ static inline void remove_list_sched(struct kl_thread *tcb) {
   CLR_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SLEEP);
 }
 
-void sched_tcb_remove(struct kl_thread *tcb) {
+void kl_sched_tcb_remove(kl_thread_t tcb) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -95,7 +99,7 @@ void sched_tcb_remove(struct kl_thread *tcb) {
   SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_DELETE);
 }
 
-void sched_tcb_ready(struct kl_thread *tcb) {
+void kl_sched_tcb_ready(kl_thread_t tcb) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
@@ -108,7 +112,7 @@ void sched_tcb_ready(struct kl_thread *tcb) {
   // SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_READY); // 0x00
 }
 
-void sched_tcb_suspend(struct kl_thread *tcb) {
+void kl_sched_tcb_suspend(kl_thread_t tcb) {
   struct kl_thread_list *list; /* keep list pointer for resume */
   if (tcb->list_wait) {        /* remove wait */
     list = tcb->list_wait;
@@ -126,7 +130,7 @@ void sched_tcb_suspend(struct kl_thread *tcb) {
   SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND);
 }
 
-void sched_tcb_resume(struct kl_thread *tcb) {
+void kl_sched_tcb_resume(kl_thread_t tcb) {
   if (GET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND)) {
     CLR_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND);
     if (tcb->list_wait) { /* set wait */
@@ -146,12 +150,12 @@ void sched_tcb_resume(struct kl_thread *tcb) {
       SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SLEEP);
     } else if (tcb->list_sched) { /* set ready */
       tcb->list_sched = NULL;
-      sched_tcb_ready(tcb);
+      kl_sched_tcb_ready(tcb);
     }
   }
 }
 
-void sched_tcb_reset_prio(struct kl_thread *tcb, uint32_t prio) {
+void kl_sched_tcb_reset_prio(kl_thread_t tcb, uint32_t prio) {
   uint32_t old_prio;
   old_prio = tcb->prio;
   tcb->prio = prio;
@@ -183,7 +187,11 @@ void sched_tcb_reset_prio(struct kl_thread *tcb, uint32_t prio) {
   }
 }
 
-void sched_tcb_sleep(struct kl_thread *tcb, kl_tick_t timeout) {
+void kl_sched_tcb_sleep(kl_thread_t tcb, kl_tick_t timeout) {
+  if (m_susp_nesting) {
+    /* sleep is not allowed in critical section */
+    return;
+  }
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
@@ -196,7 +204,7 @@ void sched_tcb_sleep(struct kl_thread *tcb, kl_tick_t timeout) {
   SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SLEEP);
 }
 
-void sched_tcb_wait(struct kl_thread *tcb, struct kl_thread_list *list) {
+void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list *list) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
@@ -209,38 +217,65 @@ void sched_tcb_wait(struct kl_thread *tcb, struct kl_thread_list *list) {
   SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
 }
 
-void sched_tcb_timed_wait(struct kl_thread *tcb, struct kl_thread_list *list,
-                          kl_tick_t timeout) {
-  sched_tcb_wait(tcb, list);
-  if (timeout != KLITE_WAIT_FOREVER) sched_tcb_sleep(tcb, timeout);
+void kl_sched_tcb_timed_wait(kl_thread_t tcb, struct kl_thread_list *list,
+                             kl_tick_t timeout) {
+  kl_sched_tcb_wait(tcb, list);
+  if (timeout != KL_WAIT_FOREVER) {
+    kl_sched_tcb_sleep(tcb, timeout);
+  } else {
+    tcb->timeout = KL_WAIT_FOREVER;
+  }
 }
 
-static inline void sched_tcb_wake_up(struct kl_thread *tcb) {
+static inline void kl_sched_tcb_wake_up(kl_thread_t tcb) {
   if (tcb->list_wait) {
     remove_list_wait(tcb);
   }
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
-  sched_tcb_ready(tcb);
+  kl_sched_tcb_ready(tcb);
 }
 
-struct kl_thread *sched_tcb_wake_from(struct kl_thread_list *list) {
-  struct kl_thread *tcb;
+kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list *list) {
+  kl_thread_t tcb;
   if (list->head) {
     tcb = list->head->tcb;
-    sched_tcb_wake_up(tcb);
+    kl_sched_tcb_wake_up(tcb);
     return tcb;
   }
   return NULL;
 }
 
-void sched_switch(void) {
-  if (sched_susp_nesting) { /* in suspend state */
+void kl_sched_suspend(void) {
+  if (!m_susp_nesting) { /* clear pending switch */
+    m_susp_pending_flags = 0;
+  }
+  m_susp_nesting++;
+}
+
+void kl_sched_resume(void) {
+  if (m_susp_nesting == 0) {
     return;
   }
-  struct kl_thread *tcb;
-  tcb = m_list_ready[m_prio_highest].head->tcb;
+  m_susp_nesting--;
+  if (m_susp_nesting == 0) { /* resume switch */
+    if (GET_8FLAG(m_susp_pending_flags, SUSPEND_PREEMPT_PENDING)) {
+      kl_sched_preempt(
+          GET_8FLAG(m_susp_pending_flags, SUSPEND_PREEMPT_ROUND_ROBIN));
+    } else if (GET_8FLAG(m_susp_pending_flags, SUSPEND_SWITCH_PENDING)) {
+      kl_sched_switch();
+    }
+    m_susp_pending_flags = 0;
+  }
+}
+
+void kl_sched_switch(void) {
+  if (m_susp_nesting) { /* in suspend state */
+    SET_8FLAG(m_susp_pending_flags, SUSPEND_SWITCH_PENDING);
+    return;
+  }
+  kl_thread_t tcb = m_list_ready[m_prio_highest].head->tcb;
 #if KLITE_CFG_STACK_OVERFLOW_DETECT
   uint8_t *stack = (uint8_t *)(tcb + 1);
   // check 16 bytes of stack overflow magic value
@@ -250,7 +285,7 @@ void sched_switch(void) {
       *(stack + 13) != STACK_MAGIC_VALUE ||
       *(stack + 15) != STACK_MAGIC_VALUE) {
 #if KLITE_CFG_STACKOF_BEHAVIOR_SUSPEND
-    sched_tcb_suspend(tcb);
+    kl_sched_tcb_suspend(tcb);
     tcb = m_list_ready[m_prio_highest].head->tcb;
 #elif KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
     NVIC_SystemReset();
@@ -267,33 +302,37 @@ void sched_switch(void) {
     m_prio_highest = find_highest_priority(m_prio_highest);
   }
   tcb->list_sched = NULL;
-  sched_tcb_next = tcb;
-  cpu_contex_switch();
+  kl_sched_tcb_next = tcb;
+  kl_port_context_switch();
 }
 
-void sched_preempt(bool round_robin) {
+void kl_sched_preempt(bool round_robin) {
   if (m_prio_bitmap == 0) /* ready list empty */
   {
     return;
   }
-  if (sched_tcb_now != sched_tcb_next) /* last switch was not completed */
+  if (kl_sched_tcb_now != kl_sched_tcb_next) /* last switch was not completed */
   {
     return;
   }
-  if (sched_susp_nesting) { /* in critical section */
+  if (m_susp_nesting) { /* in critical section */
+    SET_8FLAG(m_susp_pending_flags, SUSPEND_PREEMPT_PENDING);
+    if (round_robin) {
+      SET_8FLAG(m_susp_pending_flags, SUSPEND_PREEMPT_ROUND_ROBIN);
+    }
     return;
   }
-  if ((m_prio_highest + round_robin) > sched_tcb_now->prio) {
-    sched_tcb_ready(sched_tcb_now);
-    sched_switch();
+  if ((m_prio_highest + round_robin) > kl_sched_tcb_now->prio) {
+    kl_sched_tcb_ready(kl_sched_tcb_now);
+    kl_sched_switch();
   }
 }
 
-static inline void sched_timeout(void) {
-  struct kl_thread *tcb;
+static inline void kl_sched_timeout(void) {
+  kl_thread_t tcb;
   struct kl_thread_node *node;
   struct kl_thread_node *next;
-  m_idle_timeout = UINT32_MAX;
+  m_idle_timeout = KL_WAIT_FOREVER;
   for (node = m_list_sleep.head; node != NULL; node = next) {
     next = node->next;
     tcb = node->tcb;
@@ -304,37 +343,39 @@ static inline void sched_timeout(void) {
       }
     } else {
       tcb->timeout = 0;
-      sched_tcb_wake_up(tcb);
+      kl_sched_tcb_wake_up(tcb);
     }
   }
 }
 
-void sched_timing(kl_tick_t time) {
+void kl_sched_timing(kl_tick_t time) {
   m_idle_elapse += time;
-  sched_tcb_now->time += time;
+  kl_sched_tcb_now->time += time;
   if (m_idle_elapse >= m_idle_timeout) {
-    sched_timeout();
+    kl_sched_timeout();
     m_idle_elapse = 0;
   }
 }
 
-void sched_idle(void) {
+void kl_sched_idle(void) {
   if (m_prio_bitmap != 0) {
-    sched_tcb_ready(sched_tcb_now);
-    sched_switch();
+    kl_sched_tcb_ready(kl_sched_tcb_now);
+    kl_sched_switch();
   } else {
-    cpu_sys_sleep(m_idle_timeout);
+    kl_port_sys_idle(m_idle_timeout);
   }
 }
 
-void sched_init(void) {
+void kl_sched_init(void) {
   m_idle_elapse = 0;
-  m_idle_timeout = UINT32_MAX;
+  m_idle_timeout = KL_WAIT_FOREVER;
   m_prio_highest = 0;
   m_prio_bitmap = 0;
-  sched_tcb_now = NULL;
-  sched_tcb_next =
-      sched_tcb_now - 1; /* mark the last switch was not completed */
+  m_susp_nesting = 0;
+  m_susp_pending_flags = 0;
+  kl_sched_tcb_now = NULL;
+  kl_sched_tcb_next =
+      kl_sched_tcb_now - 1; /* mark the last switch was not completed */
   memset(m_list_ready, 0, sizeof(m_list_ready));
   memset(&m_list_sleep, 0, sizeof(m_list_sleep));
 }

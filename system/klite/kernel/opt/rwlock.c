@@ -77,6 +77,7 @@ void kl_rwlock_read_lock(kl_rwlock_t rwlock) {
 }
 
 void kl_rwlock_read_unlock(kl_rwlock_t rwlock) {
+  if (rwlock->rw_count <= 0) return;
   kl_mutex_lock(rwlock->mutex);
   rwlock->rw_count--;
   if (rwlock->rw_count == 0 && rwlock->write_wait_count > 0) {
@@ -97,6 +98,7 @@ void kl_rwlock_write_lock(kl_rwlock_t rwlock) {
 }
 
 void kl_rwlock_write_unlock(kl_rwlock_t rwlock) {
+  if (rwlock->rw_count >= 0) return;
   kl_mutex_lock(rwlock->mutex);
   rwlock->rw_count = 0;
   if (rwlock->read_wait_count > 0) {  // 优先唤醒读锁
@@ -105,6 +107,14 @@ void kl_rwlock_write_unlock(kl_rwlock_t rwlock) {
     kl_cond_signal(rwlock->write);
   }
   kl_mutex_unlock(rwlock->mutex);
+}
+
+void kl_rwlock_unlock(kl_rwlock_t rwlock) {
+  if (rwlock->rw_count < 0) {
+    kl_rwlock_write_unlock(rwlock);
+  } else if (rwlock->rw_count > 0) {
+    kl_rwlock_read_unlock(rwlock);
+  }
 }
 
 bool kl_rwlock_try_read_lock(kl_rwlock_t rwlock) {

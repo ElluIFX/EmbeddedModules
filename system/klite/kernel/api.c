@@ -96,6 +96,7 @@ const klite_api_t klite = {
     .rwlock.read_unlock = kl_rwlock_read_unlock,
     .rwlock.write_lock = kl_rwlock_write_lock,
     .rwlock.write_unlock = kl_rwlock_write_unlock,
+    .rwlock.unlock = kl_rwlock_unlock,
     .rwlock.try_read_lock = kl_rwlock_try_read_lock,
     .rwlock.try_write_lock = kl_rwlock_try_write_lock,
     .rwlock.timed_read_lock = kl_rwlock_timed_read_lock,
@@ -121,9 +122,8 @@ const klite_api_t klite = {
 #if KLITE_CFG_OPT_MPOOL
     .mpool.create = kl_mpool_create,
     .mpool.delete = kl_mpool_delete,
-    .mpool.alloc = kl_mpool_alloc,
     .mpool.timed_alloc = kl_mpool_timed_alloc,
-    .mpool.blocked_alloc = kl_mpool_blocked_alloc,
+    .mpool.alloc = kl_mpool_alloc,
     .mpool.free = kl_mpool_free,
 #endif
 
@@ -131,9 +131,8 @@ const klite_api_t klite = {
     .msg_queue.create = kl_msg_queue_create,
     .msg_queue.delete = kl_msg_queue_delete,
     .msg_queue.send = kl_msg_queue_send,
+    .msg_queue.send_urgent = kl_msg_queue_send_urgent,
     .msg_queue.recv = kl_msg_queue_recv,
-    .msg_queue.timed_send = kl_msg_queue_timed_send,
-    .msg_queue.timed_recv = kl_msg_queue_timed_recv,
     .msg_queue.clear = kl_msg_queue_clear,
     .msg_queue.count = kl_msg_queue_count,
 #endif
@@ -161,7 +160,7 @@ const klite_api_t klite = {
 
 #include "log.h"
 
-__weak void* kl_heap_alloc_fault_callback(uint32_t size) {
+__weak void* kl_heap_alloc_fault_callback(kl_size_t size) {
   LOG_E("klite: failed to alloc %d", size);
   return NULL;
 }

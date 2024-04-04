@@ -33,31 +33,31 @@
 volatile static uint8_t heap_lock = 0;
 static struct kl_thread_list heap_waitlist;
 static void heap_mutex_lock(void) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   if (!heap_lock) {
     heap_lock = 1;
   } else {
-    sched_tcb_wait(sched_tcb_now, &heap_waitlist);
-    sched_switch();
+    kl_sched_tcb_wait(kl_sched_tcb_now, &heap_waitlist);
+    kl_sched_switch();
   }
-  cpu_leave_critical();
+  kl_port_leave_critical();
 }
 
 static void heap_mutex_unlock(void) {
-  cpu_enter_critical();
-  if (sched_tcb_wake_from(&heap_waitlist)) {
-    sched_preempt(false);
+  kl_port_enter_critical();
+  if (kl_sched_tcb_wake_from(&heap_waitlist)) {
+    kl_sched_preempt(false);
   } else {
     heap_lock = 0;
   }
-  cpu_leave_critical();
+  kl_port_leave_critical();
 }
 
-void kernel_heap_init(void *addr, uint32_t size) {
+void kl_heap_init(void *addr, kl_size_t size) {
   heap4_init((uint8_t *)addr, size);
 }
 
-void *kl_heap_alloc(uint32_t size) {
+void *kl_heap_alloc(kl_size_t size) {
   heap_mutex_lock();
   void *mem = heap4_alloc(size);
   if (!mem) mem = kl_heap_alloc_fault_callback(size);
@@ -71,7 +71,7 @@ void kl_heap_free(void *mem) {
   heap_mutex_unlock();
 }
 
-void *kl_heap_realloc(void *mem, uint32_t size) {
+void *kl_heap_realloc(void *mem, kl_size_t size) {
   heap_mutex_lock();
   void *new_mem = heap4_realloc(mem, size);
   if (!new_mem) {
@@ -85,7 +85,7 @@ void *kl_heap_realloc(void *mem, uint32_t size) {
   return new_mem;
 }
 
-void kl_heap_info(uint32_t *used, uint32_t *free) {
+void kl_heap_info(kl_size_t *used, kl_size_t *free) {
   heap_mutex_lock();
   *free = heap4_get_free_size();
   *used = heap4_get_total_size() - *free;

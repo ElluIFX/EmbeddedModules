@@ -9,11 +9,13 @@
 
 #if KLITE_CFG_64BIT_TICK
 typedef uint64_t kl_tick_t;
-#define KLITE_WAIT_FOREVER UINT64_MAX
+#define KL_WAIT_FOREVER UINT64_MAX
 #else
 typedef uint32_t kl_tick_t;
-#define KLITE_WAIT_FOREVER UINT32_MAX
+#define KL_WAIT_FOREVER UINT32_MAX
 #endif
+
+typedef size_t kl_size_t;
 
 #define KL_THREAD_FLAGS_READY 0x00
 #define KL_THREAD_FLAGS_SLEEP 0x01
@@ -32,7 +34,7 @@ struct kl_thread_list {
 };
 struct kl_thread {
   void *stack;                        // 栈基地址
-  uint32_t stack_size;                // 栈大小
+  kl_size_t stack_size;               // 栈大小
   void (*entry)(void *);              // 线程入口
   uint32_t prio;                      // 线程优先级
   kl_tick_t time;                     // 线程运行时间
@@ -116,9 +118,9 @@ typedef struct kl_event_flags *kl_event_flags_t;
 struct kl_mailbox {
   struct {
     uint8_t *buf;
-    uint32_t size;
-    uint32_t wp;
-    uint32_t rp;
+    kl_size_t size;
+    kl_size_t wp;
+    kl_size_t rp;
   } fifo;
   kl_mutex_t mutex;
   kl_cond_t write;  // 新可写空间
@@ -132,10 +134,10 @@ struct kl_mpool {
   kl_mutex_t mutex;
   kl_cond_t wait;
   uint8_t **block_list;
-  uint32_t block_count;
-  uint32_t free_count;
-  uint32_t free_head;
-  uint32_t free_tail;
+  kl_size_t block_count;
+  kl_size_t free_count;
+  kl_size_t free_head;
+  kl_size_t free_tail;
 };
 typedef struct kl_mpool *kl_mpool_t;
 #endif
@@ -152,7 +154,7 @@ struct kl_msg_queue {
   kl_sem_t sem;
   kl_mutex_t mutex;
   kl_mpool_t mpool;
-  uint32_t size;
+  kl_size_t size;
 };
 typedef struct kl_msg_queue *kl_msg_queue_t;
 #endif
@@ -163,8 +165,8 @@ struct kl_soft_timer {
   struct kl_soft_timer *next;
   void (*handler)(void *);
   void *arg;
-  uint32_t reload;
-  uint32_t timeout;
+  kl_tick_t reload;
+  kl_tick_t timeout;
 };
 typedef struct kl_soft_timer *kl_soft_timer_t;
 #endif
@@ -174,7 +176,7 @@ struct kl_thread_pool {
   kl_msg_queue_t task_queue;
   kl_thread_t *thread_list;
   kl_sem_t idle_sem;
-  uint8_t worker_num;
+  kl_size_t worker_num;
 };
 typedef struct kl_thread_pool *kl_thread_pool_t;
 #endif

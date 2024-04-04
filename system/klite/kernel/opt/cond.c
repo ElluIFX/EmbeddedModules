@@ -40,41 +40,43 @@ kl_cond_t kl_cond_create(void) {
 void kl_cond_delete(kl_cond_t cond) { kl_heap_free(cond); }
 
 void kl_cond_signal(kl_cond_t cond) {
-  cpu_enter_critical();
-  if (sched_tcb_wake_from((struct kl_thread_list *)cond)) sched_preempt(false);
-  cpu_leave_critical();
+  kl_port_enter_critical();
+  if (kl_sched_tcb_wake_from((struct kl_thread_list *)cond))
+    kl_sched_preempt(false);
+  kl_port_leave_critical();
 }
 
 void kl_cond_broadcast(kl_cond_t cond) {
   bool preempt = false;
-  cpu_enter_critical();
-  while (sched_tcb_wake_from((struct kl_thread_list *)cond)) preempt = true;
-  if (preempt) sched_preempt(false);
-  cpu_leave_critical();
+  kl_port_enter_critical();
+  while (kl_sched_tcb_wake_from((struct kl_thread_list *)cond)) preempt = true;
+  if (preempt) kl_sched_preempt(false);
+  kl_port_leave_critical();
 }
 
 void kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex) {
-  cpu_enter_critical();
-  sched_tcb_wait(sched_tcb_now, (struct kl_thread_list *)cond);
+  kl_port_enter_critical();
+  kl_sched_tcb_wait(kl_sched_tcb_now, (struct kl_thread_list *)cond);
   if (mutex) kl_mutex_unlock(mutex);
-  sched_switch();
-  cpu_leave_critical();
+  kl_sched_switch();
+  kl_port_leave_critical();
   if (mutex) kl_mutex_lock(mutex);
 }
 
 kl_tick_t kl_cond_timed_wait(kl_cond_t cond, kl_mutex_t mutex,
                              kl_tick_t timeout) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   if (timeout == 0) {
-    cpu_leave_critical();
+    kl_port_leave_critical();
     return false;
   }
-  sched_tcb_timed_wait(sched_tcb_now, (struct kl_thread_list *)cond, timeout);
+  kl_sched_tcb_timed_wait(kl_sched_tcb_now, (struct kl_thread_list *)cond,
+                          timeout);
   if (mutex) kl_mutex_unlock(mutex);
-  sched_switch();
-  cpu_leave_critical();
+  kl_sched_switch();
+  kl_port_leave_critical();
   if (mutex) kl_mutex_lock(mutex);
-  return sched_tcb_now->timeout;
+  return kl_sched_tcb_now->timeout;
 }
 
 #endif

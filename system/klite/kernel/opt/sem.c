@@ -41,60 +41,60 @@ kl_sem_t kl_sem_create(uint32_t value) {
 void kl_sem_delete(kl_sem_t sem) { kl_heap_free(sem); }
 
 void kl_sem_give(kl_sem_t sem) {
-  cpu_enter_critical();
-  if (sched_tcb_wake_from(&sem->list)) {
-    sched_preempt(false);
-    cpu_leave_critical();
+  kl_port_enter_critical();
+  if (kl_sched_tcb_wake_from(&sem->list)) {
+    kl_sched_preempt(false);
+    kl_port_leave_critical();
     return;
   }
   sem->value++;
-  cpu_leave_critical();
+  kl_port_leave_critical();
 }
 
 void kl_sem_take(kl_sem_t sem) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   if (sem->value > 0) {
     sem->value--;
-    cpu_leave_critical();
+    kl_port_leave_critical();
     return;
   }
-  sched_tcb_wait(sched_tcb_now, &sem->list);
-  sched_switch();
-  cpu_leave_critical();
+  kl_sched_tcb_wait(kl_sched_tcb_now, &sem->list);
+  kl_sched_switch();
+  kl_port_leave_critical();
 }
 
 void kl_sem_reset(kl_sem_t sem, uint32_t value) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   sem->value = value;
-  cpu_leave_critical();
+  kl_port_leave_critical();
 }
 
 bool kl_sem_try_take(kl_sem_t sem) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   if (sem->value > 0) {
     sem->value--;
-    cpu_leave_critical();
+    kl_port_leave_critical();
     return true;
   }
-  cpu_leave_critical();
+  kl_port_leave_critical();
   return false;
 }
 
 kl_tick_t kl_sem_timed_take(kl_sem_t sem, kl_tick_t timeout) {
-  cpu_enter_critical();
+  kl_port_enter_critical();
   if (sem->value > 0) {
     sem->value--;
-    cpu_leave_critical();
+    kl_port_leave_critical();
     return true;
   }
   if (timeout == 0) {
-    cpu_leave_critical();
+    kl_port_leave_critical();
     return false;
   }
-  sched_tcb_timed_wait(sched_tcb_now, &sem->list, timeout);
-  sched_switch();
-  cpu_leave_critical();
-  return sched_tcb_now->timeout;
+  kl_sched_tcb_timed_wait(kl_sched_tcb_now, &sem->list, timeout);
+  kl_sched_switch();
+  kl_port_leave_critical();
+  return kl_sched_tcb_now->timeout;
 }
 
 uint32_t kl_sem_value(kl_sem_t sem) { return sem->value; }
