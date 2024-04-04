@@ -111,30 +111,20 @@ typedef uint64_t m_time_t;
 #define m_delay_s(x) delay_ms((x) * 1000)
 #elif MOD_CFG_DELAY_MATHOD_KLITE  // klite
 #include "klite.h"
-#define m_delay_us(x) kl_thread_sleep((x) / (1000000U / KLITE_CFG_FREQ))
-#if KLITE_CFG_FREQ >= 1000
-#define m_delay_ms(x) kl_thread_sleep((x) * (KLITE_CFG_FREQ / 1000U))
-#else
-#define m_delay_ms(x) kl_thread_sleep((x) / (1000U / KLITE_CFG_FREQ))
-#endif
+#define m_delay_us(x) kl_thread_sleep(kl_us_to_ticks(x))
+#define m_delay_ms(x) kl_thread_sleep(kl_ms_to_ticks(x))
 #define m_delay_s(x) kl_thread_sleep((x) * KLITE_CFG_FREQ)
 #elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"                // period = 1ms
 #include "task.h"
-#define m_delay_us(x) vTaskDelay((x) / 1000)
-#define m_delay_ms(x) vTaskDelay((x))
-#define m_delay_s(x) vTaskDelay((x) * 1000)
+#define m_delay_us(x) vTaskDelay((x * pdMS_TO_TICKS(1)) / 1000)
+#define m_delay_ms(x) vTaskDelay(pdMS_TO_TICKS(x))
+#define m_delay_s(x) vTaskDelay(pdMS_TO_TICKS(x * 1000))
 #elif MOD_CFG_DELAY_MATHOD_RTT  // rtthread
 #include "rtthread.h"           // period = 1ms
 #define m_delay_us(x) \
-  rt_thread_delay((rt_tick_t)(x) / (1000000 / RT_TICK_PER_SECOND))
-#if RT_TICK_PER_SECOND >= 1000
-#define m_delay_ms(x) \
-  rt_thread_delay((rt_tick_t)(x) * (RT_TICK_PER_SECOND / 1000))
-#else
-#define m_delay_ms(x) \
-  rt_thread_delay((rt_tick_t)(x) / (1000 / RT_TICK_PER_SECOND))
-#endif
+  rt_thread_delay((rt_tick_t)(x) / (1000000UL / RT_TICK_PER_SECOND))
+#define m_delay_ms(x) rt_thread_delay(rt_tick_from_millisecond(x))
 #define m_delay_s(x) rt_thread_delay((rt_tick_t)(x) * RT_TICK_PER_SECOND)
 #else
 #error "MOD_CFG_DELAY_MATHOD invalid"

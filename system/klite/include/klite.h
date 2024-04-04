@@ -1,11 +1,12 @@
 #ifndef __KLITE_H
 #define __KLITE_H
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "klite_cfg.h"
-#include "klite_def.h"
+#include "kl_cfg.h"
+#include "kl_def.h"
 
 /******************************************************************************
  * kernel
@@ -85,7 +86,7 @@ uint64_t kl_kernel_tick64(void);
  * @retval 返回ms对应的Tick数
  */
 static inline kl_tick_t kl_ms_to_ticks(kl_tick_t ms) {
-  return ((uint64_t)ms * KLITE_CFG_FREQ) / 1000;
+  return ((uint64_t)ms * KLITE_CFG_FREQ) / 1000UL;
 }
 
 /**
@@ -94,7 +95,7 @@ static inline kl_tick_t kl_ms_to_ticks(kl_tick_t ms) {
  * @retval 返回Tick对应的毫秒数
  */
 static inline kl_tick_t kl_ticks_to_ms(kl_tick_t tick) {
-  return ((uint64_t)tick * 1000) / KLITE_CFG_FREQ;
+  return ((uint64_t)tick * 1000UL) / KLITE_CFG_FREQ;
 }
 
 /**
@@ -103,7 +104,7 @@ static inline kl_tick_t kl_ticks_to_ms(kl_tick_t tick) {
  * @retval 返回us对应的Tick数
  */
 static inline kl_tick_t kl_us_to_ticks(kl_tick_t us) {
-  return ((uint64_t)us * KLITE_CFG_FREQ) / 1000000;
+  return ((uint64_t)us * KLITE_CFG_FREQ) / 1000000UL;
 }
 
 /**
@@ -112,7 +113,7 @@ static inline kl_tick_t kl_us_to_ticks(kl_tick_t us) {
  * @retval 返回Tick对应的微秒数
  */
 static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
-  return (uint64_t)tick * (1000000 / KLITE_CFG_FREQ);
+  return (uint64_t)tick * (1000000UL / KLITE_CFG_FREQ);
 }
 
 /******************************************************************************
@@ -965,7 +966,7 @@ kl_size_t kl_thread_pool_pending_task(kl_thread_pool_t pool);
 
 #if KLITE_CFG_INTERFACE_ENABLE
 
-#include "klite_api.h"
+#include "kl_api.h"
 
 #endif  // KLITE_CFG_OPT_INTERFACE
 

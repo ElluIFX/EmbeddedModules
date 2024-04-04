@@ -1,10 +1,10 @@
-#include "klite_internal.h"
+#include "kl_priv.h"
 
 #if KLITE_CFG_OPT_MSG_QUEUE
 
 #include <string.h>
 
-#include "klite_list.h"
+#include "kl_list.h"
 
 kl_msg_queue_t kl_msg_queue_create(kl_size_t msg_size, kl_size_t queue_depth) {
   kl_msg_queue_t queue;

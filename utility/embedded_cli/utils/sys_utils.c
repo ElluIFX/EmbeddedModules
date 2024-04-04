@@ -27,7 +27,7 @@
 #define SHOWRTTHREAD 1
 #endif
 #if MOD_CFG_USE_OS_KLITE
-#include "klite_internal.h"
+#include "kl_priv.h"
 #define SHOWKLITE 1
 #endif
 
@@ -80,14 +80,16 @@ static void list_klite(void) {
     TT_GridLine_AddItem(
         line, TT_FmtStr(al, f1, f2, "%d", kl_thread_get_priority(thread)));
     TT_GridLine_AddItem(
-        line,
-        TT_Str(al, f1, f2,
-               (flags & KL_THREAD_FLAGS_SUSPEND)
-                   ? "SUSPEND"
-                   : ((flags & KL_THREAD_FLAGS_WAIT)
-                          ? "WAIT"
-                          : ((flags & KL_THREAD_FLAGS_SLEEP) ? "SLEEP"
-                                                             : "READY"))));
+        line, TT_Str(al, f1, f2,
+                     (flags & KL_THREAD_FLAGS_SUSPEND)
+                         ? "SUSPEND"
+                         : ((flags & KL_THREAD_FLAGS_WAIT)
+                                ? "WAIT"
+                                : ((flags & KL_THREAD_FLAGS_SLEEP)
+                                       ? "SLEEP"
+                                       : ((flags & KL_THREAD_FLAGS_READY)
+                                              ? "READY"
+                                              : "RUNNING")))));
     if (kl_thread_get_priority(thread) == 0)
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "[Idle]"));
     else

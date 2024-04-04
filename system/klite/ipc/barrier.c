@@ -1,4 +1,4 @@
-#include "klite_internal.h"
+#include "kl_priv.h"
 
 #if KLITE_CFG_OPT_BARRIER
 

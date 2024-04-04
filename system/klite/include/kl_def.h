@@ -1,11 +1,11 @@
-#ifndef KLITE_DEF_H
-#define KLITE_DEF_H
+#ifndef __KLITE_DEF_H
+#define __KLITE_DEF_H
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "klite_cfg.h"
+#include "kl_cfg.h"
 
 #if KLITE_CFG_64BIT_TICK
 typedef uint64_t kl_tick_t;
@@ -15,13 +15,12 @@ typedef uint32_t kl_tick_t;
 #define KL_WAIT_FOREVER UINT32_MAX
 #endif
 
-typedef size_t kl_size_t;
+typedef uint32_t kl_size_t;
 
-#define KL_THREAD_FLAGS_READY 0x00
-#define KL_THREAD_FLAGS_SLEEP 0x01
-#define KL_THREAD_FLAGS_WAIT 0x02
-#define KL_THREAD_FLAGS_SUSPEND 0x04
-#define KL_THREAD_FLAGS_DELETE 0x08
+#define KL_THREAD_FLAGS_READY 0x01
+#define KL_THREAD_FLAGS_SLEEP 0x02
+#define KL_THREAD_FLAGS_WAIT 0x04
+#define KL_THREAD_FLAGS_SUSPEND 0x08
 
 struct kl_thread_node {
   struct kl_thread_node *prev;

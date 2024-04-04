@@ -1,4 +1,4 @@
-#include "klite_internal.h"
+#include "kl_priv.h"
 #include "main.h"  // or manual specify cmsis header
 
 #define NVIC_INT_CTRL (*((volatile uint32_t *)0xE000ED04))

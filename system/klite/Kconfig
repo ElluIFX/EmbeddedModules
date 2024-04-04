@@ -32,8 +32,8 @@ choice
     config KLITE_CFG_HEAP_USE_LWMEM
         bool "LwMEM"
 
-    config KLITE_CFG_HEAP_USE_BARE
-        bool "Simple Heap (Bare)"
+    config KLITE_CFG_HEAP_USE_BASIC
+        bool "Basic"
 endchoice
 
 config KLITE_CFG_DEFAULT_STACK_SIZE

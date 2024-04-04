@@ -1,31 +1,11 @@
-#include "klite_internal.h"
+#include "kl_priv.h"
+
 #if KLITE_CFG_HEAP_USE_HEAP4
 #include <string.h>
 
 #include "heap4.h"
 
-volatile static uint8_t heap_lock = 0;
-static struct kl_thread_list heap_waitlist;
-static void heap_mutex_lock(void) {
-  kl_port_enter_critical();
-  if (!heap_lock) {
-    heap_lock = 1;
-  } else {
-    kl_sched_tcb_wait(kl_sched_tcb_now, &heap_waitlist);
-    kl_sched_switch();
-  }
-  kl_port_leave_critical();
-}
-
-static void heap_mutex_unlock(void) {
-  kl_port_enter_critical();
-  if (kl_sched_tcb_wake_from(&heap_waitlist)) {
-    kl_sched_preempt(false);
-  } else {
-    heap_lock = 0;
-  }
-  kl_port_leave_critical();
-}
+__KL_HEAP_MUTEX_IMPL__
 
 void kl_heap_init(void *addr, kl_size_t size) {
   heap4_init((uint8_t *)addr, size);

@@ -1,21 +1,30 @@
-#ifndef __KLITE_INTERNAL_H
-#define __KLITE_INTERNAL_H
+#ifndef __KLITE_PRIVATE_H
+#define __KLITE_PRIVATE_H
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "kl_cfg.h"
+#include "kl_def.h"
 #include "klite.h"
-#include "klite_cfg.h"
-#include "klite_def.h"
 
 /* Compatible with armcc5 armcc6 gcc icc */
 #if defined(__GNUC__) || (__ARMCC_VERSION >= 6100100)
 #define __weak __attribute__((weak))
 #endif
 
-#define STACK_MAGIC_VALUE 0xAC
+#define KL_STACK_MAGIC_VALUE 0xDEADBEEF
+
+#define KL_THREAD_ID_OFFSET 8
+#define KL_THREAD_FLAGS_MASK 0xFF
+
+#define KL_SET_FLAG(flags, mask) ((flags) |= (mask))
+#define KL_GET_FLAG(flags, mask) ((flags) & (mask))
+#define KL_CLR_FLAG8(flags, mask) ((flags) &= ~((uint8_t)(mask)))
+#define KL_CLR_FLAG16(flags, mask) ((flags) &= ~((uint16_t)(mask)))
+#define KL_CLR_FLAG32(flags, mask) ((flags) &= ~((uint32_t)(mask)))
 
 // 当前线程控制块
 extern kl_thread_t kl_sched_tcb_now;
@@ -89,7 +98,7 @@ void kl_sched_switch(void);
 
 // 尝试抢占线程, 并将当前线程加入就绪队列
 // @param round_robin: 允许同优先级时间片轮转
-void kl_sched_preempt(bool round_robin);
+void kl_sched_preempt(const bool round_robin);
 
 // 重置线程优先级
 // @param tcb: 线程控制块
@@ -133,5 +142,29 @@ void kl_sched_tcb_timed_wait(kl_thread_t tcb, struct kl_thread_list *list,
 // @param list: 等待队列
 // @return: 被唤醒的线程控制块, NULL表示无等待线程
 kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list *list);
+
+// Heap使用的独立互斥锁实现
+#define __KL_HEAP_MUTEX_IMPL__                             \
+  volatile static uint8_t heap_lock = 0;                   \
+  static struct kl_thread_list heap_waitlist;              \
+  static void heap_mutex_lock(void) {                      \
+    kl_port_enter_critical();                              \
+    if (!heap_lock) {                                      \
+      heap_lock = 1;                                       \
+    } else {                                               \
+      kl_sched_tcb_wait(kl_sched_tcb_now, &heap_waitlist); \
+      kl_sched_switch();                                   \
+    }                                                      \
+    kl_port_leave_critical();                              \
+  }                                                        \
+  static void heap_mutex_unlock(void) {                    \
+    kl_port_enter_critical();                              \
+    if (kl_sched_tcb_wake_from(&heap_waitlist)) {          \
+      kl_sched_preempt(false);                             \
+    } else {                                               \
+      heap_lock = 0;                                       \
+    }                                                      \
+    kl_port_leave_critical();                              \
+  }
 
 #endif

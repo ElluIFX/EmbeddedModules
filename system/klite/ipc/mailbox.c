@@ -1,8 +1,8 @@
-#include "klite_internal.h"
+#include "kl_priv.h"
 
 #if KLITE_CFG_OPT_MAILBOX
 
-#include "klite_fifo.h"
+#include "kl_fifo.h"
 
 kl_mailbox_t kl_mailbox_create(kl_size_t size) {
   struct kl_mailbox *mailbox;

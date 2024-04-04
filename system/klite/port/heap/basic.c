@@ -1,7 +1,9 @@
-#include "klite_internal.h"
+#include "kl_priv.h"
 
-#if KLITE_CFG_HEAP_USE_BARE
+#if KLITE_CFG_HEAP_USE_BASIC
 #include <string.h>
+
+__KL_HEAP_MUTEX_IMPL__
 
 #define MEM_ALIGN_BYTE (8)
 #define MEM_ALIGN_MASK (MEM_ALIGN_BYTE - 1)
@@ -15,8 +17,6 @@ struct heap_node {
 };
 
 struct heap {
-  struct kl_thread_list list;
-  kl_size_t lock;
   kl_size_t size;
   struct heap_node *head;
   struct heap_node *free;
@@ -46,27 +46,6 @@ static void heap_node_init(kl_size_t start, kl_size_t end) {
   node->used = sizeof(struct heap_node);
   node->prev = heap->head;
   node->next = NULL;
-}
-
-static void heap_mutex_lock(void) {
-  kl_port_enter_critical();
-  if (heap->lock == 0) {
-    heap->lock = 1;
-  } else {
-    kl_sched_tcb_wait(kl_sched_tcb_now, &heap->list);
-    kl_sched_switch();
-  }
-  kl_port_leave_critical();
-}
-
-static void heap_mutex_unlock(void) {
-  kl_port_enter_critical();
-  if (kl_sched_tcb_wake_from(&heap->list)) {
-    kl_sched_preempt(false);
-  } else {
-    heap->lock = 0;
-  }
-  kl_port_leave_critical();
 }
 
 void kl_heap_init(void *addr, kl_size_t size) {

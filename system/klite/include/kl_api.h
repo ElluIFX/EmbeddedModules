@@ -1,12 +1,12 @@
-#ifndef KLITE_API_H
-#define KLITE_API_H
+#ifndef __KLITE_API_H
+#define __KLITE_API_H
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "klite_cfg.h"
-#include "klite_def.h"
+#include "kl_cfg.h"
+#include "kl_def.h"
 
 #if KLITE_CFG_INTERFACE_ENABLE
 

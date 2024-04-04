@@ -1,5 +1,5 @@
-#include "klite_api.h"
-#include "klite_internal.h"
+#include "kl_api.h"
+#include "kl_priv.h"
 
 #if KLITE_CFG_INTERFACE_ENABLE
 

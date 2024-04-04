@@ -1,15 +1,15 @@
-#ifndef KLITE_CFG_H
-#define KLITE_CFG_H
+#ifndef __KLITE_CFG_H
+#define __KLITE_CFG_H
 
 #include "modules.h"
 
 #if !KCONFIG_AVAILABLE
 
-#define KLITE_CFG_FREQ 1000            // 内核时基频率(赫兹)
-#define KLITE_CFG_MAX_PRIO 7           // 最大优先级
-#define KLITE_CFG_HEAP_USE_BARE 0      // 使用裸机基础内存管理器
-#define KLITE_CFG_HEAP_USE_LWMEM 0     // 使用lwmem内存管理器
-#define KLITE_CFG_HEAP_USE_HEAP4 1     // 使用heap4内存管理器
+#define KLITE_CFG_FREQ 1000                   // 内核时基频率(赫兹)
+#define KLITE_CFG_MAX_PRIO 7                  // 最大优先级
+#define KLITE_CFG_HEAP_USE_BASIC 0            // 使用基本内存管理器
+#define KLITE_CFG_HEAP_USE_LWMEM 0            // 使用lwmem内存管理器
+#define KLITE_CFG_HEAP_USE_HEAP4 1            // 使用heap4内存管理器
 #define KLITE_CFG_IDLE_THREAD_STACK_SIZE 256  // 空闲线程栈大小
 #define KLITE_CFG_DEFAULT_STACK_SIZE 1024     // 默认线程栈大小
 #define KLITE_CFG_WAIT_LIST_ORDER_BY_PRIOR 1  // 等待队列按优先级排序
