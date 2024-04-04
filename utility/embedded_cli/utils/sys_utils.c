@@ -157,8 +157,8 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   lwmem_stats_t stats;
   lwmem_get_stats(&stats);
 #elif SHOWHEAP4
-  HeapStats_t stats;
-  vPortGetHeapStats(&stats);
+  Heap4Stats_t stats;
+  heap4_get_stats(&stats);
 #elif SHOWRTTHREAD
   rt_uint32_t total = 0;
   rt_uint32_t used = 0;
@@ -270,20 +270,20 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   kv = TT_AddKVPair(tt, 0);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Total"),
-      TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)", xPortGetTotalHeapSize(),
-                (float)xPortGetTotalHeapSize() / 1024),
+      TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)", heap4_get_total_size(),
+                (float)heap4_get_total_size() / 1024),
       sep);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Avail"),
                     TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)",
                               stats.xAvailableHeapSpaceInBytes,
                               (float)(stats.xAvailableHeapSpaceInBytes) /
-                                  (float)xPortGetTotalHeapSize() * 100),
+                                  (float)heap4_get_total_size() * 100),
                     sep);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Min Avail"),
                     TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)",
                               stats.xMinimumEverFreeBytesRemaining,
                               (float)(stats.xMinimumEverFreeBytesRemaining) /
-                                  (float)xPortGetTotalHeapSize() * 100),
+                                  (float)heap4_get_total_size() * 100),
                     sep);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Free Block"),

@@ -27,14 +27,6 @@
  *
  */
 
-/*
- * A sample implementation of pvPortMalloc() and vPortFree() that combines
- * (coalescences) adjacent memory blocks as they are freed, and in so doing
- * limits memory fragmentation.
- *
- * See heap_1.c, heap_2.c and heap_3.c for alternative implementations, and the
- * memory management pages of https://www.FreeRTOS.org for more information.
- */
 #include "heap4.h"
 
 #include <stdlib.h>
@@ -151,7 +143,7 @@ static size_t xNumberOfSuccessfulFrees = 0;
 
 /*-----------------------------------------------------------*/
 
-void* pvPortMalloc(size_t xWantedSize) {
+void* heap4_alloc(size_t xWantedSize) {
   if (ucHeap == NULL || xWantedSize == 0) return NULL;
   BlockLink_t* pxBlock;
   BlockLink_t* pxPreviousBlock;
@@ -253,7 +245,7 @@ void* pvPortMalloc(size_t xWantedSize) {
 }
 /*-----------------------------------------------------------*/
 
-void vPortFree(void* pv) {
+void heap4_free(void* pv) {
   if (pv == NULL || ucHeap == NULL) return;
   uint8_t* puc = (uint8_t*)pv;
   BlockLink_t* pxLink;
@@ -295,10 +287,10 @@ void vPortFree(void* pv) {
   }
 }
 
-void* pvPortRealloc(void* pv, size_t xWantedSize) {
+void* heap4_realloc(void* pv, size_t xWantedSize) {
   if (pv == NULL || ucHeap == NULL) return NULL;
   if (xWantedSize == 0) {
-    vPortFree(pv);
+    heap4_free(pv);
     return NULL;
   }
   BlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
@@ -320,7 +312,7 @@ void* pvPortRealloc(void* pv, size_t xWantedSize) {
       }
       if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining)) {
         if (pv == NULL) {
-          pvReturn = pvPortMalloc(xWantedSize);
+          pvReturn = heap4_alloc(xWantedSize);
           (void)xTaskResumeAll();
           return pvReturn;
         }
@@ -361,14 +353,14 @@ void* pvPortRealloc(void* pv, size_t xWantedSize) {
             xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
           }
         } else {
-          pvReturn = pvPortMalloc(
+          pvReturn = heap4_alloc(
               (((pxBlockold->xBlockSize) & (~heapBLOCK_ALLOCATED_BITMASK)) -
                xHeapStructSize) +
               xWantedSize);  // 下一块不可用，重新申请一块地址空间，大小为原申请空间加上现在申请空间
           memcpy((uint8_t*)pvReturn, pv,
                  (pxBlockold->xBlockSize &
                   (~heapBLOCK_ALLOCATED_BITMASK) - xHeapStructSize));
-          vPortFree(pv);  // 释放源地址空间
+          heap4_free(pv);  // 释放源地址空间
         }
       }
     }
@@ -378,11 +370,11 @@ void* pvPortRealloc(void* pv, size_t xWantedSize) {
   return pvReturn;
 }
 
-void* pvPortCalloc(size_t xNum, size_t xSize) {
+void* heap4_calloc(size_t xNum, size_t xSize) {
   void* pv = NULL;
 
   if (heapMULTIPLY_WILL_OVERFLOW(xNum, xSize) == 0) {
-    pv = pvPortMalloc(xNum * xSize);
+    pv = heap4_alloc(xNum * xSize);
 
     if (pv != NULL) {
       (void)memset(pv, 0, xNum * xSize);
@@ -393,15 +385,15 @@ void* pvPortCalloc(size_t xNum, size_t xSize) {
 }
 /*-----------------------------------------------------------*/
 
-size_t xPortGetFreeHeapSize(void) { return xFreeBytesRemaining; }
+size_t heap4_get_free_size(void) { return xFreeBytesRemaining; }
 
 /*-----------------------------------------------------------*/
 
-size_t xPortGetTotalHeapSize(void) { return ucHeapSize; }
+size_t heap4_get_total_size(void) { return ucHeapSize; }
 
 /*-----------------------------------------------------------*/
 
-size_t xPortGetMinimumEverFreeHeapSize(void) {
+size_t heap4_get_minimum_free_size(void) {
   return xMinimumEverFreeBytesRemaining;
 }
 /*-----------------------------------------------------------*/
@@ -411,7 +403,7 @@ void vPortInitialiseBlocks(void) {
 }
 /*-----------------------------------------------------------*/
 
-void prvHeapInit(uint8_t* heap, size_t heap_size) {
+void heap4_init(uint8_t* heap, size_t heap_size) {
   taskENTER_CRITICAL();
 
   ucHeap = heap;
@@ -510,7 +502,7 @@ static void prvInsertBlockIntoFreeList(BlockLink_t* pxBlockToInsert) /*  */
 }
 /*-----------------------------------------------------------*/
 
-void vPortGetHeapStats(HeapStats_t* pxHeapStats) {
+void heap4_get_stats(Heap4Stats_t* pxHeapStats) {
   BlockLink_t* pxBlock;
   size_t xBlocks = 0, xMaxSize = 0,
          xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of

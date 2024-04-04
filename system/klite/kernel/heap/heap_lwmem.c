@@ -33,7 +33,7 @@
 
 volatile static uint8_t heap_lock = 0;
 static struct kl_thread_list heap_waitlist;
-static void heap_kl_mutex_lock(void) {
+static void heap_mutex_lock(void) {
   cpu_enter_critical();
   if (heap_lock == 0) {
     heap_lock = 1;
@@ -44,7 +44,7 @@ static void heap_kl_mutex_lock(void) {
   cpu_leave_critical();
 }
 
-static void heap_kl_mutex_unlock(void) {
+static void heap_mutex_unlock(void) {
   cpu_enter_critical();
   if (sched_tcb_wake_from(&heap_waitlist)) {
     sched_preempt(false);
@@ -54,34 +54,33 @@ static void heap_kl_mutex_unlock(void) {
   cpu_leave_critical();
 }
 
-static lwmem_region_t regions[] = {
-    /* Set start address and size of each region */
-    {NULL, 0},
-    {NULL, 0},
-};
-
-void kl_heap_init(void *addr, uint32_t size) {
+void kernel_heap_init(void *addr, uint32_t size) {
+  static lwmem_region_t regions[] = {
+      /* Set start address and size of each region */
+      {NULL, 0},
+      {NULL, 0},
+  };
   regions[0].start_addr = addr;
   regions[0].size = size;
   lwmem_assignmem(regions);
 }
 
 void *kl_heap_alloc(uint32_t size) {
-  heap_kl_mutex_lock();
+  heap_mutex_lock();
   void *mem = lwmem_malloc(size);
   if (!mem) mem = kl_heap_alloc_fault_callback(size);
-  heap_kl_mutex_unlock();
+  heap_mutex_unlock();
   return mem;
 }
 
 void kl_heap_free(void *mem) {
-  heap_kl_mutex_lock();
+  heap_mutex_lock();
   lwmem_free(mem);
-  heap_kl_mutex_unlock();
+  heap_mutex_unlock();
 }
 
 void *kl_heap_realloc(void *mem, uint32_t size) {
-  heap_kl_mutex_lock();
+  heap_mutex_lock();
   void *new_mem = lwmem_realloc(mem, size);
   if (!new_mem) {
     new_mem = kl_heap_alloc_fault_callback(size);
@@ -90,7 +89,7 @@ void *kl_heap_realloc(void *mem, uint32_t size) {
       lwmem_free(mem);
     }
   }
-  heap_kl_mutex_unlock();
+  heap_mutex_unlock();
   return new_mem;
 }
 lwmem_stats_t stats;

@@ -74,7 +74,7 @@ static void heap_node_init(uint32_t start, uint32_t end) {
   node->next = NULL;
 }
 
-static void heap_kl_mutex_lock(void) {
+static void heap_mutex_lock(void) {
   cpu_enter_critical();
   if (heap->lock == 0) {
     heap->lock = 1;
@@ -85,7 +85,7 @@ static void heap_kl_mutex_lock(void) {
   cpu_leave_critical();
 }
 
-static void heap_kl_mutex_unlock(void) {
+static void heap_mutex_unlock(void) {
   cpu_enter_critical();
   if (sched_tcb_wake_from(&heap->list)) {
     sched_preempt(false);
@@ -95,7 +95,7 @@ static void heap_kl_mutex_unlock(void) {
   cpu_leave_critical();
 }
 
-void kl_heap_init(void *addr, uint32_t size) {
+void kernel_heap_init(void *addr, uint32_t size) {
   uint32_t start;
   uint32_t end;
   heap = (struct heap *)addr;
@@ -113,7 +113,7 @@ void *kl_heap_alloc(uint32_t size) {
   struct heap_node *node;
   void *mem = NULL;
   need = MEM_ALIGN_PAD(size + sizeof(struct heap_node));
-  heap_kl_mutex_lock();
+  heap_mutex_lock();
   for (node = heap->free; node->next != NULL; node = node->next) {
     free = ((uint32_t)node->next) - ((uint32_t)node) - node->used;
     if (free >= need) {
@@ -131,14 +131,14 @@ void *kl_heap_alloc(uint32_t size) {
     }
   }
   if (!mem) mem = kl_heap_alloc_fault_callback(size);
-  heap_kl_mutex_unlock();
+  heap_mutex_unlock();
   return mem;
 }
 
 void kl_heap_free(void *mem) {
   struct heap_node *node;
   node = (struct heap_node *)mem - 1;
-  heap_kl_mutex_lock();
+  heap_mutex_lock();
   if (node->prev->next == node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
@@ -146,7 +146,7 @@ void kl_heap_free(void *mem) {
       heap->free = node->prev;
     }
   }
-  heap_kl_mutex_unlock();
+  heap_mutex_unlock();
 }
 
 void *kl_heap_realloc(void *mem, uint32_t size) {
@@ -169,11 +169,11 @@ void *kl_heap_realloc(void *mem, uint32_t size) {
 void kl_heap_info(uint32_t *used, uint32_t *free) {
   uint32_t sum = 0;
   struct heap_node *node;
-  heap_kl_mutex_lock();
+  heap_mutex_lock();
   for (node = heap->head; node->next != NULL; node = node->next) {
     sum += ((uint32_t)node->next) - ((uint32_t)node) - node->used;
   }
-  heap_kl_mutex_unlock();
+  heap_mutex_unlock();
   if (used != NULL) {
     *used = heap->size - sum;
   }

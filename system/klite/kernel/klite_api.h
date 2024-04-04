@@ -166,7 +166,7 @@ typedef struct {
 
 #if KLITE_CFG_OPT_MSG_QUEUE
   struct {
-    kl_msg_queue_t (*create)(uint32_t item_size, uint32_t queue_depth);
+    kl_msg_queue_t (*create)(uint32_t msg_size, uint32_t queue_depth);
     void (*delete)(kl_msg_queue_t queue);
     void (*clear)(kl_msg_queue_t queue);
     void (*send)(kl_msg_queue_t queue, void *item);

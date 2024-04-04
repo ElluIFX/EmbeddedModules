@@ -37,7 +37,7 @@ void kl_kernel_init(void* heap_addr, uint32_t heap_size) {
   m_idle_thread = NULL;
   cpu_sys_init();
   sched_init();
-  kl_heap_init(heap_addr, heap_size);
+  kernel_heap_init(heap_addr, heap_size);
 
   /* 创建idle线程 */
   m_idle_thread = kl_thread_create(kernel_idle_thread, NULL,

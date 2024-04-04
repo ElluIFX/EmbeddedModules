@@ -58,7 +58,7 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
   tcb->node_wait.tcb = tcb;
   tcb->node_sched.tcb = tcb;
   tcb->node_manage.tcb = tcb;
-  tcb->flags = (kl_thread_id_counter++) << 8;  // 高24位
+  tcb->id_flags = (kl_thread_id_counter++) << 8;  // 高24位
   cpu_enter_critical();
   list_prepend(&m_list_manage, &tcb->node_manage);
   sched_tcb_ready(tcb);
@@ -67,7 +67,7 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
 }
 
 void kl_thread_delete(kl_thread_t thread) {
-  if (!thread) thread = sched_tcb_now;
+  if (!thread) return;
   if (thread == sched_tcb_now) return kl_thread_exit();
   cpu_enter_critical();
   list_remove(&m_list_manage, &thread->node_manage);
@@ -77,7 +77,7 @@ void kl_thread_delete(kl_thread_t thread) {
 }
 
 void kl_thread_suspend(kl_thread_t thread) {
-  if (!thread) thread = sched_tcb_now;
+  if (!thread) return;
   cpu_enter_critical();
   sched_tcb_suspend(thread);
   if (thread == sched_tcb_now) sched_switch();
@@ -121,7 +121,7 @@ kl_tick_t kl_thread_time(kl_thread_t thread) { return thread->time; }
 
 void kl_thread_stack_info(kl_thread_t thread, size_t *stack_free,
                           size_t *stack_size) {
-  if (!thread) thread = sched_tcb_now;
+  if (!thread) return;
   uint32_t free = 0;
   uint8_t *stack = (uint8_t *)(thread + 1);
   while (*stack++ == STACK_MAGIC_VALUE) free++;
@@ -130,7 +130,7 @@ void kl_thread_stack_info(kl_thread_t thread, size_t *stack_free,
 }
 
 void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
-  if (!thread) thread = sched_tcb_now;
+  if (!thread) return;
   if (!prio) prio = KLITE_CFG_DEFAULT_PRIO;
   if (prio > KLITE_CFG_MAX_PRIO) prio = KLITE_CFG_MAX_PRIO;
   cpu_enter_critical();
@@ -140,25 +140,25 @@ void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
 }
 
 uint32_t kl_thread_get_priority(kl_thread_t thread) {
-  if (!thread) thread = sched_tcb_now;
+  if (!thread) return 0xFFFFFFFF;
   return thread->prio;
 }
 
 uint32_t kl_thread_id(kl_thread_t thread) {
-  if (!thread) thread = sched_tcb_now;
-  return thread->flags >> 8;  // 高24位
+  if (!thread) return 0xFFFFFFFF;
+  return thread->id_flags >> 8;  // 高24位
 }
 
 uint8_t kl_thread_flags(kl_thread_t thread) {
-  if (!thread) thread = sched_tcb_now;
-  return thread->flags & 0xff;  // 低8位
+  if (!thread) return 0xFF;
+  return thread->id_flags & 0xff;  // 低8位
 }
 
 kl_thread_t kl_thread_find(uint32_t id) {
   cpu_enter_critical();
   struct kl_thread_node *node = m_list_manage.head;
   while (node) {
-    if (((kl_thread_t)node->tcb)->flags >> 8 == id) {
+    if (((kl_thread_t)node->tcb)->id_flags >> 8 == id) {
       break;
     }
     node = node->next;

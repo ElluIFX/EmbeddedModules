@@ -110,6 +110,9 @@ void *kl_mpool_blocked_alloc(kl_mpool_t mpool) {
 }
 
 void kl_mpool_free(kl_mpool_t mpool, void *block) {
+  if (block == NULL) {
+    return;
+  }
   kl_mutex_lock(mpool->mutex);
   mpool->block_list[mpool->free_tail] = block;
   mpool->free_count++;

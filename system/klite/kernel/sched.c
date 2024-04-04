@@ -39,7 +39,7 @@ static uint32_t m_prio_bitmap;
 uint32_t sched_susp_nesting = 0;
 
 #define SET_8FLAG(flags, mask) ((flags) |= (mask))
-#define CLR_8FLAG(flags, mask) ((flags) &= ~((uint32_t)mask))
+#define CLR_8FLAG(flags, mask) ((flags) &= ~((uint32_t)(mask)))
 #define GET_8FLAG(flags, mask) ((flags) & (mask))
 
 static inline void list_insert_by_priority(struct kl_thread_list *list,
@@ -67,7 +67,7 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
 static inline void remove_list_wait(struct kl_thread *tcb) {
   list_remove(tcb->list_wait, &tcb->node_wait);
   tcb->list_wait = NULL;
-  CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
+  CLR_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
 }
 
 static inline void remove_list_sched(struct kl_thread *tcb) {
@@ -80,8 +80,7 @@ static inline void remove_list_sched(struct kl_thread *tcb) {
     }
   }
   tcb->list_sched = NULL;
-  CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
-  CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
+  CLR_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SLEEP);
 }
 
 void sched_tcb_remove(struct kl_thread *tcb) {
@@ -91,6 +90,9 @@ void sched_tcb_remove(struct kl_thread *tcb) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
+  CLR_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND | KL_THREAD_FLAGS_SLEEP |
+                               KL_THREAD_FLAGS_WAIT);
+  SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_DELETE);
 }
 
 void sched_tcb_ready(struct kl_thread *tcb) {
@@ -103,7 +105,7 @@ void sched_tcb_ready(struct kl_thread *tcb) {
   if (m_prio_highest < tcb->prio) {
     m_prio_highest = tcb->prio;
   }
-  // SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_READY); // 0x00
+  // SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_READY); // 0x00
 }
 
 void sched_tcb_suspend(struct kl_thread *tcb) {
@@ -121,19 +123,19 @@ void sched_tcb_suspend(struct kl_thread *tcb) {
       tcb->timeout -= m_idle_elapse; /* remain sleep time */
     }
   }
-  SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND);
+  SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND);
 }
 
 void sched_tcb_resume(struct kl_thread *tcb) {
-  if (GET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND)) {
-    CLR_8FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND);
+  if (GET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND)) {
+    CLR_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND);
     if (tcb->list_wait) { /* set wait */
 #if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
       list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
 #else  // FIFO
       list_append(tcb->list_wait, &tcb->node_wait);
 #endif
-      SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
+      SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
     }
     if (tcb->list_sched == &m_list_sleep) { /* set sleep */
       tcb->timeout += m_idle_elapse;
@@ -141,7 +143,7 @@ void sched_tcb_resume(struct kl_thread *tcb) {
       if (tcb->timeout < m_idle_timeout) {
         m_idle_timeout = tcb->timeout;
       }
-      SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
+      SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SLEEP);
     } else if (tcb->list_sched) { /* set ready */
       tcb->list_sched = NULL;
       sched_tcb_ready(tcb);
@@ -191,7 +193,7 @@ void sched_tcb_sleep(struct kl_thread *tcb, kl_tick_t timeout) {
   if (tcb->timeout < m_idle_timeout) {
     m_idle_timeout = tcb->timeout;
   }
-  SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
+  SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_SLEEP);
 }
 
 void sched_tcb_wait(struct kl_thread *tcb, struct kl_thread_list *list) {
@@ -204,7 +206,7 @@ void sched_tcb_wait(struct kl_thread *tcb, struct kl_thread_list *list) {
 #else  // FIFO
   list_append(list, &tcb->node_wait);
 #endif
-  SET_8FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
+  SET_8FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
 }
 
 void sched_tcb_timed_wait(struct kl_thread *tcb, struct kl_thread_list *list,

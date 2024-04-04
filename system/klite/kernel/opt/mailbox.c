@@ -80,6 +80,7 @@ uint32_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, uint32_t len,
   uint32_t ret;
   uint32_t ttl;
   ttl = len + sizeof(uint32_t);
+  if (ttl > mailbox->fifo.size) return 0;
   kl_mutex_lock(mailbox->mutex);
   while (1) {
     ret = fifo_get_free(&mailbox->fifo);

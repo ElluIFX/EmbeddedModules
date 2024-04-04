@@ -33,15 +33,15 @@
 
 #include "klite_internal_list.h"
 
-kl_msg_queue_t kl_msg_queue_create(uint32_t item_size, uint32_t queue_depth) {
+kl_msg_queue_t kl_msg_queue_create(uint32_t msg_size, uint32_t queue_depth) {
   kl_msg_queue_t queue;
   queue = kl_heap_alloc(sizeof(struct kl_msg_queue));
   if (queue != NULL) {
     memset(queue, 0, sizeof(struct kl_msg_queue));
-    queue->size = item_size;
+    queue->size = msg_size;
     queue->sem = kl_sem_create(0);
     queue->mutex = kl_mutex_create();
-    queue->mpool = kl_mpool_create(sizeof(struct kl_msg_queue_node) + item_size,
+    queue->mpool = kl_mpool_create(sizeof(struct kl_msg_queue_node) + msg_size,
                                    queue_depth);
     if (queue->mpool == NULL) {
       if (queue->mutex != NULL) {

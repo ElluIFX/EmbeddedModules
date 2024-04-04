@@ -76,6 +76,9 @@ void cpu_enter_critical(void);
 // 平台实现: 退出临界区
 void cpu_leave_critical(void);
 
+// 初始化内核堆
+void kernel_heap_init(void *addr, uint32_t size);
+
 // 内核时钟递增
 void kernel_tick_source(uint32_t time);
 

@@ -165,13 +165,6 @@ void kl_stack_overflow_callback(kl_thread_t thread);
  ******************************************************************************/
 
 /**
- * @brief 用户在指定内存创建一个用于动态管理的堆内存
- * @param addr 动态分配起始地址
- * @param size 动态分配内存大小
- */
-void kl_heap_init(void *addr, uint32_t size);
-
-/**
  * @brief 从堆中申请一段连续的内存, 功能和标准库的malloc()一样
  * @param size 申请内存大小
  * @retval 申请成功返回内存指针, 申请失败返回NULL
@@ -772,6 +765,7 @@ uint32_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, uint32_t len,
  * @param len 读取缓冲区长度
  * @param timeout 超时时间
  * @retval 实际读取数据长度
+ * @warning 如果读取缓冲区长度小于消息长度，则消息会被截断
  */
 uint32_t kl_mailbox_read(kl_mailbox_t mailbox, void *buf, uint32_t len,
                          kl_tick_t timeout);
@@ -837,11 +831,11 @@ void kl_mpool_free(kl_mpool_t mpool, void *block);
 
 /**
  * @brief 创建消息队列
- * @param item_size 消息大小
+ * @param msg_size 消息大小
  * @param queue_depth 队列长度
  * @retval 创建成功返回消息队列标识符，失败返回NULL
  */
-kl_msg_queue_t kl_msg_queue_create(uint32_t item_size, uint32_t queue_depth);
+kl_msg_queue_t kl_msg_queue_create(uint32_t msg_size, uint32_t queue_depth);
 
 /**
  * @brief 删除消息队列，并释放内存

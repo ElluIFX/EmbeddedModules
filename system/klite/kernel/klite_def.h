@@ -9,18 +9,17 @@
 
 #if KLITE_CFG_64BIT_TICK
 typedef uint64_t kl_tick_t;
-#define KLITE_TICK_MAX UINT64_MAX
+#define KLITE_WAIT_FOREVER UINT64_MAX
 #else
 typedef uint32_t kl_tick_t;
-#define KLITE_TICK_MAX UINT32_MAX
+#define KLITE_WAIT_FOREVER UINT32_MAX
 #endif
-
-#define KLITE_WAIT_FOREVER KLITE_TICK_MAX
 
 #define KL_THREAD_FLAGS_READY 0x00
 #define KL_THREAD_FLAGS_SLEEP 0x01
 #define KL_THREAD_FLAGS_WAIT 0x02
 #define KL_THREAD_FLAGS_SUSPEND 0x04
+#define KL_THREAD_FLAGS_DELETE 0x08
 
 struct kl_thread_node {
   struct kl_thread_node *prev;
@@ -43,7 +42,7 @@ struct kl_thread {
   struct kl_thread_node node_sched;   // 调度队列节点
   struct kl_thread_node node_wait;    // 等待队列节点
   struct kl_thread_node node_manage;  // 管理队列节点
-  uint32_t flags;                     // 高24位: id, 低8位: 状态
+  uint32_t id_flags;                  // 高24位: ID, 低8位: FLAGS
 };
 typedef struct kl_thread *kl_thread_t;
 
@@ -122,8 +121,8 @@ struct kl_mailbox {
     uint32_t rp;
   } fifo;
   kl_mutex_t mutex;
-  kl_cond_t write;
-  kl_cond_t read;
+  kl_cond_t write;  // 新可写空间
+  kl_cond_t read;   // 新可读数据
 };
 typedef struct kl_mailbox *kl_mailbox_t;
 #endif
