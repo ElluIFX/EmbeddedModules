@@ -7,21 +7,21 @@
 #include "kl_list.h"
 
 static kl_tick_t kl_timer_process(kl_timer_t timer, kl_tick_t time) {
-  kl_timer_task_t node;
+  kl_timer_task_t task;
   kl_tick_t timeout = KL_WAIT_FOREVER;
   kl_mutex_lock(timer->mutex);
-  for (node = timer->head; node != NULL; node = node->next) {
-    if (node->reload == 0) {
+  for (task = timer->head; task != NULL; task = task->next) {
+    if (task->reload == 0) {
       continue;
     }
-    if (node->timeout > time) {
-      node->timeout -= time;
+    if (task->timeout > time) {
+      task->timeout -= time;
     } else {
-      node->handler(node->arg);
-      node->timeout = node->reload - (time - node->timeout);
+      task->handler(task->arg);
+      task->timeout = task->reload - (time - task->timeout);
     }
-    if (node->timeout < timeout) {
-      timeout = node->timeout;
+    if (task->timeout < timeout) {
+      timeout = task->timeout;
     }
   }
   kl_mutex_unlock(timer->mutex);
@@ -74,15 +74,15 @@ kl_timer_t kl_timer_create(uint32_t stack_size, uint32_t priority) {
 }
 
 void kl_timer_delete(kl_timer_t timer) {
-  kl_timer_task_t node;
+  kl_timer_task_t task;
 
   kl_thread_delete(timer->thread);
   kl_event_delete(timer->event);
   kl_mutex_lock(timer->mutex);
   while (timer->head != NULL) {
-    node = timer->head;
-    list_remove(timer, node);
-    kl_heap_free(node);
+    task = timer->head;
+    list_remove(timer, task);
+    kl_heap_free(task);
   }
   kl_mutex_unlock(timer->mutex);
   kl_mutex_delete(timer->mutex);
@@ -91,20 +91,20 @@ void kl_timer_delete(kl_timer_t timer) {
 
 kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void *),
                                   void *arg) {
-  kl_timer_task_t node;
-  node = kl_heap_alloc(sizeof(struct kl_timer_task));
-  if (node != NULL) {
-    memset(node, 0, sizeof(struct kl_timer_task));
-    node->timer = timer;
-    node->handler = handler;
-    node->arg = arg;
-    node->reload = 0;
-    node->timeout = 0;
+  kl_timer_task_t task;
+  task = kl_heap_alloc(sizeof(struct kl_timer_task));
+  if (task != NULL) {
+    memset(task, 0, sizeof(struct kl_timer_task));
+    task->timer = timer;
+    task->handler = handler;
+    task->arg = arg;
+    task->reload = 0;
+    task->timeout = 0;
     kl_mutex_lock(timer->mutex);
-    list_append(timer, node);
+    list_append(timer, task);
     kl_mutex_unlock(timer->mutex);
   }
-  return node;
+  return task;
 }
 
 void kl_timer_remove_task(kl_timer_task_t task) {
