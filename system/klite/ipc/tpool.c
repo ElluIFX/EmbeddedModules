@@ -14,7 +14,7 @@ static void thread_job(void *arg) {
   struct kl_thread_pool_task temp_task;
   kl_sem_give(pool->idle_sem);
   while (1) {
-    kl_msg_queue_recv(pool->task_queue, &temp_task, KL_WAIT_FOREVER);
+    kl_mqueue_recv(pool->task_queue, &temp_task, KL_WAIT_FOREVER);
     kl_sem_take(pool->idle_sem);
     temp_task.process(temp_task.arg);
     kl_sem_give(pool->idle_sem);
@@ -32,7 +32,7 @@ kl_thread_pool_t kl_thread_pool_create(kl_size_t worker_num,
   }
   pool->worker_num = worker_num;
   pool->task_queue =
-      kl_msg_queue_create(sizeof(struct kl_thread_pool_task), max_task_num);
+      kl_mqueue_create(sizeof(struct kl_thread_pool_task), max_task_num);
   if (pool->task_queue == NULL) {
     kl_heap_free(pool);
     return NULL;
@@ -40,13 +40,13 @@ kl_thread_pool_t kl_thread_pool_create(kl_size_t worker_num,
   pool->thread_list =
       (kl_thread_t *)kl_heap_alloc(worker_num * sizeof(kl_thread_t *));
   if (pool->thread_list == NULL) {
-    kl_msg_queue_delete(pool->task_queue);
+    kl_mqueue_delete(pool->task_queue);
     kl_heap_free(pool);
     return NULL;
   }
   pool->idle_sem = kl_sem_create(0);
   if (pool->idle_sem == NULL) {
-    kl_msg_queue_delete(pool->task_queue);
+    kl_mqueue_delete(pool->task_queue);
     kl_heap_free(pool->thread_list);
     kl_heap_free(pool);
     return NULL;
@@ -64,14 +64,14 @@ bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void *arg),
       .process = process,
       .arg = arg,
   };
-  if (kl_msg_queue_send(pool->task_queue, &task, timeout)) {
+  if (kl_mqueue_send(pool->task_queue, &task, timeout)) {
     return false;
   }
   return true;
 }
 
 kl_size_t kl_thread_pool_pending_task(kl_thread_pool_t pool) {
-  return kl_msg_queue_count(pool->task_queue) +
+  return kl_mqueue_count(pool->task_queue) +
          (pool->worker_num - kl_sem_value(pool->idle_sem));
 }
 
@@ -87,7 +87,7 @@ void kl_thread_pool_shutdown(kl_thread_pool_t pool) {
     kl_thread_delete(pool->thread_list[i]);
   }
   /* release memory */
-  kl_msg_queue_delete(pool->task_queue);
+  kl_mqueue_delete(pool->task_queue);
   kl_heap_free(pool->thread_list);
   kl_heap_free(pool);
 }

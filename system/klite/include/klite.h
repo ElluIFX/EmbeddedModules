@@ -117,23 +117,29 @@ static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
 }
 
 /******************************************************************************
- * callback
+ * hook
  ******************************************************************************/
 
 /**
  * @brief 内核内存分配失败回调函数
  * @param size 申请内存大小
- * @retval 返回内存指针或NULL
+ * @retval 返回要提供的内存指针或NULL
  * @note 可由用户自行实现
  */
-void *kl_heap_alloc_fault_callback(kl_size_t size);
+void *kl_heap_alloc_fault_hook(kl_size_t size);
 
 /**
  * @brief 内核栈溢出回调函数
  * @param thread 线程标识符
  * @note 可由用户自行实现
  */
-void kl_stack_overflow_callback(kl_thread_t thread);
+void kl_stack_overflow_hook(kl_thread_t thread);
+
+/**
+ * @brief 内核空闲回调函数
+ * @note 可由用户自行实现
+ */
+void kl_kernel_idle_hook(void);
 
 /******************************************************************************
  * heap
@@ -162,16 +168,9 @@ void *kl_heap_realloc(void *mem, kl_size_t size);
 
 /**
  * @brief 获取堆内存使用情况
- * @param used 已使用内存大小
- * @param free 空闲内存大小
+ * @param stats 堆内存统计信息结构体
  */
-void kl_heap_info(kl_size_t *used, kl_size_t *free);
-
-/**
- * @brief 获取堆内存使用率(0.0~1.0)
- * @retval 堆内存使用率
- */
-float kl_heap_usage(void);
+void kl_heap_stats(kl_heap_stats_t stats);
 
 /******************************************************************************
  * thread
@@ -809,19 +808,19 @@ void kl_mpool_free(kl_mpool_t mpool, void *block);
  * @param queue_depth 队列长度
  * @retval 创建成功返回消息队列标识符, 失败返回NULL
  */
-kl_msg_queue_t kl_msg_queue_create(kl_size_t msg_size, kl_size_t queue_depth);
+kl_mqueue_t kl_mqueue_create(kl_size_t msg_size, kl_size_t queue_depth);
 
 /**
  * @brief 删除消息队列, 并释放内存
  * @param queue 消息队列标识符
  */
-void kl_msg_queue_delete(kl_msg_queue_t queue);
+void kl_mqueue_delete(kl_mqueue_t queue);
 
 /**
  * @brief 清空消息队列
  * @param queue 消息队列标识符
  */
-void kl_msg_queue_clear(kl_msg_queue_t queue);
+void kl_mqueue_clear(kl_mqueue_t queue);
 
 /**
  * @brief 发送消息到消息队列
@@ -830,7 +829,7 @@ void kl_msg_queue_clear(kl_msg_queue_t queue);
  * @param timeout 超时时间
  * @retval 发送成功返回true, 失败返回false
  */
-bool kl_msg_queue_send(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
+bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout);
 
 /**
  * @brief 发送紧急消息到消息队列(插入到队列头部)
@@ -839,8 +838,7 @@ bool kl_msg_queue_send(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
  * @param timeout 超时时间
  * @retval 发送成功返回true, 失败返回false
  */
-bool kl_msg_queue_send_urgent(kl_msg_queue_t queue, void *item,
-                              kl_tick_t timeout);
+bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout);
 
 /**
  * @brief 从消息队列接收消息
@@ -849,14 +847,14 @@ bool kl_msg_queue_send_urgent(kl_msg_queue_t queue, void *item,
  * @param timeout 超时时间
  * @retval 接收成功返回true, 失败返回false
  */
-bool kl_msg_queue_recv(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
+bool kl_mqueue_recv(kl_mqueue_t queue, void *item, kl_tick_t timeout);
 
 /**
  * @brief 获取消息队列中的消息数量
  * @param queue 消息队列标识符
  * @retval 消息数量
  */
-uint32_t kl_msg_queue_count(kl_msg_queue_t queue);
+uint32_t kl_mqueue_count(kl_mqueue_t queue);
 
 #endif  // KLITE_CFG_OPT_MSG_QUEUE
 
@@ -867,45 +865,47 @@ uint32_t kl_msg_queue_count(kl_msg_queue_t queue);
 #if KLITE_CFG_OPT_SOFT_TIMER
 
 /**
- * @brief 初始化软定时器
+ * @brief 创建软定时器
  * @param stack_size 定时器线程栈大小
  * @param priority 定时器线程优先级
- * @retval 初始化成功返回true, 失败返回false
- */
-bool kl_soft_timer_init(kl_size_t stack_size, uint32_t priority);
-
-/**
- * @brief 反初始化软定时器, 并释放内存
- */
-void kl_soft_timer_deinit(void);
-
-/**
- * @brief 创建软定时器
- * @param handler 定时器回调函数
- * @param arg 回调函数参数
  * @retval 创建成功返回定时器标识符, 失败返回NULL
- * @note 如果未曾调用kl_soft_timer_init(), 会自动使用默认值初始化
  */
-kl_soft_timer_t kl_soft_timer_create(void (*handler)(void *), void *arg);
+kl_timer_t kl_timer_create(uint32_t stack_size, uint32_t priority);
 
 /**
  * @brief 删除软定时器
  * @param timer 定时器标识符
  */
-void kl_soft_timer_delete(kl_soft_timer_t timer);
+void kl_timer_delete(kl_timer_t timer);
 
 /**
- * @brief 启动软定时器
- * @param timer 定时器标识符
- * @param timeout 定时时间（毫秒）
+ * @brief 向定时器中添加定时任务
+ * @param  timer    定时器标识符
+ * @param  handler  定时任务处理函数
+ * @param  arg      定时任务参数
+ * @retval 添加成功返回定时任务标识符, 失败返回NULL
  */
-void kl_soft_timer_start(kl_soft_timer_t timer, kl_tick_t timeout);
+kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void *),
+                                     void *arg);
 
 /**
- * @brief 停止软定时器
- * @param timer 定时器标识符
+ * @brief 将任务从绑定的定时器中移除
+ * @param  task 定时任务标识符
  */
-void kl_soft_timer_stop(kl_soft_timer_t timer);
+void kl_timer_remove_task(kl_timer_task_t task);
+
+/**
+ * @brief 启动定时任务
+ * @param  task    定时任务标识符
+ * @param  timeout 定时时间
+ */
+void kl_timer_start_task(kl_timer_task_t task, kl_tick_t timeout);
+
+/**
+ * @brief 停止定时任务
+ * @param  task 定时任务标识符
+ */
+void kl_timer_stop_task(kl_timer_task_t task);
 
 #endif  // KLITE_CFG_OPT_SOFT_TIMER
 

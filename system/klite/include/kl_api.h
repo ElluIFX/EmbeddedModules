@@ -32,8 +32,7 @@ typedef struct {
     void *(*alloc)(kl_size_t size);
     void (*free)(void *mem);
     void *(*realloc)(void *mem, kl_size_t size);
-    void (*usage)(kl_size_t *used, kl_size_t *free);
-    float (*usage_percent)(void);
+    void (*stats)(kl_heap_stats_t stats);
   } heap;
 
   struct {
@@ -129,7 +128,7 @@ typedef struct {
     uint32_t (*wait)(kl_event_flags_t flags, uint32_t bits, uint32_t ops);
     uint32_t (*timed_wait)(kl_event_flags_t flags, uint32_t bits, uint32_t ops,
                            kl_tick_t timeout);
-  } kl_event_flags;
+  } event_flags;
 #endif
 
 #if KLITE_CFG_OPT_BARRIER
@@ -166,25 +165,26 @@ typedef struct {
 
 #if KLITE_CFG_OPT_MSG_QUEUE
   struct {
-    kl_msg_queue_t (*create)(kl_size_t msg_size, kl_size_t queue_depth);
-    void (*delete)(kl_msg_queue_t queue);
-    void (*clear)(kl_msg_queue_t queue);
-    bool (*send)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
-    bool (*send_urgent)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
-    bool (*recv)(kl_msg_queue_t queue, void *item, kl_tick_t timeout);
-    kl_size_t (*count)(kl_msg_queue_t queue);
-  } msg_queue;
+    kl_mqueue_t (*create)(kl_size_t msg_size, kl_size_t queue_depth);
+    void (*delete)(kl_mqueue_t queue);
+    void (*clear)(kl_mqueue_t queue);
+    bool (*send)(kl_mqueue_t queue, void *item, kl_tick_t timeout);
+    bool (*send_urgent)(kl_mqueue_t queue, void *item, kl_tick_t timeout);
+    bool (*recv)(kl_mqueue_t queue, void *item, kl_tick_t timeout);
+    kl_size_t (*count)(kl_mqueue_t queue);
+  } mqueue;
 #endif
 
 #if KLITE_CFG_OPT_SOFT_TIMER
   struct {
-    bool (*init)(kl_size_t stack_size, uint32_t priority);
-    void (*deinit)(void);
-    kl_soft_timer_t (*create)(void (*handler)(void *), void *arg);
-    void (*delete)(kl_soft_timer_t timer);
-    void (*start)(kl_soft_timer_t timer, kl_tick_t timeout);
-    void (*stop)(kl_soft_timer_t timer);
-  } soft_timer;
+    kl_timer_t (*create)(kl_size_t stack_size, uint32_t priority);
+    void (*delete)(kl_timer_t timer);
+    kl_timer_task_t (*add_task)(kl_timer_t timer, void (*handler)(void *arg),
+                                void *arg);
+    void (*remove_task)(kl_timer_task_t task);
+    void (*start_task)(kl_timer_task_t task, kl_tick_t timeout);
+    void (*stop_task)(kl_timer_task_t task);
+  } timer;
 #endif
 
 #if KLITE_CFG_OPT_THREAD_POOL

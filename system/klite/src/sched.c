@@ -67,6 +67,7 @@ void kl_sched_tcb_remove(kl_thread_t tcb) {
   KL_CLR_FLAG32(tcb->id_flags,
                 (KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SUSPEND |
                  KL_THREAD_FLAGS_SLEEP | KL_THREAD_FLAGS_WAIT));
+  KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_EXITED);
 }
 
 void kl_sched_tcb_ready(kl_thread_t tcb) {
@@ -268,7 +269,7 @@ void kl_sched_switch(void) {
 #elif KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
     ((void (*)(void))0x10)();
 #elif KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
-    kl_stack_overflow_callback();
+    kl_stack_overflow_hook();
 #endif
   }
 #endif

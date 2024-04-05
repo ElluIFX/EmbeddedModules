@@ -15,19 +15,17 @@
 #include "term_table.h"
 // Private Defines --------------------------
 
-#if (MOD_CFG_HEAP_MATHOD_LWMEM || \
-     (MOD_CFG_HEAP_MATHOD_KLITE && KLITE_CFG_HEAP_USE_LWMEM))
+#if (MOD_CFG_HEAP_MATHOD_LWMEM)
 #include "lwmem.h"
 #define SHOWLWMEM 1
-#elif (MOD_CFG_HEAP_MATHOD_HEAP4 || \
-       (MOD_CFG_HEAP_MATHOD_KLITE && KLITE_CFG_HEAP_USE_HEAP4))
+#elif (MOD_CFG_HEAP_MATHOD_HEAP4)
 #include "heap4.h"
 #define SHOWHEAP4 1
 #elif (MOD_CFG_HEAP_MATHOD_RTT)
 #define SHOWRTTHREAD 1
 #endif
-#if MOD_CFG_USE_OS_KLITE
-#include "kl_priv.h"
+#if (MOD_CFG_USE_OS_KLITE)
+#include "klite.h"
 #define SHOWKLITE 1
 #endif
 
@@ -59,7 +57,6 @@ static void list_klite(void) {
   TT_FMT1 f1 = TT_FMT1_GREEN;
   TT_FMT2 f2 = TT_FMT2_BOLD;
   TT_ALIGN al = TT_ALIGN_LEFT;
-  TT_AddTitle(tt, TT_Str(al, f1, f2, "[ Thread List ]"), '-');
   TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
   TT_ITEM_GRID_LINE line =
       TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
@@ -97,7 +94,6 @@ static void list_klite(void) {
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.4f%%", usage * 100));
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d / %d", sfree, ssize));
   }
-  TT_AddSeparator(tt, TT_FMT1_GREEN, TT_FMT2_BOLD, '-');
   TT_Print(tt);
   TT_FreeTable(tt);
 }
@@ -159,13 +155,16 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   lwmem_stats_t stats;
   lwmem_get_stats(&stats);
 #elif SHOWHEAP4
-  Heap4Stats_t stats;
-  heap4_get_stats(&stats);
+  HeapStats_t stats;
+  vPortGetHeapStats(&stats);
 #elif SHOWRTTHREAD
   rt_uint32_t total = 0;
   rt_uint32_t used = 0;
   rt_uint32_t max_used = 0;
   rt_memory_info(&total, &used, &max_used);
+#elif SHOWKLITE
+  struct kl_heap_stats stats;
+  kl_heap_stats(&stats);
 #endif
   TT tt = TT_NewTable(-1);
   TT_AddTitle(
@@ -189,34 +188,6 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 #endif
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Build Time"),
                     TT_Str(al, f1, f2, __DATE__ " " __TIME__), sep);
-#if MOD_CFG_USE_OS_KLITE  // klite
-  TT_AddTitle(
-      tt,
-      TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ KLite RTOS Info ]"),
-      '-');
-  kv = TT_AddKVPair(tt, 0);
-#if SHOWKLITE
-  uint16_t kl_thread_num = 0;
-  kl_thread_t thread = NULL;
-  while ((thread = kl_thread_iter(thread)) != NULL) kl_thread_num++;
-  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Thread Num"),
-                    TT_FmtStr(al, f1, f2, "%d", kl_thread_num), sep);
-#endif
-  static uint64_t last_kernel_tick = 0;
-  static uint64_t last_idle_time = 0;
-  uint64_t tick = kl_kernel_tick64();
-  uint64_t idle_time = kl_kernel_idle_time();
-  float usage =
-      (float)((tick - last_kernel_tick) - (idle_time - last_idle_time)) /
-      (float)(tick - last_kernel_tick);
-  float usage_avg = (float)(tick - idle_time) / (float)tick;
-  last_kernel_tick = tick;
-  last_idle_time = idle_time;
-  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "System Usage"),
-                    TT_FmtStr(al, f1, f2, "%.2f%%", usage * 100), sep);
-  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "System Avg Usage"),
-                    TT_FmtStr(al, f1, f2, "%.2f%%", usage_avg * 100), sep);
-#endif
 #if SCH_CFG_ENABLE_TASK || SCH_CFG_ENABLE_EVENT || SCH_CFG_ENABLE_COROUTINE
   TT_AddTitle(
       tt,
@@ -226,15 +197,15 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 #if SCH_CFG_ENABLE_TASK
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Task Num"),
                     TT_FmtStr(al, f1, f2, "%d", sch_task_get_num()), sep);
-#endif  // SCH_CFG_ENABLE_TASK
+#endif
 #if SCH_CFG_ENABLE_EVENT
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Event Num"),
                     TT_FmtStr(al, f1, f2, "%d", sch_event_get_num()), sep);
-#endif  // SCH_CFG_ENABLE_EVENT
+#endif
 #if SCH_CFG_ENABLE_COROUTINE
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Coroutine Num"),
                     TT_FmtStr(al, f1, f2, "%d", sch_cortn_get_num()), sep);
-#endif  // SCH_CFG_ENABLE_COROUTINE
+#endif
 #endif  // SCHEDULER
 #if SHOWLWMEM
   TT_AddTitle(
@@ -272,20 +243,20 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   kv = TT_AddKVPair(tt, 0);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Total"),
-      TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)", heap4_get_total_size(),
-                (float)heap4_get_total_size() / 1024),
+      TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)", xPortGetTotalHeapSize(),
+                (float)xPortGetTotalHeapSize() / 1024),
       sep);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Avail"),
                     TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)",
                               stats.xAvailableHeapSpaceInBytes,
                               (float)(stats.xAvailableHeapSpaceInBytes) /
-                                  (float)heap4_get_total_size() * 100),
+                                  (float)xPortGetTotalHeapSize() * 100),
                     sep);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Min Avail"),
                     TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)",
                               stats.xMinimumEverFreeBytesRemaining,
                               (float)(stats.xMinimumEverFreeBytesRemaining) /
-                                  (float)heap4_get_total_size() * 100),
+                                  (float)xPortGetTotalHeapSize() * 100),
                     sep);
   TT_KVPair_AddItem(
       kv, 2, TT_Str(al, f1, f2, "Free Block"),
@@ -328,6 +299,66 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
                     TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)", max_used,
                               (float)max_used / total * 100),
                     sep);
+#elif SHOWKLITE
+  TT_AddTitle(
+      tt,
+      TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ KLite RTOS Info ]"),
+      '-');
+  kv = TT_AddKVPair(tt, 0);
+  uint16_t kl_thread_num = 0;
+  kl_thread_t thread = NULL;
+  while ((thread = kl_thread_iter(thread)) != NULL) kl_thread_num++;
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Thread Num"),
+                    TT_FmtStr(al, f1, f2, "%d", kl_thread_num), sep);
+  static uint64_t last_kernel_tick = 0;
+  static uint64_t last_idle_time = 0;
+  uint64_t tick = kl_kernel_tick64();
+  uint64_t idle_time = kl_kernel_idle_time();
+  float usage =
+      (float)((tick - last_kernel_tick) - (idle_time - last_idle_time)) /
+      (float)(tick - last_kernel_tick);
+  float usage_avg = (float)(tick - idle_time) / (float)tick;
+  last_kernel_tick = tick;
+  last_idle_time = idle_time;
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "System Usage"),
+                    TT_FmtStr(al, f1, f2, "%.2f%%", usage * 100), sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "System Avg Usage"),
+                    TT_FmtStr(al, f1, f2, "%.2f%%", usage_avg * 100), sep);
+  TT_AddTitle(
+      tt,
+      TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD, "[ KLite Heap Info ]"),
+      '-');
+  kv = TT_AddKVPair(tt, 0);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Total"),
+                    TT_FmtStr(al, f1, f2, "%d Bytes (%.1f KB)",
+                              stats.total_size, (float)stats.total_size / 1024),
+                    sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Avail"),
+      TT_FmtStr(al, f1, f2, "%d Bytes (%.4f%%)", stats.avail_size,
+                (float)(stats.avail_size) / (float)stats.total_size * 100),
+      sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Min Avail"),
+      TT_FmtStr(
+          al, f1, f2, "%d Bytes (%.4f%%)", stats.minimum_ever_avail,
+          (float)(stats.minimum_ever_avail) / (float)stats.total_size * 100),
+      sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Free Block"),
+                    TT_FmtStr(al, f1, f2, "%d blocks", stats.free_blocks), sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "- Largest"),
+                    TT_FmtStr(al, f1, f2, "%d Bytes", stats.largest_free), sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "- Smallest"),
+                    TT_FmtStr(al, f1, f2, "%d Bytes", stats.smallest_free),
+                    sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Allocation"),
+                    TT_FmtStr(al, f1, f2, "%d blocks", stats.alloc_count), sep);
+  TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Free"),
+                    TT_FmtStr(al, f1, f2, "%d blocks", stats.free_count), sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "Alive"),
+      TT_FmtStr(al, f1, f2, "%d blocks", stats.alloc_count - stats.free_count),
+      sep);
 #endif
   TT_AddSeparator(tt, TT_FMT1_GREEN, TT_FMT2_BOLD, '-');
   TT_Print(tt);

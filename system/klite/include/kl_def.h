@@ -21,6 +21,7 @@ typedef uint32_t kl_size_t;
 #define KL_THREAD_FLAGS_SLEEP 0x02
 #define KL_THREAD_FLAGS_WAIT 0x04
 #define KL_THREAD_FLAGS_SUSPEND 0x08
+#define KL_THREAD_FLAGS_EXITED 0x10
 
 struct kl_thread_node {
   struct kl_thread_node *prev;
@@ -46,6 +47,18 @@ struct kl_thread {
   uint32_t id_flags;                  // 高24位: ID, 低8位: FLAGS
 };
 typedef struct kl_thread *kl_thread_t;
+
+struct kl_heap_stats {
+  kl_size_t total_size;
+  kl_size_t avail_size;
+  kl_size_t largest_free;
+  kl_size_t smallest_free;
+  kl_size_t free_blocks;
+  kl_size_t minimum_ever_avail;
+  kl_size_t alloc_count;
+  kl_size_t free_count;
+};
+typedef struct kl_heap_stats *kl_heap_stats_t;
 
 #if KLITE_CFG_OPT_SEM
 struct kl_sem {
@@ -142,37 +155,46 @@ typedef struct kl_mpool *kl_mpool_t;
 #endif
 
 #if KLITE_CFG_OPT_MSG_QUEUE
-struct kl_msg_queue_node {
-  struct kl_msg_queue_node *prev;
-  struct kl_msg_queue_node *next;
+struct kl_mqueue_node {
+  struct kl_mqueue_node *prev;
+  struct kl_mqueue_node *next;
   uint8_t data[];
 };
-struct kl_msg_queue {
-  struct kl_msg_queue_node *head;
-  struct kl_msg_queue_node *tail;
+struct kl_mqueue {
+  struct kl_mqueue_node *head;
+  struct kl_mqueue_node *tail;
   kl_sem_t sem;
   kl_mutex_t mutex;
   kl_mpool_t mpool;
   kl_size_t size;
 };
-typedef struct kl_msg_queue *kl_msg_queue_t;
+typedef struct kl_mqueue *kl_mqueue_t;
 #endif
 
 #if KLITE_CFG_OPT_SOFT_TIMER
-struct kl_soft_timer {
-  struct kl_soft_timer *prev;
-  struct kl_soft_timer *next;
+struct kl_timer_task {
+  struct kl_timer_task *prev;
+  struct kl_timer_task *next;
+  struct kl_timer *timer;
   void (*handler)(void *);
   void *arg;
   kl_tick_t reload;
   kl_tick_t timeout;
 };
-typedef struct kl_soft_timer *kl_soft_timer_t;
+typedef struct kl_timer_task *kl_timer_task_t;
+struct kl_timer {
+  struct kl_timer_task *head;
+  struct kl_timer_task *tail;
+  kl_mutex_t mutex;
+  kl_event_t event;
+  kl_thread_t thread;
+};
+typedef struct kl_timer *kl_timer_t;
 #endif
 
 #if KLITE_CFG_OPT_THREAD_POOL
 struct kl_thread_pool {
-  kl_msg_queue_t task_queue;
+  kl_mqueue_t task_queue;
   kl_thread_t *thread_list;
   kl_sem_t idle_sem;
   kl_size_t worker_num;

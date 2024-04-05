@@ -35,6 +35,7 @@ void kl_kernel_idle_entry(void* args) {
   (void)args;
 
   while (1) {
+    kl_kernel_idle_hook();
     kl_thread_clean_up();
     kl_port_enter_critical();
     kl_sched_idle();

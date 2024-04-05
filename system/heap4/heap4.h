@@ -13,26 +13,26 @@ typedef struct Heap4Stats {
   size_t xMinimumEverFreeBytesRemaining;
   size_t xNumberOfSuccessfulAllocations;
   size_t xNumberOfSuccessfulFrees;
-} Heap4Stats_t;
+} HeapStats_t;
 
 /*              EXPORTED FUNCTION                */
 
-extern void heap4_init(uint8_t* heap, size_t heap_size);
+extern void prvHeapInit(uint8_t* heap, size_t heap_size);
 
-extern void* heap4_alloc(size_t xWantedSize);
+extern void* pvPortMalloc(size_t xWantedSize);
 
-extern void* heap4_calloc(size_t xNum, size_t xSize);
+extern void* pvPortCalloc(size_t xNum, size_t xSize);
 
-extern void* heap4_realloc(void* pv, size_t xWantedSize);
+extern void* pvPortRealloc(void* pv, size_t xWantedSize);
 
-extern void heap4_free(void* pv);
+extern void vPortFree(void* pv);
 
-extern size_t heap4_get_free_size(void);
+extern size_t xPortGetFreeHeapSize(void);
 
-extern size_t heap4_get_total_size(void);
+extern size_t xPortGetTotalHeapSize(void);
 
-extern size_t heap4_get_minimum_free_size(void);
+extern size_t xPortGetMinimumEverFreeHeapSize(void);
 
-extern void heap4_get_stats(Heap4Stats_t* pxHeapStats);
+extern void vPortGetHeapStats(HeapStats_t* pxHeapStats);
 
 #endif /* HEAP_4_H */

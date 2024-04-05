@@ -1,5 +1,16 @@
-#include "kl_api.h"
 #include "kl_priv.h"
+#include "log.h"
+
+__weak void* kl_heap_alloc_fault_hook(kl_size_t size) {
+  LOG_E("klite: failed to alloc %d", size);
+  return NULL;
+}
+
+__weak void kl_stack_overflow_hook(kl_thread_t thread) {
+  LOG_E("klite: stack overflow on thread-%d", kl_thread_id(thread));
+}
+
+__weak void kl_kernel_idle_hook(void) {}
 
 #if KLITE_CFG_INTERFACE_ENABLE
 
@@ -22,8 +33,7 @@ const klite_api_t klite = {
     .heap.alloc = kl_heap_alloc,
     .heap.free = kl_heap_free,
     .heap.realloc = kl_heap_realloc,
-    .heap.usage = kl_heap_info,
-    .heap.usage_percent = kl_heap_usage,
+    .heap.stats = kl_heap_stats,
 
     .thread.create = kl_thread_create,
     .thread.delete = kl_thread_delete,
@@ -81,12 +91,12 @@ const klite_api_t klite = {
 #endif
 
 #if KLITE_CFG_OPT_EVENT_FLAGS
-    .kl_event_flags.create = kl_event_flags_create,
-    .kl_event_flags.delete = kl_event_flags_delete,
-    .kl_event_flags.set = kl_event_flags_set,
-    .kl_event_flags.reset = kl_event_flags_reset,
-    .kl_event_flags.wait = kl_event_flags_wait,
-    .kl_event_flags.timed_wait = kl_event_flags_timed_wait,
+    .event_flags.create = kl_event_flags_create,
+    .event_flags.delete = kl_event_flags_delete,
+    .event_flags.set = kl_event_flags_set,
+    .event_flags.reset = kl_event_flags_reset,
+    .event_flags.wait = kl_event_flags_wait,
+    .event_flags.timed_wait = kl_event_flags_timed_wait,
 #endif
 
 #if KLITE_CFG_OPT_RWLOCK
@@ -128,22 +138,22 @@ const klite_api_t klite = {
 #endif
 
 #if KLITE_CFG_OPT_MSG_QUEUE
-    .msg_queue.create = kl_msg_queue_create,
-    .msg_queue.delete = kl_msg_queue_delete,
-    .msg_queue.send = kl_msg_queue_send,
-    .msg_queue.send_urgent = kl_msg_queue_send_urgent,
-    .msg_queue.recv = kl_msg_queue_recv,
-    .msg_queue.clear = kl_msg_queue_clear,
-    .msg_queue.count = kl_msg_queue_count,
+    .mqueue.create = kl_mqueue_create,
+    .mqueue.delete = kl_mqueue_delete,
+    .mqueue.send = kl_mqueue_send,
+    .mqueue.send_urgent = kl_mqueue_send_urgent,
+    .mqueue.recv = kl_mqueue_recv,
+    .mqueue.clear = kl_mqueue_clear,
+    .mqueue.count = kl_mqueue_count,
 #endif
 
 #if KLITE_CFG_OPT_SOFT_TIMER
-    .soft_timer.init = kl_soft_timer_init,
-    .soft_timer.deinit = kl_soft_timer_deinit,
-    .soft_timer.create = kl_soft_timer_create,
-    .soft_timer.delete = kl_soft_timer_delete,
-    .soft_timer.start = kl_soft_timer_start,
-    .soft_timer.stop = kl_soft_timer_stop,
+    .timer.create = kl_timer_create,
+    .timer.delete = kl_timer_delete,
+    .timer.add_task = kl_timer_add_task,
+    .timer.remove_task = kl_timer_remove_task,
+    .timer.start_task = kl_timer_start_task,
+    .timer.stop_task = kl_timer_stop_task,
 #endif
 
 #if KLITE_CFG_OPT_THREAD_POOL
@@ -157,14 +167,3 @@ const klite_api_t klite = {
 };
 
 #endif /* KLITE_CFG_INTERFACE_ENABLE */
-
-#include "log.h"
-
-__weak void* kl_heap_alloc_fault_callback(kl_size_t size) {
-  LOG_E("klite: failed to alloc %d", size);
-  return NULL;
-}
-
-__weak void kl_stack_overflow_callback(kl_thread_t thread) {
-  LOG_E("klite: stack overflow on thread-%d", kl_thread_id(thread));
-}

@@ -136,7 +136,7 @@ static size_t xNumberOfSuccessfulFrees = 0;
 
 /*-----------------------------------------------------------*/
 
-void* heap4_alloc(size_t xWantedSize) {
+void* pvPortMalloc(size_t xWantedSize) {
   if (ucHeap == NULL || xWantedSize == 0) return NULL;
   BlockLink_t* pxBlock;
   BlockLink_t* pxPreviousBlock;
@@ -238,7 +238,7 @@ void* heap4_alloc(size_t xWantedSize) {
 }
 /*-----------------------------------------------------------*/
 
-void heap4_free(void* pv) {
+void vPortFree(void* pv) {
   if (pv == NULL || ucHeap == NULL) return;
   uint8_t* puc = (uint8_t*)pv;
   BlockLink_t* pxLink;
@@ -280,10 +280,10 @@ void heap4_free(void* pv) {
   }
 }
 
-void* heap4_realloc(void* pv, size_t xWantedSize) {
+void* pvPortRealloc(void* pv, size_t xWantedSize) {
   if (pv == NULL || ucHeap == NULL) return NULL;
   if (xWantedSize == 0) {
-    heap4_free(pv);
+    vPortFree(pv);
     return NULL;
   }
   BlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
@@ -305,7 +305,7 @@ void* heap4_realloc(void* pv, size_t xWantedSize) {
       }
       if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining)) {
         if (pv == NULL) {
-          pvReturn = heap4_alloc(xWantedSize);
+          pvReturn = pvPortMalloc(xWantedSize);
           (void)xTaskResumeAll();
           return pvReturn;
         }
@@ -346,14 +346,14 @@ void* heap4_realloc(void* pv, size_t xWantedSize) {
             xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
           }
         } else {
-          pvReturn = heap4_alloc(
+          pvReturn = pvPortMalloc(
               (((pxBlockold->xBlockSize) & (~heapBLOCK_ALLOCATED_BITMASK)) -
                xHeapStructSize) +
               xWantedSize);  // 下一块不可用，重新申请一块地址空间，大小为原申请空间加上现在申请空间
           memcpy((uint8_t*)pvReturn, pv,
                  (pxBlockold->xBlockSize &
                   (~heapBLOCK_ALLOCATED_BITMASK) - xHeapStructSize));
-          heap4_free(pv);  // 释放源地址空间
+          vPortFree(pv);  // 释放源地址空间
         }
       }
     }
@@ -363,11 +363,11 @@ void* heap4_realloc(void* pv, size_t xWantedSize) {
   return pvReturn;
 }
 
-void* heap4_calloc(size_t xNum, size_t xSize) {
+void* pvPortCalloc(size_t xNum, size_t xSize) {
   void* pv = NULL;
 
   if (heapMULTIPLY_WILL_OVERFLOW(xNum, xSize) == 0) {
-    pv = heap4_alloc(xNum * xSize);
+    pv = pvPortMalloc(xNum * xSize);
 
     if (pv != NULL) {
       (void)memset(pv, 0, xNum * xSize);
@@ -378,15 +378,15 @@ void* heap4_calloc(size_t xNum, size_t xSize) {
 }
 /*-----------------------------------------------------------*/
 
-size_t heap4_get_free_size(void) { return xFreeBytesRemaining; }
+size_t xPortGetFreeHeapSize(void) { return xFreeBytesRemaining; }
 
 /*-----------------------------------------------------------*/
 
-size_t heap4_get_total_size(void) { return ucHeapSize; }
+size_t xPortGetTotalHeapSize(void) { return ucHeapSize; }
 
 /*-----------------------------------------------------------*/
 
-size_t heap4_get_minimum_free_size(void) {
+size_t xPortGetMinimumEverFreeHeapSize(void) {
   return xMinimumEverFreeBytesRemaining;
 }
 /*-----------------------------------------------------------*/
@@ -396,7 +396,7 @@ void vPortInitialiseBlocks(void) {
 }
 /*-----------------------------------------------------------*/
 
-void heap4_init(uint8_t* heap, size_t heap_size) {
+void prvHeapInit(uint8_t* heap, size_t heap_size) {
   taskENTER_CRITICAL();
 
   ucHeap = heap;
@@ -495,7 +495,7 @@ static void prvInsertBlockIntoFreeList(BlockLink_t* pxBlockToInsert) /*  */
 }
 /*-----------------------------------------------------------*/
 
-void heap4_get_stats(Heap4Stats_t* pxHeapStats) {
+void vPortGetHeapStats(HeapStats_t* pxHeapStats) {
   BlockLink_t* pxBlock;
   size_t xBlocks = 0, xMaxSize = 0,
          xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of

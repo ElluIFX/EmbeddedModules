@@ -5,6 +5,11 @@ static struct kl_thread_list m_list_manage;  // 运行中线程列表
 static struct kl_thread_list m_list_dead;    // 待删除线程列表
 static uint32_t kl_thread_id_counter;        // 线程ID计数器
 
+#define THREAD_OPERATION_INVALID(tcb) \
+  (!(tcb) || (tcb)->prio == 0 || (tcb)->id_flags & KL_THREAD_FLAGS_EXITED)
+#define THREAD_INFO_INVALID(tcb) \
+  (!(tcb) || (tcb)->id_flags & KL_THREAD_FLAGS_EXITED)
+
 kl_thread_t kl_thread_self(void) { return (kl_thread_t)kl_sched_tcb_now; }
 
 kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
@@ -48,7 +53,7 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
 }
 
 void kl_thread_delete(kl_thread_t thread) {
-  if (!thread || thread->prio == 0) return;
+  if (THREAD_OPERATION_INVALID(thread)) return;
   if (thread == kl_sched_tcb_now) return kl_thread_exit();
   kl_port_enter_critical();
   list_remove(&m_list_manage, &thread->node_manage);
@@ -58,7 +63,7 @@ void kl_thread_delete(kl_thread_t thread) {
 }
 
 void kl_thread_suspend(kl_thread_t thread) {
-  if (!thread || thread->prio == 0) return;
+  if (THREAD_OPERATION_INVALID(thread)) return;
   kl_port_enter_critical();
   kl_sched_tcb_suspend(thread);
   if (thread == kl_sched_tcb_now) kl_sched_switch();
@@ -66,7 +71,7 @@ void kl_thread_suspend(kl_thread_t thread) {
 }
 
 void kl_thread_resume(kl_thread_t thread) {
-  if (!thread || thread->prio == 0) return;
+  if (THREAD_OPERATION_INVALID(thread)) return;
   kl_port_enter_critical();
   kl_sched_tcb_resume(thread);
   kl_sched_preempt(false);
@@ -88,11 +93,14 @@ void kl_thread_sleep(kl_tick_t time) {
   kl_port_leave_critical();
 }
 
-kl_tick_t kl_thread_time(kl_thread_t thread) { return thread->time; }
+kl_tick_t kl_thread_time(kl_thread_t thread) {
+  if (THREAD_INFO_INVALID(thread)) return 0;
+  return thread->time;
+}
 
 void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
                           kl_size_t *stack_size) {
-  if (!thread) return;
+  if (THREAD_INFO_INVALID(thread)) return;
   kl_size_t free = 0;
   uint32_t *stack_magic = (uint32_t *)(thread + 1);
   while (*stack_magic++ == KL_STACK_MAGIC_VALUE) free += 4;
@@ -101,7 +109,7 @@ void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
 }
 
 void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
-  if (!thread || thread->prio == 0) return;
+  if (THREAD_OPERATION_INVALID(thread)) return;
   if (!prio) prio = KLITE_CFG_DEFAULT_PRIO;
   if (prio > KLITE_CFG_MAX_PRIO) prio = KLITE_CFG_MAX_PRIO;
   kl_port_enter_critical();
@@ -111,17 +119,17 @@ void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
 }
 
 uint32_t kl_thread_get_priority(kl_thread_t thread) {
-  if (!thread) return 0xFFFFFFFF;
+  if (THREAD_INFO_INVALID(thread)) return 0xFFFFFFFF;
   return thread->prio;
 }
 
 uint32_t kl_thread_id(kl_thread_t thread) {
-  if (!thread) return 0xFFFFFFFF;
+  if (THREAD_INFO_INVALID(thread)) return 0xFFFFFFFF;
   return thread->id_flags >> KL_THREAD_ID_OFFSET;
 }
 
 uint8_t kl_thread_flags(kl_thread_t thread) {
-  if (!thread) return 0xFF;
+  if (THREAD_INFO_INVALID(thread)) return 0xFF;
   return thread->id_flags & KL_THREAD_FLAGS_MASK;
 }
 

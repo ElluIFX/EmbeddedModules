@@ -122,7 +122,7 @@ static bool ulist_expend(ULIST list, mod_size_t req_num) {
     }
     void* new_data = _ulist_realloc(list->data, ULIST_BSIZE(req_num));
     if (new_data == NULL) {
-      LIST_LOG("ulist: malloc failed");
+      LIST_LOG("ulist: realloc failed");
       return false;
     }
     list->data = new_data;

@@ -143,7 +143,7 @@ void kl_sched_tcb_timed_wait(kl_thread_t tcb, struct kl_thread_list *list,
 // @return: 被唤醒的线程控制块, NULL表示无等待线程
 kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list *list);
 
-// Heap使用的独立互斥锁实现
+// Heap使用的独立互斥锁实现 (不支持递归!)
 #define __KL_HEAP_MUTEX_IMPL__                             \
   volatile static uint8_t heap_lock = 0;                   \
   static struct kl_thread_list heap_waitlist;              \

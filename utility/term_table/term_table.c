@@ -10,6 +10,9 @@
 
 #include "term_table.h"
 
+#include <stdarg.h>
+#include <string.h>
+
 #include "uart_pack.h"
 
 #define _INTERNAL static inline __attribute__((always_inline))

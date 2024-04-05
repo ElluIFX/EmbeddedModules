@@ -24,16 +24,16 @@ config KLITE_CFG_DEFAULT_PRIO
 
 choice
     prompt "Kernel Heap Provider"
-    default KLITE_CFG_HEAP_USE_HEAP4
+    default KLITE_CFG_HEAP_USE_BUILTIN
+
+    config KLITE_CFG_HEAP_USE_BUILTIN
+        bool "Built-in"
 
     config KLITE_CFG_HEAP_USE_HEAP4
-        bool "Heap4 (From FreeRTOS)"
+        bool "Third-Party: Heap4 (FreeRTOS)"
 
     config KLITE_CFG_HEAP_USE_LWMEM
-        bool "LwMEM"
-
-    config KLITE_CFG_HEAP_USE_BASIC
-        bool "Basic"
+        bool "Third-Party: LwMEM"
 endchoice
 
 config KLITE_CFG_DEFAULT_STACK_SIZE
@@ -71,7 +71,7 @@ choice
         bool "Hard Fault (by accessing 0x10 address)"
 
     config KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
-        bool "Callback [void kl_stack_overflow_callback(kl_thread_t)]"
+        bool "Callback [void kl_stack_overflow_hook(kl_thread_t)]"
 
     help
         The behavior when a stack overflow is detected.
