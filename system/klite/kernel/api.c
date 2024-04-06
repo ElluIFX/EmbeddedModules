@@ -44,6 +44,7 @@ const klite_api_t klite = {
     .thread.yield = kl_thread_yield,
     .thread.exit = kl_thread_exit,
     .thread.time = kl_thread_time,
+    .thread.timeout = kl_thread_timeout,
     .thread.get_priority = kl_thread_get_priority,
     .thread.set_priority = kl_thread_set_priority,
     .thread.stack_info = kl_thread_stack_info,
@@ -56,8 +57,6 @@ const klite_api_t klite = {
     .sem.delete = kl_sem_delete,
     .sem.give = kl_sem_give,
     .sem.take = kl_sem_take,
-    .sem.try_take = kl_sem_try_take,
-    .sem.timed_take = kl_sem_timed_take,
     .sem.value = kl_sem_value,
     .sem.reset = kl_sem_reset,
 #endif
@@ -68,7 +67,6 @@ const klite_api_t klite = {
     .event.set = kl_event_set,
     .event.reset = kl_event_reset,
     .event.wait = kl_event_wait,
-    .event.timed_wait = kl_event_timed_wait,
     .event.is_set = kl_event_is_set,
 #endif
 
@@ -77,8 +75,6 @@ const klite_api_t klite = {
     .mutex.delete = kl_mutex_delete,
     .mutex.lock = kl_mutex_lock,
     .mutex.unlock = kl_mutex_unlock,
-    .mutex.try_lock = kl_mutex_try_lock,
-    .mutex.timed_lock = kl_mutex_timed_lock,
 #endif
 
 #if KLITE_CFG_OPT_COND
@@ -87,7 +83,7 @@ const klite_api_t klite = {
     .cond.signal = kl_cond_signal,
     .cond.broadcast = kl_cond_broadcast,
     .cond.wait = kl_cond_wait,
-    .cond.timed_wait = kl_cond_timed_wait,
+    .cond.wait_complete = kl_cond_wait_complete,
 #endif
 
 #if KLITE_CFG_OPT_EVENT_FLAGS
@@ -96,7 +92,6 @@ const klite_api_t klite = {
     .event_flags.set = kl_event_flags_set,
     .event_flags.reset = kl_event_flags_reset,
     .event_flags.wait = kl_event_flags_wait,
-    .event_flags.timed_wait = kl_event_flags_timed_wait,
 #endif
 
 #if KLITE_CFG_OPT_RWLOCK
@@ -106,11 +101,6 @@ const klite_api_t klite = {
     .rwlock.read_unlock = kl_rwlock_read_unlock,
     .rwlock.write_lock = kl_rwlock_write_lock,
     .rwlock.write_unlock = kl_rwlock_write_unlock,
-    .rwlock.unlock = kl_rwlock_unlock,
-    .rwlock.try_read_lock = kl_rwlock_try_read_lock,
-    .rwlock.try_write_lock = kl_rwlock_try_write_lock,
-    .rwlock.timed_read_lock = kl_rwlock_timed_read_lock,
-    .rwlock.timed_write_lock = kl_rwlock_timed_write_lock,
 #endif
 
 #if KLITE_CFG_OPT_BARRIER
@@ -132,12 +122,11 @@ const klite_api_t klite = {
 #if KLITE_CFG_OPT_MPOOL
     .mpool.create = kl_mpool_create,
     .mpool.delete = kl_mpool_delete,
-    .mpool.timed_alloc = kl_mpool_timed_alloc,
     .mpool.alloc = kl_mpool_alloc,
     .mpool.free = kl_mpool_free,
 #endif
 
-#if KLITE_CFG_OPT_MSG_QUEUE
+#if KLITE_CFG_OPT_MQUEUE
     .mqueue.create = kl_mqueue_create,
     .mqueue.delete = kl_mqueue_delete,
     .mqueue.send = kl_mqueue_send,
@@ -145,9 +134,12 @@ const klite_api_t klite = {
     .mqueue.recv = kl_mqueue_recv,
     .mqueue.clear = kl_mqueue_clear,
     .mqueue.count = kl_mqueue_count,
+    .mqueue.pending = kl_mqueue_pending,
+    .mqueue.task_done = kl_mqueue_task_done,
+    .mqueue.join = kl_mqueue_join,
 #endif
 
-#if KLITE_CFG_OPT_SOFT_TIMER
+#if KLITE_CFG_OPT_TIMER
     .timer.create = kl_timer_create,
     .timer.delete = kl_timer_delete,
     .timer.add_task = kl_timer_add_task,
@@ -161,7 +153,7 @@ const klite_api_t klite = {
     .thread_pool.submit = kl_thread_pool_submit,
     .thread_pool.shutdown = kl_thread_pool_shutdown,
     .thread_pool.join = kl_thread_pool_join,
-    .thread_pool.pending_task = kl_thread_pool_pending_task,
+    .thread_pool.pending = kl_thread_pool_pending,
 #endif
 
 };

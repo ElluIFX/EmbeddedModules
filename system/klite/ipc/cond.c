@@ -28,29 +28,22 @@ void kl_cond_broadcast(kl_cond_t cond) {
   kl_port_leave_critical();
 }
 
-void kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex) {
-  kl_port_enter_critical();
-  kl_sched_tcb_wait(kl_sched_tcb_now, (struct kl_thread_list *)cond);
-  if (mutex) kl_mutex_unlock(mutex);
-  kl_sched_switch();
-  kl_port_leave_critical();
-  if (mutex) kl_mutex_lock(mutex);
-}
-
-kl_tick_t kl_cond_timed_wait(kl_cond_t cond, kl_mutex_t mutex,
-                             kl_tick_t timeout) {
-  kl_port_enter_critical();
+bool kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex, kl_tick_t timeout) {
   if (timeout == 0) {
-    kl_port_leave_critical();
     return false;
   }
+  kl_port_enter_critical();
   kl_sched_tcb_timed_wait(kl_sched_tcb_now, (struct kl_thread_list *)cond,
                           timeout);
   if (mutex) kl_mutex_unlock(mutex);
   kl_sched_switch();
   kl_port_leave_critical();
-  if (mutex) kl_mutex_lock(mutex);
-  return kl_sched_tcb_now->timeout;
+  if (mutex) kl_mutex_lock(mutex, kl_sched_tcb_now->timeout);
+  return kl_sched_tcb_now->timeout > 0;
+}
+
+bool kl_cond_wait_complete(kl_cond_t cond, kl_tick_t timeout) {
+  return kl_cond_wait(cond, NULL, timeout);
 }
 
 #endif

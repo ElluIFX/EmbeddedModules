@@ -2,7 +2,7 @@
 
 #if KLITE_CFG_OPT_BARRIER
 
-kl_barrier_t kl_barrier_create(uint32_t target) {
+kl_barrier_t kl_barrier_create(kl_size_t target) {
   struct kl_barrier *barrier;
   barrier = kl_heap_alloc(sizeof(struct kl_barrier));
   if (barrier != NULL) {
@@ -26,23 +26,28 @@ static bool kl_barrier_check(struct kl_barrier *barrier) {
   return false;
 }
 
-void kl_barrier_set(kl_barrier_t barrier, uint32_t target) {
+void kl_barrier_set(kl_barrier_t barrier, kl_size_t target) {
   kl_port_enter_critical();
   barrier->target = target;
   kl_barrier_check(barrier);
   kl_port_leave_critical();
 }
 
-uint32_t kl_barrier_get(kl_barrier_t barrier) { return barrier->value; }
+kl_size_t kl_barrier_get(kl_barrier_t barrier) { return barrier->value; }
 
-void kl_barrier_wait(kl_barrier_t barrier) {
+bool kl_barrier_wait(kl_barrier_t barrier, kl_tick_t timeout) {
   kl_port_enter_critical();
+  if (timeout == 0 && barrier->value + 1 < barrier->target) {
+    kl_port_leave_critical();
+    return false;
+  }
   barrier->value++;
   if (!kl_barrier_check(barrier)) {
-    kl_sched_tcb_wait(kl_sched_tcb_now, &barrier->list);
+    kl_sched_tcb_timed_wait(kl_sched_tcb_now, &barrier->list, timeout);
     kl_sched_switch();
   }
   kl_port_leave_critical();
+  return kl_sched_tcb_now->timeout > 0;
 }
 
 #endif

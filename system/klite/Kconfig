@@ -113,8 +113,7 @@ if KLITE_CFG_OPT_ENABLE
 
     config KLITE_CFG_OPT_COND
         bool "Condition Variable"
-        default n
-        select KLITE_CFG_OPT_MUTEX
+        default y
         help
             Enable the condition variable.
 
@@ -162,28 +161,26 @@ if KLITE_CFG_OPT_ENABLE
         help
             Enable the memory pool.
 
-    config KLITE_CFG_OPT_MSG_QUEUE
+    config KLITE_CFG_OPT_MQUEUE
         bool "Message Queue"
         default n
-        select KLITE_CFG_OPT_SEM
         select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_MPOOL
+        select KLITE_CFG_OPT_COND
         help
             Enable the message queue.
 
-    config KLITE_CFG_OPT_SOFT_TIMER
+    config KLITE_CFG_OPT_TIMER
         bool "Software Timer"
         default n
         select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_EVENT
+        select KLITE_CFG_OPT_COND
         help
             Enable the software timer.
 
     config KLITE_CFG_OPT_THREAD_POOL
         bool "Thread Pool"
         default n
-        select KLITE_CFG_OPT_SEM
-        select KLITE_CFG_OPT_MSG_QUEUE
+        select KLITE_CFG_OPT_MQUEUE
         help
             Enable the thread pool.
 endif

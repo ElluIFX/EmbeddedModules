@@ -46,6 +46,7 @@ typedef struct {
     void (*exit)(void);
     kl_thread_t (*self)(void);
     kl_tick_t (*time)(kl_thread_t thread);
+    kl_tick_t (*timeout)(void);
     void (*stack_info)(kl_thread_t thread, kl_size_t *stack_free,
                        kl_size_t *stack_size);
     void (*set_priority)(kl_thread_t thread, uint32_t prio);
@@ -57,14 +58,12 @@ typedef struct {
 
 #if KLITE_CFG_OPT_SEM
   struct {
-    kl_sem_t (*create)(uint32_t value);
+    kl_sem_t (*create)(kl_size_t value);
     void (*delete)(kl_sem_t sem);
     void (*give)(kl_sem_t sem);
-    void (*take)(kl_sem_t sem);
-    bool (*try_take)(kl_sem_t sem);
-    kl_tick_t (*timed_take)(kl_sem_t sem, kl_tick_t timeout);
-    uint32_t (*value)(kl_sem_t sem);
-    void (*reset)(kl_sem_t sem, uint32_t value);
+    bool (*take)(kl_sem_t sem, kl_tick_t timeout);
+    kl_size_t (*value)(kl_sem_t sem);
+    void (*reset)(kl_sem_t sem, kl_size_t value);
   } sem;
 #endif
 
@@ -74,8 +73,7 @@ typedef struct {
     void (*delete)(kl_event_t event);
     void (*set)(kl_event_t event);
     void (*reset)(kl_event_t event);
-    void (*wait)(kl_event_t event);
-    kl_tick_t (*timed_wait)(kl_event_t event, kl_tick_t timeout);
+    bool (*wait)(kl_event_t event, kl_tick_t timeout);
     bool (*is_set)(kl_event_t event);
   } event;
 #endif
@@ -84,10 +82,8 @@ typedef struct {
   struct {
     kl_mutex_t (*create)(void);
     void (*delete)(kl_mutex_t mutex);
-    void (*lock)(kl_mutex_t mutex);
+    bool (*lock)(kl_mutex_t mutex, kl_tick_t timeout);
     void (*unlock)(kl_mutex_t mutex);
-    bool (*try_lock)(kl_mutex_t mutex);
-    kl_tick_t (*timed_lock)(kl_mutex_t mutex, kl_tick_t timeout);
   } mutex;
 #endif
 
@@ -97,9 +93,8 @@ typedef struct {
     void (*delete)(kl_cond_t cond);
     void (*signal)(kl_cond_t cond);
     void (*broadcast)(kl_cond_t cond);
-    void (*wait)(kl_cond_t cond, kl_mutex_t mutex);
-    kl_tick_t (*timed_wait)(kl_cond_t cond, kl_mutex_t mutex,
-                            kl_tick_t timeout);
+    bool (*wait)(kl_cond_t cond, kl_mutex_t mutex, kl_tick_t timeout);
+    bool (*wait_complete)(kl_cond_t cond, kl_tick_t timeout);
   } cond;
 #endif
 
@@ -107,15 +102,10 @@ typedef struct {
   struct {
     kl_rwlock_t (*create)(void);
     void (*delete)(kl_rwlock_t rwlock);
-    void (*read_lock)(kl_rwlock_t rwlock);
+    bool (*read_lock)(kl_rwlock_t rwlock, kl_tick_t timeout);
+    bool (*write_lock)(kl_rwlock_t rwlock, kl_tick_t timeout);
     void (*read_unlock)(kl_rwlock_t rwlock);
-    void (*write_lock)(kl_rwlock_t rwlock);
     void (*write_unlock)(kl_rwlock_t rwlock);
-    void (*unlock)(kl_rwlock_t rwlock);
-    bool (*try_read_lock)(kl_rwlock_t rwlock);
-    bool (*try_write_lock)(kl_rwlock_t rwlock);
-    kl_tick_t (*timed_read_lock)(kl_rwlock_t rwlock, kl_tick_t timeout);
-    kl_tick_t (*timed_write_lock)(kl_rwlock_t rwlock, kl_tick_t timeout);
   } rwlock;
 #endif
 
@@ -123,21 +113,20 @@ typedef struct {
   struct {
     kl_event_flags_t (*create)(void);
     void (*delete)(kl_event_flags_t flags);
-    void (*set)(kl_event_flags_t flags, uint32_t bits);
-    void (*reset)(kl_event_flags_t flags, uint32_t bits);
-    uint32_t (*wait)(kl_event_flags_t flags, uint32_t bits, uint32_t ops);
-    uint32_t (*timed_wait)(kl_event_flags_t flags, uint32_t bits, uint32_t ops,
-                           kl_tick_t timeout);
+    void (*set)(kl_event_flags_t flags, kl_size_t bits);
+    void (*reset)(kl_event_flags_t flags, kl_size_t bits);
+    kl_size_t (*wait)(kl_event_flags_t flags, kl_size_t bits, kl_size_t ops,
+                      kl_tick_t timeout);
   } event_flags;
 #endif
 
 #if KLITE_CFG_OPT_BARRIER
   struct {
-    kl_barrier_t (*create)(uint32_t target);
+    kl_barrier_t (*create)(kl_size_t target);
     void (*delete)(kl_barrier_t barrier);
-    void (*set)(kl_barrier_t barrier, uint32_t target);
-    uint32_t (*get)(kl_barrier_t barrier);
-    void (*wait)(kl_barrier_t barrier);
+    void (*set)(kl_barrier_t barrier, kl_size_t target);
+    kl_size_t (*get)(kl_barrier_t barrier);
+    bool (*wait)(kl_barrier_t barrier, kl_tick_t timeout);
   } barrier;
 #endif
 
@@ -157,13 +146,12 @@ typedef struct {
   struct {
     kl_mpool_t (*create)(kl_size_t block_size, kl_size_t block_count);
     void (*delete)(kl_mpool_t mpool);
-    void *(*timed_alloc)(kl_mpool_t mpool, kl_tick_t timeout);
-    void *(*alloc)(kl_mpool_t mpool);
+    void *(*alloc)(kl_mpool_t mpool, kl_tick_t timeout);
     void (*free)(kl_mpool_t mpool, void *block);
   } mpool;
 #endif
 
-#if KLITE_CFG_OPT_MSG_QUEUE
+#if KLITE_CFG_OPT_MQUEUE
   struct {
     kl_mqueue_t (*create)(kl_size_t msg_size, kl_size_t queue_depth);
     void (*delete)(kl_mqueue_t queue);
@@ -172,10 +160,13 @@ typedef struct {
     bool (*send_urgent)(kl_mqueue_t queue, void *item, kl_tick_t timeout);
     bool (*recv)(kl_mqueue_t queue, void *item, kl_tick_t timeout);
     kl_size_t (*count)(kl_mqueue_t queue);
+    kl_size_t (*pending)(kl_mqueue_t queue);
+    void (*task_done)(kl_mqueue_t queue);
+    bool (*join)(kl_mqueue_t queue, kl_tick_t timeout);
   } mqueue;
 #endif
 
-#if KLITE_CFG_OPT_SOFT_TIMER
+#if KLITE_CFG_OPT_TIMER
   struct {
     kl_timer_t (*create)(kl_size_t stack_size, uint32_t priority);
     void (*delete)(kl_timer_t timer);
@@ -196,8 +187,8 @@ typedef struct {
     bool (*submit)(kl_thread_pool_t pool, void (*process)(void *arg), void *arg,
                    kl_tick_t timeout);
     void (*shutdown)(kl_thread_pool_t pool);
-    void (*join)(kl_thread_pool_t pool);
-    kl_size_t (*pending_task)(kl_thread_pool_t pool);
+    bool (*join)(kl_thread_pool_t pool, kl_tick_t timeout);
+    kl_size_t (*pending)(kl_thread_pool_t pool);
   } thread_pool;
 #endif
 } klite_api_t;

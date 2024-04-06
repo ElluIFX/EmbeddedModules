@@ -1,4 +1,4 @@
-#include "kl_list.h"
+#include "kl_blist.h"
 #include "kl_priv.h"
 
 kl_thread_t kl_sched_tcb_now;
@@ -26,7 +26,7 @@ static inline void list_insert_by_priority(struct kl_thread_list *list,
       break;
     }
   }
-  list_insert_after(list, find, node);
+  kl_blist_insert_after(list, find, node);
 }
 
 static inline uint32_t find_highest_priority(uint32_t highest) {
@@ -39,13 +39,13 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
 }
 
 static inline void remove_list_wait(kl_thread_t tcb) {
-  list_remove(tcb->list_wait, &tcb->node_wait);
+  kl_blist_remove(tcb->list_wait, &tcb->node_wait);
   tcb->list_wait = NULL;
   KL_CLR_FLAG32(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
 }
 
 static inline void remove_list_sched(kl_thread_t tcb) {
-  list_remove(tcb->list_sched, &tcb->node_sched);
+  kl_blist_remove(tcb->list_sched, &tcb->node_sched);
   if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
   {
     if (tcb->list_sched->head == NULL) {
@@ -75,7 +75,7 @@ void kl_sched_tcb_ready(kl_thread_t tcb) {
     remove_list_sched(tcb);
   }
   tcb->list_sched = &m_list_ready[tcb->prio];
-  list_append(tcb->list_sched, &tcb->node_sched);
+  kl_blist_append(tcb->list_sched, &tcb->node_sched);
   m_prio_bitmap |= (1 << tcb->prio);
   if (m_prio_highest < tcb->prio) {
     m_prio_highest = tcb->prio;
@@ -108,13 +108,13 @@ void kl_sched_tcb_resume(kl_thread_t tcb) {
 #if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
       list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
 #else  // FIFO
-      list_append(tcb->list_wait, &tcb->node_wait);
+      kl_blist_append(tcb->list_wait, &tcb->node_wait);
 #endif
       KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
     }
     if (tcb->list_sched == &m_list_sleep) { /* set sleep */
       tcb->timeout += m_idle_elapse;
-      list_append(tcb->list_sched, &tcb->node_sched);
+      kl_blist_append(tcb->list_sched, &tcb->node_sched);
       if (tcb->timeout < m_idle_timeout) {
         m_idle_timeout = tcb->timeout;
       }
@@ -134,25 +134,25 @@ void kl_sched_tcb_reset_prio(kl_thread_t tcb, uint32_t prio) {
     return; /* suspend state, lists stored are not real */
   }
   if (tcb->list_wait) {
-    list_remove(tcb->list_wait, &tcb->node_wait);
+    kl_blist_remove(tcb->list_wait, &tcb->node_wait);
 #if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
     list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
 #else  // FIFO
-    list_append(tcb->list_wait, &tcb->node_wait);
+    kl_blist_append(tcb->list_wait, &tcb->node_wait);
 #endif
   }
   if (tcb->list_sched) {
     if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
     {
       /* remove from old list */
-      list_remove(tcb->list_sched, &tcb->node_sched);
+      kl_blist_remove(tcb->list_sched, &tcb->node_sched);
       if (tcb->list_sched->head == NULL) {
         m_prio_bitmap &= ~(1 << old_prio);
         m_prio_highest = find_highest_priority(m_prio_highest);
       }
       /* append to new list */
       tcb->list_sched = &m_list_ready[prio];
-      list_append(tcb->list_sched, &tcb->node_sched);
+      kl_blist_append(tcb->list_sched, &tcb->node_sched);
       m_prio_bitmap |= (1 << prio);
       if (m_prio_highest < prio) {
         m_prio_highest = prio;
@@ -171,7 +171,7 @@ void kl_sched_tcb_sleep(kl_thread_t tcb, kl_tick_t timeout) {
   }
   tcb->timeout = timeout + m_idle_elapse;
   tcb->list_sched = &m_list_sleep;
-  list_append(tcb->list_sched, &tcb->node_sched);
+  kl_blist_append(tcb->list_sched, &tcb->node_sched);
   if (tcb->timeout < m_idle_timeout) {
     m_idle_timeout = tcb->timeout;
   }
@@ -186,7 +186,7 @@ void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list *list) {
 #if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
   list_insert_by_priority(list, &tcb->node_wait);
 #else  // FIFO
-  list_append(list, &tcb->node_wait);
+  kl_blist_append(list, &tcb->node_wait);
 #endif
   KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
 }
@@ -273,7 +273,7 @@ void kl_sched_switch(void) {
 #endif
   }
 #endif
-  list_remove(tcb->list_sched, &tcb->node_sched);
+  kl_blist_remove(tcb->list_sched, &tcb->node_sched);
   KL_CLR_FLAG32(tcb->id_flags, KL_THREAD_FLAGS_READY);
   if (tcb->list_sched->head == NULL) {
     m_prio_bitmap &= ~(1 << tcb->prio);

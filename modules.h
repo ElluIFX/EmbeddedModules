@@ -197,16 +197,16 @@ typedef uint64_t m_time_t;
 #include "klite.h"
 #define MOD_MUTEX_HANDLE kl_mutex_t
 #define MOD_MUTEX_CREATE(name) kl_mutex_create()
-#define MOD_MUTEX_ACQUIRE(mutex) kl_mutex_lock(mutex)
+#define MOD_MUTEX_ACQUIRE(mutex) kl_mutex_lock(mutex, KL_WAIT_FOREVER)
 #define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
-  kl_mutex_timed_lock(mutex, kl_ms_to_ticks(ms))
+  kl_mutex_lock(mutex, kl_ms_to_ticks(ms))
 #define MOD_MUTEX_RELEASE(mutex) kl_mutex_unlock(mutex)
 #define MOD_MUTEX_DELETE(mutex) kl_mutex_delete(mutex)
 
 #define MOD_SEM_HANDLE kl_sem_t
 #define MOD_SEM_CREATE(name, init) kl_sem_create(init)
-#define MOD_SEM_TAKE(sem) kl_sem_take(sem)
-#define MOD_SEM_TRY_TAKE(sem, ms) kl_sem_timed_take(sem, kl_ms_to_ticks(ms))
+#define MOD_SEM_TAKE(sem) kl_sem_take(sem, KL_WAIT_FOREVER)
+#define MOD_SEM_TRY_TAKE(sem, ms) kl_sem_take(sem, kl_ms_to_ticks(ms))
 #define MOD_SEM_GIVE(sem) kl_sem_give(sem)
 #define MOD_SEM_VALUE(sem) kl_sem_value(sem)
 #define MOD_SEM_DELETE(sem) kl_sem_delete(sem)

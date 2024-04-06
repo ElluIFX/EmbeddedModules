@@ -1,4 +1,4 @@
-#include "kl_list.h"
+#include "kl_blist.h"
 #include "kl_priv.h"
 
 static struct kl_thread_list m_list_manage;  // 运行中线程列表
@@ -45,7 +45,7 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
   tcb->id_flags = (kl_thread_id_counter++) << KL_THREAD_ID_OFFSET;
 
   kl_port_enter_critical();
-  list_prepend(&m_list_manage, &tcb->node_manage);
+  kl_blist_prepend(&m_list_manage, &tcb->node_manage);
   kl_sched_tcb_ready(tcb);
   kl_port_leave_critical();
 
@@ -56,7 +56,7 @@ void kl_thread_delete(kl_thread_t thread) {
   if (THREAD_OPERATION_INVALID(thread)) return;
   if (thread == kl_sched_tcb_now) return kl_thread_exit();
   kl_port_enter_critical();
-  list_remove(&m_list_manage, &thread->node_manage);
+  kl_blist_remove(&m_list_manage, &thread->node_manage);
   kl_sched_tcb_remove(thread);
   kl_port_leave_critical();
   kl_heap_free(thread);
@@ -97,6 +97,8 @@ kl_tick_t kl_thread_time(kl_thread_t thread) {
   if (THREAD_INFO_INVALID(thread)) return 0;
   return thread->time;
 }
+
+kl_tick_t kl_thread_timeout(void) { return kl_sched_tcb_now->timeout; }
 
 void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
                           kl_size_t *stack_size) {
@@ -161,8 +163,8 @@ kl_thread_t kl_thread_iter(kl_thread_t thread) {
 void kl_thread_exit(void) {
   kl_port_enter_critical();
   kl_sched_tcb_remove(kl_sched_tcb_now);
-  list_remove(&m_list_manage, &kl_sched_tcb_now->node_manage);
-  list_append(&m_list_dead, &kl_sched_tcb_now->node_manage);
+  kl_blist_remove(&m_list_manage, &kl_sched_tcb_now->node_manage);
+  kl_blist_append(&m_list_dead, &kl_sched_tcb_now->node_manage);
   kl_sched_switch();
   kl_port_leave_critical();
 }
@@ -172,7 +174,7 @@ void kl_thread_clean_up(void) {
   while (m_list_dead.head) {
     kl_port_enter_critical();
     node = m_list_dead.head;
-    list_remove(&m_list_dead, node);
+    kl_blist_remove(&m_list_dead, node);
     kl_port_leave_critical();
     kl_heap_free(node->tcb);
   }

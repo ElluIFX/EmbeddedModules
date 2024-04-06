@@ -12,135 +12,77 @@ kl_rwlock_t kl_rwlock_create(void) {
   } else {
     return NULL;
   }
-
-  rwlock->mutex = kl_mutex_create();
-  if (rwlock->mutex == NULL) {
-    kl_heap_free(rwlock);
-    return NULL;
-  }
-
-  rwlock->read = kl_cond_create();
-  if (rwlock->read == NULL) {
-    kl_mutex_delete(rwlock->mutex);
-    kl_heap_free(rwlock);
-    return NULL;
-  }
-
-  rwlock->write = kl_cond_create();
-  if (rwlock->write == NULL) {
-    kl_cond_delete(rwlock->read);
-    kl_mutex_delete(rwlock->mutex);
-    kl_heap_free(rwlock);
-    return NULL;
-  }
-
   return (kl_rwlock_t)rwlock;
 }
 
 void kl_rwlock_delete(kl_rwlock_t rwlock) { kl_heap_free(rwlock); }
 
-void kl_rwlock_read_lock(kl_rwlock_t rwlock) {
-  kl_mutex_lock(rwlock->mutex);
+bool kl_rwlock_read_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
+  bool ret;
+  kl_mutex_lock(&rwlock->mutex, KL_WAIT_FOREVER);
   if (rwlock->write_wait_count > 0 || rwlock->rw_count < 0) {
+    if (!timeout) {
+      kl_mutex_unlock(&rwlock->mutex);
+      return false;
+    }
     rwlock->read_wait_count++;
-    kl_cond_wait(rwlock->read, rwlock->mutex);
+    ret = kl_cond_wait(&rwlock->read, &rwlock->mutex, timeout);
     rwlock->read_wait_count--;
+  } else {
+    ret = true;
   }
-  rwlock->rw_count++;
-  kl_mutex_unlock(rwlock->mutex);
+  if (ret) {
+    rwlock->rw_count++;
+  }
+  kl_mutex_unlock(&rwlock->mutex);
+  return ret;
 }
 
 void kl_rwlock_read_unlock(kl_rwlock_t rwlock) {
   if (rwlock->rw_count <= 0) return;
-  kl_mutex_lock(rwlock->mutex);
+  kl_mutex_lock(&rwlock->mutex, KL_WAIT_FOREVER);
   rwlock->rw_count--;
+  kl_mutex_unlock(&rwlock->mutex);
   if (rwlock->rw_count == 0 && rwlock->write_wait_count > 0) {
-    kl_cond_signal(rwlock->write);
+    kl_cond_signal(&rwlock->write);
   }
-  kl_mutex_unlock(rwlock->mutex);
 }
 
-void kl_rwlock_write_lock(kl_rwlock_t rwlock) {
-  kl_mutex_lock(rwlock->mutex);
-  if (rwlock->write_wait_count > 0 || rwlock->rw_count != 0) {
+bool kl_rwlock_write_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
+  bool ret;
+  kl_mutex_lock(&rwlock->mutex, KL_WAIT_FOREVER);
+  if (rwlock->write_wait_count > 0 ||
+      (rwlock->rw_count != 0 && rwlock->writer != kl_sched_tcb_now)) {
+    if (!timeout) {
+      kl_mutex_unlock(&rwlock->mutex);
+      return false;
+    }
     rwlock->write_wait_count++;
-    kl_cond_wait(rwlock->write, rwlock->mutex);
+    ret = kl_cond_wait(&rwlock->write, &rwlock->mutex, timeout);
     rwlock->write_wait_count--;
+  } else {
+    ret = true;
   }
-  rwlock->rw_count = -1;
-  kl_mutex_unlock(rwlock->mutex);
+  if (ret) {
+    rwlock->rw_count--;
+    rwlock->writer = kl_sched_tcb_now;
+  }
+  kl_mutex_unlock(&rwlock->mutex);
+  return ret;
 }
 
 void kl_rwlock_write_unlock(kl_rwlock_t rwlock) {
   if (rwlock->rw_count >= 0) return;
-  kl_mutex_lock(rwlock->mutex);
-  rwlock->rw_count = 0;
-  if (rwlock->read_wait_count > 0) {  // 优先唤醒读锁
-    kl_cond_broadcast(rwlock->read);
-  } else if (rwlock->write_wait_count > 0) {  // 唤醒写锁
-    kl_cond_signal(rwlock->write);
-  }
-  kl_mutex_unlock(rwlock->mutex);
-}
-
-void kl_rwlock_unlock(kl_rwlock_t rwlock) {
-  if (rwlock->rw_count < 0) {
-    kl_rwlock_write_unlock(rwlock);
-  } else if (rwlock->rw_count > 0) {
-    kl_rwlock_read_unlock(rwlock);
+  if (rwlock->writer != kl_sched_tcb_now) return;
+  kl_mutex_lock(&rwlock->mutex, KL_WAIT_FOREVER);
+  rwlock->rw_count++;
+  kl_mutex_unlock(&rwlock->mutex);
+  if (rwlock->rw_count == 0) {
+    if (rwlock->read_wait_count > 0) {  // 优先唤醒读锁
+      kl_cond_broadcast(&rwlock->read);
+    } else if (rwlock->write_wait_count > 0) {  // 唤醒写锁
+      kl_cond_signal(&rwlock->write);
+    }
   }
 }
-
-bool kl_rwlock_try_read_lock(kl_rwlock_t rwlock) {
-  bool ret = false;
-  kl_mutex_lock(rwlock->mutex);
-  if (rwlock->write_wait_count == 0 && rwlock->rw_count >= 0) {
-    rwlock->rw_count++;
-    ret = true;
-  }
-  kl_mutex_unlock(rwlock->mutex);
-  return ret;
-}
-
-bool kl_rwlock_try_write_lock(kl_rwlock_t rwlock) {
-  bool ret = false;
-  kl_mutex_lock(rwlock->mutex);
-  if (rwlock->write_wait_count == 0 && rwlock->rw_count == 0) {
-    rwlock->rw_count = -1;
-    ret = true;
-  }
-  kl_mutex_unlock(rwlock->mutex);
-  return ret;
-}
-
-kl_tick_t kl_rwlock_timed_read_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
-  kl_tick_t ret = 0;
-  kl_mutex_lock(rwlock->mutex);
-  if (rwlock->write_wait_count > 0 || rwlock->rw_count < 0) {
-    rwlock->read_wait_count++;
-    ret = kl_cond_timed_wait(rwlock->read, rwlock->mutex, timeout);
-    rwlock->read_wait_count--;
-  }
-  if (ret != 0) {
-    rwlock->rw_count++;
-  }
-  kl_mutex_unlock(rwlock->mutex);
-  return ret;
-}
-
-kl_tick_t kl_rwlock_timed_write_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
-  kl_tick_t ret = 0;
-  kl_mutex_lock(rwlock->mutex);
-  if (rwlock->write_wait_count > 0 || rwlock->rw_count != 0) {
-    rwlock->write_wait_count++;
-    ret = kl_cond_timed_wait(rwlock->write, rwlock->mutex, timeout);
-    rwlock->write_wait_count--;
-  }
-  if (ret != 0) {
-    rwlock->rw_count = -1;
-  }
-  kl_mutex_unlock(rwlock->mutex);
-  return ret;
-}
-
 #endif

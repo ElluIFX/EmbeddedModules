@@ -60,19 +60,19 @@ uint32_t kl_kernel_version(void);
 /**
  * @brief 获取系统从启动到现在空闲线程占用CPU的总时间
  * @note 可使用此函数和kernel_tick_count()一起计算CPU占用率
- * @retval 系统空闲时间(Tick)
+ * @retval 系统空闲时间
  */
 kl_tick_t kl_kernel_idle_time(void);
 
 /**
  * @brief 此函数可以获取内核从启动到现在所运行的总时间
- * @retval 系统运行时间(Tick)
+ * @retval 系统运行时间
  */
 kl_tick_t kl_kernel_tick(void);
 
 /**
  * @brief 此函数可以获取内核从启动到现在所运行的总时间
- * @retval 系统运行时间(Tick)
+ * @retval 系统运行时间
  */
 uint64_t kl_kernel_tick64(void);
 
@@ -180,7 +180,7 @@ void kl_heap_stats(kl_heap_stats_t stats);
  * @brief 创建新线程, 并加入就绪队列
  * @param entry 线程入口函数
  * @param arg 线程入口函数的参数
- * @param stack_size 线程的栈大小（字节）, 0:使用默认值
+ * @param stack_size 线程的栈大小(字节), 0:使用默认值
  * @param prio 线程优先级 (>0) , 0:使用默认值
  * @retval 成功返回线程句柄, 失败返回NULL
  */
@@ -230,9 +230,16 @@ void kl_thread_exit(void);
 kl_thread_t kl_thread_self(void);
 
 /**
+ * @brief 获取当前线程上一次操作的剩余超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @param thread 线程标识符
+ * @retval 剩余超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ */
+kl_tick_t kl_thread_timeout(void);
+
+/**
  * @brief 获取线程自创建以来所占用CPU的时间
  * @param thread 线程标识符
- * @retval 指定线程运行时间（Tick）
+ * @retval 指定线程运行时间
  * @note 在休眠期间的时间不计算在内, 可以使用此函数来监控某个线程的CPU占用率
  */
 kl_tick_t kl_thread_time(kl_thread_t thread);
@@ -315,8 +322,10 @@ void kl_mutex_delete(kl_mutex_t mutex);
  * @brief 将mutex指定的互斥锁标记为锁定状态, 如果mutex已被其它线程锁定,
  * 则调用线程将会被阻塞, 直到另一个线程释放这个互斥锁
  * @param mutex 互斥锁标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果锁定成功则返回true, 失败则返回false
  */
-void kl_mutex_lock(kl_mutex_t mutex);
+bool kl_mutex_lock(kl_mutex_t mutex, kl_tick_t timeout);
 
 /**
  * @brief 释放mutex标识的互斥锁, 如果有其它线程正在等待这个锁,
@@ -324,21 +333,6 @@ void kl_mutex_lock(kl_mutex_t mutex);
  * @param mutex 互斥锁标识符
  */
 void kl_mutex_unlock(kl_mutex_t mutex);
-
-/**
- * @brief 此函数是kl_mutex_lock的非阻塞版本
- * @param mutex 互斥锁标识符
- * @retval 如果锁定成功则返回true, 失败则返回false
- */
-bool kl_mutex_try_lock(kl_mutex_t mutex);
-
-/**
- * @brief 此函数是kl_mutex_lock的定时版本
- * @param mutex 互斥锁标识符
- * @param timeout 超时时间（Tick）
- * @retval 剩余等待时间, 如果返回0则说明等待超时
- */
-kl_tick_t kl_mutex_timed_lock(kl_mutex_t mutex, kl_tick_t timeout);
 
 #endif  // KLITE_CFG_OPT_MUTEX
 
@@ -376,18 +370,20 @@ void kl_cond_broadcast(kl_cond_t cond);
  * @brief 阻塞线程, 并等待被条件变量唤醒
  * @param cond 条件变量标识符
  * @param mutex 互斥锁标识符 (锁定状态)
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果成功返回true, 失败返回false
+ * @note 在调用此函数前, 必须先锁定mutex
+ * @warning 如果超时, mutex将被解锁
  */
-void kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex);
+bool kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex, kl_tick_t timeout);
 
 /**
- * @brief 定时阻塞线程, 并等待被条件变量唤醒
+ * @brief 阻塞线程, 并等待被条件变量唤醒, 不需要提供互斥锁
  * @param cond 条件变量标识符
- * @param mutex 互斥锁标识符 (锁定状态)
- * @param timeout 超时时间（Tick）
- * @retval 剩余等待时间, 如果返回0则说明等待超时
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果成功返回true, 失败返回false
  */
-kl_tick_t kl_cond_timed_wait(kl_cond_t cond, kl_mutex_t mutex,
-                             kl_tick_t timeout);
+bool kl_cond_wait_complete(kl_cond_t cond, kl_tick_t timeout);
 
 #endif  // KLITE_CFG_OPT_COND
 
@@ -402,7 +398,7 @@ kl_tick_t kl_cond_timed_wait(kl_cond_t cond, kl_mutex_t mutex,
  * @param value 信号量初始值
  * @retval 成功返回信号量标识符, 失败返回NULL
  */
-kl_sem_t kl_sem_create(uint32_t value);
+kl_sem_t kl_sem_create(kl_size_t value);
 
 /**
  * @brief 删除对象, 并释放内存
@@ -421,38 +417,24 @@ void kl_sem_give(kl_sem_t sem);
  * @brief 等待信号量, 信号量计数值减1, 如果当前信号量计数值为0, 则线程阻塞,
  * 直到计数值大于0
  * @param sem 信号量标识符
- */
-void kl_sem_take(kl_sem_t sem);
-
-/**
- * @brief 尝试等待信号量, 信号量计数值减1, 如果当前信号量计数值为0, 则立即返回
- * @param sem 信号量标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 如果成功返回true, 失败返回false
  */
-bool kl_sem_try_take(kl_sem_t sem);
-
-/**
- * @brief 定时等待信号量, 并将信号量计数值减1, 如果当前信号量计数值为0,
- * 则线程阻塞, 直到计数值大于0, 或者阻塞时间超过timeout指定的时间
- * @param sem 信号量标识符
- * @param timeout 超时时间（Tick）
- * @retval 剩余等待时间, 如果返回0则说明等待超时
- */
-kl_tick_t kl_sem_timed_take(kl_sem_t sem, kl_tick_t timeout);
+bool kl_sem_take(kl_sem_t sem, kl_tick_t timeout);
 
 /**
  * @brief 获取信号量计数值
  * @param sem 信号量标识符
  * @retval 信号量计数值
  */
-uint32_t kl_sem_value(kl_sem_t sem);
+kl_size_t kl_sem_value(kl_sem_t sem);
 
 /**
  * @brief 重置信号量计数值
  * @param sem 信号量标识符
  * @param value 信号量计数值
  */
-void kl_sem_reset(kl_sem_t sem, uint32_t value);
+void kl_sem_reset(kl_sem_t sem, kl_size_t value);
 
 #endif  // KLITE_CFG_OPT_SEM
 
@@ -467,7 +449,7 @@ void kl_sem_reset(kl_sem_t sem, uint32_t value);
  * @param target 屏障目标值
  * @retval 创建成功返回屏障标识符, 失败返回NULL
  */
-kl_barrier_t kl_barrier_create(uint32_t target);
+kl_barrier_t kl_barrier_create(kl_size_t target);
 
 /**
  * @brief 删除屏障对象, 并释放内存
@@ -478,23 +460,25 @@ void kl_barrier_delete(kl_barrier_t barrier);
 /**
  * @brief 设置屏障目标值
  * @param barrier 屏障标识符
- * @param target 屏障目标值
+ * @param target 屏障目标值(线程数)
  */
-void kl_barrier_set(kl_barrier_t barrier, uint32_t target);
+void kl_barrier_set(kl_barrier_t barrier, kl_size_t target);
 
 /**
  * @brief 获取屏障当前值
  * @param barrier 屏障标识符
- * @retval 屏障当前值
+ * @retval 屏障当前值(线程数)
  */
-uint32_t kl_barrier_get(kl_barrier_t barrier);
+kl_size_t kl_barrier_get(kl_barrier_t barrier);
 
 /**
  * @brief 等待屏障, 如果屏障当前值小于屏障目标值, 则线程阻塞,
  * 直到屏障当前值等于屏障目标值
  * @param barrier 屏障标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果成功返回true, 失败返回false
  */
-void kl_barrier_wait(kl_barrier_t barrier);
+bool kl_barrier_wait(kl_barrier_t barrier, kl_tick_t timeout);
 
 #endif  // KLITE_CFG_OPT_BARRIER
 
@@ -517,26 +501,24 @@ kl_rwlock_t kl_rwlock_create(void);
 void kl_rwlock_delete(kl_rwlock_t rwlock);
 
 /**
- * @brief 获取读锁, 如果有线程持有写锁, 则当前线程阻塞, 直到写锁被释放
- * @param rwlock 读写锁标识符
- */
-void kl_rwlock_read_lock(kl_rwlock_t rwlock);
-
-/**
- * @brief 尝试获取读锁, 如果有线程持有写锁, 则立即返回
- * @param rwlock 读写锁标识符
- * @retval 如果成功返回true, 失败返回false
- */
-bool kl_rwlock_try_read_lock(kl_rwlock_t rwlock);
-
-/**
- * @brief 定时获取读锁, 如果有线程持有写锁, 则当前线程阻塞, 直到写锁被释放,
+ * @brief 获取读锁, 如果有线程持有写锁, 则当前线程阻塞, 直到写锁被释放,
  * 或者阻塞时间超过timeout指定的时间
  * @param rwlock 读写锁标识符
- * @param timeout 超时时间（Tick）
- * @retval 剩余等待时间, 如果返回0则说明等待超时
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果成功返回true, 失败返回false
+ * @note 允许嵌套
  */
-kl_tick_t kl_rwlock_timed_read_lock(kl_rwlock_t rwlock, kl_tick_t timeout);
+bool kl_rwlock_read_lock(kl_rwlock_t rwlock, kl_tick_t timeout);
+
+/**
+ * @brief 获取写锁, 如果有线程持有读锁或写锁, 则当前线程阻塞,
+ * 直到读锁和写锁都被释放, 或者阻塞时间超过timeout指定的时间
+ * @param rwlock 读写锁标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果成功返回true, 失败返回false
+ * @note 允许嵌套
+ */
+bool kl_rwlock_write_lock(kl_rwlock_t rwlock, kl_tick_t timeout);
 
 /**
  * @brief 释放读锁
@@ -545,39 +527,10 @@ kl_tick_t kl_rwlock_timed_read_lock(kl_rwlock_t rwlock, kl_tick_t timeout);
 void kl_rwlock_read_unlock(kl_rwlock_t rwlock);
 
 /**
- * @brief 获取写锁, 如果有线程持有读锁或写锁, 则当前线程阻塞,
- * 直到读锁和写锁都被释放
- * @param rwlock 读写锁标识符
- */
-void kl_rwlock_write_lock(kl_rwlock_t rwlock);
-
-/**
- * @brief 尝试获取写锁, 如果有线程持有读锁或写锁, 则立即返回
- * @param rwlock 读写锁标识符
- * @retval 如果成功返回true, 失败返回false
- */
-bool kl_rwlock_try_write_lock(kl_rwlock_t rwlock);
-
-/**
- * @brief 定时获取写锁, 如果有线程持有读锁或写锁, 则当前线程阻塞,
- * 直到读锁和写锁都被释放, 或者阻塞时间超过timeout指定的时间
- * @param rwlock 读写锁标识符
- * @param timeout 超时时间（Tick）
- * @retval 剩余等待时间, 如果返回0则说明等待超时
- */
-kl_tick_t kl_rwlock_timed_write_lock(kl_rwlock_t rwlock, kl_tick_t timeout);
-
-/**
  * @brief 释放写锁
  * @param rwlock 读写锁标识符
  */
 void kl_rwlock_write_unlock(kl_rwlock_t rwlock);
-
-/**
- * @brief 根据锁状态自动释放读锁或写锁
- * @param rwlock 读写锁标识符
- */
-void kl_rwlock_unlock(kl_rwlock_t rwlock);
 
 #endif  // KLITE_CFG_OPT_RWLOCK
 
@@ -603,8 +556,7 @@ void kl_event_delete(kl_event_t event);
 
 /**
  * @brief 标记事件为置位状态, 并唤醒等待队列中的线程, 如果auto_reset为true,
- * 那么只唤醒第1个线程, 并且将事件复位, 如果auto_reset为false,
- * 那么会唤醒所有线程, 事件保持置位状态
+ * 事件将保持复位, 如果auto_reset为false, 事件保持置位状态
  * @param event 事件标识符
  */
 void kl_event_set(kl_event_t event);
@@ -614,28 +566,21 @@ void kl_event_set(kl_event_t event);
  * @param event 事件标识符
  */
 void kl_event_reset(kl_event_t event);
-#define kl_event_clear(event) kl_event_reset(event)
 
 /**
- * @brief 等待事件被置位
+ * @brief 等待事件置位, 如果等待时间超过timeout设定的时间则退出等待
  * @param event 事件标识符
+ * @param timeout 等待时间
+ * @retval 事件置位返回true, 超时返回false
  */
-void kl_event_wait(kl_event_t event);
+bool kl_event_wait(kl_event_t event, kl_tick_t timeout);
 
 /**
  * @brief 判断事件是否被置位
  * @param event 事件标识符
- * @retval 事件置位返回true, 否则返回false
+ * @retval 事件置位返回true, 超时返回false
  */
 bool kl_event_is_set(kl_event_t event);
-
-/**
- * @brief 定时等待事件置位, 如果等待时间超过timeout设定的时间则退出等待
- * @param event 事件标识符
- * @param timeout 等待时间（Tick）
- * @retval 剩余等待时间, 如果返回0则说明等待超时
- */
-kl_tick_t kl_event_timed_wait(kl_event_t event, kl_tick_t timeout);
 
 #endif  // KLITE_CFG_OPT_EVENT
 
@@ -663,13 +608,13 @@ void kl_event_flags_delete(kl_event_flags_t flags);
  * @brief 置位bits指定的事件标志位, 并唤醒等待队列中想要获取bits的线程
  * @param event 事件组标识符
  */
-void kl_event_flags_set(kl_event_flags_t flags, uint32_t bits);
+void kl_event_flags_set(kl_event_flags_t flags, kl_size_t bits);
 
 /**
  * @brief 清除bits指定的事件标志位, 此函数不会唤醒任何线程
  * @param event 事件组标识符
  */
-void kl_event_flags_reset(kl_event_flags_t flags, uint32_t bits);
+void kl_event_flags_reset(kl_event_flags_t flags, kl_size_t bits);
 
 /**
  * @brief 等待1个或多个事件标志位
@@ -681,22 +626,8 @@ void kl_event_flags_reset(kl_event_flags_t flags, uint32_t bits);
  *      KL_EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
  * @retval 实际获取到的标志位状态
  */
-uint32_t kl_event_flags_wait(kl_event_flags_t flags, uint32_t bits,
-                             uint32_t ops);
-
-/**
- * @brief 等待1个或多个事件标志位, 超时返回
- * @param event 事件组标识符
- * @param bits 想要等待的标志位
- * @param ops 等待标志位的行为
- *      KL_EVENT_FLAGS_WAIT_ANY: 只要bits中的任意一位有效, 函数立即返回；
- *      KL_EVENT_FLAGS_WAIT_ALL: 只有bits中的所有位都有效, 函数才能返回；
- *      KL_EVENT_FLAGS_AUTO_RESET: 函数返回时自动清零获取到的标志位；
- * @param timeout 等待超时时间(毫秒)
- * @retval 实际获取到的标志位状态
- */
-uint32_t kl_event_flags_timed_wait(kl_event_flags_t flags, uint32_t bits,
-                                   uint32_t ops, kl_tick_t timeout);
+kl_size_t kl_event_flags_wait(kl_event_flags_t flags, kl_size_t bits,
+                              kl_size_t ops, kl_tick_t timeout);
 
 #endif  // KLITE_CFG_OPT_EVENT_FLAGS
 
@@ -732,7 +663,7 @@ void kl_mailbox_clear(kl_mailbox_t mailbox);
  * @param mailbox 消息邮箱标识符
  * @param buf 消息缓冲区
  * @param len 消息长度
- * @param timeout 超时时间
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 实际写入数据长度
  */
 kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, kl_size_t len,
@@ -743,7 +674,7 @@ kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, kl_size_t len,
  * @param mailbox 消息邮箱标识符
  * @param buf 读取缓冲区
  * @param len 读取缓冲区长度
- * @param timeout 超时时间
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 实际读取数据长度
  * @warning 如果读取缓冲区长度小于消息长度, 则消息会被截断
  */
@@ -775,17 +706,10 @@ void kl_mpool_delete(kl_mpool_t mpool);
 /**
  * @brief 尝试从内存池中分配内存块
  * @param mpool 内存池标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 成功返回内存块指针, 失败返回NULL
  */
-void *kl_mpool_alloc(kl_mpool_t mpool);
-
-/**
- * @brief 从内存池中分配内存块, 如果内存池为空则等待
- * @param mpool 内存池标识符
- * @param timeout 超时时间
- * @retval 成功返回内存块指针, 失败返回NULL
- */
-void *kl_mpool_timed_alloc(kl_mpool_t mpool, kl_tick_t timeout);
+void *kl_mpool_alloc(kl_mpool_t mpool, kl_tick_t timeout);
 
 /**
  * @brief 释放内存块
@@ -800,7 +724,7 @@ void kl_mpool_free(kl_mpool_t mpool, void *block);
  * msg queue
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_MSG_QUEUE
+#if KLITE_CFG_OPT_MQUEUE
 
 /**
  * @brief 创建消息队列
@@ -826,7 +750,7 @@ void kl_mqueue_clear(kl_mqueue_t queue);
  * @brief 发送消息到消息队列
  * @param queue 消息队列标识符
  * @param item 消息缓冲区
- * @param timeout 超时时间
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 发送成功返回true, 失败返回false
  */
 bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout);
@@ -835,7 +759,7 @@ bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout);
  * @brief 发送紧急消息到消息队列(插入到队列头部)
  * @param queue 消息队列标识符
  * @param item 消息缓冲区
- * @param timeout 超时时间
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 发送成功返回true, 失败返回false
  */
 bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout);
@@ -844,7 +768,7 @@ bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout);
  * @brief 从消息队列接收消息
  * @param queue 消息队列标识符
  * @param item 消息缓冲区
- * @param timeout 超时时间
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 接收成功返回true, 失败返回false
  */
 bool kl_mqueue_recv(kl_mqueue_t queue, void *item, kl_tick_t timeout);
@@ -854,15 +778,36 @@ bool kl_mqueue_recv(kl_mqueue_t queue, void *item, kl_tick_t timeout);
  * @param queue 消息队列标识符
  * @retval 消息数量
  */
-uint32_t kl_mqueue_count(kl_mqueue_t queue);
+kl_size_t kl_mqueue_count(kl_mqueue_t queue);
 
-#endif  // KLITE_CFG_OPT_MSG_QUEUE
+/**
+ * @brief 获取消息队列至今未完成的任务数量
+ * @param queue 消息队列标识符
+ * @retval 未完成任务数量
+ */
+kl_size_t kl_mqueue_pending(kl_mqueue_t queue);
+
+/**
+ * @brief 通知消息队列一个任务完成
+ * @param queue 消息队列标识符
+ */
+void kl_mqueue_task_done(kl_mqueue_t queue);
+
+/**
+ * @brief 等待消息队列中的所有任务完成
+ * @param queue 消息队列标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果所有任务完成返回true, 超时返回false
+ */
+bool kl_mqueue_join(kl_mqueue_t queue, kl_tick_t timeout);
+
+#endif  // KLITE_CFG_OPT_MQUEUE
 
 /******************************************************************************
  * soft timer
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_SOFT_TIMER
+#if KLITE_CFG_OPT_TIMER
 
 /**
  * @brief 创建软定时器
@@ -870,7 +815,7 @@ uint32_t kl_mqueue_count(kl_mqueue_t queue);
  * @param priority 定时器线程优先级
  * @retval 创建成功返回定时器标识符, 失败返回NULL
  */
-kl_timer_t kl_timer_create(uint32_t stack_size, uint32_t priority);
+kl_timer_t kl_timer_create(kl_size_t stack_size, uint32_t priority);
 
 /**
  * @brief 删除软定时器
@@ -886,7 +831,7 @@ void kl_timer_delete(kl_timer_t timer);
  * @retval 添加成功返回定时任务标识符, 失败返回NULL
  */
 kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void *),
-                                     void *arg);
+                                  void *arg);
 
 /**
  * @brief 将任务从绑定的定时器中移除
@@ -907,7 +852,7 @@ void kl_timer_start_task(kl_timer_task_t task, kl_tick_t timeout);
  */
 void kl_timer_stop_task(kl_timer_task_t task);
 
-#endif  // KLITE_CFG_OPT_SOFT_TIMER
+#endif  // KLITE_CFG_OPT_TIMER
 
 /******************************************************************************
  * thread pool
@@ -939,7 +884,7 @@ void kl_thread_pool_shutdown(kl_thread_pool_t pool);
  * @param pool 线程池标识符
  * @param process 任务处理函数
  * @param arg 任务参数
- * @param timeout 分配等待超时时间
+ * @param timeout 分配等待超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 提交成功返回true, 失败返回false
  */
 bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void *arg),
@@ -948,15 +893,17 @@ bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void *arg),
 /**
  * @brief 等待线程池中的任务执行完成
  * @param pool 线程池标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果所有任务完成返回true, 超时返回false
  */
-void kl_thread_pool_join(kl_thread_pool_t pool);
+bool kl_thread_pool_join(kl_thread_pool_t pool, kl_tick_t timeout);
 
 /**
  * @brief 获取线程池中的未完成任务数量
  * @param pool 线程池标识符
  * @retval 未完成任务数量
  */
-kl_size_t kl_thread_pool_pending_task(kl_thread_pool_t pool);
+kl_size_t kl_thread_pool_pending(kl_thread_pool_t pool);
 
 #endif  // KLITE_CFG_OPT_THREAD_POOL
 

@@ -31,8 +31,8 @@
 #define KLITE_CFG_OPT_EVENT_FLAGS 0  // 编译事件标志功能
 #define KLITE_CFG_OPT_MAILBOX 0      // 编译邮箱功能
 #define KLITE_CFG_OPT_MPOOL 0        // 编译内存池功能
-#define KLITE_CFG_OPT_MSG_QUEUE 0    // 编译消息队列功能
-#define KLITE_CFG_OPT_SOFT_TIMER 0   // 编译软定时器功能
+#define KLITE_CFG_OPT_MQUEUE 0       // 编译消息队列功能
+#define KLITE_CFG_OPT_TIMER 0        // 编译软定时器功能
 #define KLITE_CFG_OPT_THREAD_POOL 0  // 编译线程池功能
 
 #endif /* !KCONFIG_AVAILABLE */
