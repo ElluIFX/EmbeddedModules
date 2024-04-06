@@ -45,6 +45,7 @@
 | [struct2json](./datastruct/struct2json) | C结构体与JSON快速互转库 | [link](https://github.com/armink/struct2json) | |
 | [udict](./datastruct/udict) | 通用字典 |*| 基于ulist |
 | [ulist](./datastruct/ulist) | 通用内存连续列表 |*| |
+| [uthash](./datastruct/uthash) |基于宏的可嵌入哈希表 | [link](https://github.com/troydhanson/uthash) | |
 
 | [Debug](./debug) | 调试 | repo | 备注 |
 |-|-|:-:|-|
