@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stddef.h> /* ptrdiff_t */
 #include <stdint.h> /* uint8_t, uint32_t */
-#include <stdlib.h> /* exit */
 #include <string.h> /* memcmp, memset, strlen */
 
+#include "log.h"
 #include "modules.h"
 
 /* These macros use decltype or the earlier __typeof GNU extension.
@@ -119,7 +119,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* malloc failures result in lost memory, hash tables are unusable */
 
 #ifndef uthash_fatal
-#define uthash_fatal(msg) exit(-1) /* fatal OOM error */
+#define uthash_fatal(msg) LOG_FATAL(msg)
 #endif
 
 #define HASH_RECORD_OOM(oomed) uthash_fatal("out of memory")

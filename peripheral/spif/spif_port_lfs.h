@@ -59,12 +59,14 @@ static int spif_block_device_sync(const struct lfs_config *c) {
 static MOD_MUTEX_HANDLE lfs_mutex;
 
 static int sh_lfslock(const struct lfs_config *c) {
-  MOD_MUTEX_ACQUIRE(lfs_mutex);
+  // MOD_MUTEX_ACQUIRE(lfs_mutex);
+  kl_kernel_suspend_all();
   return 0;
 }
 
 static int sh_lfsunlock(const struct lfs_config *c) {
-  MOD_MUTEX_RELEASE(lfs_mutex);
+  // MOD_MUTEX_RELEASE(lfs_mutex);
+  kl_kernel_resume_all();
   return 0;
 }
 #endif

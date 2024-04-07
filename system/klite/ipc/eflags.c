@@ -5,10 +5,12 @@
 #include <string.h>
 
 kl_event_flags_t kl_event_flags_create(void) {
-  struct kl_event_flags *flags;
+  kl_event_flags_t flags;
   flags = kl_heap_alloc(sizeof(struct kl_event_flags));
   if (flags != NULL) {
     memset(flags, 0, sizeof(struct kl_event_flags));
+  } else {
+    KL_SET_ERRNO(KL_ENOMEM);
   }
   return flags;
 }
@@ -54,6 +56,9 @@ kl_size_t kl_event_flags_wait(kl_event_flags_t flags, kl_size_t bits,
     }
     kl_cond_wait(&flags->cond, &flags->mutex, timeout);
     timeout = kl_sched_tcb_now->timeout;
+    if (!timeout) {
+      KL_SET_ERRNO(KL_ETIMEOUT);
+    }
   }
   kl_mutex_unlock(&flags->mutex);
   return ret;

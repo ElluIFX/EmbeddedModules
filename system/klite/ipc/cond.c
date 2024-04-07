@@ -3,12 +3,14 @@
 #if KLITE_CFG_OPT_COND
 
 kl_cond_t kl_cond_create(void) {
-  struct kl_cond *cond;
+  kl_cond_t cond;
   cond = kl_heap_alloc(sizeof(struct kl_cond));
   if (cond != NULL) {
     memset(cond, 0, sizeof(struct kl_cond));
+  } else {
+    KL_SET_ERRNO(KL_ENOMEM);
   }
-  return (kl_cond_t)cond;
+  return cond;
 }
 
 void kl_cond_delete(kl_cond_t cond) { kl_heap_free(cond); }
@@ -35,15 +37,31 @@ bool kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex, kl_tick_t timeout) {
   kl_port_enter_critical();
   kl_sched_tcb_timed_wait(kl_sched_tcb_now, (struct kl_thread_list *)cond,
                           timeout);
-  if (mutex) kl_mutex_unlock(mutex);
+  kl_mutex_unlock(mutex);
   kl_sched_switch();
   kl_port_leave_critical();
-  if (mutex) kl_mutex_lock(mutex, kl_sched_tcb_now->timeout);
-  return kl_sched_tcb_now->timeout > 0;
+  kl_mutex_lock(mutex, kl_sched_tcb_now->timeout);
+  if (!kl_sched_tcb_now->timeout) {
+    KL_SET_ERRNO(KL_ETIMEOUT);
+    return false;
+  }
+  return true;
 }
 
 bool kl_cond_wait_complete(kl_cond_t cond, kl_tick_t timeout) {
-  return kl_cond_wait(cond, NULL, timeout);
+  if (timeout == 0) {
+    return false;
+  }
+  kl_port_enter_critical();
+  kl_sched_tcb_timed_wait(kl_sched_tcb_now, (struct kl_thread_list *)cond,
+                          timeout);
+  kl_sched_switch();
+  kl_port_leave_critical();
+  if (!kl_sched_tcb_now->timeout) {
+    KL_SET_ERRNO(KL_ETIMEOUT);
+    return false;
+  }
+  return true;
 }
 
 #endif

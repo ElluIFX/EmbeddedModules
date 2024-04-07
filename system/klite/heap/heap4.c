@@ -52,6 +52,7 @@ void kl_heap_stats(kl_heap_stats_t stats) {
   stats->minimum_ever_avail = heap4_stats.xMinimumEverFreeBytesRemaining;
   stats->alloc_count = heap4_stats.xNumberOfSuccessfulAllocations;
   stats->free_count = heap4_stats.xNumberOfSuccessfulFrees;
+  stats->second_largest_free = 0;  // not supported
 }
 
 #endif

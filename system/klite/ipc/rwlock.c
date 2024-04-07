@@ -5,14 +5,14 @@
 #include <string.h>
 
 kl_rwlock_t kl_rwlock_create(void) {
-  struct kl_rwlock *rwlock;
+  kl_rwlock_t rwlock;
   rwlock = kl_heap_alloc(sizeof(struct kl_rwlock));
   if (rwlock != NULL) {
     memset(rwlock, 0, sizeof(struct kl_rwlock));
   } else {
-    return NULL;
+    KL_SET_ERRNO(KL_ENOMEM);
   }
-  return (kl_rwlock_t)rwlock;
+  return rwlock;
 }
 
 void kl_rwlock_delete(kl_rwlock_t rwlock) { kl_heap_free(rwlock); }
@@ -23,6 +23,7 @@ bool kl_rwlock_read_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
   if (rwlock->write_wait_count > 0 || rwlock->rw_count < 0) {
     if (!timeout) {
       kl_mutex_unlock(&rwlock->mutex);
+      KL_SET_ERRNO(KL_ETIMEOUT);
       return false;
     }
     rwlock->read_wait_count++;
@@ -33,6 +34,8 @@ bool kl_rwlock_read_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
   }
   if (ret) {
     rwlock->rw_count++;
+  } else {
+    KL_SET_ERRNO(KL_ETIMEOUT);
   }
   kl_mutex_unlock(&rwlock->mutex);
   return ret;
@@ -55,6 +58,7 @@ bool kl_rwlock_write_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
       (rwlock->rw_count != 0 && rwlock->writer != kl_sched_tcb_now)) {
     if (!timeout) {
       kl_mutex_unlock(&rwlock->mutex);
+      KL_SET_ERRNO(KL_ETIMEOUT);
       return false;
     }
     rwlock->write_wait_count++;
@@ -66,6 +70,8 @@ bool kl_rwlock_write_lock(kl_rwlock_t rwlock, kl_tick_t timeout) {
   if (ret) {
     rwlock->rw_count--;
     rwlock->writer = kl_sched_tcb_now;
+  } else {
+    KL_SET_ERRNO(KL_ETIMEOUT);
   }
   kl_mutex_unlock(&rwlock->mutex);
   return ret;

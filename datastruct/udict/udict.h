@@ -16,18 +16,18 @@ extern "C" {
 #endif
 
 #include "modules.h"
-#include "ulist.h"
+#include "uthash.h"
 
 typedef struct udict_node {
-  char* key;
+  const char* key;
   void* value;
-  uint8_t dynamic_value;
+  bool dyn;
+  UT_hash_handle hh;  // hashable
 } udict_node_t;
 
 typedef struct udict {
-  ulist_t nodes;
+  udict_node_t* nodes;
   mod_size_t size;
-  mod_size_t iter;
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
   bool dyn;
 } udict_t;
@@ -130,7 +130,7 @@ extern void* udict_set_alloc(UDICT dict, const char* key, size_t size);
 extern bool udict_delete(UDICT dict, const char* key);
 
 /**
- * @brief 弹出字典中的项目(不支持弹出动态分配内存的项目)
+ * @brief 弹出字典中的项目(动态分配内存的项目需要手动释放)
  * @param  dict         字典
  * @param  key          键
  * @retval value        值，如果不存在则为NULL
@@ -143,16 +143,9 @@ extern void* udict_pop(UDICT dict, const char* key);
  * @param  key          键
  * @param  value        值
  * @retval true         继续迭代
- * @warning 该函数不是线程安全的
+ * @warning key必须初始化为NULL
  */
 extern bool udict_iter(UDICT dict, const char** key, void** value);
-
-/**
- * @brief 停止迭代字典
- * @param  dict         字典
- * @warning 该函数不是线程安全的
- */
-extern void udict_iter_stop(UDICT dict);
 
 /**
  * @brief 打印字典

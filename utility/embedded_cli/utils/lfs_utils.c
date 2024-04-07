@@ -18,7 +18,7 @@
 #define FS_PRINTLN(...) PRINTLN(__VA_ARGS__)
 #define FS_PRINT(...) PRINT(__VA_ARGS__)
 
-#if FS_ENABLE_DEBUG
+#if 0
 #define FS_DEBUG(...) LOG_DEBUG(__VA_ARGS__)
 #else
 #define FS_DEBUG(...)
@@ -600,6 +600,7 @@ static void hexdump_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     FS_PRINTLN("");
     pos += n;
   }
+  FS_PRINTLN("Size: %d bytes", pos);
   lfs_file_close(lfs, &file);
   m_free(rdbuf);
 }
@@ -868,7 +869,7 @@ void lfs_utils_add_command_to_cli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   embeddedCliAddBinding(cli, cd_cmd);
   static CliCommandBinding ls_cmd = {
       .name = "ls",
-      .usage = "ls [dir]",
+      .usage = "ls [<dir>]",
       .help = "List files and directories",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -895,7 +896,7 @@ void lfs_utils_add_command_to_cli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   embeddedCliAddBinding(cli, rm_cmd);
   static CliCommandBinding tree_cmd = {
       .name = "tree",
-      .usage = "tree [dir]",
+      .usage = "tree [<dir>]",
       .help = "List files and directories in tree view",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -922,7 +923,7 @@ void lfs_utils_add_command_to_cli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   embeddedCliAddBinding(cli, pwd_cmd);
   static CliCommandBinding cat_cmd = {
       .name = "cat",
-      .usage = "cat <file> [> | >>] [file2]",
+      .usage = "cat <file> [>/>> <file2>]",
       .help = "Print file content or redirect to another file",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -931,7 +932,7 @@ void lfs_utils_add_command_to_cli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   embeddedCliAddBinding(cli, cat_cmd);
   static CliCommandBinding hexdump_cmd = {
       .name = "hexdump",
-      .usage = "hexdump [-w width] <file>",
+      .usage = "hexdump [-w <width>] <file>",
       .help = "Print file content in hex",
       .context = NULL,
       .autoTokenizeArgs = 1,
@@ -941,7 +942,7 @@ void lfs_utils_add_command_to_cli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {
   static CliCommandBinding echo_cmd = {
       .name = "echo",
       .usage =
-          "echo [-a append | -iN insert at line N | -dN delete line N] "
+          "echo [-a append | -i <N> insert at line | -d <N> delete line] "
           "<file>",
       .help = "Write content to file or do limited editing",
       .context = NULL,

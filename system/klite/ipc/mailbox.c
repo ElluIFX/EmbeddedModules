@@ -5,11 +5,14 @@
 #include "kl_fifo.h"
 
 kl_mailbox_t kl_mailbox_create(kl_size_t size) {
+  if (size == 0) return NULL;
   struct kl_mailbox *mailbox;
   mailbox = kl_heap_alloc(sizeof(struct kl_mailbox) + size);
   if (mailbox != NULL) {
     memset(mailbox, 0, sizeof(struct kl_mailbox));
     kl_fifo_init(&mailbox->fifo, mailbox + 1, size);
+  } else {
+    KL_SET_ERRNO(KL_ENOMEM);
   }
   return mailbox;
 }
@@ -46,6 +49,7 @@ kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, kl_size_t len,
       }
     }
     kl_mutex_unlock(&mailbox->mutex);
+    KL_SET_ERRNO(KL_EFULL);
     return 0;
   }
 }
@@ -74,6 +78,7 @@ kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void *buf, kl_size_t len,
       }
     }
     kl_mutex_unlock(&mailbox->mutex);
+    KL_SET_ERRNO(KL_EEMPTY);
     return 0;
   }
 }

@@ -3,11 +3,13 @@
 #if KLITE_CFG_OPT_EVENT
 
 kl_event_t kl_event_create(bool auto_reset) {
-  struct kl_event *event;
+  kl_event_t event;
   event = kl_heap_alloc(sizeof(struct kl_event));
   if (event != NULL) {
     memset(event, 0, sizeof(struct kl_event));
     event->auto_reset = auto_reset;
+  } else {
+    KL_SET_ERRNO(KL_ENOMEM);
   }
   return (kl_event_t)event;
 }
@@ -52,7 +54,11 @@ bool kl_event_wait(kl_event_t event, kl_tick_t timeout) {
   kl_sched_tcb_timed_wait(kl_sched_tcb_now, &event->list, timeout);
   kl_sched_switch();
   kl_port_leave_critical();
-  return kl_sched_tcb_now->timeout > 0;
+  if (!kl_sched_tcb_now->timeout) {
+    KL_SET_ERRNO(KL_ETIMEOUT);
+    return false;
+  }
+  return true;
 }
 
 #endif

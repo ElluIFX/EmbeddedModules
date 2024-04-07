@@ -117,7 +117,7 @@ static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
 }
 
 /******************************************************************************
- * hook
+ * hook / debug
  ******************************************************************************/
 
 /**
@@ -140,6 +140,19 @@ void kl_stack_overflow_hook(kl_thread_t thread);
  * @note 可由用户自行实现
  */
 void kl_kernel_idle_hook(void);
+
+#if KLITE_CFG_HEAP_TRACE_OWNER
+/**
+ * @brief 迭代获取所有内存节点
+ * @param  iter_tmp [in] 迭代器内部使用的临时变量, 需初始化为NULL
+ * @param  owner [out] 该节点的所有者
+ * @param  mem   [out] 节点内存块地址
+ * @param  size  [out] 节点内存块大小
+ * @retval 继续迭代返回true, 结束迭代返回false
+ */
+bool kl_heap_iter_nodes(void **iter_tmp, kl_thread_t *owner, void **mem,
+                        kl_size_t *used, kl_size_t *size);
+#endif
 
 /******************************************************************************
  * heap
@@ -230,13 +243,6 @@ void kl_thread_exit(void);
 kl_thread_t kl_thread_self(void);
 
 /**
- * @brief 获取当前线程上一次操作的剩余超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
- * @param thread 线程标识符
- * @retval 剩余超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
- */
-kl_tick_t kl_thread_timeout(void);
-
-/**
  * @brief 获取线程自创建以来所占用CPU的时间
  * @param thread 线程标识符
  * @retval 指定线程运行时间
@@ -266,12 +272,13 @@ void kl_thread_set_priority(kl_thread_t thread, uint32_t prio);
  * @param thread 线程标识符
  * @retval 线程优先级
  */
-uint32_t kl_thread_get_priority(kl_thread_t thread);
+uint32_t kl_thread_priority(kl_thread_t thread);
 
 /**
  * @brief 获取线程ID
  * @param thread 线程标识符
  * @retval 线程ID
+ * @warning 线程ID为16字节递增变量, 溢出后不保证唯一性
  */
 uint32_t kl_thread_id(kl_thread_t thread);
 
@@ -284,18 +291,39 @@ uint32_t kl_thread_id(kl_thread_t thread);
  * @note KL_THREAD_FLAGS_WAIT    线程等待
  * @note KL_THREAD_FLAGS_SUSPEND 线程挂起
  */
-uint8_t kl_thread_flags(kl_thread_t thread);
+uint32_t kl_thread_flags(kl_thread_t thread);
+
+/**
+ * @brief 获取线程上一次操作的剩余超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @param thread 线程标识符
+ * @retval 剩余超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ */
+kl_tick_t kl_thread_timeout(kl_thread_t thread);
+
+/**
+ * @brief 设置线程的错误码
+ * @param thread 线程标识符
+ * @param errno 错误码
+ */
+void kl_thread_set_errno(kl_thread_t thread, kl_err_t errno);
+
+/**
+ * @brief 获取线程的错误码并清除
+ * @retval 错误码
+ */
+kl_err_t kl_thread_errno(kl_thread_t thread);
 
 /**
  * @brief 通过线程ID查找线程
  * @param id 线程ID
  * @retval 返回线程标识符, 如果返回NULL则说明没有找到
+ * @warning 线程ID为16字节递增变量, 溢出后不保证唯一性
  */
 kl_thread_t kl_thread_find(uint32_t id);
 
 /**
  * @brief 迭代获取所有线程
- * @param thread NULL:获取第1个线程, 其它:获取下一个线程
+ * @param thread [in/out] NULL:获取第1个线程, 其它:获取下一个线程
  * @retval 返回线程标识符, 如果返回NULL则说明没有更多线程
  */
 kl_thread_t kl_thread_iter(kl_thread_t thread);
@@ -865,13 +893,13 @@ void kl_timer_stop_task(kl_timer_task_t task);
  * @param worker_num 工作线程数量
  * @param worker_stack_size 工作线程栈大小
  * @param worker_priority 工作线程优先级
- * @param max_task_num 最大任务分配数量
+ * @param task_queue_depth 任务队列深度
  * @retval 创建成功返回线程池标识符, 失败返回NULL
  */
 kl_thread_pool_t kl_thread_pool_create(kl_size_t worker_num,
                                        kl_size_t worker_stack_size,
                                        uint32_t worker_priority,
-                                       kl_size_t max_task_num);
+                                       kl_size_t task_queue_depth);
 
 /**
  * @brief 关闭线程池, 并释放内存
@@ -906,15 +934,5 @@ bool kl_thread_pool_join(kl_thread_pool_t pool, kl_tick_t timeout);
 kl_size_t kl_thread_pool_pending(kl_thread_pool_t pool);
 
 #endif  // KLITE_CFG_OPT_THREAD_POOL
-
-/******************************************************************************
- * interface
- ******************************************************************************/
-
-#if KLITE_CFG_INTERFACE_ENABLE
-
-#include "kl_api.h"
-
-#endif  // KLITE_CFG_OPT_INTERFACE
 
 #endif  // __KLITE_H

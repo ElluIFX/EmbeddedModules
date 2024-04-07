@@ -3,12 +3,14 @@
 #if KLITE_CFG_OPT_MUTEX
 
 kl_mutex_t kl_mutex_create(void) {
-  struct kl_mutex *mutex;
+  kl_mutex_t mutex;
   mutex = kl_heap_alloc(sizeof(struct kl_mutex));
   if (mutex != NULL) {
     memset(mutex, 0, sizeof(struct kl_mutex));
+  } else {
+    KL_SET_ERRNO(KL_ENOMEM);
   }
-  return (kl_mutex_t)mutex;
+  return mutex;
 }
 
 void kl_mutex_delete(kl_mutex_t mutex) { kl_heap_free(mutex); }
@@ -28,12 +30,17 @@ bool kl_mutex_lock(kl_mutex_t mutex, kl_tick_t timeout) {
   }
   if (timeout == 0) {
     kl_port_leave_critical();
+    KL_SET_ERRNO(KL_ETIMEOUT);
     return false;
   }
   kl_sched_tcb_timed_wait(kl_sched_tcb_now, &mutex->list, timeout);
   kl_sched_switch();
   kl_port_leave_critical();
-  return kl_sched_tcb_now->timeout > 0;
+  if (!kl_sched_tcb_now->timeout) {
+    KL_SET_ERRNO(KL_ETIMEOUT);
+    return false;
+  }
+  return true;
 }
 
 void kl_mutex_unlock(kl_mutex_t mutex) {

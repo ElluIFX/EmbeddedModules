@@ -22,31 +22,45 @@ static void thread_job(void *arg) {
 kl_thread_pool_t kl_thread_pool_create(kl_size_t worker_num,
                                        kl_size_t worker_stack_size,
                                        uint32_t worker_priority,
-                                       kl_size_t max_task_num) {
+                                       kl_size_t task_queue_depth) {
   kl_thread_pool_t pool =
       (kl_thread_pool_t)kl_heap_alloc(sizeof(struct kl_thread_pool));
   if (pool == NULL) {
+    KL_SET_ERRNO(KL_ENOMEM);
     return NULL;
   }
   pool->worker_num = worker_num;
   pool->task_queue =
-      kl_mqueue_create(sizeof(struct kl_thread_pool_task), max_task_num);
+      kl_mqueue_create(sizeof(struct kl_thread_pool_task), task_queue_depth);
   if (pool->task_queue == NULL) {
-    kl_heap_free(pool);
-    return NULL;
+    goto fail;
   }
   pool->thread_list =
       (kl_thread_t *)kl_heap_alloc(worker_num * sizeof(kl_thread_t *));
   if (pool->thread_list == NULL) {
-    kl_mqueue_delete(pool->task_queue);
-    kl_heap_free(pool);
-    return NULL;
+    goto fail;
   }
   for (uint8_t i = 0; i < worker_num; i++) {
     pool->thread_list[i] =
         kl_thread_create(thread_job, pool, worker_stack_size, worker_priority);
+    if (pool->thread_list[i] == NULL) goto fail;
   }
   return pool;
+fail:
+  if (pool->task_queue) {
+    kl_mqueue_delete(pool->task_queue);
+  }
+  if (pool->thread_list) {
+    kl_heap_free(pool->thread_list);
+  }
+  for (uint8_t i = 0; i < worker_num; i++) {
+    if (pool->thread_list[i]) {
+      kl_thread_delete(pool->thread_list[i]);
+    }
+  }
+  kl_heap_free(pool);
+  KL_SET_ERRNO(KL_ENOMEM);
+  return NULL;
 }
 
 bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void *arg),
@@ -55,10 +69,7 @@ bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void *arg),
       .process = process,
       .arg = arg,
   };
-  if (kl_mqueue_send(pool->task_queue, &task, timeout)) {
-    return false;
-  }
-  return true;
+  return kl_mqueue_send(pool->task_queue, &task, timeout);
 }
 
 kl_size_t kl_thread_pool_pending(kl_thread_pool_t pool) {

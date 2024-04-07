@@ -7,21 +7,25 @@
 #include "kl_slist.h"
 
 kl_mqueue_t kl_mqueue_create(kl_size_t msg_size, kl_size_t queue_depth) {
+  if (msg_size == 0 || queue_depth == 0) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return NULL;
+  }
   kl_mqueue_t queue;
   kl_size_t qsize;
-  kl_size_t i;
   uint8_t *msg;
   qsize = sizeof(struct kl_mqueue) +
           queue_depth * (sizeof(struct kl_mqueue_node) + msg_size);
   queue = kl_heap_alloc(qsize);
   if (queue == NULL) {
+    KL_SET_ERRNO(KL_ENOMEM);
     return NULL;
   }
   memset(queue, 0, qsize);
   queue->size = msg_size;
   queue->pending = 0;
   msg = (uint8_t *)(queue + 1);
-  for (i = 0; i < queue_depth; i++) {
+  for (kl_size_t i = 0; i < queue_depth; i++) {
     kl_slist_append(&queue->empty_list, msg);
     msg += sizeof(struct kl_mqueue_node) + msg_size;
   }
@@ -45,7 +49,7 @@ void kl_mqueue_clear(kl_mqueue_t queue) {
 }
 
 bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
-  struct kl_mqueue_node *node;
+  struct kl_mqueue_node *node = NULL;
   kl_mutex_lock(&queue->mutex, KL_WAIT_FOREVER);
   while (queue->empty_list.head == NULL && timeout > 0) {
     kl_cond_wait(&queue->write, &queue->mutex, timeout);
@@ -54,6 +58,8 @@ bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
   if (queue->empty_list.head != NULL) {
     node = queue->empty_list.head;
     kl_slist_remove(&queue->empty_list, node);
+  } else {
+    KL_SET_ERRNO(KL_EFULL);
   }
   kl_mutex_unlock(&queue->mutex);
   if (node != NULL) {
@@ -70,7 +76,7 @@ bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
 }
 
 bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
-  struct kl_mqueue_node *node;
+  struct kl_mqueue_node *node = NULL;
   kl_mutex_lock(&queue->mutex, KL_WAIT_FOREVER);
   while (queue->empty_list.head == NULL && timeout > 0) {
     kl_cond_wait(&queue->write, &queue->mutex, timeout);
@@ -79,6 +85,8 @@ bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
   if (queue->empty_list.head != NULL) {
     node = queue->empty_list.head;
     kl_slist_remove(&queue->empty_list, node);
+  } else {
+    KL_SET_ERRNO(KL_EFULL);
   }
   kl_mutex_unlock(&queue->mutex);
   if (node != NULL) {
@@ -95,7 +103,7 @@ bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
 }
 
 bool kl_mqueue_recv(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
-  struct kl_mqueue_node *node;
+  struct kl_mqueue_node *node = NULL;
   kl_mutex_lock(&queue->mutex, KL_WAIT_FOREVER);
   while (queue->msg_list.head == NULL && timeout > 0) {
     kl_cond_wait(&queue->read, &queue->mutex, timeout);
@@ -104,6 +112,8 @@ bool kl_mqueue_recv(kl_mqueue_t queue, void *item, kl_tick_t timeout) {
   if (queue->msg_list.head != NULL) {
     node = queue->msg_list.head;
     kl_slist_remove(&queue->msg_list, node);
+  } else {
+    KL_SET_ERRNO(KL_EEMPTY);
   }
   kl_mutex_unlock(&queue->mutex);
   if (node != NULL) {

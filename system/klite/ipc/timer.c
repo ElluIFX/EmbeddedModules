@@ -1,4 +1,4 @@
-#include "klite.h"
+#include "kl_priv.h"
 
 #if KLITE_CFG_OPT_TIMER
 
@@ -48,6 +48,7 @@ static void kl_timer_service(void *arg) {
 kl_timer_t kl_timer_create(kl_size_t stack_size, uint32_t priority) {
   kl_timer_t timer = kl_heap_alloc(sizeof(struct kl_timer));
   if (!timer) {
+    KL_SET_ERRNO(KL_ENOMEM);
     return NULL;
   }
   memset(timer, 0, sizeof(struct kl_timer));
@@ -55,6 +56,7 @@ kl_timer_t kl_timer_create(kl_size_t stack_size, uint32_t priority) {
       kl_thread_create(kl_timer_service, timer, stack_size, priority);
   if (timer->thread == NULL) {
     kl_heap_free(timer);
+    KL_SET_ERRNO(KL_ENOMEM);
     return NULL;
   }
   return timer;
@@ -88,6 +90,8 @@ kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void *),
     kl_mutex_lock(&timer->mutex, KL_WAIT_FOREVER);
     kl_slist_append(timer, task);
     kl_mutex_unlock(&timer->mutex);
+  } else {
+    KL_SET_ERRNO(KL_ENOMEM);
   }
   return task;
 }

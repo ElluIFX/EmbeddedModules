@@ -196,35 +196,34 @@ static struct xv xve_get_ref(struct xv this, struct xv ident, void *udata) {
       return xv_new_double(2.71828182845904523536);
     }
     UDICT dict = (UDICT)env.udata;
-    const char *key;
+    char *key = xv_string(ident);
     struct xv *value;
     if (dict) {
+      value = (struct xv *)udict_get(dict, key);
       /**** Find ans ****/
       if (xv_string_compare(ident, "ans") == 0) {
-        if (udict_has_key((UDICT)env.udata, "ans")) {
-          return *(struct xv *)udict_get((UDICT)env.udata, "ans");
+        m_free(key);
+        if (value) {
+          return *value;
         } else {
           return xv_new_int64(0);
         }
       }
       /**** Find variables ****/
-      while (udict_iter(dict, &key, (void **)&value)) {
-        if (xv_string_compare(ident, key) == 0) {
-          udict_iter_stop(dict);
-          return *value;
-        }
+      if (value) {
+        m_free(key);
+        return *value;
       }
     }
     /**** Find user defined function ****/
-    XvExtFunc func = NULL;
-    if (xve_userfunc_dict && udict_len(xve_userfunc_dict) > 0) {
-      while (udict_iter(xve_userfunc_dict, &key, (void **)&func)) {
-        if (xv_string_compare(ident, key) == 0) {
-          udict_iter_stop(xve_userfunc_dict);
-          return xv_new_function(func);
-        }
+    if (xve_userfunc_dict) {
+      XvExtFunc func = (XvExtFunc)udict_get(xve_userfunc_dict, key);
+      m_free(key);
+      if (func) {
+        return xv_new_function(func);
       }
     }
+    m_free(key);
   }
   return xv_new_undefined();
 }
@@ -277,7 +276,11 @@ static void xve_on_cmd(EmbeddedCli *cli, CliCommand *command) {
     }
     udict_set_copy(dict, "ans", &value, sizeof(value));
   }
-  PRINTLN("%s", result);
+  if (is_assign) {
+    PRINTLN("(%s)%s", varname, result);
+  } else {
+    PRINTLN("%s", result);
+  }
   m_free(result);
 }
 

@@ -15,6 +15,21 @@ typedef uint32_t kl_tick_t;
 #define KL_WAIT_FOREVER UINT32_MAX
 #endif
 
+#define KL_INVALID 0xFFFFFFFFU  // 无效返回值
+
+typedef enum {
+  KL_EOK,       // 没有错误
+  KL_ERROR,     // 未知错误
+  KL_EINVAL,    // 参数非法
+  KL_ETIMEOUT,  // 超时错误
+  KL_ENOMEM,    // 内存不足
+  KL_EFULL,     // 资源满
+  KL_EEMPTY,    // 资源空
+  KL_EBUSY,     // 系统忙
+  KL_EIO,       // IO错误
+  KL_ENFOUND,   // 未找到
+} kl_err_t;
+
 typedef uint32_t kl_size_t;
 typedef int32_t kl_ssize_t;
 
@@ -45,7 +60,7 @@ struct kl_thread {
   struct kl_thread_node node_sched;   // 调度队列节点
   struct kl_thread_node node_wait;    // 等待队列节点
   struct kl_thread_node node_manage;  // 管理队列节点
-  uint32_t id_flags;                  // 高24位: ID, 低8位: FLAGS
+  uint32_t info;  // 高16位: ID, 中8位: 错误码, 低8位: 状态
 };
 typedef struct kl_thread *kl_thread_t;
 
@@ -53,6 +68,7 @@ struct kl_heap_stats {
   kl_size_t total_size;
   kl_size_t avail_size;
   kl_size_t largest_free;
+  kl_size_t second_largest_free;
   kl_size_t smallest_free;
   kl_size_t free_blocks;
   kl_size_t minimum_ever_avail;
@@ -144,14 +160,16 @@ typedef struct kl_mailbox *kl_mailbox_t;
 #endif
 
 #if KLITE_CFG_OPT_MPOOL
+struct kl_mpool_node {
+  struct kl_mpool_node *next;
+  uint8_t data[];
+};
 struct kl_mpool {
+  struct {
+    struct kl_mpool_node *head;
+  } free_list;
   struct kl_mutex mutex;
   struct kl_cond wait;
-  uint8_t **block_list;
-  kl_size_t block_count;
-  kl_size_t free_count;
-  kl_size_t free_head;
-  kl_size_t free_tail;
 };
 typedef struct kl_mpool *kl_mpool_t;
 #endif

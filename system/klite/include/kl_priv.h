@@ -15,10 +15,14 @@
 #define __weak __attribute__((weak))
 #endif
 
-#define KL_STACK_MAGIC_VALUE 0xDEADBEEF
+#define KL_STACK_MAGIC_VALUE 0xDEADBEEFU
 
-#define KL_THREAD_ID_OFFSET 8
-#define KL_THREAD_FLAGS_MASK 0xFF
+#define KL_THREAD_ID_OFFSET 16
+#define KL_THREAD_ERRNO_OFFSET 8
+#define KL_THREAD_FLAGS_OFFSET 0
+#define KL_THREAD_ID_MASK 0xFFFF0000U
+#define KL_THREAD_ERRNO_MASK 0x0000FF00U
+#define KL_THREAD_FLAGS_MASK 0x000000FFU
 
 #define KL_SET_FLAG(flags, mask) ((flags) |= (mask))
 #define KL_GET_FLAG(flags, mask) ((flags) & (mask))
@@ -166,5 +170,17 @@ kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list *list);
     }                                                      \
     kl_port_leave_critical();                              \
   }
+
+// 设置当前线程的errno
+#define KL_SET_ERRNO(errno)                                         \
+  do {                                                              \
+    if (kl_sched_tcb_now) {                                         \
+      kl_port_enter_critical();                                     \
+      kl_sched_tcb_now->info &= ~((uint32_t)KL_THREAD_ERRNO_MASK);  \
+      kl_sched_tcb_now->info |=                                     \
+          (errno << KL_THREAD_ERRNO_OFFSET) & KL_THREAD_ERRNO_MASK; \
+      kl_port_leave_critical();                                     \
+    }                                                               \
+  } while (0)
 
 #endif

@@ -41,7 +41,7 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
 static inline void remove_list_wait(kl_thread_t tcb) {
   kl_blist_remove(tcb->list_wait, &tcb->node_wait);
   tcb->list_wait = NULL;
-  KL_CLR_FLAG32(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
+  KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_WAIT);
 }
 
 static inline void remove_list_sched(kl_thread_t tcb) {
@@ -54,7 +54,7 @@ static inline void remove_list_sched(kl_thread_t tcb) {
     }
   }
   tcb->list_sched = NULL;
-  KL_CLR_FLAG32(tcb->id_flags, KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SLEEP);
+  KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SLEEP);
 }
 
 void kl_sched_tcb_remove(kl_thread_t tcb) {
@@ -64,10 +64,10 @@ void kl_sched_tcb_remove(kl_thread_t tcb) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
-  KL_CLR_FLAG32(tcb->id_flags,
+  KL_CLR_FLAG32(tcb->info,
                 (KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SUSPEND |
                  KL_THREAD_FLAGS_SLEEP | KL_THREAD_FLAGS_WAIT));
-  KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_EXITED);
+  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_EXITED);
 }
 
 void kl_sched_tcb_ready(kl_thread_t tcb) {
@@ -80,7 +80,7 @@ void kl_sched_tcb_ready(kl_thread_t tcb) {
   if (m_prio_highest < tcb->prio) {
     m_prio_highest = tcb->prio;
   }
-  KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_READY);
+  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_READY);
 }
 
 void kl_sched_tcb_suspend(kl_thread_t tcb) {
@@ -98,19 +98,19 @@ void kl_sched_tcb_suspend(kl_thread_t tcb) {
       tcb->timeout -= m_idle_elapse; /* remain sleep time */
     }
   }
-  KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND);
+  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_SUSPEND);
 }
 
 void kl_sched_tcb_resume(kl_thread_t tcb) {
-  if (KL_GET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND)) {
-    KL_CLR_FLAG32(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND);
+  if (KL_GET_FLAG(tcb->info, KL_THREAD_FLAGS_SUSPEND)) {
+    KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_SUSPEND);
     if (tcb->list_wait) { /* set wait */
 #if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
       list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
 #else  // FIFO
       kl_blist_append(tcb->list_wait, &tcb->node_wait);
 #endif
-      KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
+      KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_WAIT);
     }
     if (tcb->list_sched == &m_list_sleep) { /* set sleep */
       tcb->timeout += m_idle_elapse;
@@ -118,7 +118,7 @@ void kl_sched_tcb_resume(kl_thread_t tcb) {
       if (tcb->timeout < m_idle_timeout) {
         m_idle_timeout = tcb->timeout;
       }
-      KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_SLEEP);
+      KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_SLEEP);
     } else if (tcb->list_sched) { /* set ready */
       tcb->list_sched = NULL;
       kl_sched_tcb_ready(tcb);
@@ -130,7 +130,7 @@ void kl_sched_tcb_reset_prio(kl_thread_t tcb, uint32_t prio) {
   uint32_t old_prio;
   old_prio = tcb->prio;
   tcb->prio = prio;
-  if (KL_GET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_SUSPEND)) {
+  if (KL_GET_FLAG(tcb->info, KL_THREAD_FLAGS_SUSPEND)) {
     return; /* suspend state, lists stored are not real */
   }
   if (tcb->list_wait) {
@@ -175,7 +175,7 @@ void kl_sched_tcb_sleep(kl_thread_t tcb, kl_tick_t timeout) {
   if (tcb->timeout < m_idle_timeout) {
     m_idle_timeout = tcb->timeout;
   }
-  KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_SLEEP);
+  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_SLEEP);
 }
 
 void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list *list) {
@@ -188,7 +188,7 @@ void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list *list) {
 #else  // FIFO
   kl_blist_append(list, &tcb->node_wait);
 #endif
-  KL_SET_FLAG(tcb->id_flags, KL_THREAD_FLAGS_WAIT);
+  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_WAIT);
 }
 
 void kl_sched_tcb_timed_wait(kl_thread_t tcb, struct kl_thread_list *list,
@@ -274,7 +274,7 @@ void kl_sched_switch(void) {
   }
 #endif
   kl_blist_remove(tcb->list_sched, &tcb->node_sched);
-  KL_CLR_FLAG32(tcb->id_flags, KL_THREAD_FLAGS_READY);
+  KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_READY);
   if (tcb->list_sched->head == NULL) {
     m_prio_bitmap &= ~(1 << tcb->prio);
     m_prio_highest = find_highest_priority(m_prio_highest);

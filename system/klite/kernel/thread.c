@@ -3,18 +3,21 @@
 
 static struct kl_thread_list m_list_manage;  // 运行中线程列表
 static struct kl_thread_list m_list_dead;    // 待删除线程列表
-static uint32_t kl_thread_id_counter;        // 线程ID计数器
+static uint16_t kl_thread_id_counter;        // 线程ID计数器
 
 #define THREAD_OPERATION_INVALID(tcb) \
-  (!(tcb) || (tcb)->prio == 0 || (tcb)->id_flags & KL_THREAD_FLAGS_EXITED)
+  (!(tcb) || (tcb)->prio == 0 || (tcb)->info & KL_THREAD_FLAGS_EXITED)
 #define THREAD_INFO_INVALID(tcb) \
-  (!(tcb) || (tcb)->id_flags & KL_THREAD_FLAGS_EXITED)
+  (!(tcb) || (tcb)->info & KL_THREAD_FLAGS_EXITED)
 
 kl_thread_t kl_thread_self(void) { return (kl_thread_t)kl_sched_tcb_now; }
 
 kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
                              kl_size_t stack_size, uint32_t prio) {
-  if (!entry) return NULL;
+  if (!entry) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return NULL;
+  }
 
   if (prio > KLITE_CFG_MAX_PRIO) prio = KLITE_CFG_MAX_PRIO;
   if (!prio && entry != kl_kernel_idle_entry) prio = KLITE_CFG_DEFAULT_PRIO;
@@ -26,6 +29,7 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
 
   tcb = kl_heap_alloc(sizeof(struct kl_thread) + stack_size);
   if (tcb == NULL) {
+    KL_SET_ERRNO(KL_ENOMEM);
     return NULL;
   }
   stack_base = (uint8_t *)(tcb + 1);
@@ -42,7 +46,7 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
   tcb->node_wait.tcb = tcb;
   tcb->node_sched.tcb = tcb;
   tcb->node_manage.tcb = tcb;
-  tcb->id_flags = (kl_thread_id_counter++) << KL_THREAD_ID_OFFSET;
+  tcb->info = (kl_thread_id_counter++) << KL_THREAD_ID_OFFSET;
 
   kl_port_enter_critical();
   kl_blist_prepend(&m_list_manage, &tcb->node_manage);
@@ -53,7 +57,10 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
 }
 
 void kl_thread_delete(kl_thread_t thread) {
-  if (THREAD_OPERATION_INVALID(thread)) return;
+  if (THREAD_OPERATION_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return;
+  }
   if (thread == kl_sched_tcb_now) return kl_thread_exit();
   kl_port_enter_critical();
   kl_blist_remove(&m_list_manage, &thread->node_manage);
@@ -63,7 +70,10 @@ void kl_thread_delete(kl_thread_t thread) {
 }
 
 void kl_thread_suspend(kl_thread_t thread) {
-  if (THREAD_OPERATION_INVALID(thread)) return;
+  if (THREAD_OPERATION_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return;
+  }
   kl_port_enter_critical();
   kl_sched_tcb_suspend(thread);
   if (thread == kl_sched_tcb_now) kl_sched_switch();
@@ -71,7 +81,10 @@ void kl_thread_suspend(kl_thread_t thread) {
 }
 
 void kl_thread_resume(kl_thread_t thread) {
-  if (THREAD_OPERATION_INVALID(thread)) return;
+  if (THREAD_OPERATION_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return;
+  }
   kl_port_enter_critical();
   kl_sched_tcb_resume(thread);
   kl_sched_preempt(false);
@@ -94,15 +107,19 @@ void kl_thread_sleep(kl_tick_t time) {
 }
 
 kl_tick_t kl_thread_time(kl_thread_t thread) {
-  if (THREAD_INFO_INVALID(thread)) return 0;
+  if (THREAD_INFO_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return KL_INVALID;
+  }
   return thread->time;
 }
 
-kl_tick_t kl_thread_timeout(void) { return kl_sched_tcb_now->timeout; }
-
 void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
                           kl_size_t *stack_size) {
-  if (THREAD_INFO_INVALID(thread)) return;
+  if (THREAD_INFO_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return;
+  }
   kl_size_t free = 0;
   uint32_t *stack_magic = (uint32_t *)(thread + 1);
   while (*stack_magic++ == KL_STACK_MAGIC_VALUE) free += 4;
@@ -111,7 +128,10 @@ void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
 }
 
 void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
-  if (THREAD_OPERATION_INVALID(thread)) return;
+  if (THREAD_INFO_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return;
+  }
   if (!prio) prio = KLITE_CFG_DEFAULT_PRIO;
   if (prio > KLITE_CFG_MAX_PRIO) prio = KLITE_CFG_MAX_PRIO;
   kl_port_enter_critical();
@@ -120,26 +140,67 @@ void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
   kl_port_leave_critical();
 }
 
-uint32_t kl_thread_get_priority(kl_thread_t thread) {
-  if (THREAD_INFO_INVALID(thread)) return 0xFFFFFFFF;
+uint32_t kl_thread_priority(kl_thread_t thread) {
+  if (THREAD_INFO_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return KL_INVALID;
+  }
   return thread->prio;
 }
 
 uint32_t kl_thread_id(kl_thread_t thread) {
-  if (THREAD_INFO_INVALID(thread)) return 0xFFFFFFFF;
-  return thread->id_flags >> KL_THREAD_ID_OFFSET;
+  if (THREAD_INFO_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return KL_INVALID;
+  }
+  return (thread->info & KL_THREAD_ID_MASK) >> KL_THREAD_ID_OFFSET;
 }
 
-uint8_t kl_thread_flags(kl_thread_t thread) {
-  if (THREAD_INFO_INVALID(thread)) return 0xFF;
-  return thread->id_flags & KL_THREAD_FLAGS_MASK;
+uint32_t kl_thread_flags(kl_thread_t thread) {
+  if (THREAD_INFO_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return KL_INVALID;
+  }
+  return (thread->info & KL_THREAD_FLAGS_MASK) >> KL_THREAD_FLAGS_OFFSET;
+}
+
+kl_err_t kl_thread_errno(kl_thread_t thread) {
+  if (THREAD_INFO_INVALID(thread)) {
+    return KL_EINVAL;
+  }
+  kl_err_t err =
+      (thread->info & KL_THREAD_ERRNO_MASK) >> KL_THREAD_ERRNO_OFFSET;
+  thread->info &= ~((uint32_t)KL_THREAD_ERRNO_MASK);
+  return err;
+}
+
+void kl_thread_set_errno(kl_thread_t thread, kl_err_t errno) {
+  if (THREAD_INFO_INVALID(thread)) {
+    if (THREAD_INFO_INVALID(kl_sched_tcb_now)) {
+      return;
+    }
+    thread = kl_sched_tcb_now;
+    errno = KL_EINVAL;
+  }
+  kl_port_enter_critical();
+  thread->info &= ~((uint32_t)KL_THREAD_ERRNO_MASK);
+  thread->info |= (errno << KL_THREAD_ERRNO_OFFSET) & KL_THREAD_ERRNO_MASK;
+  kl_port_leave_critical();
+}
+
+kl_tick_t kl_thread_timeout(kl_thread_t thread) {
+  if (THREAD_INFO_INVALID(thread)) {
+    KL_SET_ERRNO(KL_EINVAL);
+    return KL_INVALID;
+  }
+  return thread->timeout;
 }
 
 kl_thread_t kl_thread_find(uint32_t id) {
   kl_port_enter_critical();
   struct kl_thread_node *node = m_list_manage.head;
   while (node) {
-    if (((kl_thread_t)node->tcb)->id_flags >> 8 == id) {
+    if (((kl_thread_t)node->tcb)->info >> 8 == id) {
       break;
     }
     node = node->next;

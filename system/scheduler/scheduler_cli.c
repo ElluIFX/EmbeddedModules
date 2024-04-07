@@ -8,10 +8,10 @@ void sch_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding sch_cmd = {
       .name = "task",
       .usage =
-          "task [-l list | -e enable | -d disable | -r delete | -f "
-          "setfreq | -p setpri | -E excute]"
-          " [freq | pri] <taskname>",
-      .help = "task control command (Scheduler)",
+          "task [-l list | -e enable | -d disable | -r delete | -f <freq> "
+          "| -p <pri> | -E excute]"
+          " <taskname>",
+      .help = "task control command",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = task_cmd_func,
@@ -27,7 +27,7 @@ void sch_add_command_to_cli(EmbeddedCli *cli) {
           "event [-l list | -e enable | -d disable | -r delete | -t trigger] "
           "<eventname> [type] "
           "[content]",
-      .help = "event control command (Scheduler)",
+      .help = "event control command",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = event_cmd_func,
@@ -40,7 +40,7 @@ void sch_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding cortn_cmd = {
       .name = "cortn",
       .usage = "cortn [-l list | -k kill] <cortnname>",
-      .help = "Coroutine control command (Scheduler)",
+      .help = "Coroutine control command",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = cortn_cmd_func,
@@ -53,7 +53,7 @@ void sch_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding softint_cmd = {
       .name = "softint",
       .usage = "softint [channel] [sub-channel]",
-      .help = "Soft-Interrupt manual trigger command (Scheduler)",
+      .help = "Soft-Interrupt manual trigger command",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = softint_cmd_func,

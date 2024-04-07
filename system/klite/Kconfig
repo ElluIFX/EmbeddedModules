@@ -36,6 +36,35 @@ choice
         bool "Third-Party: LwMEM"
 endchoice
 
+if KLITE_CFG_HEAP_USE_BUILTIN
+menu "Built-in Heap Configuration"
+    config KLITE_CFG_HEAP_CLEAR_MEMORY_ON_FREE
+        bool "Clear Memory on Free"
+        default n
+        help
+            Clear the memory when the memory is freed or reallocated.
+
+    config KLITE_CFG_HEAP_STORAGE_PREV_NODE
+        bool "Storage Previous Memory Block Node"
+        default y
+        help
+            Store the previous node pointer in the memory block. Get O(1) time complexity for free() and realloc() operation but cost 4 bytes of memory more for each block.
+
+    config KLITE_CFG_HEAP_TRACE_OWNER
+        bool "Trace Owner (Debug)"
+        default n
+        help
+            Trace the owner of each memory block. Cost 4 bytes of memory more for each block.
+
+    config KLITE_CFG_HEAP_ALIGN_BYTE
+        int "Align Byte"
+        default 4
+        range 1 1024
+        help
+            The alignment of the memory block. The value should be the power of 2. Default is 4 bytes for 32-bit CPU and 8 bytes for 64-bit CPU.
+endmenu
+endif
+
 config KLITE_CFG_DEFAULT_STACK_SIZE
     int "Default Stack Size"
     default 1024
@@ -82,12 +111,6 @@ config KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
     default y
     help
         The wait list, which is used to store the threads that are waiting for the object like mutex and semaphore, will be ordered by priority.
-
-config KLITE_CFG_INTERFACE_ENABLE
-    bool "Enable Kernel Interface"
-    default n
-    help
-        Enable the kernel interface for convenience use. (Increase the RAM usage)
 
 config KLITE_CFG_64BIT_TICK
     bool "64-bit Tick Variable (uint64_t)"

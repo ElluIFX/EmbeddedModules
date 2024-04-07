@@ -60,7 +60,8 @@ static void list_klite(void) {
   TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
   TT_ITEM_GRID_LINE line =
       TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-  const char *head[] = {"ID", "Pri", "State", "Entry", "Usage", "Free Stack"};
+  const char *head[] = {"ID",    "Pri",        "State", "Entry",
+                        "Usage", "Free Stack", "Err"};
   for (int i = 0; i < sizeof(head) / sizeof(char *); i++)
     TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head[i]));
   size_t sfree, ssize;
@@ -75,7 +76,7 @@ static void list_klite(void) {
     TT_GridLine_AddItem(line,
                         TT_FmtStr(al, f1, f2, "%d", kl_thread_id(thread)));
     TT_GridLine_AddItem(
-        line, TT_FmtStr(al, f1, f2, "%d", kl_thread_get_priority(thread)));
+        line, TT_FmtStr(al, f1, f2, "%d", kl_thread_priority(thread)));
     TT_GridLine_AddItem(
         line, TT_Str(al, f1, f2,
                      (flags & KL_THREAD_FLAGS_SUSPEND)
@@ -87,12 +88,14 @@ static void list_klite(void) {
                                        : ((flags & KL_THREAD_FLAGS_READY)
                                               ? "READY"
                                               : "RUNNING")))));
-    if (kl_thread_get_priority(thread) == 0)
+    if (kl_thread_priority(thread) == 0)
       TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "[Idle]"));
     else
       TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%p", thread->entry));
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.4f%%", usage * 100));
     TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d / %d", sfree, ssize));
+    TT_GridLine_AddItem(line,
+                        TT_FmtStr(al, f1, f2, "%d", kl_thread_errno(thread)));
   }
   TT_Print(tt);
   TT_FreeTable(tt);
@@ -118,7 +121,7 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Thread ID not found: %d" T_RST, id);
     return;
   }
-  if (kl_thread_get_priority(thread) == 0) {
+  if (kl_thread_priority(thread) == 0) {
     PRINTLN(T_FMT(T_BOLD, T_RED) "Cannot operate on idle thread" T_RST);
     return;
   }
@@ -348,6 +351,9 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
                     TT_FmtStr(al, f1, f2, "%d blocks", stats.free_blocks), sep);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "- Largest"),
                     TT_FmtStr(al, f1, f2, "%d Bytes", stats.largest_free), sep);
+  TT_KVPair_AddItem(
+      kv, 2, TT_Str(al, f1, f2, "- 2nd Largest"),
+      TT_FmtStr(al, f1, f2, "%d Bytes", stats.second_largest_free), sep);
   TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "- Smallest"),
                     TT_FmtStr(al, f1, f2, "%d Bytes", stats.smallest_free),
                     sep);
@@ -365,6 +371,99 @@ static void sysinfo_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   TT_FreeTable(tt);
 }
 
+static void memdump_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  int len = 64;
+  int width = 8;
+  int argc = embeddedCliGetTokenCount(args);
+  if (argc < 1) {
+    PRINTLN(T_FMT(T_BOLD, T_RED) "Address is required" T_RST);
+    return;
+  }
+  uint8_t *addr = (uint8_t *)strtoul(embeddedCliGetToken(args, -1), NULL, 16);
+  int pos;
+  if ((pos = embeddedCliFindToken(args, "-l")) != 0 && argc >= pos + 1) {
+    len = atoi(embeddedCliGetToken(args, pos + 1));
+  }
+  if ((pos = embeddedCliFindToken(args, "-w")) != 0 && argc >= pos + 1) {
+    width = atoi(embeddedCliGetToken(args, pos + 1));
+  }
+  int n;
+  PRINTLN(T_FMT(T_BOLD, T_BLUE) "Memory Dump of 0x%X:" T_RST, addr);
+  while (1) {
+    n = len > width ? width : len;
+    if (n <= 0) break;
+    len -= n;
+    PRINT(T_FMT(T_GREEN) "0x%08X " T_RST, addr);
+    for (int i = 0; i < n; i++) {  // print hex
+      PRINT("%02X ", addr[i]);
+    }
+    for (int i = n; i < width; i++) {  // padding
+      PRINT("   ");
+    }
+    PRINT(T_FMT(T_GREEN) "| " T_RST);
+    for (int i = 0; i < n; i++) {  // print ascii
+      if (addr[i] >= 32 && addr[i] <= 126) {
+        PRINT("%c", addr[i]);
+      } else {
+        PRINT(T_FMT(T_BLUE) "." T_RST);
+      }
+    }
+    PRINTLN("");
+    addr += n;
+  }
+}
+
+#if KLITE_CFG_HEAP_TRACE_OWNER
+static void memtrace_cmd_func(EmbeddedCli *cli, char *args, void *context) {
+  int fpid = -1;
+  kl_size_t fsize = 0;
+  int dump_len = 0;
+  int argc = embeddedCliGetTokenCount(args);
+  int pos;
+  bool dump_ascii = false;
+  if ((pos = embeddedCliFindToken(args, "-p")) != 0 && argc >= pos + 1) {
+    fpid = atoi(embeddedCliGetToken(args, pos + 1));
+  }
+  if ((pos = embeddedCliFindToken(args, "-s")) != 0 && argc >= pos + 1) {
+    fsize = atoi(embeddedCliGetToken(args, pos + 1));
+  }
+  if ((pos = embeddedCliFindToken(args, "-d")) != 0 && argc >= pos + 1) {
+    dump_len = atoi(embeddedCliGetToken(args, pos + 1));
+  }
+  if ((pos = embeddedCliFindToken(args, "-i")) != 0) {
+    dump_ascii = true;
+  }
+
+  PRINTLN(T_FMT(T_BOLD, T_BLUE) "Memory Trace Info:" T_RST);
+  PRINTLN(T_FMT(T_BLUE) "Addr(Used/Space) -> PID" T_FMT(T_GREEN));
+  void *iter_tmp = NULL;
+  kl_thread_t owner = NULL;
+  void *mem = NULL;
+  kl_size_t used = 0;
+  kl_size_t size = 0;
+  while (kl_heap_iter_nodes(&iter_tmp, &owner, &mem, &used, &size)) {
+    if ((fpid != -1 && kl_thread_id(owner) != fpid) || (size < fsize)) continue;
+    PRINTLN("0x%X(%d/%d) -> %d", mem, used, size, kl_thread_id(owner));
+    if (dump_len) {
+      PRINT(T_RST "> ");
+      for (int i = 0; i < dump_len; i++) {
+        if (dump_ascii) {
+          if (((uint8_t *)mem)[i] >= 32 && ((uint8_t *)mem)[i] <= 126) {
+            PRINT("%c", ((uint8_t *)mem)[i]);
+          } else {
+            PRINT(T_FMT(T_BLUE) "." T_RST);
+          }
+        } else {
+          PRINT("%02X ", ((uint8_t *)mem)[i]);
+        }
+      }
+      PRINTLN(T_FMT(T_GREEN));
+    }
+  }
+  PRINT(T_RST);
+}
+#endif
+
 // Public Functions -------------------------
 
 void system_utils_add_command_to_cli(EmbeddedCli *cli) {
@@ -381,14 +480,36 @@ void system_utils_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding klite_cmd = {
       .name = "klite",
       .usage =
-          "klite [-l list | -s suspend | -r resume | -d delete | -p priority]"
-          " [priority] <thread id>",
+          "klite [-l list | -s suspend | -r resume | -d delete | -p <priority>]"
+          " <thread id>",
       .help = "KLite RTOS control command",
       .context = NULL,
       .autoTokenizeArgs = 1,
       .func = klite_cmd_func,
   };
   embeddedCliAddBinding(cli, klite_cmd);
+#endif
+  static CliCommandBinding memdump_cmd = {
+      .name = "memdump",
+      .usage = "memdump [-l <length>] [-w <width>] <address>",
+      .help = "Dump memory content",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = memdump_cmd_func,
+  };
+  embeddedCliAddBinding(cli, memdump_cmd);
+#if KLITE_CFG_HEAP_TRACE_OWNER
+  static CliCommandBinding memtrace_cmd = {
+      .name = "memtrace",
+      .usage =
+          "memtrace [-p <pid> | -s <size> | -d "
+          "<dumplen> | -i dump ascii]",
+      .help = "Trace memory allocations",
+      .context = NULL,
+      .autoTokenizeArgs = 1,
+      .func = memtrace_cmd_func,
+  };
+  embeddedCliAddBinding(cli, memtrace_cmd);
 #endif
 }
 

@@ -3,14 +3,16 @@
 #if KLITE_CFG_OPT_BARRIER
 
 kl_barrier_t kl_barrier_create(kl_size_t target) {
-  struct kl_barrier *barrier;
+  kl_barrier_t barrier;
   barrier = kl_heap_alloc(sizeof(struct kl_barrier));
   if (barrier != NULL) {
     memset(barrier, 0, sizeof(struct kl_barrier));
     barrier->target = target;
     barrier->value = 0;
+  } else {
+    KL_SET_ERRNO(KL_ENOMEM);
   }
-  return (kl_barrier_t)barrier;
+  return barrier;
 }
 
 void kl_barrier_delete(kl_barrier_t barrier) { kl_heap_free(barrier); }
@@ -47,7 +49,11 @@ bool kl_barrier_wait(kl_barrier_t barrier, kl_tick_t timeout) {
     kl_sched_switch();
   }
   kl_port_leave_critical();
-  return kl_sched_tcb_now->timeout > 0;
+  if (!kl_sched_tcb_now->timeout) {
+    KL_SET_ERRNO(KL_ETIMEOUT);
+    return false;
+  }
+  return true;
 }
 
 #endif

@@ -53,9 +53,10 @@ void kl_heap_stats(kl_heap_stats_t *stats) {
   heap_mutex_unlock();
   stats->total_size = lw_stats.mem_size_bytes;
   stats->avail_size = lw_stats.mem_available_bytes;
-  stats->largest_free = 0;   // not supported
-  stats->smallest_free = 0;  // not supported
-  stats->free_blocks = 0;    // not supported
+  stats->largest_free = 0;         // not supported
+  stats->second_largest_free = 0;  // not supported
+  stats->smallest_free = 0;        // not supported
+  stats->free_blocks = 0;          // not supported
   stats->minimum_ever_avail = lw_stats.minimum_ever_mem_available_bytes;
   stats->alloc_count = lw_stats.nr_alloc;
   stats->free_count = lw_stats.nr_free;

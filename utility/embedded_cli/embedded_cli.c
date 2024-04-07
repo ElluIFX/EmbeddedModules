@@ -1472,7 +1472,8 @@ static void onAutocompleteRequest(EmbeddedCli *cli, bool printCandidates) {
   // with multiple candidates when we already completed to common prefix
   // we show all candidates and print input again
   // we need to completely clear current line since it begins with invitation
-  clearCurrentLine(cli);
+  // clearCurrentLine(cli);
+  writeToOutput(cli, lineBreak);
 
   for (int i = 0; i < impl->bindingsCount; ++i) {
     // autocomplete flag is set for all candidates by last call to
