@@ -43,7 +43,7 @@
 | [pqueue](./datastruct/pqueue) | 优先队列 | [link](https://github.com/tidwall/pqueue.c) | |
 | [sds](./datastruct/sds) | 简单动态字符串 | [link](https://github.com/antirez/sds) | |
 | [struct2json](./datastruct/struct2json) | C结构体与JSON快速互转库 | [link](https://github.com/armink/struct2json) | |
-| [udict](./datastruct/udict) | 通用字典 |*| 基于ulist |
+| [udict](./datastruct/udict) | 通用哈希字典 |*| 基于uthash |
 | [ulist](./datastruct/ulist) | 通用内存连续列表 |*| |
 | [uthash](./datastruct/uthash) |基于宏的可嵌入哈希表 | [link](https://github.com/troydhanson/uthash) | |
 
