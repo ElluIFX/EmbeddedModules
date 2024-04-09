@@ -10,10 +10,10 @@ typedef struct {
   uint8_t type;  // 事件参数类型
   void *ptr;     // 参数指针
   size_t size;   // 参数大小
-} sch_eventeduler_arg_t;
+} sch_event_arg_t;
 
 // 事件回调函数指针类型
-typedef void (*event_func_t)(sch_eventeduler_arg_t arg);
+typedef void (*sch_event_func_t)(sch_event_arg_t arg);
 
 /**
  * @brief 创建一个事件
@@ -23,7 +23,7 @@ typedef void (*event_func_t)(sch_eventeduler_arg_t arg);
  * @retval uint8_t          是否成功huidi
  * @warning 事件回调是异步执行的, 由调度器自动调用
  */
-extern uint8_t sch_event_create(const char *name, event_func_t callback,
+extern uint8_t sch_event_create(const char *name, sch_event_func_t callback,
                                 uint8_t enable);
 
 /**

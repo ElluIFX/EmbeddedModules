@@ -112,6 +112,7 @@
 | [perf_counter](./utility/perf_counter) | PerfCounter性能统计/时基库 | [link](https://github.com/GorgonMeducer/perf_counter) | 必备品 |
 | [ryu](./utility/ryu) | 浮点数转字符串 | [link](https://github.com/tidwall/ryu) | |
 | [term_table](./utility/term_table) | 动态终端表格工具 |*| 仅debug使用 |
+| [TimeLib](./utility/TimeLib) | 时间库 | [link](https://github.com/geekfactory/TimeLib) | |
 | [xv](./utility/xv) | 类JavaScript的字符串解析器 | [link](https://github.com/tidwall/xv) | |
 | [incbin.h](./utility/incbin) | 二进制文件嵌入 | [link](https://github.com/graphitemaster/incbin) | |
 | [macro.h](./utility/macro.h) | 通用宏 |*| |

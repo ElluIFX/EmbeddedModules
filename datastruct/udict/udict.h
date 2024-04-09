@@ -19,10 +19,11 @@ extern "C" {
 #include "uthash.h"
 
 typedef struct udict_node {
-  const char* key;
-  void* value;
-  bool dyn;
   UT_hash_handle hh;  // hashable
+  bool is_ptr;
+  mod_size_t size;
+  const char* key;
+  uint8_t value[];
 } udict_node_t;
 
 typedef struct udict {
@@ -127,7 +128,7 @@ extern void* udict_set_alloc(UDICT dict, const char* key, size_t size);
  * @param  key      键
  * @retval true     成功
  */
-extern bool udict_delete(UDICT dict, const char* key);
+extern bool udict_del(UDICT dict, const char* key);
 
 /**
  * @brief 弹出字典中的项目(动态分配内存的项目需要手动释放)

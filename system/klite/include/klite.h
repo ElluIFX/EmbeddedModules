@@ -143,15 +143,16 @@ void kl_kernel_idle_hook(void);
 
 #if KLITE_CFG_HEAP_TRACE_OWNER
 /**
- * @brief 迭代获取所有内存节点
+ * @brief 迭代获取所有内存块节点
  * @param  iter_tmp [in] 迭代器内部使用的临时变量, 需初始化为NULL
- * @param  owner [out] 该节点的所有者
- * @param  mem   [out] 节点内存块地址
- * @param  size  [out] 节点内存块大小
+ * @param  owner [out] 节点所有者线程
+ * @param  addr  [out] 节点地址
+ * @param  used  [out] 节点使用大小
+ * @param  avail [out] 节点实际大小
  * @retval 继续迭代返回true, 结束迭代返回false
  */
-bool kl_heap_iter_nodes(void **iter_tmp, kl_thread_t *owner, void **mem,
-                        kl_size_t *used, kl_size_t *size);
+bool kl_heap_iter_nodes(void **iter_tmp, kl_thread_t *owner, kl_size_t *addr,
+                        kl_size_t *used, kl_size_t *avail);
 #endif
 
 /******************************************************************************

@@ -6,7 +6,7 @@ extern "C" {
 
 #include "scheduler.h"
 
-typedef void (*task_func_t)(void *args);  // 任务函数指针类型
+typedef void (*sch_task_func_t)(void *args);  // 任务函数指针类型
 
 #if SCH_CFG_ENABLE_TASK
 
@@ -20,7 +20,7 @@ typedef void (*task_func_t)(void *args);  // 任务函数指针类型
  * @param  args             任务参数
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_task_create(const char *name, task_func_t func,
+extern uint8_t sch_task_create(const char *name, sch_task_func_t func,
                                float freq_hz, uint8_t enable, uint8_t priority,
                                void *args);
 

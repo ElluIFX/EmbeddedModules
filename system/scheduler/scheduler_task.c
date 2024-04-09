@@ -2,14 +2,14 @@
 
 #include "scheduler_internal.h"
 #if SCH_CFG_ENABLE_TASK
-typedef struct {      // 用户任务结构
-  ID_NAME_VAR(name);  // 任务名
-  task_func_t task;   // 任务函数指针
-  uint64_t period;    // 任务调度周期(Tick)
-  uint64_t pendTime;  // 下次执行时间(Tick)
-  uint8_t enable;     // 是否使能
-  uint8_t priority;   // 优先级
-  void *args;         // 任务参数
+typedef struct {         // 用户任务结构
+  ID_NAME_VAR(name);     // 任务名
+  sch_task_func_t task;  // 任务函数指针
+  uint64_t period;       // 任务调度周期(Tick)
+  uint64_t pendTime;     // 下次执行时间(Tick)
+  uint8_t enable;        // 是否使能
+  uint8_t priority;      // 优先级
+  void *args;            // 任务参数
 #if SCH_CFG_DEBUG_REPORT
   uint64_t max_cost;    // 任务最大执行时间(Tick)
   uint64_t total_cost;  // 任务总执行时间(Tick)
@@ -97,7 +97,7 @@ _INLINE uint64_t task_runner(void) {
   return 0;
 }
 
-uint8_t sch_task_create(const char *name, task_func_t func, float freq_hz,
+uint8_t sch_task_create(const char *name, sch_task_func_t func, float freq_hz,
                         uint8_t enable, uint8_t priority, void *args) {
   scheduler_task_t task = {
       .task = func,

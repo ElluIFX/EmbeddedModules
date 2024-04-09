@@ -38,6 +38,12 @@ endchoice
 
 if KLITE_CFG_HEAP_USE_BUILTIN
 menu "Built-in Heap Configuration"
+    config KLITE_CFG_HEAP_USE_BESTFIT
+        bool "Best Fit (or First Fit)"
+        default y
+        help
+            Use the best fit algorithm to allocate memory.
+            If not, use the first fit algorithm.
     config KLITE_CFG_HEAP_CLEAR_MEMORY_ON_FREE
         bool "Clear Memory on Free"
         default n

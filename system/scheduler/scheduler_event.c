@@ -2,10 +2,10 @@
 
 #include "scheduler_internal.h"
 #if SCH_CFG_ENABLE_EVENT
-typedef struct {      // 事件结构
-  ID_NAME_VAR(name);  // 事件名
-  event_func_t task;  // 事件回调函数指针
-  uint8_t enable;     // 是否使能
+typedef struct {          // 事件结构
+  ID_NAME_VAR(name);      // 事件名
+  sch_event_func_t task;  // 事件回调函数指针
+  uint8_t enable;         // 是否使能
 #if SCH_CFG_DEBUG_REPORT
   uint64_t max_cost;     // 事件最大执行时间(Tick)
   uint64_t total_cost;   // 事件总执行时间(Tick)
@@ -17,8 +17,8 @@ typedef struct {      // 事件结构
 #endif
 } scheduler_event_t;
 typedef struct {              // 事件触发结构
-  event_func_t task;          // 事件回调函数指针
-  sch_eventeduler_arg_t arg;  // 事件参数
+  sch_event_func_t task;      // 事件回调函数指针
+  sch_event_arg_t arg;  // 事件参数
   uint8_t allocated;          // 动态分配的参数内存
 #if SCH_CFG_DEBUG_REPORT
   uint64_t trigger_time;     // 触发时间(Tick)
@@ -73,7 +73,7 @@ _INLINE void event_runner(void) {
   last_event_us = get_sys_us();
 }
 
-uint8_t sch_event_create(const char *name, event_func_t callback,
+uint8_t sch_event_create(const char *name, sch_event_func_t callback,
                          uint8_t enable) {
   if (!name || !callback) return 0;
   ulist_foreach(&eventlist, scheduler_event_t, event) {

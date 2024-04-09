@@ -14,13 +14,9 @@
 
 #include "log.h"
 
-#define _udict_memmove memmove
-#define _udict_memcpy memcpy
-#define _udict_memset memset
 #define _udict_malloc m_alloc
 #define _udict_free m_free
 #define _udict_realloc m_realloc
-#define _udict_memcmp memcmp
 
 #define UDICT_LOCK()                                           \
   {                                                            \
@@ -35,25 +31,44 @@
     return x;               \
   }
 
-static udict_node_t* add_node(UDICT dict, const char* key) {
-  udict_node_t* node =
-      (udict_node_t*)_udict_malloc(sizeof(udict_node_t) + strlen(key) + 1);
+static udict_node_t* add_node(UDICT dict, const char* key, size_t value_size,
+                              void* value, bool is_ptr) {
+  udict_node_t* node = (udict_node_t*)_udict_malloc(
+      sizeof(udict_node_t) + strlen(key) + 1 + value_size);
   if (!node) {
     return NULL;
   }
-  node->key = (const char*)(node + 1);
+  node->size = value_size;
+  node->key = (const char*)((uint8_t*)(node + 1) + value_size);
+  node->is_ptr = is_ptr;
   strcpy((char*)node->key, key);
+  if (value) memcpy(node->value, value, value_size);
   HASH_ADD_KEYPTR(hh, dict->nodes, node->key, strlen(node->key), node);
   dict->size++;
   return node;
 }
 
-static void del_node(UDICT dict, void* ptr) {
-  udict_node_t* node = (udict_node_t*)ptr;
-  HASH_DEL(dict->nodes, node);
-  if (node->dyn) {
-    _udict_free(node->value);
+static bool modify_node(UDICT dict, udict_node_t* node, size_t value_size,
+                        void* value, bool is_ptr) {
+  if (value_size <= node->size) {
+    if (value) memcpy(node->value, value, value_size);
+    return true;
   }
+  bool ret = false;
+  HASH_DEL(dict->nodes, node);
+  udict_node_t* new_node = (udict_node_t*)_udict_realloc(
+      node, sizeof(udict_node_t) + strlen(node->key) + 1 + value_size);
+  if (new_node) {
+    new_node->size = value_size;
+    node = new_node;
+    ret = true;
+  }
+  HASH_ADD_KEYPTR(hh, dict->nodes, node->key, strlen(node->key), node);
+  return ret;
+}
+
+static void del_node(UDICT dict, udict_node_t* node) {
+  HASH_DEL(dict->nodes, node);
   _udict_free(node);
   dict->size--;
 }
@@ -113,9 +128,17 @@ bool udict_has_key(UDICT dict, const char* key) {
 }
 
 void* udict_get(UDICT dict, const char* key) {
+  void* ret = NULL;
   UDICT_LOCK();
   udict_node_t* node = find_node(dict, key);
-  UDICT_UNLOCK_RET(node ? node->value : NULL);
+  if (node) {
+    if (node->is_ptr) {
+      ret = *(void**)node->value;
+    } else {
+      ret = node->value;
+    }
+  }
+  UDICT_UNLOCK_RET(ret);
 }
 
 const char* udict_get_reverse(UDICT dict, void* value) {
@@ -132,73 +155,47 @@ const char* udict_get_reverse(UDICT dict, void* value) {
   UDICT_UNLOCK_RET(NULL);
 }
 
-static inline void modify_node_value(udict_node_t* node, void* value,
-                                     bool dyn) {
-  if (node->dyn) _udict_free(node->value);
-  node->value = value;
-  node->dyn = dyn;
-}
-
 bool udict_set(UDICT dict, const char* key, void* value) {
   udict_node_t* node;
   UDICT_LOCK();
   node = find_node(dict, key);
   if (node) {
-    modify_node_value(node, value, false);
-    UDICT_UNLOCK_RET(true);
+    bool ret = modify_node(dict, node, sizeof(void*), (void*)(&value), true);
+    UDICT_UNLOCK_RET(ret);
   } else {
-    node = add_node(dict, key);
-    if (!node) UDICT_UNLOCK_RET(false);
-    node->value = value;
-    node->dyn = false;
-    UDICT_UNLOCK_RET(true);
+    node = add_node(dict, key, sizeof(void*), (void*)(&value), true);
+    UDICT_UNLOCK_RET(node ? true : false);
   }
 }
 
 bool udict_set_copy(UDICT dict, const char* key, void* value, size_t size) {
   udict_node_t* node;
-  void* buf = _udict_malloc(size);
-  if (!buf) return false;
-  _udict_memcpy(buf, value, size);
   UDICT_LOCK();
   node = find_node(dict, key);
   if (node) {
-    modify_node_value(node, buf, true);
-    UDICT_UNLOCK_RET(true);
+    bool ret = modify_node(dict, node, size, value, false);
+    UDICT_UNLOCK_RET(ret);
   } else {
-    node = add_node(dict, key);
-    if (!node) {
-      _udict_free(buf);
-      UDICT_UNLOCK_RET(false);
-    }
-    node->value = buf;
-    node->dyn = true;
-    UDICT_UNLOCK_RET(true);
+    node = add_node(dict, key, size, value, false);
+    UDICT_UNLOCK_RET(node ? true : false);
   }
 }
 
 void* udict_set_alloc(UDICT dict, const char* key, size_t size) {
   udict_node_t* node;
-  void* buf = _udict_malloc(size);
-  if (!buf) return NULL;
   UDICT_LOCK();
   node = find_node(dict, key);
   if (node) {
-    modify_node_value(node, buf, true);
-    UDICT_UNLOCK_RET(buf);
+    if (!modify_node(dict, node, size, NULL, false)) UDICT_UNLOCK_RET(NULL);
+    UDICT_UNLOCK_RET(node->value);
   } else {
-    node = add_node(dict, key);
-    if (!node) {
-      _udict_free(buf);
-      UDICT_UNLOCK_RET(NULL);
-    }
-    node->value = buf;
-    node->dyn = true;
-    UDICT_UNLOCK_RET(buf);
+    node = add_node(dict, key, size, NULL, false);
+    if (!node) UDICT_UNLOCK_RET(NULL);
+    UDICT_UNLOCK_RET(node->value);
   }
 }
 
-bool udict_delete(UDICT dict, const char* key) {
+bool udict_del(UDICT dict, const char* key) {
   UDICT_LOCK();
   udict_node_t* node = find_node(dict, key);
   if (!node) UDICT_UNLOCK_RET(false);
@@ -207,13 +204,19 @@ bool udict_delete(UDICT dict, const char* key) {
 }
 
 void* udict_pop(UDICT dict, const char* key) {
+  void* ret = NULL;
   UDICT_LOCK();
   udict_node_t* node = find_node(dict, key);
   if (!node) UDICT_UNLOCK_RET(NULL);
-  void* value = node->value;
-  node->dyn = false;  // 防止释放
+  if (node->is_ptr) {
+    ret = *(void**)node->value;
+  } else {
+    ret = _udict_malloc(node->size);
+    if (!ret) UDICT_UNLOCK_RET(NULL);
+    memcpy(ret, node->value, node->size);
+  }
   del_node(dict, node);
-  UDICT_UNLOCK_RET(value);
+  UDICT_UNLOCK_RET(ret);
 }
 
 bool udict_iter(UDICT dict, const char** key, void** value) {
@@ -234,7 +237,11 @@ bool udict_iter(UDICT dict, const char** key, void** value) {
       return false;
     }
     *key = node->key;
-    *value = node->value;
+    if (node->is_ptr) {
+      *value = *(void**)node->value;
+    } else {
+      *value = node->value;
+    }
     return true;
   }
 }

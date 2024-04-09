@@ -247,7 +247,7 @@ static void xve_on_cmd(EmbeddedCli *cli, CliCommand *command) {
       PRINTLN("Xv: Variable '%s' not found", varname);
       return;
     }
-    udict_delete(dict, varname);
+    udict_del(dict, varname);
     return;
   }
 

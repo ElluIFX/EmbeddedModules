@@ -17,6 +17,7 @@
 
 #if KLITE_CFG_HEAP_USE_BUILTIN  // 内置内存管理器配置
 
+#define KLITE_CFG_HEAP_USE_BESTFIT (1)           // 使用最佳适配算法
 #define KLITE_CFG_HEAP_CLEAR_MEMORY_ON_FREE (0)  // 释放内存时清零
 #define KLITE_CFG_HEAP_STORAGE_PREV_NODE (1)     // 存储前一个节点指针
 #define KLITE_CFG_HEAP_TRACE_OWNER (1)           // 跟踪内存拥有者

@@ -421,6 +421,7 @@ static void memtrace_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   int argc = embeddedCliGetTokenCount(args);
   int pos;
   bool dump_ascii = false;
+  bool frag_only = false;
   if ((pos = embeddedCliFindToken(args, "-p")) != 0 && argc >= pos + 1) {
     fpid = atoi(embeddedCliGetToken(args, pos + 1));
   }
@@ -433,31 +434,39 @@ static void memtrace_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   if ((pos = embeddedCliFindToken(args, "-i")) != 0) {
     dump_ascii = true;
   }
+  if ((pos = embeddedCliFindToken(args, "-f")) != 0) {
+    frag_only = true;
+  }
 
   PRINTLN(T_FMT(T_BOLD, T_BLUE) "Memory Trace Info:" T_RST);
   PRINTLN(T_FMT(T_BLUE) "Addr(Used/Space) -> PID" T_FMT(T_GREEN));
   void *iter_tmp = NULL;
   kl_thread_t owner = NULL;
-  void *mem = NULL;
+  kl_size_t addr = 0;
   kl_size_t used = 0;
   kl_size_t size = 0;
-  while (kl_heap_iter_nodes(&iter_tmp, &owner, &mem, &used, &size)) {
+  while (kl_heap_iter_nodes(&iter_tmp, &owner, &addr, &used, &size)) {
     if ((fpid != -1 && kl_thread_id(owner) != fpid) || (size < fsize)) continue;
-    PRINTLN("0x%X(%d/%d) -> %d", mem, used, size, kl_thread_id(owner));
+    if (used == size) {
+      if (frag_only) continue;
+      PRINT(T_FMT(T_GREEN));
+    } else {
+      PRINT(T_FMT(T_YELLOW));
+    }
+    PRINTLN("0x%X(%d/%d) -> %d", addr, used, size, kl_thread_id(owner));
     if (dump_len) {
       PRINT(T_RST "> ");
       for (int i = 0; i < dump_len; i++) {
         if (dump_ascii) {
-          if (((uint8_t *)mem)[i] >= 32 && ((uint8_t *)mem)[i] <= 126) {
-            PRINT("%c", ((uint8_t *)mem)[i]);
+          if (((uint8_t *)addr)[i] >= 32 && ((uint8_t *)addr)[i] <= 126) {
+            PRINT("%c", ((uint8_t *)addr)[i]);
           } else {
             PRINT(T_FMT(T_BLUE) "." T_RST);
           }
         } else {
-          PRINT("%02X ", ((uint8_t *)mem)[i]);
+          PRINT("%02X ", ((uint8_t *)addr)[i]);
         }
       }
-      PRINTLN(T_FMT(T_GREEN));
     }
   }
   PRINT(T_RST);
@@ -502,7 +511,7 @@ void system_utils_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding memtrace_cmd = {
       .name = "memtrace",
       .usage =
-          "memtrace [-p <pid> | -s <size> | -d "
+          "memtrace [-f only fragmentation | -p <pid> | -s <min size> | -d "
           "<dumplen> | -i dump ascii]",
       .help = "Trace memory allocations",
       .context = NULL,

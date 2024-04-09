@@ -593,8 +593,6 @@ EmbeddedCli *embeddedCliNew(EmbeddedCliConfig *config) {
 
   bool allocated = false;
   if (config->cliBuffer == NULL) {
-    // config->cliBuffer =
-    //     (CLI_UINT *)malloc(totalSize);  // malloc guarantees alignment.
     config->cliBuffer = m_alloc(totalSize);
     if (config->cliBuffer == NULL) return NULL;
     allocated = true;
