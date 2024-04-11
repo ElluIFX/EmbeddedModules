@@ -42,7 +42,7 @@ struct timelib_tm telements;
 
 /* Variable used to keep track of the last time the "seconds" or sys_time
  * counter was updated in "tick" units */
-unsigned long last_update = 0;
+timelib_t last_update = 0;
 
 /* Keeps the status of the system time (ok, needs sync, not set, etc). */
 enum time_status tstatus = E_TIME_NOT_SET;
@@ -113,11 +113,10 @@ timelib_t timelib_get() {
 
   // Check how many seconds have elapsed (if any) since the last call
   // and update the timestamp counter
-  while (tick_get() - last_update >= TICK_SECOND) {
-    // Increment timestamp
-    sys_time++;
-    last_update += TICK_SECOND;
-  }
+  timelib_t delta = tick_get() - last_update;
+  // Increment timestamp
+  sys_time += delta / TICK_SECOND;
+  last_update += delta;
 
   return sys_time;
 }
