@@ -6,72 +6,55 @@ help
 
 if LOG_CFG_ENABLE
     config LOG_CFG_ENABLE_TIMESTAMP
-        bool "Enable Timestamp Output"
+        bool "Format: Timestamp"
         default y
         help
         Enable this option to add a timestamp to the log output.
         e.g. "[INFO]:[0.123s]:Hello World"
 
     config LOG_CFG_ENABLE_COLOR
-        bool "Enable Color Output"
+        bool "Format: Color"
         default y
         help
         Enable this option to add color to the log output.
         e.g. "\033[1;31m[ERROR]:Hello World\033[0m"
 
     config LOG_CFG_ENABLE_FUNC_LINE
-        bool "Enable Function and Line Number Output"
+        bool "Format: Function and Line Number"
         default n
         help
         Enable this option to add the function and line number to the log output.
-        e.g. "[INFO]:[main.c:123]:Hello World"
+        e.g. "[INFO]:[main:123]:Hello World"
 
-    config LOG_CFG_ENABLE_ALIAS
-        bool "Enable Alias for Log Functions"
-        default n
+    config LOG_CFG_ENABLE_MODULE_NAME
+        bool "Format: Module Name"
+        default y
         help
-        Enable this option to add an alias for the log functions.
-        e.g. LOG_E("Error") is the same as LOG_ERROR("Error").
+        Enable this option to add the module name to the log output.
+        e.g. "[INFO]:[main]:Hello World"
+        You should define LOG_MODULE in your source file before including log.h.
 
-    config LOG_ASSERT_FAILED_BLOCK
-        bool "Block on Assert Failure"
-        default n
-        help
-        Enable this option to enter an infinite loop on assert failure.
+    choice
+        prompt "Log Level (Default)"
+        default LOG_CFG_LEVEL_USE_PASS
 
-    menu "Log Levels Config"
-        config LOG_CFG_ENABLE_TRACE
-            bool "Level: Trace"
-            default y
-
-        config LOG_CFG_ENABLE_DEBUG
-            bool "Level: Debug"
-            default y
-
-        config LOG_CFG_ENABLE_PASS
-            bool "Level: Pass"
-            default y
-
-        config LOG_CFG_ENABLE_INFO
-            bool "Level: Info"
-            default y
-
-        config LOG_CFG_ENABLE_WARN
-            bool "Level: Warning"
-            default y
-
-        config LOG_CFG_ENABLE_ERROR
-            bool "Level: Error"
-            default y
-
-        config LOG_CFG_ENABLE_FATAL
-            bool "Level: Fatal"
-            default y
-
-        config LOG_CFG_ENABLE_ASSERT
-            bool "Level: Assert"
-            default y
-    endmenu
+        config LOG_CFG_LEVEL_USE_TRACE
+            bool "Trace"
+        config LOG_CFG_LEVEL_USE_DEBUG
+            bool "Debug"
+        config LOG_CFG_LEVEL_USE_PASS
+            bool "Pass"
+        config LOG_CFG_LEVEL_USE_INFO
+            bool "Info"
+        config LOG_CFG_LEVEL_USE_WARNING
+            bool "Warning"
+        config LOG_CFG_LEVEL_USE_ERROR
+            bool "Error"
+        config LOG_CFG_LEVEL_USE_FATAL
+            bool "Fatal"
+        config LOG_CFG_LEVEL_USE_ASSERT
+            bool "Assert"
+    endchoice
 
     menu "Log Colors Config"
         config LOG_CFG_R_COLOR
@@ -150,6 +133,19 @@ if LOG_CFG_ENABLE
     endmenu
 
     menu "Advanced Configuration"
+        config LOG_CFG_ENABLE_ALIAS
+            bool "Enable Alias for Log Functions"
+            default n
+            help
+            Enable this option to add an alias for the log functions.
+            e.g. LOG_E("Error") is the same as LOG_ERROR("Error").
+
+        config LOG_CFG_ASSERT_FAILED_BLOCK
+            bool "Block on Assert Failure"
+            default n
+            help
+            Enable this option to enter an infinite loop on assert failure.
+
         config LOG_CFG_PRINTF
             string "Log Printf Function"
             default "printf"

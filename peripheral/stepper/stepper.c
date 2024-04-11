@@ -11,6 +11,7 @@
 #include "stepper.h"
 
 #if __has_include("tim.h")
+#define LOG_MODULE "stepper"
 #include "log.h"
 #include "math.h"
 #include "tim.h"

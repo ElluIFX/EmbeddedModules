@@ -33,6 +33,7 @@
 extern "C" {
 #endif
 
+#define LOG_MODULE "ef"
 #include "log.h"
 #include "modules.h"
 

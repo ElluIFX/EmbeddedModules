@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "ee_internal.h"
+#define LOG_MODULE "mf"
 #include "log.h"
 #include "main.h"
 

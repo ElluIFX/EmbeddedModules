@@ -23,6 +23,15 @@ extern "C" {
 
 #include "log_color.h"
 
+#define LOG_LEVEL_TRACE 0
+#define LOG_LEVEL_DEBUG 1
+#define LOG_LEVEL_PASS 2
+#define LOG_LEVEL_INFO 3
+#define LOG_LEVEL_WARN 4
+#define LOG_LEVEL_ERROR 5
+#define LOG_LEVEL_FATAL 6
+#define LOG_LEVEL_ASSERT 7
+
 /****************************    日志设置     ***********************/
 #if !KCONFIG_AVAILABLE  // 由Kconfig配置
 // 调试日志设置
@@ -30,17 +39,11 @@ extern "C" {
 #define LOG_CFG_ENABLE_TIMESTAMP 1  // 调试日志是否添加时间戳
 #define LOG_CFG_ENABLE_COLOR 1      // 调试日志是否按等级添加颜色
 #define LOG_CFG_ENABLE_FUNC_LINE 0  // 调试日志是否添加函数名和行号
-#define LOG_CFG_ENABLE_ALIAS 0      // 调试日志是否支持别名(如LOG_E)
-#define LOG_CFG_ENABLE_HOOK 0       // 调试日志是否支持输出钩子
+#define LOG_CFG_ENABLE_MODULE_NAME 1  // 调试日志是否添加模块名(如有)
+#define LOG_CFG_ENABLE_ALIAS 0  // 调试日志是否支持别名(如LOG_E)
+#define LOG_CFG_ENABLE_HOOK 0   // 调试日志是否支持输出钩子
 // 调试日志等级
-#define LOG_CFG_ENABLE_TRACE 1   // 是否输出TRACE日志
-#define LOG_CFG_ENABLE_DEBUG 1   // 是否输出DEBUG日志
-#define LOG_CFG_ENABLE_PASS 1    // 是否输出PASS日志
-#define LOG_CFG_ENABLE_INFO 1    // 是否输出INFO日志
-#define LOG_CFG_ENABLE_WARN 1    // 是否输出WARN日志
-#define LOG_CFG_ENABLE_ERROR 1   // 是否输出ERROR日志
-#define LOG_CFG_ENABLE_FATAL 1   // 是否输出FATAL日志
-#define LOG_CFG_ENABLE_ASSERT 1  // 是否输出ASSERT日志
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_TRACE  // 调试日志全局等级
 // 日志输出
 #define LOG_CFG_PRINTF printf  // 日志输出函数 (必须为类printf函数)
 #define LOG_CFG_TIMESTAMP_FUNC \
@@ -77,8 +80,41 @@ extern "C" {
 #define LOG_CFG_A_STR "ASSERT"  // 断言日志
 #define LOG_CFG_T_STR "TIMEIT"  // 计时日志
 
+#else
+
+#if LOG_CFG_LEVEL_USE_TRACE
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_TRACE
+#elif LOG_CFG_LEVEL_USE_DEBUG
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_DEBUG
+#elif LOG_CFG_LEVEL_USE_PASS
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_PASS
+#elif LOG_CFG_LEVEL_USE_INFO
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_INFO
+#elif LOG_CFG_LEVEL_USE_WARN
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_WARN
+#elif LOG_CFG_LEVEL_USE_ERROR
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_ERROR
+#elif LOG_CFG_LEVEL_USE_FATAL
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_FATAL
+#elif LOG_CFG_LEVEL_USE_ASSERT
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_ASSERT
+#endif
+
 #endif  // KCONFIG_AVAILABLE
 /*********************************************************************/
+
+#ifndef LOG_LEVEL
+#define LOG_LEVEL LOG_CFG_GLOBAL_LEVEL
+#endif
+
+#define LOG_CFG_ENABLE_TRACE (LOG_LEVEL <= LOG_LEVEL_TRACE)
+#define LOG_CFG_ENABLE_DEBUG (LOG_LEVEL <= LOG_LEVEL_DEBUG)
+#define LOG_CFG_ENABLE_PASS (LOG_LEVEL <= LOG_LEVEL_PASS)
+#define LOG_CFG_ENABLE_INFO (LOG_LEVEL <= LOG_LEVEL_INFO)
+#define LOG_CFG_ENABLE_WARN (LOG_LEVEL <= LOG_LEVEL_WARN)
+#define LOG_CFG_ENABLE_ERROR (LOG_LEVEL <= LOG_LEVEL_ERROR)
+#define LOG_CFG_ENABLE_FATAL (LOG_LEVEL <= LOG_LEVEL_FATAL)
+#define LOG_CFG_ENABLE_ASSERT (LOG_LEVEL <= LOG_LEVEL_ASSERT)
 
 /**
  * @brief 原始日志输出(直接调用LOG_CFG_PRINTF)
@@ -130,8 +166,16 @@ extern void log_hook(const char *fmt, ...);
   __LOG_TS(pre, "", level, color, suf, fmt, ##args)
 #endif  // LOG_CFG_ENABLE_FUNC_LINE
 
-#define __LOG(pre, level, color, suf, fmt, args...) \
+#if defined(LOG_MODULE) && LOG_CFG_ENABLE_MODULE_NAME
+#define __LOG_MOD(pre, level, color, suf, fmt, args...) \
+  __LOG_FL(pre, level, color, suf, "[" LOG_MODULE "]:" fmt, ##args)
+#else
+#define __LOG_MOD(pre, level, color, suf, fmt, args...) \
   __LOG_FL(pre, level, color, suf, fmt, ##args)
+#endif
+
+#define __LOG(pre, level, color, suf, fmt, args...) \
+  __LOG_MOD(pre, level, color, suf, fmt, ##args)
 
 #define __LOG_LIMIT(_STR, _CLR, limit_ms, fmt, args...)                 \
   do {                                                                  \
@@ -311,7 +355,7 @@ extern void log_hook(const char *fmt, ...);
 #endif
 
 #if LOG_CFG_ENABLE_ASSERT
-#if !LOG_ASSERT_FAILED_BLOCK
+#if !LOG_CFG_ASSERT_FAILED_BLOCK
 #define __ASSERT_0(expr)   \
   if (!(expr)) {           \
     __ASSERT_COMMON(expr); \
@@ -320,7 +364,7 @@ extern void log_hook(const char *fmt, ...);
   if (!(expr)) {                           \
     __ASSERT_PRINT(text, ##args);          \
   }
-#else  // LOG_ASSERT_FAILED_BLOCK
+#else  // LOG_CFG_ASSERT_FAILED_BLOCK
 #define __ASSERT_0(expr)   \
   if (!(expr)) {           \
     __ASSERT_COMMON(expr); \
@@ -333,7 +377,7 @@ extern void log_hook(const char *fmt, ...);
     while (1) {                            \
     }                                      \
   }
-#endif  // LOG_ASSERT_FAILED_BLOCK
+#endif  // LOG_CFG_ASSERT_FAILED_BLOCK
 #else   // LOG_CFG_ENABLE_ASSERT
 #define __ASSERT_0(text) ((void)0)
 #define __ASSERT_MORE(expr, text, args...) ((void)0)
@@ -385,7 +429,7 @@ extern void log_hook(const char *fmt, ...);
  * @brief 断言日志
  * @param  expr             断言表达式
  * @param  text             断言失败时输出的文本(可选, 支持格式化)
- * @note 如果启用LOG_ASSERT_FAILED_BLOCK, 断言失败时将进入死循环
+ * @note 如果启用LOG_CFG_ASSERT_FAILED_BLOCK, 断言失败时将进入死循环
  * @note 变体: LOG_ASSERT_CMD - 断言失败时执行命令
  */
 #define LOG_ASSERT(expr, ...)  \

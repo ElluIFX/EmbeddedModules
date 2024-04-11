@@ -59,6 +59,7 @@
 #include <stdio.h>
 #endif
 
+#define LOG_MODULE "ryu"
 #include "log.h"
 #define assert LOG_ASSERT
 

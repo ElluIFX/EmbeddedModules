@@ -146,9 +146,9 @@ void kl_kernel_idle_hook(void);
  * @brief 迭代获取所有内存块节点
  * @param  iter_tmp [in] 迭代器内部使用的临时变量, 需初始化为NULL
  * @param  owner [out] 节点所有者线程
- * @param  addr  [out] 节点地址
- * @param  used  [out] 节点使用大小
- * @param  avail [out] 节点实际大小
+ * @param  addr  [out] 节点地址(用户空间地址)
+ * @param  used  [out] 节点使用大小(包含控制块)
+ * @param  avail [out] 节点实际大小(包含控制块)
  * @retval 继续迭代返回true, 结束迭代返回false
  */
 bool kl_heap_iter_nodes(void **iter_tmp, kl_thread_t *owner, kl_size_t *addr,

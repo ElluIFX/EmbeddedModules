@@ -33,8 +33,9 @@
 #include "modules.h"
 
 #if KCONFIG_AVAILABLE
+#define LOG_MODULE "tf"
 #include "log.h"
-#define TF_Error(format, ...) LOG_ERROR("[TF] " format, ##__VA_ARGS__)
+#define TF_Error LOG_ERROR
 typedef TF_TICKS_TYPE TF_TICKS;
 typedef TF_COUNT_TYPE TF_COUNT;
 #if TF_CKSUM_TYPE_NONE

@@ -1,5 +1,4 @@
 #include "easy_ui.h"
-#include "log.h"
 #include "lwprintf.h"
 #include "u8g2.h"
 

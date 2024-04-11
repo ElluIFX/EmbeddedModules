@@ -6,6 +6,7 @@
 #include "lfs.h"
 #include "lwprintf.h"
 #include "modules.h"
+#include "uart_pack.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,6 +27,14 @@ extern lfs_t STDLIB_LFS;
 
 #define FILE lfs_file_t
 #define ssize_t lfs_ssize_t
+#define fpos_t lfs_off_t
+
+#undef stdin
+#undef stdout
+#undef stderr
+#define stdin ((void *)0xBEEF)
+#define stdout ((void *)0xDEAD)
+#define stderr stdout
 
 static inline int __cmode_to_lfs(const char *mode) {
   int flag = 0;
@@ -151,6 +160,11 @@ static inline int __fputs(const char *s, FILE *file) {
 
 static int __fprintf_lwfunc(int ch, lwprintf_t *lwobj) {
   FILE *file = (FILE *)(lwobj->arg);
+  if (file == stdout || file == stderr) {
+    putchar(ch);
+  } else if (file == stdin) {
+    return EOF;
+  }
   return __fputc(ch, file);
 }
 
@@ -163,6 +177,30 @@ static inline int __fprintf(FILE *file, const char *format, ...) {
   int ret = lwprintf_vprintf_ex(&lwp_pub, format, args);
   va_end(args);
   return ret;
+}
+
+static inline size_t __fsize(FILE *file) {
+  return lfs_file_size(&STDLIB_LFS, file);
+}
+
+static inline int __fgetpos(FILE *file, fpos_t *pos) {
+  *pos = lfs_file_tell(&STDLIB_LFS, file);
+  return 0;
+}
+
+static inline int __fsetpos(FILE *file, const fpos_t *pos) {
+  return lfs_file_seek(&STDLIB_LFS, file, *pos, LFS_SEEK_SET);
+}
+
+static inline int __vfprintf(FILE *file, const char *format, va_list args) {
+  lwprintf_t lwp_pub;
+  lwp_pub.out_fn = __fprintf_lwfunc;
+  lwp_pub.arg = file;
+  return lwprintf_vprintf_ex(&lwp_pub, format, args);
+}
+
+static inline int __vfscanf(FILE *file, const char *format, va_list args) {
+  return EOF;
 }
 
 #undef fopen
@@ -182,6 +220,11 @@ static inline int __fprintf(FILE *file, const char *format, ...) {
 #undef fputc
 #undef fputs
 #undef fprintf
+#undef fsize
+#undef fgetpos
+#undef fsetpos
+#undef vfprintf
+#undef vfscanf
 #define fopen(path, mode) __fopen(path, mode)
 #define fclose(file) __fclose(file)
 #define fread(ptr, size, nmemb, file) __fread(ptr, size, nmemb, file)
@@ -199,6 +242,11 @@ static inline int __fprintf(FILE *file, const char *format, ...) {
 #define fputc(c, file) __fputc(c, file)
 #define fputs(s, file) __fputs(s, file)
 #define fprintf(file, format, ...) __fprintf(file, format, __VA_ARGS__)
+#define fsize(file) __fsize(file)
+#define fgetpos(file, pos) __fgetpos(file, pos)
+#define fsetpos(file, pos) __fsetpos(file, pos)
+#define vfprintf(file, format, args) __vfprintf(file, format, args)
+#define vfscanf(file, format, args) __vfscanf(file, format, args)
 
 #ifdef __cplusplus
 }

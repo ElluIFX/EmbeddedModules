@@ -3,9 +3,11 @@
 #include <math.h>
 #include <string.h>
 
-#include "log.h"
 #include "modules.h"
 #include "udict.h"
+
+#define LOG_MODULE "xve"
+#include "log.h"
 
 #define CHECK_ARG_LEN(n) \
   if (xv_array_length(args) != n) return xv_new_error("Invalid argument")

@@ -7,6 +7,8 @@ extern "C" {
 #if SCH_CFG_ENABLE_COROUTINE
 #include "scheduler_coroutine_internal.h"
 
+typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类型
+
 /**
  * @brief 初始化协程
  */

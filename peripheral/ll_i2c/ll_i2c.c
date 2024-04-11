@@ -13,6 +13,8 @@
 #if __has_include("i2c.h")
 
 #include "i2c.h"
+
+#define LOG_MODULE "ll-i2c"
 #include "log.h"
 
 #define _INLINE __attribute__((always_inline))

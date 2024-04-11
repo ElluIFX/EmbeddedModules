@@ -296,10 +296,13 @@ static inline int __puts(const char *s) {
 #endif  // UART_CFG_PRINTF_USE_*
   return 0;
 }
+static inline int __getchar(void) { return -1; }
 #undef putchar
 #undef puts
+#undef getchar
 #define putchar __putchar
 #define puts __puts
+#define getchar __getchar
 #endif  // UART_CFG_PRINTF_REDIRECT_PUTX
 
 #ifdef __cplusplus

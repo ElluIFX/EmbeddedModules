@@ -7,6 +7,7 @@
 
 #include "easy_ui.h"
 
+#define LOG_MODULE "easyui"
 #include "log.h"
 
 static EasyUIDriver_t driver;

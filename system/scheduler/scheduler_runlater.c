@@ -57,8 +57,6 @@ _INLINE uint64_t runlater_runner(void) {
   return sleep_us;
 }
 
-#include "log.h"
-
 uint8_t __sch_runlater(void *func_addr, uint64_t delay_us, uint8_t argc,
                        void *arg_addr[], uint8_t arg_size[]) {
   uint8_t temp1;

@@ -10,6 +10,7 @@
 
 #include "sys_utils.h"
 
+#define LOG_MODULE "sys"
 #include "log.h"
 #include "scheduler.h"
 #include "term_table.h"
@@ -376,7 +377,7 @@ static void memdump_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   int width = 8;
   int argc = embeddedCliGetTokenCount(args);
   if (argc < 1) {
-    PRINTLN(T_FMT(T_BOLD, T_RED) "Address is required" T_RST);
+    embeddedCliPrintCurrentHelp(cli);
     return;
   }
   uint8_t *addr = (uint8_t *)strtoul(embeddedCliGetToken(args, -1), NULL, 16);
@@ -393,8 +394,9 @@ static void memdump_cmd_func(EmbeddedCli *cli, char *args, void *context) {
     n = len > width ? width : len;
     if (n <= 0) break;
     len -= n;
-    PRINT(T_FMT(T_GREEN) "0x%08X " T_RST, addr);
+    PRINT(T_FMT(T_GREEN) "0x%08X" T_RST, addr);
     for (int i = 0; i < n; i++) {  // print hex
+      if (i % 8 == 0) PRINT(" ");
       PRINT("%02X ", addr[i]);
     }
     for (int i = n; i < width; i++) {  // padding
@@ -414,13 +416,12 @@ static void memdump_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 }
 
 #if KLITE_CFG_HEAP_TRACE_OWNER
+#include "klite.h"
 static void memtrace_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   int fpid = -1;
   kl_size_t fsize = 0;
-  int dump_len = 0;
   int argc = embeddedCliGetTokenCount(args);
   int pos;
-  bool dump_ascii = false;
   bool frag_only = false;
   if ((pos = embeddedCliFindToken(args, "-p")) != 0 && argc >= pos + 1) {
     fpid = atoi(embeddedCliGetToken(args, pos + 1));
@@ -428,48 +429,24 @@ static void memtrace_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   if ((pos = embeddedCliFindToken(args, "-s")) != 0 && argc >= pos + 1) {
     fsize = atoi(embeddedCliGetToken(args, pos + 1));
   }
-  if ((pos = embeddedCliFindToken(args, "-d")) != 0 && argc >= pos + 1) {
-    dump_len = atoi(embeddedCliGetToken(args, pos + 1));
-  }
-  if ((pos = embeddedCliFindToken(args, "-i")) != 0) {
-    dump_ascii = true;
-  }
   if ((pos = embeddedCliFindToken(args, "-f")) != 0) {
     frag_only = true;
   }
-
-  PRINTLN(T_FMT(T_BOLD, T_BLUE) "Memory Trace Info:" T_RST);
-  PRINTLN(T_FMT(T_BLUE) "Addr(Used/Space) -> PID" T_FMT(T_GREEN));
+  PRINTLN(T_FMT(T_BOLD, T_BLUE) "Memory Trace Info:" T_FMT(T_RESET, T_BLUE));
+  PRINTLN("Addr(Used/Space) -> PID" T_FMT(T_GREEN));
   void *iter_tmp = NULL;
   kl_thread_t owner = NULL;
-  kl_size_t addr = 0;
-  kl_size_t used = 0;
-  kl_size_t size = 0;
+  kl_size_t addr = 0, used = 0, size = 0;
   while (kl_heap_iter_nodes(&iter_tmp, &owner, &addr, &used, &size)) {
     if ((fpid != -1 && kl_thread_id(owner) != fpid) || (size < fsize)) continue;
+    if (frag_only && used == size) continue;
     if (used == size) {
-      if (frag_only) continue;
       PRINT(T_FMT(T_GREEN));
     } else {
       PRINT(T_FMT(T_YELLOW));
     }
-    PRINTLN("0x%X(%d/%d) -> %d", addr, used, size, kl_thread_id(owner));
-    if (dump_len) {
-      PRINT(T_RST "> ");
-      for (int i = 0; i < dump_len; i++) {
-        if (dump_ascii) {
-          if (((uint8_t *)addr)[i] >= 32 && ((uint8_t *)addr)[i] <= 126) {
-            PRINT("%c", ((uint8_t *)addr)[i]);
-          } else {
-            PRINT(T_FMT(T_BLUE) "." T_RST);
-          }
-        } else {
-          PRINT("%02X ", ((uint8_t *)addr)[i]);
-        }
-      }
-    }
+    PRINTLN("0x%X - %d/%d -> %d", addr, used, size, kl_thread_id(owner));
   }
-  PRINT(T_RST);
 }
 #endif
 
@@ -510,9 +487,7 @@ void system_utils_add_command_to_cli(EmbeddedCli *cli) {
 #if KLITE_CFG_HEAP_TRACE_OWNER
   static CliCommandBinding memtrace_cmd = {
       .name = "memtrace",
-      .usage =
-          "memtrace [-f only fragmentation | -p <pid> | -s <min size> | -d "
-          "<dumplen> | -i dump ascii]",
+      .usage = "memtrace [-f only fragmentation | -p <pid> | -s <min size>]",
       .help = "Trace memory allocations",
       .context = NULL,
       .autoTokenizeArgs = 1,

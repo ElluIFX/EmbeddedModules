@@ -2,6 +2,7 @@
 #include "spif.h"
 #if SPIF_ENABLE
 
+#define LOG_MODULE "spif"
 #include "log.h"
 #include "modules.h"
 #if SPIF_DEBUG != SPIF_DEBUG_DISABLE
@@ -273,6 +274,8 @@ uint8_t SPIF_ReadReg1(SPIF_HandleTypeDef *Handle) {
   SPIF_CsPin(Handle, 0);
   if (SPIF_TransmitReceive(Handle, tx, rx, 2, 100) == true) {
     retVal = rx[1];
+  } else {
+    LOG_ERROR("SPIF_ReadReg1() Error");
   }
   SPIF_CsPin(Handle, 1);
   return retVal;
@@ -287,6 +290,8 @@ uint8_t SPIF_ReadReg2(SPIF_HandleTypeDef *Handle) {
   SPIF_CsPin(Handle, 0);
   if (SPIF_TransmitReceive(Handle, tx, rx, 2, 100) == true) {
     retVal = rx[1];
+  } else {
+    LOG_ERROR("SPIF_ReadReg2() Error");
   }
   SPIF_CsPin(Handle, 1);
   return retVal;
@@ -301,6 +306,8 @@ uint8_t SPIF_ReadReg3(SPIF_HandleTypeDef *Handle) {
   SPIF_CsPin(Handle, 0);
   if (SPIF_TransmitReceive(Handle, tx, rx, 2, 100) == true) {
     retVal = rx[1];
+  } else {
+    LOG_ERROR("SPIF_ReadReg3() Error");
   }
   SPIF_CsPin(Handle, 1);
   return retVal;
@@ -317,6 +324,7 @@ bool SPIF_WriteReg1(SPIF_HandleTypeDef *Handle, uint8_t Data) {
     if (SPIF_Transmit(Handle, &cmd, 1, 100) == false) {
       retVal = false;
       SPIF_CsPin(Handle, 1);
+      LOG_ERROR("SPIF_WriteReg1() Cmd Error");
       break;
     }
     SPIF_CsPin(Handle, 1);
@@ -324,6 +332,7 @@ bool SPIF_WriteReg1(SPIF_HandleTypeDef *Handle, uint8_t Data) {
     if (SPIF_Transmit(Handle, tx, 2, 100) == false) {
       retVal = false;
       SPIF_CsPin(Handle, 1);
+      LOG_ERROR("SPIF_WriteReg1() Data Error");
       break;
     }
     SPIF_CsPin(Handle, 1);
@@ -343,6 +352,7 @@ bool SPIF_WriteReg2(SPIF_HandleTypeDef *Handle, uint8_t Data) {
     if (SPIF_Transmit(Handle, &cmd, 1, 100) == false) {
       retVal = false;
       SPIF_CsPin(Handle, 1);
+      LOG_ERROR("SPIF_WriteReg2() Cmd Error");
       break;
     }
     SPIF_CsPin(Handle, 1);
@@ -350,6 +360,7 @@ bool SPIF_WriteReg2(SPIF_HandleTypeDef *Handle, uint8_t Data) {
     if (SPIF_Transmit(Handle, tx, 2, 100) == false) {
       retVal = false;
       SPIF_CsPin(Handle, 1);
+      LOG_ERROR("SPIF_WriteReg2() Data Error");
       break;
     }
     SPIF_CsPin(Handle, 1);
@@ -369,6 +380,7 @@ bool SPIF_WriteReg3(SPIF_HandleTypeDef *Handle, uint8_t Data) {
     if (SPIF_Transmit(Handle, &cmd, 1, 100) == false) {
       retVal = false;
       SPIF_CsPin(Handle, 1);
+      LOG_ERROR("SPIF_WriteReg3() Cmd Error");
       break;
     }
     SPIF_CsPin(Handle, 1);
@@ -376,6 +388,7 @@ bool SPIF_WriteReg3(SPIF_HandleTypeDef *Handle, uint8_t Data) {
     if (SPIF_Transmit(Handle, tx, 2, 100) == false) {
       retVal = false;
       SPIF_CsPin(Handle, 1);
+      LOG_ERROR("SPIF_WriteReg3() Data Error");
       break;
     }
     SPIF_CsPin(Handle, 1);
@@ -788,7 +801,7 @@ bool SPIF_EraseBlock(SPIF_HandleTypeDef *Handle, uint32_t Block) {
 #endif
     SDEBUG("SPIF_EraseBlock() START PAGE %ld", Block);
     if (Block >= Handle->BlockCnt) {
-      SDEBUG("SPIF_EraseBlock() ERROR Block NUMBER");
+      LOG_ERROR("SPIF_EraseBlock() ERROR Block NUMBER %ld", Block);
       break;
     }
     if (SPIF_WriteEnable(Handle) == false) {

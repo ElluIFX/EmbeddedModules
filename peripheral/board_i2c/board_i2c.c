@@ -190,6 +190,7 @@ _INLINE uint8_t i2c_check_slave(uint8_t addr) {
 #endif
 
 #ifndef _NO_INTERFACE
+#define LOG_MODULE "i2c"
 #include "log.h"
 
 void i2c_bus_scan(void) {

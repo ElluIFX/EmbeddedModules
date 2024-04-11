@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LOG_MODULE "ulist"
 #include "log.h"
 
 #define _ulist_memmove memmove

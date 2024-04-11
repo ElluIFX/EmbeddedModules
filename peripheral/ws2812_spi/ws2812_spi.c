@@ -11,6 +11,7 @@
 #include "ws2812_spi.h"
 
 #if __has_include("spi.h")
+#define LOG_MODULE "ws2812"
 #include "log.h"
 #include "spi.h"
 #include "stdio.h"

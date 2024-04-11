@@ -10,6 +10,7 @@
 
 #include "virtual_lcd.h"
 
+#define LOG_MODULE "vlcd"
 #include "log.h"
 #include "uart_pack.h"
 #include "ulist.h"

@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define LOG_MODULE "genann"
 #include "log.h"
 #include "modules.h"
 

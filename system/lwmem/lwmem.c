@@ -37,6 +37,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define LOG_MODULE "lwmem"
 #include "log.h"
 
 /**

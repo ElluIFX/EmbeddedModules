@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h> /* uint8_t, uint32_t */
 #include <string.h> /* memcmp, memset, strlen */
 
+#define LOG_MODULE "uthash"
 #include "log.h"
 #include "modules.h"
 
@@ -1205,5 +1206,7 @@ typedef struct UT_hash_handle {
   unsigned keylen;                /* enclosing struct's key len     */
   unsigned hashv;                 /* result of hash-fcn(key)        */
 } UT_hash_handle;
+
+#undef LOG_MODULE
 
 #endif /* UTHASH_H */

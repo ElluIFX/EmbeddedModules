@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "log.h"
+#include "modules.h"
 
 typedef struct {
   uint8_t *content;

@@ -1,5 +1,6 @@
 #include "sw_i2c.h"
 
+#define LOG_MODULE "sw-i2c"
 #include "log.h"
 
 #define I2C_READ 0x01

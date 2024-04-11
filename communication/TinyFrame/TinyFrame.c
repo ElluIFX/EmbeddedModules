@@ -226,7 +226,7 @@ bool _TF_FN TF_InitStatic(TinyFrame *tf, TF_Peer peer_bit) {
 
 /** Init with malloc */
 TinyFrame *_TF_FN TF_Init(TF_Peer peer_bit) {
-  TinyFrame *tf = malloc(sizeof(TinyFrame));
+  TinyFrame *tf = m_alloc(sizeof(TinyFrame));
   if (!tf) {
     TF_Error("TF_Init() failed, out of memory.");
     return NULL;

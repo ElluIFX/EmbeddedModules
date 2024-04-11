@@ -1,7 +1,6 @@
 #include "easy_ui.h"
 #include "font8x13B.h"
 #include "hagl.h"
-#include "log.h"
 #include "lwprintf.h"
 
 static hagl_backend_t *_easyui_hagl;

@@ -13,9 +13,10 @@
 #if !LL_IIC_CFG_USE_IT && __has_include("i2c.h")
 
 #include "i2c.h"
+#define LOG_MODULE "ll-i2c"
 #include "log.h"
 #if 0 /* 1: enable trace log */
-#define I2C_TRACE(fmt, ...) LOG_TRACE("I2C: " fmt, ##__VA_ARGS__)
+#define I2C_TRACE(fmt, ...) LOG_TRACE(fmt, ##__VA_ARGS__)
 #else
 #define I2C_TRACE(fmt, ...)
 #endif
@@ -275,8 +276,7 @@ bool ll_i2c_internal_transfer(I2C_TypeDef* i2c, uint8_t addr, ll_i2c_msg_t* msg,
     do {
       act_len = data_len > STM32_I2C_MAX_SIZE ? STM32_I2C_MAX_SIZE : data_len;
       data_len -= act_len;
-      if (!i2c_start_transfer(i2c,
-                              msg[i].wr ? I2C_TRANSMITTER : I2C_RECEIVER,
+      if (!i2c_start_transfer(i2c, msg[i].wr ? I2C_TRANSMITTER : I2C_RECEIVER,
                               addr, act_len, data_len > 0)) {
         goto error;
       }

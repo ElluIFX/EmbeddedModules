@@ -16,6 +16,7 @@
 
 #include "dalloc.h"
 
+#define LOG_MODULE "dalloc"
 #include "log.h"
 
 #if ALLOC_INFO_U16

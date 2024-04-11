@@ -32,7 +32,6 @@ typedef struct {         // 协程句柄结构
 #define __crap__ Do_not_init_coroutine_more_than_once
 
 #define __async__ __cortn_handle_t *__chd__
-typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类型
 
 extern const char *__cortn_internal_get_name(void);
 extern void *__cortn_internal_init_local(size_t size);

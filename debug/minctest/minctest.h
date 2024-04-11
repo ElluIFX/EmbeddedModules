@@ -59,6 +59,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#define LOG_MODULE "minctest"
 #include "log.h"
 #include "modules.h"
 

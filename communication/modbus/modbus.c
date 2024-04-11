@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#define LOG_MODULE "modbus"
 #include "log.h"
 
 #define MODBUS_DEBUG(x) LOG_DEBUG x

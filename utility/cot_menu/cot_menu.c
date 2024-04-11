@@ -94,7 +94,7 @@ static MenuCtrl_t *NewMenu(void) {
 
   if (sg_currMenuDepth < COT_MENU_MAX_DEPTH) {
 #ifdef _COT_MENU_USE_MALLOC_
-    pMenuCtrl = (MenuCtrl_t *)malloc(sizeof(MenuCtrl_t));
+    pMenuCtrl = (MenuCtrl_t *)m_alloc(sizeof(MenuCtrl_t));
 #else
     pMenuCtrl = &sg_arrMenuCtrl[sg_currMenuDepth];
 #endif

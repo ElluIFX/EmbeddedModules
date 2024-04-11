@@ -5,6 +5,7 @@ extern "C" {
 #endif
 #include <string.h>
 
+#define LOG_MODULE "sch"
 #include "log.h"
 #include "scheduler.h"
 #include "ulist.h"

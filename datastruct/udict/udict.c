@@ -12,6 +12,7 @@
 
 #include <string.h>
 
+#define LOG_MODULE "udict"
 #include "log.h"
 
 #define _udict_malloc m_alloc

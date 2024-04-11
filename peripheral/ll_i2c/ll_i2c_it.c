@@ -15,9 +15,10 @@
 #if LL_IIC_CFG_USE_IT && __has_include("i2c.h")
 
 #include "i2c.h"
+#define LOG_MODULE "ll-i2c"
 #include "log.h"
-#if 0 /* 1: enable trace log */
-#define I2C_TRACE(fmt, ...) LOG_TRACE("I2C: " fmt, ##__VA_ARGS__)
+#if 1 /* 1: enable trace log */
+#define I2C_TRACE(fmt, ...) LOG_TRACE( fmt, ##__VA_ARGS__)
 #else
 #define I2C_TRACE(fmt, ...)
 #endif

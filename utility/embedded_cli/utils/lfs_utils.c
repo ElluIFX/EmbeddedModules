@@ -15,6 +15,8 @@
 
 // Private Defines --------------------------
 
+#define FS_ENABLE_YMODEM 1  // 启用YMODEM接收命令
+
 #define FS_PRINTLN(...) PRINTLN(__VA_ARGS__)
 #define FS_PRINT(...) PRINT(__VA_ARGS__)
 
@@ -848,7 +850,6 @@ static void rb_cmd_func(EmbeddedCli *cli, char *args, void *context) {
 }
 
 #endif  // FS_ENABLE_YMODEM
-
 // Public Functions -------------------------
 
 void lfs_utils_add_command_to_cli(EmbeddedCli *reg_cli, lfs_t *reg_lfs) {

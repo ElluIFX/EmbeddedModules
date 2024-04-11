@@ -60,7 +60,7 @@ extern "C" {
 #define SPIF_PLATFORM_HAL_DMA_WITH_DCACHE 3
 
 /*---------- SPIF_DEBUG  -----------*/
-#define SPIF_DEBUG SPIF_DEBUG_DISABLE
+#define SPIF_DEBUG SPIF_DEBUG_ENABLE
 
 /*---------- SPIF_PLATFORM  -----------*/
 #define SPIF_PLATFORM SPIF_PLATFORM_HAL_IT
