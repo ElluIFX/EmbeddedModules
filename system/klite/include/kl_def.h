@@ -60,7 +60,9 @@ struct kl_thread {
   struct kl_thread_node node_sched;   // 调度队列节点
   struct kl_thread_node node_wait;    // 等待队列节点
   struct kl_thread_node node_manage;  // 管理队列节点
-  uint32_t info;  // 高16位: ID, 中8位: 错误码, 低8位: 状态
+  uint16_t tid;                       // 线程ID
+  uint8_t err;                        // 错误码
+  uint8_t flags;                      // 线程状态
 };
 typedef struct kl_thread *kl_thread_t;
 

@@ -16,8 +16,9 @@ static uint8_t m_susp_pending_flags;
 #define SUSPEND_PREEMPT_PENDING 0x02
 #define SUSPEND_PREEMPT_ROUND_ROBIN 0x04
 
-static inline void list_insert_by_priority(struct kl_thread_list *list,
-                                           struct kl_thread_node *node) {
+static inline void waitlist_insert(struct kl_thread_list *list,
+                                   struct kl_thread_node *node) {
+#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
   uint32_t prio;
   struct kl_thread_node *find;
   prio = node->tcb->prio;
@@ -27,6 +28,9 @@ static inline void list_insert_by_priority(struct kl_thread_list *list,
     }
   }
   kl_blist_insert_after(list, find, node);
+#else  // FIFO
+  kl_blist_append(list, node);
+#endif
 }
 
 static inline uint32_t find_highest_priority(uint32_t highest) {
@@ -41,7 +45,7 @@ static inline uint32_t find_highest_priority(uint32_t highest) {
 static inline void remove_list_wait(kl_thread_t tcb) {
   kl_blist_remove(tcb->list_wait, &tcb->node_wait);
   tcb->list_wait = NULL;
-  KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_WAIT);
+  KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
 }
 
 static inline void remove_list_sched(kl_thread_t tcb) {
@@ -54,7 +58,7 @@ static inline void remove_list_sched(kl_thread_t tcb) {
     }
   }
   tcb->list_sched = NULL;
-  KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SLEEP);
+  KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SLEEP);
 }
 
 void kl_sched_tcb_remove(kl_thread_t tcb) {
@@ -64,10 +68,9 @@ void kl_sched_tcb_remove(kl_thread_t tcb) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
-  KL_CLR_FLAG32(tcb->info,
-                (KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SUSPEND |
-                 KL_THREAD_FLAGS_SLEEP | KL_THREAD_FLAGS_WAIT));
-  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_EXITED);
+  KL_CLR_FLAG(tcb->flags, (KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SUSPEND |
+                           KL_THREAD_FLAGS_SLEEP | KL_THREAD_FLAGS_WAIT));
+  KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_EXITED);
 }
 
 void kl_sched_tcb_ready(kl_thread_t tcb) {
@@ -80,7 +83,7 @@ void kl_sched_tcb_ready(kl_thread_t tcb) {
   if (m_prio_highest < tcb->prio) {
     m_prio_highest = tcb->prio;
   }
-  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_READY);
+  KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
 }
 
 void kl_sched_tcb_suspend(kl_thread_t tcb) {
@@ -98,19 +101,15 @@ void kl_sched_tcb_suspend(kl_thread_t tcb) {
       tcb->timeout -= m_idle_elapse; /* remain sleep time */
     }
   }
-  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_SUSPEND);
+  KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND);
 }
 
 void kl_sched_tcb_resume(kl_thread_t tcb) {
-  if (KL_GET_FLAG(tcb->info, KL_THREAD_FLAGS_SUSPEND)) {
-    KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_SUSPEND);
+  if (KL_GET_FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND)) {
+    KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND);
     if (tcb->list_wait) { /* set wait */
-#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
-      list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
-#else  // FIFO
-      kl_blist_append(tcb->list_wait, &tcb->node_wait);
-#endif
-      KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_WAIT);
+      waitlist_insert(tcb->list_wait, &tcb->node_wait);
+      KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
     }
     if (tcb->list_sched == &m_list_sleep) { /* set sleep */
       tcb->timeout += m_idle_elapse;
@@ -118,7 +117,7 @@ void kl_sched_tcb_resume(kl_thread_t tcb) {
       if (tcb->timeout < m_idle_timeout) {
         m_idle_timeout = tcb->timeout;
       }
-      KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_SLEEP);
+      KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
     } else if (tcb->list_sched) { /* set ready */
       tcb->list_sched = NULL;
       kl_sched_tcb_ready(tcb);
@@ -130,16 +129,12 @@ void kl_sched_tcb_reset_prio(kl_thread_t tcb, uint32_t prio) {
   uint32_t old_prio;
   old_prio = tcb->prio;
   tcb->prio = prio;
-  if (KL_GET_FLAG(tcb->info, KL_THREAD_FLAGS_SUSPEND)) {
+  if (KL_GET_FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND)) {
     return; /* suspend state, lists stored are not real */
   }
   if (tcb->list_wait) {
     kl_blist_remove(tcb->list_wait, &tcb->node_wait);
-#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
-    list_insert_by_priority(tcb->list_wait, &tcb->node_wait);
-#else  // FIFO
-    kl_blist_append(tcb->list_wait, &tcb->node_wait);
-#endif
+    waitlist_insert(tcb->list_wait, &tcb->node_wait);
   }
   if (tcb->list_sched) {
     if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
@@ -175,7 +170,7 @@ void kl_sched_tcb_sleep(kl_thread_t tcb, kl_tick_t timeout) {
   if (tcb->timeout < m_idle_timeout) {
     m_idle_timeout = tcb->timeout;
   }
-  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_SLEEP);
+  KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
 }
 
 void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list *list) {
@@ -183,12 +178,8 @@ void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list *list) {
     remove_list_wait(tcb);
   }
   tcb->list_wait = list;
-#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
-  list_insert_by_priority(list, &tcb->node_wait);
-#else  // FIFO
-  kl_blist_append(list, &tcb->node_wait);
-#endif
-  KL_SET_FLAG(tcb->info, KL_THREAD_FLAGS_WAIT);
+  waitlist_insert(list, &tcb->node_wait);
+  KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_WAIT);
 }
 
 void kl_sched_tcb_timed_wait(kl_thread_t tcb, struct kl_thread_list *list,
@@ -244,37 +235,45 @@ void kl_sched_resume(void) {
   }
 }
 
+#if KLITE_CFG_STACK_OVERFLOW_DETECT
+static inline void kl_sched_stack_overflow_check(void) {
+  if (!kl_sched_tcb_now) return;
+  uint32_t *stack_magic_base = (uint32_t *)(kl_sched_tcb_now + 1);
+  uint32_t *stack_magic_top =
+      (uint32_t *)((uint8_t *)(stack_magic_base + KLITE_CFG_STACKOF_SIZE) +
+                   kl_sched_tcb_now->stack_size);
+  uint32_t *stack_magic_base_to = stack_magic_base + KLITE_CFG_STACKOF_SIZE;
+  uint32_t *stack_magic_top_to = stack_magic_top + KLITE_CFG_STACKOF_SIZE;
+  while (stack_magic_base < stack_magic_base_to &&
+         stack_magic_top < stack_magic_top_to) {
+    if (*stack_magic_base != KL_STACK_MAGIC_VALUE ||
+        *stack_magic_top != KL_STACK_MAGIC_VALUE) {
+#if KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
+      kl_stack_overflow_hook(kl_sched_tcb_now,
+                             *stack_magic_base != KL_STACK_MAGIC_VALUE);
+#elif KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
+      NVIC_SystemReset();
+#elif KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
+      ((void (*)(void))0x10)();
+#endif
+    }
+    stack_magic_base++;
+    stack_magic_top++;
+  }
+}
+#endif
+
 void kl_sched_switch(void) {
   if (m_susp_nesting) { /* in suspend state */
     KL_SET_FLAG(m_susp_pending_flags, SUSPEND_SWITCH_PENDING);
     return;
   }
+#if KLITE_CFG_STACKOF_DETECT_ON_TASK_SWITCH
+  kl_sched_stack_overflow_check();
+#endif
   kl_thread_t tcb = m_list_ready[m_prio_highest].head->tcb;
-#if KLITE_CFG_STACK_OVERFLOW_DETECT
-  uint32_t *stack_magic = (uint32_t *)(tcb + 1);
-  // check 32 bytes of stack overflow magic value
-  if (*(stack_magic) != KL_STACK_MAGIC_VALUE ||
-      *(stack_magic + 1) != KL_STACK_MAGIC_VALUE ||
-      *(stack_magic + 2) != KL_STACK_MAGIC_VALUE ||
-      *(stack_magic + 3) != KL_STACK_MAGIC_VALUE ||
-      *(stack_magic + 4) != KL_STACK_MAGIC_VALUE ||
-      *(stack_magic + 5) != KL_STACK_MAGIC_VALUE ||
-      *(stack_magic + 6) != KL_STACK_MAGIC_VALUE ||
-      *(stack_magic + 7) != KL_STACK_MAGIC_VALUE) {
-#if KLITE_CFG_STACKOF_BEHAVIOR_SUSPEND
-    kl_sched_tcb_suspend(tcb);
-    tcb = m_list_ready[m_prio_highest].head->tcb;
-#elif KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
-    NVIC_SystemReset();
-#elif KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
-    ((void (*)(void))0x10)();
-#elif KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
-    kl_stack_overflow_hook();
-#endif
-  }
-#endif
   kl_blist_remove(tcb->list_sched, &tcb->node_sched);
-  KL_CLR_FLAG32(tcb->info, KL_THREAD_FLAGS_READY);
+  KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
   if (tcb->list_sched->head == NULL) {
     m_prio_bitmap &= ~(1 << tcb->prio);
     m_prio_highest = find_highest_priority(m_prio_highest);
@@ -329,6 +328,9 @@ static inline void kl_sched_timeout(void) {
 void kl_sched_timing(kl_tick_t time) {
   m_idle_elapse += time;
   kl_sched_tcb_now->time += time;
+#if KLITE_CFG_STACKOF_DETECT_ON_TICK_INC
+  kl_sched_stack_overflow_check();
+#endif
   if (m_idle_elapse >= m_idle_timeout) {
     kl_sched_timeout();
     m_idle_elapse = 0;

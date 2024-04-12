@@ -131,9 +131,11 @@ void *kl_heap_alloc_fault_hook(kl_size_t size);
 /**
  * @brief 内核栈溢出回调函数
  * @param thread 线程标识符
+ * @param is_bottom 是否是栈底溢出
  * @note 可由用户自行实现
+ * @warning 栈溢出情况下, 标识符中的所有信息都不再可靠
  */
-void kl_stack_overflow_hook(kl_thread_t thread);
+void kl_stack_overflow_hook(kl_thread_t thread, bool is_bottom);
 
 /**
  * @brief 内核空闲回调函数

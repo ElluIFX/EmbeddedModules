@@ -17,18 +17,9 @@
 
 #define KL_STACK_MAGIC_VALUE 0xDEADBEEFU
 
-#define KL_THREAD_ID_OFFSET 16
-#define KL_THREAD_ERRNO_OFFSET 8
-#define KL_THREAD_FLAGS_OFFSET 0
-#define KL_THREAD_ID_MASK 0xFFFF0000U
-#define KL_THREAD_ERRNO_MASK 0x0000FF00U
-#define KL_THREAD_FLAGS_MASK 0x000000FFU
-
 #define KL_SET_FLAG(flags, mask) ((flags) |= (mask))
 #define KL_GET_FLAG(flags, mask) ((flags) & (mask))
-#define KL_CLR_FLAG8(flags, mask) ((flags) &= ~((uint8_t)(mask)))
-#define KL_CLR_FLAG16(flags, mask) ((flags) &= ~((uint16_t)(mask)))
-#define KL_CLR_FLAG32(flags, mask) ((flags) &= ~((uint32_t)(mask)))
+#define KL_CLR_FLAG(flags, mask) ((flags) &= ~(mask))
 
 // 当前线程控制块
 extern kl_thread_t kl_sched_tcb_now;
@@ -60,6 +51,11 @@ void kl_port_context_switch(void);
 void *kl_port_stack_init(void *stack_base, void *stack_top, void *entry,
                          void *arg, void *exit);
 
+// 平台实现: 重置线程栈
+// @param stack_base: 栈基地址
+// @param stack_top: 栈顶地址
+void kl_port_stack_reset(void *stack_base, void *stack_top);
+
 // 平台实现: 进入临界区
 void kl_port_enter_critical(void);
 
@@ -75,8 +71,8 @@ void kl_kernel_tick_source(kl_tick_t time);
 // 内核空闲线程
 void kl_kernel_idle_entry(void *args);
 
-// 清理待删除线程
-void kl_thread_clean_up(void);
+// 处理线程空闲任务
+void kl_thread_idle_task(void);
 
 // 初始化线程调度器
 void kl_sched_init(void);
@@ -172,15 +168,13 @@ kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list *list);
   }
 
 // 设置当前线程的errno
-#define KL_SET_ERRNO(errno)                                         \
-  do {                                                              \
-    if (kl_sched_tcb_now) {                                         \
-      kl_port_enter_critical();                                     \
-      kl_sched_tcb_now->info &= ~((uint32_t)KL_THREAD_ERRNO_MASK);  \
-      kl_sched_tcb_now->info |=                                     \
-          (errno << KL_THREAD_ERRNO_OFFSET) & KL_THREAD_ERRNO_MASK; \
-      kl_port_leave_critical();                                     \
-    }                                                               \
+#define KL_SET_ERRNO(errno)                     \
+  do {                                          \
+    if (kl_sched_tcb_now) {                     \
+      kl_port_enter_critical();                 \
+      kl_sched_tcb_now->err = (uint8_t)(errno); \
+      kl_port_leave_critical();                 \
+    }                                           \
   } while (0)
 
 #endif

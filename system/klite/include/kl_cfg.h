@@ -25,7 +25,7 @@
 
 #endif
 
-#define KLITE_CFG_STACK_OVERFLOW_DETECT 1      // 栈溢出保护
+#define KLITE_CFG_STACK_OVERFLOW_DETECT 0      // 栈溢出保护
 #define KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET 1  // 栈溢出时系统复位
 #define KLITE_CFG_STACKOF_BEHAVIOR_SUSPEND 0   // 栈溢出时挂起线程
 #define KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT 0  // 栈溢出时访问0x10触发异常

@@ -191,6 +191,9 @@ static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt,
 static int pub_lwprintf_fn(int ch, lwprintf_t *lwobj) {
   if (ch == '\0') return 0;
   UART_HandleTypeDef *huart = (UART_HandleTypeDef *)lwobj->arg;
+  while (UART_CFG_NOT_READY) {
+    __NOP();
+  }
   if (huart) {
     HAL_UART_Transmit(huart, (uint8_t *)&ch, 1, 0xFFFF);
     return ch;

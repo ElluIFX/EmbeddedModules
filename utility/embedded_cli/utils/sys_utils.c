@@ -132,9 +132,9 @@ static void klite_cmd_func(EmbeddedCli *cli, char *args, void *context) {
   } else if (embeddedCliCheckToken(args, "-r", 1)) {
     kl_thread_resume(thread);
     PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d resumed" T_RST, id);
-  } else if (embeddedCliCheckToken(args, "-d", 1)) {
+  } else if (embeddedCliCheckToken(args, "-k", 1)) {
     kl_thread_delete(thread);
-    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d deleted" T_RST, id);
+    PRINTLN(T_FMT(T_BOLD, T_GREEN) "Thread %d killed" T_RST, id);
   } else if (embeddedCliCheckToken(args, "-p", 1)) {
     if (argc < 3) {
       PRINTLN(T_FMT(T_BOLD, T_RED) "Priority is required" T_RST);
@@ -466,8 +466,8 @@ void system_utils_add_command_to_cli(EmbeddedCli *cli) {
   static CliCommandBinding klite_cmd = {
       .name = "klite",
       .usage =
-          "klite [-l list | -s suspend | -r resume | -d delete | -p <priority>]"
-          " <thread id>",
+          "klite [-l list | -s suspend | -r resume | -k kill | -p <priority>] "
+          "<thread id>",
       .help = "KLite RTOS control command",
       .context = NULL,
       .autoTokenizeArgs = 1,

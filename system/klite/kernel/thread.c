@@ -1,14 +1,14 @@
 #include "kl_blist.h"
 #include "kl_priv.h"
 
-static struct kl_thread_list m_list_manage;  // 运行中线程列表
-static struct kl_thread_list m_list_dead;    // 待删除线程列表
-static uint16_t kl_thread_id_counter;        // 线程ID计数器
+static struct kl_thread_list m_list_alive;  // 运行中线程列表
+static struct kl_thread_list m_list_dead;   // 待删除线程列表
+static uint16_t kl_thread_id_counter;       // 线程ID计数器
 
 #define THREAD_OPERATION_INVALID(tcb) \
-  (!(tcb) || (tcb)->prio == 0 || (tcb)->info & KL_THREAD_FLAGS_EXITED)
+  (!(tcb) || (tcb)->prio == 0 || (tcb)->flags & KL_THREAD_FLAGS_EXITED)
 #define THREAD_INFO_INVALID(tcb) \
-  (!(tcb) || (tcb)->info & KL_THREAD_FLAGS_EXITED)
+  (!(tcb) || (tcb)->flags & KL_THREAD_FLAGS_EXITED)
 
 kl_thread_t kl_thread_self(void) { return (kl_thread_t)kl_sched_tcb_now; }
 
@@ -22,6 +22,10 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
   if (prio > KLITE_CFG_MAX_PRIO) prio = KLITE_CFG_MAX_PRIO;
   if (!prio && entry != kl_kernel_idle_entry) prio = KLITE_CFG_DEFAULT_PRIO;
   if (!stack_size) stack_size = KLITE_CFG_DEFAULT_STACK_SIZE;
+
+#if KLITE_CFG_STACK_OVERFLOW_DETECT
+  stack_size += 2 * KLITE_CFG_STACKOF_SIZE * sizeof(uint32_t);
+#endif
 
   kl_thread_t tcb;
   uint8_t *stack_base;
@@ -38,18 +42,25 @@ kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
   do {
     *stack_magic++ = KL_STACK_MAGIC_VALUE;
   } while ((uint8_t *)stack_magic < stack_base + stack_size);
-  tcb->prio = prio;
+
+#if KLITE_CFG_STACK_OVERFLOW_DETECT
+  stack_base += KLITE_CFG_STACKOF_SIZE * sizeof(uint32_t);
+  stack_size -= 2 * KLITE_CFG_STACKOF_SIZE * sizeof(uint32_t);
+#endif
+
   tcb->stack = kl_port_stack_init(stack_base, stack_base + stack_size,
                                   (void *)entry, arg, (void *)kl_thread_exit);
+
   tcb->stack_size = stack_size;
+  tcb->prio = prio;
   tcb->entry = entry;
   tcb->node_wait.tcb = tcb;
   tcb->node_sched.tcb = tcb;
   tcb->node_manage.tcb = tcb;
-  tcb->info = (kl_thread_id_counter++) << KL_THREAD_ID_OFFSET;
+  tcb->tid = kl_thread_id_counter++;
 
   kl_port_enter_critical();
-  kl_blist_prepend(&m_list_manage, &tcb->node_manage);
+  kl_blist_append(&m_list_alive, &tcb->node_manage);
   kl_sched_tcb_ready(tcb);
   kl_port_leave_critical();
 
@@ -63,7 +74,7 @@ void kl_thread_delete(kl_thread_t thread) {
   }
   if (thread == kl_sched_tcb_now) return kl_thread_exit();
   kl_port_enter_critical();
-  kl_blist_remove(&m_list_manage, &thread->node_manage);
+  kl_blist_remove(&m_list_alive, &thread->node_manage);
   kl_sched_tcb_remove(thread);
   kl_port_leave_critical();
   kl_heap_free(thread);
@@ -122,6 +133,9 @@ void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
   }
   kl_size_t free = 0;
   uint32_t *stack_magic = (uint32_t *)(thread + 1);
+#if KLITE_CFG_STACK_OVERFLOW_DETECT
+  stack_magic += KLITE_CFG_STACKOF_SIZE;
+#endif
   while (*stack_magic++ == KL_STACK_MAGIC_VALUE) free += 4;
   *stack_free = free;
   *stack_size = thread->stack_size;
@@ -153,7 +167,7 @@ uint32_t kl_thread_id(kl_thread_t thread) {
     KL_SET_ERRNO(KL_EINVAL);
     return KL_INVALID;
   }
-  return (thread->info & KL_THREAD_ID_MASK) >> KL_THREAD_ID_OFFSET;
+  return thread->tid;
 }
 
 uint32_t kl_thread_flags(kl_thread_t thread) {
@@ -161,16 +175,17 @@ uint32_t kl_thread_flags(kl_thread_t thread) {
     KL_SET_ERRNO(KL_EINVAL);
     return KL_INVALID;
   }
-  return (thread->info & KL_THREAD_FLAGS_MASK) >> KL_THREAD_FLAGS_OFFSET;
+  return thread->flags;
 }
 
 kl_err_t kl_thread_errno(kl_thread_t thread) {
   if (THREAD_INFO_INVALID(thread)) {
     return KL_EINVAL;
   }
-  kl_err_t err =
-      (thread->info & KL_THREAD_ERRNO_MASK) >> KL_THREAD_ERRNO_OFFSET;
-  thread->info &= ~((uint32_t)KL_THREAD_ERRNO_MASK);
+  kl_port_enter_critical();
+  kl_err_t err = thread->err;
+  thread->err = (uint8_t)KL_EOK;
+  kl_port_leave_critical();
   return err;
 }
 
@@ -183,8 +198,7 @@ void kl_thread_set_errno(kl_thread_t thread, kl_err_t errno) {
     errno = KL_EINVAL;
   }
   kl_port_enter_critical();
-  thread->info &= ~((uint32_t)KL_THREAD_ERRNO_MASK);
-  thread->info |= (errno << KL_THREAD_ERRNO_OFFSET) & KL_THREAD_ERRNO_MASK;
+  thread->err = (uint8_t)errno;
   kl_port_leave_critical();
 }
 
@@ -198,9 +212,9 @@ kl_tick_t kl_thread_timeout(kl_thread_t thread) {
 
 kl_thread_t kl_thread_find(uint32_t id) {
   kl_port_enter_critical();
-  struct kl_thread_node *node = m_list_manage.head;
+  struct kl_thread_node *node = m_list_alive.head;
   while (node) {
-    if (((kl_thread_t)node->tcb)->info >> 8 == id) {
+    if (((kl_thread_t)node->tcb)->tid == id) {
       break;
     }
     node = node->next;
@@ -215,7 +229,7 @@ kl_thread_t kl_thread_iter(kl_thread_t thread) {
   if (thread) {
     node = thread->node_manage.next;
   } else {
-    node = m_list_manage.head;
+    node = m_list_alive.head;
   }
   kl_port_leave_critical();
   return node ? (kl_thread_t)node->tcb : NULL;
@@ -224,13 +238,13 @@ kl_thread_t kl_thread_iter(kl_thread_t thread) {
 void kl_thread_exit(void) {
   kl_port_enter_critical();
   kl_sched_tcb_remove(kl_sched_tcb_now);
-  kl_blist_remove(&m_list_manage, &kl_sched_tcb_now->node_manage);
+  kl_blist_remove(&m_list_alive, &kl_sched_tcb_now->node_manage);
   kl_blist_append(&m_list_dead, &kl_sched_tcb_now->node_manage);
   kl_sched_switch();
   kl_port_leave_critical();
 }
 
-void kl_thread_clean_up(void) {
+void kl_thread_idle_task(void) {
   struct kl_thread_node *node;
   while (m_list_dead.head) {
     kl_port_enter_critical();

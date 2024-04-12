@@ -240,7 +240,7 @@ static void xve_on_cmd(EmbeddedCli *cli, CliCommand *command) {
     xv_cleanup();
     udict_clear((UDICT)env.udata);
     return;
-  } else if (strcmpn(str, "del", 3)) {
+  } else if (strcmpn(str, "del ", 4)) {
     char *varname = str + 4;
     while (*varname == ' ') varname++;
     if (*varname == 0) return;

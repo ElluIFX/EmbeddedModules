@@ -36,8 +36,8 @@ choice
         bool "Third-Party: LwMEM"
 endchoice
 
-if KLITE_CFG_HEAP_USE_BUILTIN
 menu "Built-in Heap Configuration"
+    depends on KLITE_CFG_HEAP_USE_BUILTIN
     config KLITE_CFG_HEAP_USE_BESTFIT
         bool "Best Fit (or First Fit)"
         default y
@@ -69,7 +69,6 @@ menu "Built-in Heap Configuration"
         help
             The alignment of the memory block. The value should be the power of 2. Default is 4 bytes for 32-bit CPU and 8 bytes for 64-bit CPU.
 endmenu
-endif
 
 config KLITE_CFG_DEFAULT_STACK_SIZE
     int "Default Stack Size"
@@ -89,34 +88,60 @@ config KLITE_CFG_STACK_OVERFLOW_DETECT
     bool "Enable Stack Overflow Detect"
     default n
     help
-        Stack overflow detection by checking 32 bytes of magic number at the bottom of the stack.
-        Only available when the overflow have not occurred usage fault, and the thread can be switched out.
-
+        Checking magic number barrier at both sides of the stack.
+        Only available when the overflow have not occurred hard fault, and the thread can be switched out.
+if KLITE_CFG_STACK_OVERFLOW_DETECT
 choice
     prompt "Stack Overflow Behavior"
-    default KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
+    default KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
+
+    config KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
+        bool "Callback [kl_stack_overflow_hook]"
 
     config KLITE_CFG_STACKOF_BEHAVIOR_SYSRESET
         bool "Reset System"
 
-    config KLITE_CFG_STACKOF_BEHAVIOR_SUSPEND
-        bool "Suspend the thread (may fail)"
-
     config KLITE_CFG_STACKOF_BEHAVIOR_HARDFLT
         bool "Hard Fault (by accessing 0x10 address)"
-
-    config KLITE_CFG_STACKOF_BEHAVIOR_CALLBACK
-        bool "Callback [void kl_stack_overflow_hook(kl_thread_t)]"
 
     help
         The behavior when a stack overflow is detected.
 endchoice
 
-config KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
-    bool "Wait List Order by Priority (or by FIFO)"
-    default y
+choice
+    prompt "Stack Overflow Detect On"
+    default KLITE_CFG_STACKOF_DETECT_ON_TASK_SWITCH
+
+    config KLITE_CFG_STACKOF_DETECT_ON_TASK_SWITCH
+        bool "Task Switch"
+
+    config KLITE_CFG_STACKOF_DETECT_ON_TICK_INC
+        bool "Tick Increment"
+
     help
-        The wait list, which is used to store the threads that are waiting for the object like mutex and semaphore, will be ordered by priority.
+        The timing to detect the stack overflow.
+endchoice
+
+config KLITE_CFG_STACKOF_SIZE
+    int "Stack Overflow Barrier Size (uint32_t)"
+    default 8
+    range 1 128
+    help
+        The size of the magic number used to detect the stack overflow.
+endif
+
+choice
+    prompt "Wait List Order by"
+    default KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
+    help
+        The wait list, which is used to store the threads that are waiting for the object like mutex and semaphore, will be ordered by the selected method.
+
+    config KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
+        bool "Priority"
+
+    config KLITE_CFG_WAIT_LIST_ORDER_BY_FIFO
+        bool "FIFO"
+endchoice
 
 config KLITE_CFG_64BIT_TICK
     bool "64-bit Tick Variable (uint64_t)"

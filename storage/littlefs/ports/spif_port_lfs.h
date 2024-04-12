@@ -103,8 +103,8 @@ static uint8_t spif_init_lfs(void) {
     return 0;
   }
   LOG_PASS("SPIF Driver Initialized");
-  // LOG_DEBUG("SPIF Block=%d, Page=%d, Sector=%d", hspif.BlockCnt, hspif.PageCnt,
-            // hspif.SectorCnt);
+  LOG_DEBUG("SPIF Block=%d, Page=%d, Sector=%d", hspif.BlockCnt, hspif.PageCnt,
+            hspif.SectorCnt);
   cfg.block_size = SPIF_BLOCK_SIZE;
   cfg.block_count = hspif.BlockCnt;
   int err;
