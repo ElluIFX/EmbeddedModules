@@ -49,11 +49,7 @@ bool kl_barrier_wait(kl_barrier_t barrier, kl_tick_t timeout) {
     kl_sched_switch();
   }
   kl_port_leave_critical();
-  if (!kl_sched_tcb_now->timeout) {
-    KL_SET_ERRNO(KL_ETIMEOUT);
-    return false;
-  }
-  return true;
+  KL_RET_CHECK_TIMEOUT();
 }
 
 #endif

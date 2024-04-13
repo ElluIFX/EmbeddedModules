@@ -13,9 +13,9 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "uart_pack.h"
+#include "uni_io.h"
 
-#define _INTERNAL static inline __attribute__((always_inline))
+#define _INTERNAL static inline
 #define _EXTERNAL
 
 #define tt_printf(...) printf(__VA_ARGS__)

@@ -183,6 +183,21 @@ void kl_heap_free(void *mem);
 void *kl_heap_realloc(void *mem, kl_size_t size);
 
 /**
+ * @brief 从堆中申请一段连续的内存, 并初始化为0
+ * @param nmemb 申请内存块数量
+ * @param size 申请内存块大小
+ * @retval 申请成功返回内存指针, 申请失败返回NULL
+ */
+static inline void *kl_heap_calloc(kl_size_t nmemb, kl_size_t size) {
+  void *mem = kl_heap_alloc(nmemb * size);
+  if (mem) {
+    void *memset(void *s, int c, size_t n);
+    memset(mem, 0, nmemb * size);
+  }
+  return mem;
+}
+
+/**
  * @brief 获取堆内存使用情况
  * @param stats 堆内存统计信息结构体
  */
@@ -193,7 +208,7 @@ void kl_heap_stats(kl_heap_stats_t stats);
  ******************************************************************************/
 
 /**
- * @brief 创建新线程, 并加入就绪队列
+ * @brief 创建新线程并启动
  * @param entry 线程入口函数
  * @param arg 线程入口函数的参数
  * @param stack_size 线程的栈大小(字节), 0:使用默认值
@@ -226,6 +241,14 @@ void kl_thread_resume(kl_thread_t thread);
  * @brief 使当前线程立即释放CPU控制权, 并进入就绪队列
  */
 void kl_thread_yield(void);
+
+/**
+ * @brief 等待线程结束
+ * @param thread 线程标识符
+ * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 如果线程结束返回true
+ */
+bool kl_thread_join(kl_thread_t thread, kl_tick_t timeout);
 
 /**
  * @brief 将当前线程休眠一段时间, 释放CPU控制权
@@ -344,8 +367,9 @@ kl_thread_t kl_thread_iter(kl_thread_t thread);
 kl_mutex_t kl_mutex_create(void);
 
 /**
- * @brief 删除互斥锁对象, 并释放内存, 在没有线程使用它时才能删除, 否则线程将死锁
+ * @brief 删除互斥锁对象, 并释放内存
  * @param mutex 互斥锁标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_mutex_delete(kl_mutex_t mutex);
 
@@ -380,8 +404,9 @@ void kl_mutex_unlock(kl_mutex_t mutex);
 kl_cond_t kl_cond_create(void);
 
 /**
- * @brief 删除条件变量
+ * @brief 删除条件变量, 并释放内存
  * @param cond 条件变量标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_cond_delete(kl_cond_t cond);
 
@@ -433,8 +458,8 @@ kl_sem_t kl_sem_create(kl_size_t value);
 
 /**
  * @brief 删除对象, 并释放内存
- * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  * @param sem 信号量标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_sem_delete(kl_sem_t sem);
 
@@ -485,6 +510,7 @@ kl_barrier_t kl_barrier_create(kl_size_t target);
 /**
  * @brief 删除屏障对象, 并释放内存
  * @param barrier 屏障标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_barrier_delete(kl_barrier_t barrier);
 
@@ -528,6 +554,7 @@ kl_rwlock_t kl_rwlock_create(void);
 /**
  * @brief 删除读写锁对象, 并释放内存
  * @param rwlock 读写锁标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_rwlock_delete(kl_rwlock_t rwlock);
 
@@ -579,9 +606,9 @@ void kl_rwlock_write_unlock(kl_rwlock_t rwlock);
 kl_event_t kl_event_create(bool auto_reset);
 
 /**
- * @brief 删除事件对象, 并释放内存, 在没有线程使用它时才能删除,
- * 否则将导致未定义行为
+ * @brief 删除事件对象, 并释放内存=
  * @param event 事件标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_event_delete(kl_event_t event);
 
@@ -631,7 +658,7 @@ kl_event_flags_t kl_event_flags_create(void);
 /**
  * @brief 删除事件组对象, 并释放内存
  * @param event 事件组标识符
- * @warning 在没有线程使用它时才能删除, 否则会导致未定义行为
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_event_flags_delete(kl_event_flags_t flags);
 
@@ -680,6 +707,7 @@ kl_mailbox_t kl_mailbox_create(kl_size_t size);
 /**
  * @brief 删除消息邮箱, 并释放内存.
  * @param mailbox 消息邮箱标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_mailbox_delete(kl_mailbox_t mailbox);
 
@@ -731,6 +759,7 @@ kl_mpool_t kl_mpool_create(kl_size_t block_size, kl_size_t block_count);
 /**
  * @brief 删除内存池, 并释放内存
  * @param mpool 内存池标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_mpool_delete(kl_mpool_t mpool);
 
@@ -768,6 +797,7 @@ kl_mqueue_t kl_mqueue_create(kl_size_t msg_size, kl_size_t queue_depth);
 /**
  * @brief 删除消息队列, 并释放内存
  * @param queue 消息队列标识符
+ * @warning 在没有线程使用它时才能删除, 否则将导致未定义行为
  */
 void kl_mqueue_delete(kl_mqueue_t queue);
 
@@ -892,7 +922,7 @@ void kl_timer_stop_task(kl_timer_task_t task);
 #if KLITE_CFG_OPT_THREAD_POOL
 
 /**
- * @brief 创建线程池
+ * @brief 创建并启动线程池
  * @param worker_num 工作线程数量
  * @param worker_stack_size 工作线程栈大小
  * @param worker_priority 工作线程优先级

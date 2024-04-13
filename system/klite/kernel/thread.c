@@ -125,6 +125,17 @@ kl_tick_t kl_thread_time(kl_thread_t thread) {
   return thread->time;
 }
 
+bool kl_thread_join(kl_thread_t thread, kl_tick_t timeout) {
+  if (THREAD_OPERATION_INVALID(thread)) {
+    return true;  // 可能是已结束的线程
+  }
+  kl_port_enter_critical();
+  kl_sched_tcb_timed_wait(kl_sched_tcb_now, &thread->list_join, timeout);
+  kl_sched_switch();
+  kl_port_leave_critical();
+  KL_RET_CHECK_TIMEOUT();
+}
+
 void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
                           kl_size_t *stack_size) {
   if (THREAD_INFO_INVALID(thread)) {

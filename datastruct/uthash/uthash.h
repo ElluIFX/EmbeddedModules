@@ -30,7 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h> /* uint8_t, uint32_t */
 #include <string.h> /* memcmp, memset, strlen */
 
-#define LOG_MODULE "uthash"
 #include "log.h"
 #include "modules.h"
 
@@ -121,6 +120,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef uthash_fatal
 #define uthash_fatal(msg) LOG_FATAL(msg)
+
 #endif
 
 #define HASH_RECORD_OOM(oomed) uthash_fatal("out of memory")
@@ -1206,7 +1206,5 @@ typedef struct UT_hash_handle {
   unsigned keylen;                /* enclosing struct's key len     */
   unsigned hashv;                 /* result of hash-fcn(key)        */
 } UT_hash_handle;
-
-#undef LOG_MODULE
 
 #endif /* UTHASH_H */

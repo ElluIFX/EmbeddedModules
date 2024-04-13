@@ -1,12 +1,14 @@
 /**
- * @file uart_pack_cdc.h
+ * @file uio_cdc.h
  * @author Ellu (ellu.grif@gmail.com)
+ * @version 1.0
+ * @date 2024-04-12
  *
  * THINK DIFFERENTLY
  */
 
-#ifndef __UART_PACK_CDC_H__
-#define __UART_PACK_CDC_H__
+#ifndef __UIO_CDC_H__
+#define __UIO_CDC_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,12 +17,12 @@ extern "C" {
 #include <stdio.h>
 
 #include "lfifo.h"
-#include "modules.h"
+#include "uio_cfg.h"
 
-#if UART_CFG_ENABLE_CDC
-#if UART_CFG_CDC_USE_CUBEMX
+#if UIO_CFG_ENABLE_CDC
+#if UIO_CFG_CDC_USE_CUBEMX
 #if !__has_include("usbd_cdc_if.h")
-#undef UART_CFG_ENABLE_CDC
+#undef UIO_CFG_ENABLE_CDC
 #warning \
     "usbd_cdc_if.h not found, CDC support disabled, enable it in CubeMX first"
 #endif
@@ -74,4 +76,4 @@ extern void cdc_flush(void);
 }
 #endif
 
-#endif  // __UART_PACK_CDC_H__
+#endif  // __UIO_CDC_H__

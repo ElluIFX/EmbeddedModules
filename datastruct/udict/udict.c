@@ -12,8 +12,29 @@
 
 #include <string.h>
 
+#include "uthash.h"
+
 #define LOG_MODULE "udict"
 #include "log.h"
+
+struct udict_node {
+  UT_hash_handle hh;  // hashable
+  bool is_ptr;
+  mod_size_t size;
+  const char* key;
+  uint8_t value[];
+};
+
+typedef struct udict_node udict_node_t;
+
+struct udict {
+  udict_node_t* nodes;
+  mod_size_t size;
+  MOD_MUTEX_HANDLE mutex;  // 互斥锁
+  bool dyn;
+};
+
+typedef struct udict udict_t;
 
 #define _udict_malloc m_alloc
 #define _udict_free m_free
@@ -123,6 +144,8 @@ void udict_free(UDICT dict) {
   if (dict->mutex) MOD_MUTEX_DELETE(dict->mutex);
   if (dict->dyn) _udict_free(dict);
 }
+
+mod_size_t udict_len(UDICT dict) { return dict->size; }
 
 bool udict_has_key(UDICT dict, const char* key) {
   return udict_get(dict, key) != NULL;

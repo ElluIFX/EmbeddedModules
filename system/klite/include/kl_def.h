@@ -60,6 +60,7 @@ struct kl_thread {
   struct kl_thread_node node_sched;   // 调度队列节点
   struct kl_thread_node node_wait;    // 等待队列节点
   struct kl_thread_node node_manage;  // 管理队列节点
+  struct kl_thread_list list_join;    // 等待本线程结束的线程列表
   uint16_t tid;                       // 线程ID
   uint8_t err;                        // 错误码
   uint8_t flags;                      // 线程状态

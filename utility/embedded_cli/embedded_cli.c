@@ -666,6 +666,7 @@ EmbeddedCli *embeddedCliNewDefault(void) {
 }
 
 void embeddedCliReceiveChar(EmbeddedCli *cli, char c) {
+  if (!cli) return;
   PREPARE_IMPL(cli);
   if (impl->rawBufferHandler) {
     impl->rawBufferHandler(cli, &c, 1);
@@ -678,6 +679,7 @@ void embeddedCliReceiveChar(EmbeddedCli *cli, char c) {
 
 void embeddedCliReceiveBuffer(EmbeddedCli *cli, const char *buffer,
                               size_t len) {
+  if (!cli || !buffer) return;
   PREPARE_IMPL(cli);
   if (impl->rawBufferHandler) {
     impl->rawBufferHandler(cli, buffer, len);

@@ -41,7 +41,7 @@ Original Author: Shay Gal-on
 #include "stdio.h"
 #endif
 #if HAS_PRINTF
-#include "uart_pack.h"
+#include "uni_io.h"
 #define ee_printf printf
 #endif
 

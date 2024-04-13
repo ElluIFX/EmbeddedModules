@@ -7,8 +7,7 @@ extern "C" {
 #else
 #include <stdbool.h>
 #endif
-#include <modules.h>
-#include <uart_pack.h>
+#include "uni_io.h"
 // cstdint is available only since C++11, so use C header
 #include <stdint.h>
 

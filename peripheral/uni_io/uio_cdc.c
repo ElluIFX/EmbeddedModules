@@ -1,8 +1,19 @@
-#include "uart_pack_cdc.h"
+/**
+ * @file uio_cdc.c
+ * @author Ellu (ellu.grif@gmail.com)
+ * @version 1.0
+ * @date 2024-04-12
+ *
+ * THINK DIFFERENTLY
+ */
+
+#include "uio_cdc.h"
+
+#if UIO_CFG_ENABLE_CDC
+
+#include <string.h>
 
 #include "lwprintf.h"
-
-#if UART_CFG_ENABLE_CDC
 
 static struct {                       // CDC型UART控制结构体
   lfifo_t txFifo;                     // 发送缓冲区
@@ -11,7 +22,7 @@ static struct {                       // CDC型UART控制结构体
   uint8_t cbkInIRQ;                   // 回调函数是否在中断中执行
 } usb_cdc;
 
-#if UART_CFG_CDC_USE_CUBEMX
+#if UIO_CFG_CDC_USE_CUBEMX
 #include "usbd_cdc_if.h"
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
@@ -89,7 +100,7 @@ static inline uint8_t cdc_connected(void) {
 
 static inline uint8_t cdc_idle(void) { return hcdc->TxState == 0; }
 
-#elif UART_CFG_CDC_USE_CHERRY
+#elif UIO_CFG_CDC_USE_CHERRY
 #include "cdc_acm_app.h"
 
 void cdc_acm_data_recv_callback(uint8_t *buf, uint32_t len) {
@@ -159,7 +170,7 @@ void cdc_write(uint8_t *buf, size_t len) {
   buf += wr;
   cdc_start_transfers();
   if (len == 0) return;
-  if (UART_CFG_CDC_TIMEOUT <= 0) return;
+  if (UIO_CFG_CDC_TIMEOUT <= 0) return;
   m_time_t _cdc_start_time = m_time_ms();
   while (len) {
     // m_delay_ms(1);
@@ -167,7 +178,7 @@ void cdc_write(uint8_t *buf, size_t len) {
     len -= wr;
     buf += wr;
     cdc_start_transfers();
-    if (m_time_ms() - _cdc_start_time > UART_CFG_CDC_TIMEOUT) return;
+    if (m_time_ms() - _cdc_start_time > UIO_CFG_CDC_TIMEOUT) return;
   }
 }
 
@@ -194,7 +205,7 @@ void cdc_flush(void) {
   while (!cdc_idle() || !LFifo_IsEmpty(&usb_cdc.txFifo)) {
     if (!cdc_connected()) return;
     m_delay_ms(1);
-    if (m_time_ms() - _cdc_start_time > UART_CFG_CDC_TIMEOUT) return;
+    if (m_time_ms() - _cdc_start_time > UIO_CFG_CDC_TIMEOUT) return;
   }
 }
 
@@ -207,4 +218,4 @@ void cdc_wait_for_connect(int timeout_ms) {
 }
 
 uint8_t cdc_is_connected(void) { return cdc_connected(); }
-#endif  // UART_CFG_ENABLE_CDC
+#endif  // UIO_CFG_ENABLE_CDC

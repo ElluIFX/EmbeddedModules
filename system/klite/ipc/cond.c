@@ -41,11 +41,7 @@ bool kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex, kl_tick_t timeout) {
   kl_sched_switch();
   kl_port_leave_critical();
   kl_mutex_lock(mutex, kl_sched_tcb_now->timeout);
-  if (!kl_sched_tcb_now->timeout) {
-    KL_SET_ERRNO(KL_ETIMEOUT);
-    return false;
-  }
-  return true;
+  KL_RET_CHECK_TIMEOUT();
 }
 
 bool kl_cond_wait_complete(kl_cond_t cond, kl_tick_t timeout) {
@@ -57,11 +53,7 @@ bool kl_cond_wait_complete(kl_cond_t cond, kl_tick_t timeout) {
                           timeout);
   kl_sched_switch();
   kl_port_leave_critical();
-  if (!kl_sched_tcb_now->timeout) {
-    KL_SET_ERRNO(KL_ETIMEOUT);
-    return false;
-  }
-  return true;
+  KL_RET_CHECK_TIMEOUT();
 }
 
 #endif

@@ -12,8 +12,8 @@
 
 #define LOG_MODULE "vlcd"
 #include "log.h"
-#include "uart_pack.h"
 #include "ulist.h"
+#include "uni_io.h"
 
 // Private Defines --------------------------
 
@@ -147,7 +147,8 @@ __weak void vlcd_send_data_handler(uint8_t* data, uint32_t length) {
 
 __weak void vlcd_keyboard_callback(uint8_t action, uint16_t scancode,
                                    uint8_t modifier, uint8_t ascii) {
-  LOG_DEBUG("[vlcd][keyboard] %d, %d, %d, %c", action, scancode, modifier, ascii);
+  LOG_DEBUG("[vlcd][keyboard] %d, %d, %d, %c", action, scancode, modifier,
+            ascii);
 }
 
 __weak void vlcd_touch_callback(uint16_t x, uint16_t y, uint8_t touched) {

@@ -84,7 +84,7 @@
 | [stepper](./peripheral/stepper) | 步进电机驱动 |*| |
 | [sw_i2c](./peripheral/sw_i2c) | 软件I2C | [link](https://github.com/liyanboy74/soft-i2c) | |
 | [sw_spi](./peripheral/sw_spi) | 软件SPI |N/A| |
-| [uart_pack](./peripheral/uart_pack) | 串口操作功能包 |*| 包含CDC |
+| [uni_io](./peripheral/uni_io) | 数据通信功能包 |*| |
 | [ws2812_spi](./peripheral/ws2812_spi) | WS2812灯带DMA-SPI驱动 |*| |
 
 | [Storage](./storage) | 存储 | repo | 备注 |

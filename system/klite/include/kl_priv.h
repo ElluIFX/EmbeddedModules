@@ -105,7 +105,7 @@ void kl_sched_preempt(const bool round_robin);
 // @param prio: 优先级
 void kl_sched_tcb_reset_prio(kl_thread_t tcb, uint32_t prio);
 
-// 从调度器移除线程
+// 从调度器移除线程, 并标记为EXIT状态
 // @param tcb: 线程控制块
 void kl_sched_tcb_remove(kl_thread_t tcb);
 
@@ -175,6 +175,15 @@ kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list *list);
       kl_sched_tcb_now->err = (uint8_t)(errno); \
       kl_port_leave_critical();                 \
     }                                           \
+  } while (0)
+
+#define KL_RET_CHECK_TIMEOUT()           \
+  do {                                   \
+    if (kl_sched_tcb_now->timeout > 0) { \
+      KL_SET_ERRNO(KL_ETIMEOUT);         \
+      return false;                      \
+    }                                    \
+    return true;                         \
   } while (0)
 
 #endif

@@ -16,23 +16,8 @@ extern "C" {
 #endif
 
 #include "modules.h"
-#include "uthash.h"
 
-typedef struct udict_node {
-  UT_hash_handle hh;  // hashable
-  bool is_ptr;
-  mod_size_t size;
-  const char* key;
-  uint8_t value[];
-} udict_node_t;
-
-typedef struct udict {
-  udict_node_t* nodes;
-  mod_size_t size;
-  MOD_MUTEX_HANDLE mutex;  // 互斥锁
-  bool dyn;
-} udict_t;
-typedef udict_t* UDICT;
+typedef struct udict* UDICT;
 
 /**
  * @brief 初始化一个已创建的字典
@@ -67,7 +52,7 @@ extern void udict_free(UDICT dict);
  *
  * @return 字典大小
  */
-static inline mod_size_t udict_len(UDICT dict) { return dict->size; }
+extern mod_size_t udict_len(UDICT dict);
 
 /**
  * @brief 检查字典是否包含某个键

@@ -17,8 +17,8 @@ extern "C" {
 #include "macro.h"
 #include "modules.h"
 
-#if UART_CFG_PRINTF_REDIRECT
-#include "uart_pack.h"
+#if UIO_CFG_PRINTF_REDIRECT
+#include "uni_io.h"
 #endif
 
 #include "log_color.h"

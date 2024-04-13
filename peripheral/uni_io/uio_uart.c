@@ -1,50 +1,48 @@
-#include "uart_pack.h"
+/**
+ * @file uio_uart.c
+ * @author Ellu (ellu.grif@gmail.com)
+ * @version 1.0
+ * @date 2024-04-12
+ *
+ * THINK DIFFERENTLY
+ */
+
+#include "uio_uart.h"
+
+#if UIO_CFG_ENABLE_UART
 
 #include <stdarg.h>
 #include <string.h>
 
-#include "lfbb.h"
 #include "lwprintf.h"
 #include "ulist.h"
 
-#if 0  // memcpy 实现
-static inline void uart_memcpy(void *dst, const void *src, size_t len) {
-  uint8_t *dst8 = (uint8_t *)dst;
-  uint8_t *src8 = (uint8_t *)src;
-  while (len--) {
-    *dst8++ = *src8++;
-  }
-}
-#else
-#define uart_memcpy memcpy
-#endif
-
-#if UART_CFG_TX_USE_DMA
-#define UART_CFG_NOT_READY                  \
+#if UIO_CFG_UART_TX_USE_DMA
+#define HUART_BUSY                          \
   (huart->gState != HAL_UART_STATE_READY || \
    (huart->hdmatx && huart->hdmatx->State != HAL_DMA_STATE_READY))
 #else
-#define UART_CFG_NOT_READY huart->gState != HAL_UART_STATE_READY
+#define HUART_BUSY huart->gState != HAL_UART_STATE_READY
 #endif
 
-static inline void _send_func(UART_HandleTypeDef *huart, const uint8_t *data,
-                              size_t len) {
-#if UART_CFG_TX_USE_DMA
-  if (huart->hdmatx) {
-#if UART_CFG_DCACHE_COMPATIBLE
+static inline HAL_StatusTypeDef uart_send_raw(UART_HandleTypeDef *huart,
+                                              const uint8_t *data, size_t len) {
+#if UIO_CFG_UART_TX_USE_DMA
+  if (huart->hdmatx) {  // dma available
+#if UIO_CFG_UART_DCACHE_COMPATIBLE
     SCB_CleanInvalidateDCache_by_Addr((uint32_t *)data, len);
 #endif
-    HAL_UART_Transmit_DMA(huart, data, len);
+    return HAL_UART_Transmit_DMA(huart, data, len);
   } else
 #endif
-#if UART_CFG_TX_USE_IT
-    HAL_UART_Transmit_IT(huart, data, len);
+#if UIO_CFG_UART_TX_USE_IT
+    return HAL_UART_Transmit_IT(huart, data, len);
 #else
-  HAL_UART_Transmit(huart, data, len, 0xFFFF);
+  return HAL_UART_Transmit(huart, data, len, UIO_CFG_UART_TX_TIMEOUT);
 #endif
 }
 
-#if UART_CFG_ENABLE_FIFO_TX
+#if UIO_CFG_UART_ENABLE_FIFO_TX
 typedef struct {              // FIFO串口发送控制结构体
   LFBB_Inst_Type lfbb;        // 发送缓冲区
   size_t sending;             // 正在发送的数据长度
@@ -93,7 +91,7 @@ void uart_fifo_tx_deinit(UART_HandleTypeDef *huart) {
   }
 }
 
-static uart_fifo_tx_t *is_fifo_tx(UART_HandleTypeDef *huart) {
+static uart_fifo_tx_t *uart_fifo_tx_get_handle(UART_HandleTypeDef *huart) {
   if (!fifo_tx_list.num) return NULL;
   ulist_foreach(&fifo_tx_list, uart_fifo_tx_t, ctrl) {
     if (ctrl->huart == huart) return ctrl;
@@ -101,60 +99,61 @@ static uart_fifo_tx_t *is_fifo_tx(UART_HandleTypeDef *huart) {
   return NULL;
 }
 
-static void fifo_exchange(uart_fifo_tx_t *ctrl, uint8_t force) {
+static void uart_fifo_tx_exchange(uart_fifo_tx_t *ctrl, uint8_t from_irq) {
   UART_HandleTypeDef *huart = ctrl->huart;
-  if (!force && UART_CFG_NOT_READY) return;  // 串口正在发送
+  if (!from_irq && HUART_BUSY) return;  // 串口正在发送
   if (ctrl->sending) {
     LFBB_ReadRelease(&ctrl->lfbb, ctrl->sending);
     ctrl->sending = 0;
   }
   uint8_t *data = LFBB_ReadAcquire(&ctrl->lfbb, &ctrl->sending);
   if (data) {
-    _send_func(huart, data, ctrl->sending);
+    uart_send_raw(huart, data, ctrl->sending);
   } else {
     ctrl->sending = 0;
   }
 }
 
-static inline uint8_t *wait_fifo(uart_fifo_tx_t *ctrl, size_t len) {
+static inline uint8_t *uart_fifo_tx_wait_free(uart_fifo_tx_t *ctrl,
+                                              size_t len) {
   if (len > ctrl->lfbb.size - 1) return NULL;
-#if UART_CFG_FIFO_TIMEOUT < 0
+#if UIO_CFG_UART_FIFO_TIMEOUT < 0
   return LFBB_WriteAcquire(&ctrl->lfbb, len);
 #else
-#if UART_CFG_FIFO_TIMEOUT > 0
+#if UIO_CFG_UART_FIFO_TIMEOUT > 0
   m_time_t _start_time = m_time_ms();
-#endif  // UART_CFG_FIFO_TIMEOUT
+#endif  // UIO_CFG_UART_FIFO_TIMEOUT
   uint8_t *data;
   while (1) {
     data = LFBB_WriteAcquire(&ctrl->lfbb, len);
     if (data) return data;
-    fifo_exchange(ctrl, 0);
-#if UART_CFG_FIFO_TIMEOUT > 0
+    uart_fifo_tx_exchange(ctrl, 0);
+#if UIO_CFG_UART_FIFO_TIMEOUT > 0
     m_delay_ms(1);
-    if (m_time_ms() - _start_time > UART_CFG_FIFO_TIMEOUT) return NULL;
-#endif  // UART_CFG_FIFO_TIMEOUT
+    if (m_time_ms() - _start_time > UIO_CFG_UART_FIFO_TIMEOUT) return NULL;
+#endif  // UIO_CFG_UART_FIFO_TIMEOUT
   }
   return NULL;
-#endif  // UART_CFG_FIFO_TIMEOUT
+#endif  // UIO_CFG_UART_FIFO_TIMEOUT
 }
 
-static inline int fifo_send(uart_fifo_tx_t *ctrl, const uint8_t *data,
-                            size_t len) {
+static inline int uart_fifo_send(uart_fifo_tx_t *ctrl, const uint8_t *data,
+                                 size_t len) {
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
-  uint8_t *buf = wait_fifo(ctrl, len);
+  uint8_t *buf = uart_fifo_tx_wait_free(ctrl, len);
   if (!buf) {
     MOD_MUTEX_RELEASE(ctrl->mutex);
     return -1;
   }
-  uart_memcpy(buf, data, len);
+  memcpy(buf, data, len);
   LFBB_WriteRelease(&ctrl->lfbb, len);
-  fifo_exchange(ctrl, 0);
+  uart_fifo_tx_exchange(ctrl, 0);
   MOD_MUTEX_RELEASE(ctrl->mutex);
   return 0;
 }
 
-static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt,
-                                  va_list ap) {
+static inline size_t uart_fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt,
+                                       va_list ap) {
   size_t sendLen, writeLen;
   MOD_MUTEX_ACQUIRE(ctrl->mutex);
   // 第一次尝试直接获取缓冲区最大可用长度
@@ -170,7 +169,7 @@ static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt,
       return 0;
     }
     if (writeLen + 1 >= sendLen) {  // 数据长度超过缓冲区最大长度
-      buf = wait_fifo(ctrl, writeLen + 2);  // 等待缓冲区可用
+      buf = uart_fifo_tx_wait_free(ctrl, writeLen + 2);  // 等待缓冲区可用
       if (!buf) {
         MOD_MUTEX_RELEASE(ctrl->mutex);
         return 0;
@@ -181,17 +180,17 @@ static inline size_t fifo_send_va(uart_fifo_tx_t *ctrl, const char *fmt,
     break;
   } while (1);
   LFBB_WriteRelease(&ctrl->lfbb, writeLen + 1);
-  fifo_exchange(ctrl, 0);
+  uart_fifo_tx_exchange(ctrl, 0);
   MOD_MUTEX_RELEASE(ctrl->mutex);
   return sendLen;
 }
 
-#endif  // UART_CFG_ENABLE_FIFO_TX
+#endif  // UIO_CFG_UART_ENABLE_FIFO_TX
 
-static int pub_lwprintf_fn(int ch, lwprintf_t *lwobj) {
+static int uart_block_tx_fn(int ch, lwprintf_t *lwobj) {
   if (ch == '\0') return 0;
   UART_HandleTypeDef *huart = (UART_HandleTypeDef *)lwobj->arg;
-  while (UART_CFG_NOT_READY) {
+  while (HUART_BUSY) {
     __NOP();
   }
   if (huart) {
@@ -201,19 +200,16 @@ static int pub_lwprintf_fn(int ch, lwprintf_t *lwobj) {
   return -1;
 }
 
-uint8_t disable_uart_printf = 0;  // 关闭printf输出
-
-int uart_printf_block_ap(UART_HandleTypeDef *huart, const char *fmt,
-                         va_list ap) {
+static int uart_printf_block_ap(UART_HandleTypeDef *huart, const char *fmt,
+                                va_list ap) {
   lwprintf_t lwp_pub;
-  lwp_pub.out_fn = pub_lwprintf_fn;
+  lwp_pub.out_fn = uart_block_tx_fn;
   lwp_pub.arg = (void *)huart;
   return lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
 }
 
 int uart_printf_block(UART_HandleTypeDef *huart, const char *fmt, ...) {
-  if ((disable_uart_printf)) return 0;
-  if (UART_CFG_NOT_READY) {
+  if (HUART_BUSY) {
     HAL_UART_DMAStop(huart);
     HAL_UART_AbortTransmit_IT(huart);
   }
@@ -225,14 +221,13 @@ int uart_printf_block(UART_HandleTypeDef *huart, const char *fmt, ...) {
 }
 
 int uart_printf(UART_HandleTypeDef *huart, const char *fmt, ...) {
-  if ((disable_uart_printf)) return 0;
   int sendLen;
   va_list ap;
-#if UART_CFG_ENABLE_FIFO_TX
-  uart_fifo_tx_t *ctrl = is_fifo_tx(huart);
+#if UIO_CFG_UART_ENABLE_FIFO_TX
+  uart_fifo_tx_t *ctrl = uart_fifo_tx_get_handle(huart);
   if (ctrl) {
     va_start(ap, fmt);
-    sendLen = fifo_send_va(ctrl, fmt, ap);
+    sendLen = uart_fifo_send_va(ctrl, fmt, ap);
     va_end(ap);
     return sendLen;
   }
@@ -244,49 +239,49 @@ int uart_printf(UART_HandleTypeDef *huart, const char *fmt, ...) {
 }
 
 void uart_flush(UART_HandleTypeDef *huart) {
-#if UART_CFG_ENABLE_FIFO_TX
-  uart_fifo_tx_t *ctrl = is_fifo_tx(huart);
+#if UIO_CFG_UART_ENABLE_FIFO_TX
+  uart_fifo_tx_t *ctrl = uart_fifo_tx_get_handle(huart);
   if (ctrl) {
     MOD_MUTEX_ACQUIRE(ctrl->mutex);
     while (!LFBB_IsEmpty(&ctrl->lfbb)) {
-      fifo_exchange(ctrl, 0);
+      uart_fifo_tx_exchange(ctrl, 0);
     }
     MOD_MUTEX_RELEASE(ctrl->mutex);
     return;
   }
 #endif
-  while (UART_CFG_NOT_READY) {
+  while (HUART_BUSY) {
     __NOP();
   }
 }
 
 int uart_write(UART_HandleTypeDef *huart, const uint8_t *data, size_t len) {
   if (!len) return 0;
-#if UART_CFG_ENABLE_FIFO_TX
-  uart_fifo_tx_t *ctrl = is_fifo_tx(huart);
-  if (ctrl) return fifo_send(ctrl, data, len);
+#if UIO_CFG_UART_ENABLE_FIFO_TX
+  uart_fifo_tx_t *ctrl = uart_fifo_tx_get_handle(huart);
+  if (ctrl) return uart_fifo_send(ctrl, data, len);
 #endif
-#if UART_CFG_TX_TIMEOUT > 0
+#if UIO_CFG_UART_TX_TIMEOUT > 0
   m_time_t _start_time = m_time_ms();
-  while (UART_CFG_NOT_READY) {
+  while (HUART_BUSY) {
     // m_delay_ms(1);
-    if (m_time_ms() - _start_time > UART_CFG_TX_TIMEOUT) return -1;
+    if (m_time_ms() - _start_time > UIO_CFG_UART_TX_TIMEOUT) return -1;
   }
-#elif UART_CFG_TX_TIMEOUT < 0
-  if (UART_CFG_NOT_READY) return -1;
+#elif UIO_CFG_UART_TX_TIMEOUT < 0
+  if (HUART_BUSY) return -1;
 #else
-  while (UART_CFG_NOT_READY) {
+  while (HUART_BUSY) {
     __NOP();
   }
 #endif
-  _send_func(huart, data, len);
+  uart_send_raw(huart, data, len);
   return 0;
 }
 
 int uart_write_fast(UART_HandleTypeDef *huart, uint8_t *data, size_t len) {
   if (!len) return 0;
-  if (UART_CFG_NOT_READY) return -1;
-  _send_func(huart, data, len);
+  if (HUART_BUSY) return -1;
+  uart_send_raw(huart, data, len);
   return 0;
 }
 
@@ -334,13 +329,13 @@ inline void uart_rx_process(UART_HandleTypeDef *huart) {
 }
 
 inline void uart_tx_process(UART_HandleTypeDef *huart) {
-#if UART_CFG_ENABLE_FIFO_TX
-  uart_fifo_tx_t *fifo = is_fifo_tx(huart);
-  if (fifo) fifo_exchange(fifo, 1);
+#if UIO_CFG_UART_ENABLE_FIFO_TX
+  uart_fifo_tx_t *fifo = uart_fifo_tx_get_handle(huart);
+  if (fifo) uart_fifo_tx_exchange(fifo, 1);
 #endif
 }
 
-#if UART_CFG_ENABLE_DMA_RX
+#if UIO_CFG_UART_ENABLE_DMA_RX
 static uint8_t dma_tmp;  // DMA垃圾箱
 
 typedef struct {                          // DMA串口接收控制结构体
@@ -396,7 +391,7 @@ inline void uart_dma_rx_process(UART_HandleTypeDef *huart, size_t Size) {
     if (ctrl->huart != huart) continue;
     if (ctrl->pBuffer != &dma_tmp) {  // 收到有效数据
       LFBB_WriteRelease(&ctrl->lfbb, Size);
-#if UART_CFG_DCACHE_COMPATIBLE
+#if UIO_CFG_UART_DCACHE_COMPATIBLE
       SCB_CleanInvalidateDCache_by_Addr(
           (uint32_t *)ctrl->pBuffer,
           ((ctrl->pSize + 31) / 32) * 32);  // 对齐
@@ -417,7 +412,7 @@ inline void uart_dma_rx_process(UART_HandleTypeDef *huart, size_t Size) {
     return;
   }
 }
-#endif  // UART_CFG_ENABLE_DMA_RX
+#endif  // UIO_CFG_UART_ENABLE_DMA_RX
 
 void uart_check_callback(void) {
   ulist_foreach(&fifo_rx_list, uart_fifo_rx_t, ctrl) {
@@ -426,7 +421,7 @@ void uart_check_callback(void) {
       ctrl->rxCallback(&ctrl->fifo);
     }
   }
-#if UART_CFG_ENABLE_DMA_RX
+#if UIO_CFG_UART_ENABLE_DMA_RX
   size_t len;
   uint8_t *data;
   ulist_foreach(&dma_rx_list, uart_dma_rx_t, ctrl) {
@@ -436,32 +431,32 @@ void uart_check_callback(void) {
     ctrl->rxCallback(data, len);
     LFBB_ReadRelease(&ctrl->lfbb, len);
   }
-#endif  // UART_CFG_ENABLE_DMA_RX
-#if UART_CFG_ENABLE_CDC
+#endif  // UIO_CFG_UART_ENABLE_DMA_RX
+#if UIO_CFG_ENABLE_CDC
   extern void cdc_check_callback(void);
   cdc_check_callback();
-#endif  // UART_CFG_ENABLE_CDC
+#endif  // UIO_CFG_ENABLE_CDC
 }
 
 __IO uint8_t uart_error_state = 0;
 
 inline void uart_error_process(UART_HandleTypeDef *huart) {
-  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_PE)) != RESET) {  // 奇偶校验错误
+  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_PE)) != 0) {  // 奇偶校验错误
     __HAL_UNLOCK(huart);
     __HAL_UART_CLEAR_PEFLAG(huart);
     uart_error_state = 1;
   }
-  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_FE)) != RESET) {  // 帧错误
+  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_FE)) != 0) {  // 帧错误
     __HAL_UNLOCK(huart);
     __HAL_UART_CLEAR_FEFLAG(huart);
     uart_error_state = 2;
   }
-  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_NE)) != RESET) {  // 噪声错误
+  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_NE)) != 0) {  // 噪声错误
     __HAL_UNLOCK(huart);
     __HAL_UART_CLEAR_NEFLAG(huart);
     uart_error_state = 3;
   }
-  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_ORE)) != RESET) {  // 接收溢出
+  if ((__HAL_UART_GET_FLAG(huart, UART_FLAG_ORE)) != 0) {  // 接收溢出
     __HAL_UNLOCK(huart);
     __HAL_UART_CLEAR_OREFLAG(huart);
     uart_error_state = 4;
@@ -472,7 +467,7 @@ inline void uart_error_process(UART_HandleTypeDef *huart) {
       HAL_UART_Receive_IT(ctrl->huart, &ctrl->tmp, 1);
     }
   }
-#if UART_CFG_ENABLE_DMA_RX
+#if UIO_CFG_UART_ENABLE_DMA_RX
   ulist_foreach(&dma_rx_list, uart_dma_rx_t, ctrl) {
     if (ctrl->huart->Instance == huart->Instance) {
       HAL_UART_DMAStop(ctrl->huart);
@@ -480,18 +475,19 @@ inline void uart_error_process(UART_HandleTypeDef *huart) {
     }
   }
 #endif
-#if UART_CFG_ENABLE_FIFO_TX
-  uart_fifo_tx_t *fifo = is_fifo_tx(huart);
+#if UIO_CFG_UART_ENABLE_FIFO_TX
+  uart_fifo_tx_t *fifo = uart_fifo_tx_get_handle(huart);
   if (fifo) {
     HAL_UART_DMAStop(fifo->huart);
     HAL_UART_AbortTransmit_IT(fifo->huart);
     fifo->sending = 0;
-    fifo_exchange(fifo, 1);
+    uart_fifo_tx_exchange(fifo, 1);
   }
 #endif
 }
 
-#if UART_CFG_REWRITE_HANLDER  // 重写HAL中断处理函数
+#if UIO_CFG_UART_REWRITE_HANLDER  // 重写HAL中断处理函数
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   uart_rx_process(huart);
 }
@@ -501,109 +497,16 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
   uart_error_process(huart);
 }
-#if UART_CFG_ENABLE_DMA_RX
+
+#if UIO_CFG_UART_ENABLE_DMA_RX
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
   uart_dma_rx_process(huart, Size);
 }
 void HAL_UARTEx_TxEventCallback(UART_HandleTypeDef *huart) {
   uart_tx_process(huart);
 }
-#endif  // UART_CFG_ENABLE_DMA_RX
-#endif  // UART_CFG_REWRITE_HANLDER
+#endif  // UIO_CFG_UART_ENABLE_DMA_RX
 
-#if UART_CFG_ENABLE_ITM
+#endif  // UIO_CFG_UART_REWRITE_HANLDER
 
-static int itm_lwprintf_fn(int ch, lwprintf_t *lwobj) {
-  if (ch == '\0') return 0;
-  ITM_SendChar(ch);
-  return ch;
-}
-
-int ITM_printf(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  lwprintf_t lwp_pub;
-  lwp_pub.out_fn = itm_lwprintf_fn;
-  int sendLen = lwprintf_vprintf_ex(&lwp_pub, fmt, ap);
-  va_end(ap);
-  return sendLen;
-}
-
-int ITM_write(uint8_t port, uint8_t *data, size_t len) {
-  if (((ITM->TCR & ITM_TCR_ITMENA_Msk) != 0UL) && /* ITM enabled */
-      ((ITM->TER & (1 << port)) != 0UL))          /* ITM Port #0 enabled */
-  {
-    for (size_t i = 0UL; i < len; i++) {
-      while (ITM->PORT[port].u32 == 0UL) {
-        __NOP();
-      }
-      ITM->PORT[port].u8 = data[i];
-    }
-    return len;
-  }
-  return 0;
-}
-
-volatile int32_t ITM_RxBuffer = ITM_RXBUFFER_EMPTY;
-
-size_t ITM_read(uint8_t *data, size_t len, m_time_t timeout_ms) {
-  m_time_t start_time = m_time_ms();
-  size_t send = 0;
-  int32_t tmp;
-  while (m_time_ms() - start_time < timeout_ms) {
-    tmp = ITM_ReceiveChar();
-    if (tmp == -1) {
-      continue;
-    }
-    data[send++] = (uint8_t)tmp;
-    if (send >= len) {
-      break;
-    }
-    start_time = m_time_ms();
-  }
-  return send;
-}
-
-#endif  // UART_CFG_ENABLE_ITM
-
-#if VOFA_CFG_ENABLE
-
-static float VOFA_Buffer[VOFA_CFG_BUFFER_SIZE + 1];
-static uint8_t vofa_index = 0;
-static const uint32_t vofa_endbit = 0x7F800000;
-
-__attribute__((always_inline, flatten)) void vofa_add(float value) {
-  if (vofa_index < VOFA_CFG_BUFFER_SIZE) VOFA_Buffer[vofa_index++] = value;
-}
-
-void vofa_add_array(float *value, uint8_t len) {
-  if (vofa_index + len >= VOFA_CFG_BUFFER_SIZE) return;
-  uart_memcpy(&VOFA_Buffer[vofa_index], value, len * sizeof(float));
-  vofa_index += len;
-}
-
-void vofa_clear(void) { vofa_index = 0; }
-
-void vofa_send(UART_HandleTypeDef *huart) {
-  if (vofa_index == 0) return;
-  vofa_add_array((float *)&vofa_endbit, 1);
-  uart_write(huart, (uint8_t *)VOFA_Buffer, vofa_index * sizeof(float));
-  vofa_index = 0;
-}
-
-void vofa_send_fast(UART_HandleTypeDef *huart) {
-  if (vofa_index == 0) return;
-  uart_memcpy(&VOFA_Buffer[vofa_index], &vofa_endbit, sizeof(float));
-  uart_write_fast(huart, (uint8_t *)VOFA_Buffer, ++vofa_index * sizeof(float));
-  vofa_index = 0;
-}
-
-#if UART_CFG_ENABLE_CDC
-void vofa_send_cdc(void) {
-  if (vofa_index == 0) return;
-  vofa_add_array((float *)&vofa_endbit, 1);
-  cdc_write((uint8_t *)VOFA_Buffer, vofa_index * sizeof(float));
-  vofa_index = 0;
-}
-#endif  // UART_CFG_ENABLE_CDC
-#endif  // VOFA_CFG_ENABLE
+#endif  // UIO_CFG_ENABLE_UART

@@ -137,6 +137,12 @@ typedef uint64_t m_time_t;
 #define m_alloc(size) malloc(size)
 #define m_free(ptr) free(ptr)
 #define m_realloc(ptr, size) realloc(ptr, size)
+#elif MOD_CFG_HEAP_MATHOD_HEAP4  // heap4
+#include "heap4.h"
+#define init_module_heap(ptr, size) prvHeapInit(ptr, size)
+#define m_alloc(size) pvPortMalloc(size)
+#define m_free(ptr) vPortFree(ptr)
+#define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_LWMEM  // lwmem
 #include "lwmem.h"
 #define init_module_heap(ptr, size)                              \
@@ -161,12 +167,6 @@ typedef uint64_t m_time_t;
 #define m_alloc(size) vPortMalloc(size)
 #define m_free(ptr) vPortFree(ptr)
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
-#elif MOD_CFG_HEAP_MATHOD_HEAP4  // heap4
-#include "heap4.h"
-#define init_module_heap(ptr, size) prvHeapInit(ptr, size)
-#define m_alloc(size) pvPortMalloc(size)
-#define m_free(ptr) vPortFree(ptr)
-#define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_RTT  // rtthread
 #include "rtthread.h"
 // You should init rtthread instead of using this!
@@ -178,15 +178,24 @@ typedef uint64_t m_time_t;
 #error "MODCFG__HEAP_MATHOD invalid"
 #endif
 
+static inline void *m_calloc(size_t nmemb, size_t size) {
+  void *mem = m_alloc(nmemb * size);
+  if (mem) {
+    void *memset(void *s, int c, size_t n);
+    memset(mem, 0, nmemb * size);
+  }
+  return mem;
+}
+
 #if MOD_CFG_USE_OS_NONE  // none
-#define MOD_MUTEX_HANDLE uint8_t
+#define MOD_MUTEX_HANDLE __attribute__((unused)) uint8_t
 #define MOD_MUTEX_CREATE(name) (1)
 #define MOD_MUTEX_ACQUIRE(mutex) ((void)0)
 #define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) (true)
 #define MOD_MUTEX_RELEASE(mutex) ((void)0)
 #define MOD_MUTEX_DELETE(mutex) ((void)0)
 
-#define MOD_SEM_HANDLE uint8_t
+#define MOD_SEM_HANDLE __attribute__((unused)) uint8_t
 #define MOD_SEM_CREATE(name, init) (1)
 #define MOD_SEM_TAKE(sem) ((void)0)
 #define MOD_SEM_TRY_TAKE(sem, ms) (true)

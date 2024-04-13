@@ -15,7 +15,7 @@ typedef struct {
 } ucontext_t;
 
 /* 2. define the clock ticks count for one second */
-#define MY_CLOCKS_PER_SEC 1000
+#define MY_CLOCKS_PER_SEC m_tick_clk
 
 /* 3. Implement the initilization function for clock. Leave it blank if not
  * required. */

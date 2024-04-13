@@ -68,6 +68,8 @@ void kl_sched_tcb_remove(kl_thread_t tcb) {
   if (tcb->list_sched) {
     remove_list_sched(tcb);
   }
+  while (kl_sched_tcb_wake_from(&tcb->list_join) != NULL) {
+  }
   KL_CLR_FLAG(tcb->flags, (KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SUSPEND |
                            KL_THREAD_FLAGS_SLEEP | KL_THREAD_FLAGS_WAIT));
   KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_EXITED);
