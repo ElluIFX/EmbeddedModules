@@ -1,8 +1,6 @@
 /**
  * @file motor.c
  * @brief 直流电机闭环控制器
- * 封装了电机控制函数，包括编码器读速度和读角度
- * 位置环可以不使能，只运行速度环的RUN函数就是单速度环。
  * @author Ellu (ellu.grif@gmail.com)
  * @version 3.0
  * @date 2023年4月29日

@@ -1,0 +1,341 @@
+/**
+ *  @brief     An STM32 HAL library written for the BQ25890 charge controller IC
+ * in C.
+ *  @author    Sumant Khalate www.github.com/SumantKhalate/BQ25890
+ *  @date      May 2023
+ *  @copyright GPL-3.0 license.
+ */
+
+#ifndef __BQ25890_REG__
+#define __BQ25890_REG__
+
+#ifndef BQ25890_REG
+#define BQ25890_REG
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "main.h"
+
+/*------------------------------------ CONTROL REGISTERS
+ * ------------------------------------*/
+/*---------- Register 0x00 ----------*/
+#define BQ25890_REG_00 0x00
+
+#define BQ25890_ENHIZ_MASK 0x80
+#define BQ25890_ENHIZ_BIT 7
+
+#define BQ25890_ENILIM_MASK 0x40
+#define BQ25890_ENILIM_BIT 6
+
+#define BQ25890_IINLIM_MASK 0x3F
+#define BQ25890_IINLIM_BIT 0
+#define BQ25890_IINLIM_BASE 100
+#define BQ25890_IINLIM_LSB 50
+
+/*---------- Register 0x01 ----------*/
+#define BQ25890_REG_01 0x01
+
+#define BQ25890_BHOT_MASK 0xC0
+#define BQ25890_BHOT_BIT 6
+
+#define BQ25890_BCOLD_MASK 0x20
+#define BQ25890_BCOLD_BIT 5
+
+#define BQ25890_VINDPMOS_MASK 0x1F
+#define BQ25890_VINDPMOS_BIT 0
+#define BQ25890_VINDPMOS_BASE 0
+#define BQ25890_VINDPMOS_LSB 100
+
+/*---------- Register 0x02 ----------*/
+#define BQ25890_REG_02 0x02
+
+#define BQ25890_CONV_START_MASK 0x80
+#define BQ25890_CONV_START_BIT 7
+
+#define BQ25890_CONV_RATE_MASK 0x40
+#define BQ25890_CONV_RATE_BIT 6
+
+#define BQ25890_BOOST_FREQ_MASK 0x20
+#define BQ25890_BOOST_FREQ_BIT 5
+
+#define BQ25890_ICO_EN_MASK 0x10
+#define BQ25890_ICO_EN_BIT 4
+
+#define BQ25890_HVDCP_EN_MASK 0x08
+#define BQ25890_HVDCP_EN_BIT 3
+
+#define BQ25890_MAXC_EN_MASK 0x04
+#define BQ25890_MAXC_EN_BIT 2
+
+#define BQ25890_FORCE_DPDM_MASK 0x02
+#define BQ25890_FORCE_DPDM_BIT 1
+
+#define BQ25890_AUTO_DPDM_EN_MASK 0x01
+#define BQ25890_AUTO_DPDM_EN_BIT 0
+
+/*---------- Register 0x03 ----------*/
+#define BQ25890_REG_03 0x03
+
+#define BQ25890_BAT_LOADEN_MASK 0x80
+#define BQ25890_BAT_LOADEN_BIT 7
+
+#define BQ25890_WDT_RESET_MASK 0x40
+#define BQ25890_WDT_RESET_BIT 6
+
+#define BQ25890_OTG_CONFIG_MASK 0x20
+#define BQ25890_OTG_CONFIG_BIT 5
+
+#define BQ25890_CHG_CONFIG_MASK 0x10
+#define BQ25890_CHG_CONFIG_BIT 4
+
+#define BQ25890_SYS_MINV_MASK 0x0E
+#define BQ25890_SYS_MINV_BIT 1
+#define BQ25890_SYS_MINV_BASE 3000
+#define BQ25890_SYS_MINV_LSB 100
+
+/*---------- Register 0x04 ----------*/
+#define BQ25890_REG_04 0x04
+
+#define BQ25890_EN_PUMPX_MASK 0x80
+#define BQ25890_EN_PUMPX_BIT 7
+
+#define BQ25890_ICHG_MASK 0x7F
+#define BQ25890_ICHG_BIT 0
+#define BQ25890_ICHG_BASE 0
+#define BQ25890_ICHG_LSB 64
+
+/*---------- Register 0x05 ----------*/
+#define BQ25890_REG_05 0x05
+
+#define BQ25890_IPRECHG_MASK 0xF0
+#define BQ25890_IPRECHG_BIT 4
+#define BQ25890_IPRECHG_BASE 64
+#define BQ25890_IPRECHG_LSB 64
+
+#define BQ25890_ITERM_MASK 0x0F
+#define BQ25890_ITERM_BIT 0
+#define BQ25890_ITERM_BASE 64
+#define BQ25890_ITERM_LSB 64
+
+/*---------- Register 0x06 ----------*/
+#define BQ25890_REG_06 0x06
+
+#define BQ25890_VREG_MASK 0xFC
+#define BQ25890_VREG_BIT 2
+#define BQ25890_VREG_BASE 3840
+#define BQ25890_VREG_LSB 16
+
+#define BQ25890_BATLOWV_MASK 0x02
+#define BQ25890_BATLOWV_BIT 1
+
+#define BQ25890_VRECHG_MASK 0x01
+#define BQ25890_VRECHG_BIT 0
+
+/*---------- Register 0x07 ----------*/
+#define BQ25890_REG_07 0x07
+
+#define BQ25890_EN_TERM_MASK 0x80
+#define BQ25890_EN_TERM_BIT 7
+
+#define BQ25890_STAT_DIS_MASK 0x40
+#define BQ25890_STAT_DIS_BIT 6
+
+#define BQ25890_WATCHDOG_MASK 0x30
+#define BQ25890_WATCHDOG_BIT 4
+
+#define BQ25890_EN_TIMER_MASK 0x08
+#define BQ25890_EN_TIMER_BIT 3
+
+#define BQ25890_CHG_TIMER_MASK 0x06
+#define BQ25890_CHG_TIMER_BIT 1
+
+#define BQ25890_JEITA_ISET_MASK 0x01
+#define BQ25890_JEITA_ISET_BIT 0
+
+/*---------- Register 0x08 ----------*/
+#define BQ25890_REG_08 0x08
+
+#define BQ25890_BAT_COMP_MASK 0xE0
+#define BQ25890_BAT_COMP_BIT 5
+#define BQ25890_BAT_COMP_BASE 0
+#define BQ25890_BAT_COMP_LSB 20
+
+#define BQ25890_VCLAMP_MASK 0x1C
+#define BQ25890_VCLAMP_BIT 2
+#define BQ25890_VCLAMP_BASE 0
+#define BQ25890_VCLAMP_LSB 32
+
+#define BQ25890_TREG_MASK 0x03
+#define BQ25890_TREG_BIT 0
+
+/*---------- Register 0x09 ----------*/
+#define BQ25890_REG_09 0x09
+
+#define BQ25890_FORCE_ICO_MASK 0x80
+#define BQ25890_FORCE_ICO_BIT 7
+
+#define BQ25890_TMR2X_EN_MASK 0x40
+#define BQ25890_TMR2X_EN_BIT 6
+
+#define BQ25890_BATFET_DIS_MASK 0x20
+#define BQ25890_BATFET_DIS_BIT 5
+
+#define BQ25890_JEITA_VSET_MASK 0x10
+#define BQ25890_JEITA_VSET_BIT 4
+
+#define BQ25890_BATFET_DLY_MASK 0x08
+#define BQ25890_BATFET_DLY_BIT 3
+
+#define BQ25890_BATFET_RST_EN_MASK 0x04
+#define BQ25890_BATFET_RST_EN_BIT 2
+
+#define BQ25890_PUMPX_UP_MASK 0x02
+#define BQ25890_PUMPX_UP_BIT 1
+
+#define BQ25890_PUMPX_DN_MASK 0x01
+#define BQ25890_PUMPX_DN_BIT 0
+
+/*---------- Register 0x0A ----------*/
+#define BQ25890_REG_0A 0x0A
+
+#define BQ25890_BOOSTV_MASK 0xF0
+#define BQ25890_BOOSTV_BIT 4
+#define BQ25890_BOOSTV_BASE 4550
+#define BQ25890_BOOSTV_LSB 64
+
+#define BQ25890_BOOST_LIM_MASK 0x07
+#define BQ25890_BOOST_LIM_BIT 0
+
+/*---------- Register 0x0B ----------*/
+#define BQ25890_REG_0B 0x0B
+
+#define BQ25890_VBUS_STAT_MASK 0xE0
+#define BQ25890_VBUS_STAT_BIT 5
+
+#define BQ25890_CHRG_STAT_MASK 0x18
+#define BQ25890_CHRG_STAT_BIT 3
+
+#define BQ25890_PG_STAT_MASK 0x04
+#define BQ25890_PG_STAT_BIT 2
+
+#define BQ25890_VSYS_STAT_MASK 0x01
+#define BQ25890_VSYS_STAT_BIT 0
+
+/*---------- Register 0x0C ----------*/
+#define BQ25890_REG_0C 0x0C
+
+#define BQ25890_WATCHDOG_FAULT_MASK 0x80
+#define BQ25890_WATCHDOG_FAULT_BIT 7
+
+#define BQ25890_BOOST_FAULT_MASK 0x40
+#define BQ25890_BOOST_FAULT_BIT 6
+
+#define BQ25890_CHRG_FAULT_MASK 0x30
+#define BQ25890_CHRG_FAULT_BIT 4
+
+#define BQ25890_BAT_FAULT_MASK 0x08
+#define BQ25890_BAT_FAULT_BIT 3
+
+#define BQ25890_NTC_FAULT_MASK 0x07
+#define BQ25890_NTC_FAULT_BIT 0
+
+/*---------- Register 0x0D ----------*/
+#define BQ25890_REG_0D 0x0D
+
+#define BQ25890_FORCE_VINDPM_MASK 0x80
+#define BQ25890_FORCE_VINDPM_BIT 7
+
+#define BQ25890_VINDPM_MASK 0x7F
+#define BQ25890_VINDPM_BIT 0
+#define BQ25890_VINDPM_BASE 2600
+#define BQ25890_VINDPM_LSB 100
+
+/*---------- Register 0x0E ----------*/
+#define BQ25890_REG_0E 0x0E
+
+#define BQ25890_THERM_STAT_MASK 0x80
+#define BQ25890_THERM_STAT_BIT 7
+
+#define BQ25890_BATV_MASK 0x7F
+#define BQ25890_BATV_BIT 0
+#define BQ25890_BATV_BASE 2304
+#define BQ25890_BATV_LSB 20
+
+/*---------- Register 0x0F ----------*/
+#define BQ25890_REG_0F 0x0F
+
+#define BQ25890_SYSV_MASK 0x7F
+#define BQ25890_SYSV_BIT 0
+#define BQ25890_SYSV_BASE 2304
+#define BQ25890_SYSV_LSB 20
+
+/*---------- Register 0x10 ----------*/
+#define BQ25890_REG_10 0x10
+
+#define BQ25890_TSPCT_MASK 0x7F
+#define BQ25890_TSPCT_BIT 0
+#define BQ25890_TSPCT_BASE 2100
+#define BQ25890_TSPCT_LSB 46
+
+/*---------- Register 0x11 ----------*/
+#define BQ25890_REG_11 0x11
+
+#define BQ25890_VBUS_GD_MASK 0x80
+#define BQ25890_VBUS_GD_BIT 7
+
+#define BQ25890_VBUSV_MASK 0x7F
+#define BQ25890_VBUSV_BIT 0
+#define BQ25890_VBUSV_BASE 2600
+#define BQ25890_VBUSV_LSB 100
+
+/*---------- Register 0x12 ----------*/
+#define BQ25890_REG_12 0x12
+#define BQ25890_ICHGR_MASK 0x7F
+#define BQ25890_ICHGR_BIT 0
+#define BQ25890_ICHGR_BASE 0
+#define BQ25890_ICHGR_LSB 50
+
+/*---------- Register 0x13 ----------*/
+#define BQ25890_REG_13 0x13
+
+#define BQ25890_VDPM_STAT_MASK 0x80
+#define BQ25890_VDPM_STAT_BIT 7
+
+#define BQ25890_IDPM_STAT_MASK 0x40
+#define BQ25890_IDPM_STAT_BIT 6
+
+#define BQ25890_IDPM_LIM_MASK 0x3F
+#define BQ25890_IDPM_LIM_BIT 0
+#define BQ25890_IDPM_LIM_BASE 100
+#define BQ25890_IDPM_LIM_LSB 50
+
+/*---------- Register 0x14 ----------*/
+#define BQ25890_REG_14 0x14
+
+#define BQ25890_RESET_MASK 0x80
+#define BQ25890_RESET_BIT 7
+
+#define BQ25890_ICO_OPTIMIZED_MASK 0x40
+#define BQ25890_ICO_OPTIMIZED_BIT 6
+
+#define BQ25890_PN_MASK 0x38
+#define BQ25890_PN_BIT 3
+
+#define BQ25890_TS_PROFILE_MASK 0x04
+#define BQ25890_TS_PROFILE_BIT 2
+
+#define BQ25890_DEV_REV_MASK 0x03
+#define BQ25890_DEV_REV_BIT 0
+
+/*------------------------------------ CONTROL REGISTERS
+ * BITFIELDS------------------------------------*/
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BQ25890_REG */
+
+
+#endif /* __BQ25890_REG__ */

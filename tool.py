@@ -169,6 +169,7 @@ AVAILABLE_TYPES = [
     "datastruct",
     "communication",
     "debug",
+    "driver",
     "graphics",
     "nn",
     "peripheral",

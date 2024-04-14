@@ -49,8 +49,8 @@ enum MOTOR_MODES {
 
 /****************** 数据类型定义 ******************/
 
-typedef struct {  // 电机闭环控制结构体
-    enum MOTOR_MODES mode;  // 电机模式(0:刹车 1:滑行 2:速度环 3:位置环 4:手动)
+typedef struct {                    // 电机闭环控制结构体
+    enum MOTOR_MODES mode;          // 电机模式
     float speed;                    // 速度 (rpm)
     int32_t pos;                    // 位置 (pulse)
     int32_t lastPos;                // 上一次位置

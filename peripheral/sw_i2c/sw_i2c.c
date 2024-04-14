@@ -6,8 +6,10 @@
 #define I2C_READ 0x01
 #define READ_CMD 1
 #define WRITE_CMD 0
-// #define PULL_MODE GPIO_NOPULL
-#define PULL_MODE GPIO_PULLUP
+
+#define PULL_MODE GPIO_NOPULL
+
+// #define PULL_MODE GPIO_PULLUP
 
 static void sda_in_mode(sw_i2c_t* dev) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};

@@ -5,10 +5,25 @@
 > [!IMPORTANT]
 > 主要是给stm32项目用的，部分模块依赖hal库
 
-## 当前文件结构
+## 模块仓库文件结构
 
 > [!NOTE]
 > 标*的为自己写的模块，其他修改自开源库，原repo已列出
+
+<details open>
+  <summary>根目录文件</summary>
+
+| 根目录文件 | 功能 |
+|-|-|
+| [.clang-format](./.clang-format) | clang代码格式化配置文件 |
+| [modules.h](./modules.h) | 模块统一头文件 |
+| [tool.py](./tool.py) | 模块配置工具 |
+| [~modules_conf.template.h~](./modules_conf.template.h) | ~模块统一配置文件模板~ ***(deprecated)*** |
+
+</details>
+
+<details>
+  <summary>算法模块</summary>
 
 | [Algorithm](./algorithm) | 算法 | repo | 备注 |
 |-|-|:-:|-|
@@ -18,6 +33,11 @@
 | [quaternion](./algorithm/quaternion) | 四元数和IMU姿态估计 | [link](https://github.com/rbv188/IMU-algorithm) | 未测试 |
 | [tiny_regex](./algorithm/tiny_regex)|  简易正则解析器 | [link](https://github.com/zeta-zero/tiny-regex-c) | 无捕获组 |
 
+</details>
+
+<details>
+  <summary>通信模块</summary>
+
 | [Communication](./communication) | 通信 | repo | 备注 |
 |-|-|:-:|-|
 | [CherryUSB](./communication/cherryusb) | Cherry USB | [link](https://github.com/cherry-embedded/CherryUSB) | |
@@ -26,6 +46,11 @@
 | [modbus](./communication/modbus) | Modbus协议 | [link](https://github.com/wql7013/ModBus) | |
 | [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 | [link](https://github.com/MightyPork/TinyFrame) | |
 | [xymodem](./communication/xymodem) | X/YMODEM协议 | [link](https://github.com/LONGZR007/IAP-STM32) | |
+
+</details>
+
+<details>
+  <summary>数据结构模块</summary>
 
 | [DataStruct](./datastruct) | 数据结构 | repo | 备注 |
 |-|-|:-:|-|
@@ -47,6 +72,11 @@
 | [ulist](./datastruct/ulist) | 通用内存连续列表 |*| |
 | [uthash](./datastruct/uthash) |基于宏的可嵌入哈希表 | [link](https://github.com/troydhanson/uthash) | |
 
+</details>
+
+<details>
+  <summary>调试模块</summary>
+
 | [Debug](./debug) | 调试 | repo | 备注 |
 |-|-|:-:|-|
 | [benchmark](./debug/benchmark) | CoreMark基准测试 | [link](https://github.com/eembc/coremark) | |
@@ -54,6 +84,30 @@
 | [RTT](./debug/rtt) | Segger-RTT 调试模块 | [link](https://www.segger.com/products/debug-probes/j-link/technology/about-real-time-transfer/) | |
 | [log](./debug/log) | 纯头文件日志库 |*| |
 | [minctest](./debug/minctest) | 简易单元测试 | [link](https://github.com/codeplea/minctest) | |
+
+</details>
+
+<details>
+  <summary>驱动模块</summary>
+
+| [Driver](./driver) | 驱动 | repo | 备注 |
+|-|-|:-:|-|
+| [bq25890](./driver/bq25890) | BQ2589x充电芯片 | [link](https://github.com/SumantKhalate/BQ25895) | |
+| [ee24](./peripheral/ee24) | 24xx EEPROM库 | [link](https://github.com/nimaltd/ee24) | |
+| [key](./peripheral/key) | 通用按键驱动 |*| 支持多种事件 |
+| [motor](./peripheral/motor) | 直流电机闭环驱动 | * | |
+| [paj7620u2](./driver/paj7620u2) | PAJ7620U2手势识别 | * | |
+| [sc7a20](./driver/sc7a20) | SC7A20加速度计 |*| |
+| [sh2](./driver/sh2) | SH2 Sensorhub协议 | [link](https://github.com/ceva-dsp/sh2) | |
+| [spif](./peripheral/spif) | SPI Flash通用驱动 | [link](https://github.com/nimaltd/spif) | |
+| [stepper](./peripheral/stepper) | 步进电机驱动 |*| |
+| [vl53l0x](./driver/vl53l0x) | VL53L0X激光测距 | [link](https://github.com/anisyanka/vl53l0x) | 非官方库 |
+| [ws2812_spi](./peripheral/ws2812_spi) | WS2812灯带DMA-SPI驱动 |*| |
+
+</details>
+
+<details>
+  <summary>图形模块</summary>
 
 | [Graphics](./graphics) | 图形 | repo | 备注 |
 |-|-|:-:|-|
@@ -66,6 +120,11 @@
 | [ugui](./graphics/ugui) | uGUI图形库 | [link](https://github.com/achimdoebler/UGUI) | |
 | [virtual_lcd](./graphics/virtual_lcd) | 虚拟LCD |*| 包含上位机 |
 
+</details>
+
+<details>
+  <summary>神经网络模块</summary>
+
 | [NN](./nn) | 神经网络 | repo | 备注 |
 |-|-|:-:|-|
 | [genann](./nn/genann) | 简单前馈神经网络 | [link](https://github.com/codeplea/genann) | |
@@ -75,23 +134,27 @@
 | [board_i2c](./peripheral/board_i2c) | 板级I2C包装层 |*| |
 | [board_led](./peripheral/board_led) | 板级LED包装层 |*| |
 | [ee](./peripheral/ee) | 内置flash读写库 | [link](https://github.com/nimaltd/ee) | |
-| [ee24](./peripheral/ee24) | 24xx EEPROM库 | [link](https://github.com/nimaltd/ee24) | |
 | [i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |*| |
-| [key](./peripheral/key) | 通用按键 |*| 支持多种事件 |
 | [ll_i2c](./peripheral/ll_i2c) | LL库I2C | * | 包含中断/轮询 |
-| [motor](./peripheral/motor) | 直流电机闭环驱动 | * | |
-| [spif](./peripheral/spif) | SPI Flash通用驱动 | [link](https://github.com/nimaltd/spif) | |
-| [stepper](./peripheral/stepper) | 步进电机驱动 |*| |
 | [sw_i2c](./peripheral/sw_i2c) | 软件I2C | [link](https://github.com/liyanboy74/soft-i2c) | |
 | [sw_spi](./peripheral/sw_spi) | 软件SPI |N/A| |
 | [uni_io](./peripheral/uni_io) | 数据通信功能包 |*| |
-| [ws2812_spi](./peripheral/ws2812_spi) | WS2812灯带DMA-SPI驱动 |*| |
+
+</details>
+
+<details>
+  <summary>存储模块</summary>
 
 | [Storage](./storage) | 存储 | repo | 备注 |
 |-|-|:-:|-|
 | [easyflash](./storage/easyflash) | 轻量级Flash数据库 | [link](https://github.com/armink/EasyFlash) | |
 | [littlefs](./storage/littlefs) | LittleFS | [link](https://github.com/littlefs-project/littlefs) | |
 | [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 | [link](https://github.com/Jiu-xiao/MiniFlashDB) | 魔改 |
+
+</details>
+
+<details>
+  <summary>系统模块</summary>
 
 | [System](./system) | 系统 | repo | 备注 |
 |-|-|:-:|-|
@@ -104,6 +167,11 @@
 | [scheduler](./system/scheduler) | 多功能任务调度器 |*| 内有使用说明 |
 | [scheduler_lite](./system/scheduler_lite) | 轻量级任务调度器 |*| |
 
+</details>
+
+<details>
+  <summary>工具模块</summary>
+
 | [Utility](./utility) | 工具 | repo | 备注 |
 |-|-|:-:|-|
 | [cot_menu](./utility/cot_menu) | 轻量级菜单框架 | [link](https://gitee.com/cot_package/cot_menu) | 抽象菜单 |
@@ -112,16 +180,12 @@
 | [perf_counter](./utility/perf_counter) | PerfCounter性能统计/时基库 | [link](https://github.com/GorgonMeducer/perf_counter) | 必备品 |
 | [ryu](./utility/ryu) | 浮点数转字符串 | [link](https://github.com/tidwall/ryu) | |
 | [term_table](./utility/term_table) | 动态终端表格工具 |*| 仅debug使用 |
-| [TimeLib](./utility/TimeLib) | 时间库 | [link](https://github.com/geekfactory/TimeLib) | |
+| [TimeLib](./utility/TimeLib) | UNIX时间库 | [link](https://github.com/geekfactory/TimeLib) | |
 | [xv](./utility/xv) | 类JavaScript的字符串解析器 | [link](https://github.com/tidwall/xv) | |
 | [incbin.h](./utility/incbin) | 二进制文件嵌入 | [link](https://github.com/graphitemaster/incbin) | |
 | [macro.h](./utility/macro.h) | 通用宏 |*| |
 
-| 根目录文件 | 功能 |
-|-|-|
-| [modules.h](./modules.h) | 模块统一头文件 |
-| [~modules_conf.template.h~](./modules_conf.template.h) | ~模块统一配置文件模板~ ***(deprecated)*** |
-| [tool.py](./tool.py) | 模块配置工具 |
+</details>
 
 ## 配置工具 `tool.py`
 

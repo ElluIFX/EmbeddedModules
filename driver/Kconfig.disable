@@ -1,0 +1,5 @@
+menu "Driver Modules"
+
+source "driver/**/Kconfig"
+
+endmenu
