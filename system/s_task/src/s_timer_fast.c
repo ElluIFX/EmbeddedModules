@@ -13,11 +13,11 @@ int s_timer_comparator(const RBTNode* a, const RBTNode* b, void* arg) {
     s_timer_t* timer_b = GET_PARENT_ADDR(b, s_timer_t, rbt_node);
     (void)arg;
 
-    my_clock_diff_t diff = (my_clock_diff_t)(timer_a->wakeup_ticks - timer_b->wakeup_ticks);
+    my_clock_diff_t diff =
+        (my_clock_diff_t)(timer_a->wakeup_ticks - timer_b->wakeup_ticks);
     if (diff != 0) {
         return (int)diff;
-    }
-    else {
+    } else {
         if (timer_a->task < timer_b->task)
             return -1;
         else if (timer_b->task < timer_a->task)
@@ -67,8 +67,10 @@ void s_timer_run(void) {
 
         s_timer_t* timer = GET_PARENT_ADDR(node, s_timer_t, rbt_node);
 
-        my_clock_diff_t ticks_to_wakeup = (my_clock_diff_t)(timer->wakeup_ticks - current_ticks);
-        if (ticks_to_wakeup > 0) break;
+        my_clock_diff_t ticks_to_wakeup =
+            (my_clock_diff_t)(timer->wakeup_ticks - current_ticks);
+        if (ticks_to_wakeup > 0)
+            break;
 
         node_next = rbt_iterate(&itr);
 
@@ -80,7 +82,6 @@ void s_timer_run(void) {
     }
 
     dump_timers(__LINE__);
-
 }
 
 uint64_t s_timer_wait_recent(void) {
@@ -93,16 +94,17 @@ uint64_t s_timer_wait_recent(void) {
     if ((node = rbt_iterate(&itr)) != NULL) {
         s_timer_t* timer = GET_PARENT_ADDR(node, s_timer_t, rbt_node);
 
-        my_clock_diff_t ticks_to_wakeup = (my_clock_diff_t)(timer->wakeup_ticks - current_ticks);
+        my_clock_diff_t ticks_to_wakeup =
+            (my_clock_diff_t)(timer->wakeup_ticks - current_ticks);
         /* printf("ticks_to_wakeup = %d %d %d \n", ticks_to_wakeup, (int)current_ticks, (int)timer->wakeup_ticks); */
         if (ticks_to_wakeup > 0) {
-            uint64_t wait = ((uint64_t)ticks_to_wakeup * 1000 / MY_CLOCKS_PER_SEC);
+            uint64_t wait =
+                ((uint64_t)ticks_to_wakeup * 1000 / MY_CLOCKS_PER_SEC);
             return wait;
-        }
-        else
+        } else
             return 0;
     }
-    return (uint64_t)-1;    /* max value */
+    return (uint64_t)-1; /* max value */
 }
 
 int s_task_sleep_ticks(__async__, my_clock_t ticks) {
@@ -125,7 +127,7 @@ int s_task_sleep_ticks(__async__, my_clock_t ticks) {
 
     dump_timers(__LINE__);
 
-    s_list_detach(&timer.task->node);   /* no need, for safe */
+    s_list_detach(&timer.task->node); /* no need, for safe */
     s_task_next(__await__);
 
     dump_timers(__LINE__);

@@ -4,7 +4,7 @@ An expression evaluator for C.
 
 ## Features
 
-- **Friendly.** Provides Javascript [syntax](#syntax). 
+- **Friendly.** Provides Javascript [syntax](#syntax).
 - **Fast.** Evaluates expressions using an optimized [recursive descent parser](https://en.wikipedia.org/wiki/Recursive_descent_parser).
 - **Extensible.** Allows for [adding custom](#customize) functions and variables. Includes [JSON](#json) support.
 - **Stateless.** [No variable assignments](#stateless) or statements.
@@ -13,12 +13,12 @@ An expression evaluator for C.
 ## Install
 
 Clone this respository and then use [pkg.sh](https://github.com/tidwall/pkg.sh)
-to import dependencies from the [.package](.package) file. 
+to import dependencies from the [.package](.package) file.
 
 ```
-$ git clone https://github.com/tidwall/xv
-$ cd xv/
-$ pkg.sh import
+git clone https://github.com/tidwall/xv
+cd xv/
+pkg.sh import
 ```
 
 ## Example
@@ -43,10 +43,10 @@ $ ./eval '2 * (15 + 13) - 4'
 ## Syntax
 
 This implemetation uses a subset of Javascript that includes some of the most
-common operators, such as:  
+common operators, such as:
 `+` `-` `*` `/` `%` `!` `<` `<=` `>` `>=` `==` `===` `!=` `!===` `?:` `??` `,` `[]` `()` `&` `|` `^`.
 
-By design, xv expressions should work in most Javascript consoles, like Node or the Chrome developer console. 
+By design, xv expressions should work in most Javascript consoles, like Node or the Chrome developer console.
 
 For example, the following expression evaluates to the same result in xv and Node.
 
@@ -96,7 +96,7 @@ int main() {
 
 ### JSON
 
-There's also built-in support for reading data from JSON documents. 
+There's also built-in support for reading data from JSON documents.
 
 ```C
 #include <stdio.h>
@@ -178,14 +178,14 @@ int main() {
 ## Memory and safety
 
 The xv library is designed to be thread-safe. It uses thread local variables
-for managing runtime state and includes a fast internal bump allocator for 
+for managing runtime state and includes a fast internal bump allocator for
 expressions that require allocating memory.
 
 ### xv_cleanup
 
 There are some cases where the `xv_eval` or `xv_new_*` functions will need to
 allocate memory, usually when concatenating strings.
-Therefore it's always a good idea to call `xv_cleanup` when you are done. 
+Therefore it's always a good idea to call `xv_cleanup` when you are done.
 This will reset the thread-local environment and free any allocated memory.
 
 For example:
@@ -193,7 +193,7 @@ For example:
 ```C
 struct xv value = xv_eval("'hello' + ' ' + 'world'", NULL);
 char *str = xv_string(value);
-xv_cleanup(); 
+xv_cleanup();
 
 printf("%s\n", str);  // prints "hello world"
 free(str);
@@ -207,8 +207,8 @@ free(str);
 This project includes a test suite can be run from the command line with:
 
 ```sh
-$ tests/run.sh
+tests/run.sh
 ```
 
-If [clang](https://clang.llvm.org) is installed then various sanitizers are used such as [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html) and [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html).  
+If [clang](https://clang.llvm.org) is installed then various sanitizers are used such as [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html) and [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html).
 And clang will also check code coverage, which this library should always be at 100%.

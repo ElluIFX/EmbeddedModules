@@ -11,8 +11,8 @@
 #ifndef __GIC_H__
 #define __GIC_H__
 
-#include <rthw.h>
 #include <board.h>
+#include <rthw.h>
 
 int arm_gic_dist_init(rt_uint32_t index, rt_uint32_t dist_base, int irq_start);
 int arm_gic_cpu_init(rt_uint32_t index, rt_uint32_t cpu_base);
@@ -32,4 +32,3 @@ void arm_gic_dump_type(rt_uint32_t index);
 void arm_gic_dump(rt_uint32_t index);
 
 #endif
-

@@ -11,7 +11,7 @@ typedef m_time_t my_clock_t;
 typedef m_time_t my_clock_diff_t;
 
 typedef struct {
-  int sp;  // stack register
+    int sp;  // stack register
 } ucontext_t;
 
 /* 2. define the clock ticks count for one second */
@@ -35,7 +35,7 @@ inline
 #endif
     static void
     __set_PRIMASK_gcc(uint32_t primask) {
-  __asm volatile("MSR primask, %0" : : "r"(primask) : "memory");
+    __asm volatile("MSR primask, %0" : : "r"(primask) : "memory");
 }
 #endif
 
@@ -46,9 +46,9 @@ inline
     static void
     S_IRQ_DISABLE() {
 #ifdef __GNUC__
-  __set_PRIMASK_gcc(1);
+    __set_PRIMASK_gcc(1);
 #else
-  __set_PRIMASK(1);
+    __set_PRIMASK(1);
 #endif
 }
 
@@ -59,9 +59,9 @@ inline
     static void
     S_IRQ_ENABLE() {
 #ifdef __GNUC__
-  __set_PRIMASK_gcc(0);
+    __set_PRIMASK_gcc(0);
 #else
-  __set_PRIMASK(0);
+    __set_PRIMASK(0);
 #endif
 }
 

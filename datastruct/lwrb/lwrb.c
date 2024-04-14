@@ -34,27 +34,27 @@
 #include "lwrb.h"
 
 /* Memory set and copy functions */
-#define BUF_MEMSET      memset
-#define BUF_MEMCPY      memcpy
+#define BUF_MEMSET memset
+#define BUF_MEMCPY memcpy
 
 #define BUF_IS_VALID(b) ((b) != NULL && (b)->buff != NULL && (b)->size > 0)
-#define BUF_MIN(x, y)   ((x) < (y) ? (x) : (y))
-#define BUF_MAX(x, y)   ((x) > (y) ? (x) : (y))
-#define BUF_SEND_EVT(b, type, bp)                                                                                      \
-    do {                                                                                                               \
-        if ((b)->evt_fn != NULL) {                                                                                     \
-            (b)->evt_fn((void*)(b), (type), (bp));                                                                     \
-        }                                                                                                              \
+#define BUF_MIN(x, y) ((x) < (y) ? (x) : (y))
+#define BUF_MAX(x, y) ((x) > (y) ? (x) : (y))
+#define BUF_SEND_EVT(b, type, bp)                  \
+    do {                                           \
+        if ((b)->evt_fn != NULL) {                 \
+            (b)->evt_fn((void*)(b), (type), (bp)); \
+        }                                          \
     } while (0)
 
 /* Optional atomic opeartions */
 #ifdef LWRB_DISABLE_ATOMIC
-#define LWRB_INIT(var, val)        (var) = (val)
-#define LWRB_LOAD(var, type)       (var)
+#define LWRB_INIT(var, val) (var) = (val)
+#define LWRB_LOAD(var, type) (var)
 #define LWRB_STORE(var, val, type) (var) = (val)
 #else
-#define LWRB_INIT(var, val)        atomic_init(&(var), (val))
-#define LWRB_LOAD(var, type)       atomic_load_explicit(&(var), (type))
+#define LWRB_INIT(var, val) atomic_init(&(var), (val))
+#define LWRB_LOAD(var, type) atomic_load_explicit(&(var), (type))
 #define LWRB_STORE(var, val, type) atomic_store_explicit(&(var), (val), (type))
 #endif
 
@@ -66,8 +66,7 @@
  *                      Maximum number of bytes buffer can hold is `size - 1`
  * \return          `1` on success, `0` otherwise
  */
-uint8_t
-lwrb_init(lwrb_t* buff, void* buffdata, size_t size) {
+uint8_t lwrb_init(lwrb_t* buff, void* buffdata, size_t size) {
     if (buff == NULL || buffdata == NULL || size == 0) {
         return 0;
     }
@@ -85,8 +84,7 @@ lwrb_init(lwrb_t* buff, void* buffdata, size_t size) {
  * \param[in]       buff: Buffer handle
  * \return          `1` if ready, `0` otherwise
  */
-uint8_t
-lwrb_is_ready(lwrb_t* buff) {
+uint8_t lwrb_is_ready(lwrb_t* buff) {
     return BUF_IS_VALID(buff);
 }
 
@@ -96,8 +94,7 @@ lwrb_is_ready(lwrb_t* buff) {
  *                  it just sets buffer handle to `NULL`
  * \param[in]       buff: Buffer handle
  */
-void
-lwrb_free(lwrb_t* buff) {
+void lwrb_free(lwrb_t* buff) {
     if (BUF_IS_VALID(buff)) {
         buff->buff = NULL;
     }
@@ -108,8 +105,7 @@ lwrb_free(lwrb_t* buff) {
  * \param[in]       buff: Buffer handle
  * \param[in]       evt_fn: Callback function
  */
-void
-lwrb_set_evt_fn(lwrb_t* buff, lwrb_evt_fn evt_fn) {
+void lwrb_set_evt_fn(lwrb_t* buff, lwrb_evt_fn evt_fn) {
     if (BUF_IS_VALID(buff)) {
         buff->evt_fn = evt_fn;
     }
@@ -126,8 +122,7 @@ lwrb_set_evt_fn(lwrb_t* buff, lwrb_evt_fn evt_fn) {
  *                      When returned value is less than `btw`, there was no enough memory available
  *                      to copy full data array
  */
-size_t
-lwrb_write(lwrb_t* buff, const void* data, size_t btw) {
+size_t lwrb_write(lwrb_t* buff, const void* data, size_t btw) {
     size_t tocopy, free, buff_w_ptr;
     const uint8_t* d = data;
 
@@ -179,8 +174,7 @@ lwrb_write(lwrb_t* buff, const void* data, size_t btw) {
  * \param[in]       btr: Number of bytes to read
  * \return          Number of bytes read and copied to data array
  */
-size_t
-lwrb_read(lwrb_t* buff, void* data, size_t btr) {
+size_t lwrb_read(lwrb_t* buff, void* data, size_t btr) {
     size_t tocopy, full, buff_r_ptr;
     uint8_t* d = data;
 
@@ -231,8 +225,8 @@ lwrb_read(lwrb_t* buff, void* data, size_t btr) {
  * \param[in]       btp: Number of bytes to peek
  * \return          Number of bytes peeked and written to output array
  */
-size_t
-lwrb_peek(const lwrb_t* buff, size_t skip_count, void* data, size_t btp) {
+size_t lwrb_peek(const lwrb_t* buff, size_t skip_count, void* data,
+                 size_t btp) {
     size_t full, tocopy, r;
     uint8_t* d = data;
 
@@ -278,8 +272,7 @@ lwrb_peek(const lwrb_t* buff, size_t skip_count, void* data, size_t btp) {
  * \param[in]       buff: Buffer handle
  * \return          Number of free bytes in memory
  */
-size_t
-lwrb_get_free(const lwrb_t* buff) {
+size_t lwrb_get_free(const lwrb_t* buff) {
     size_t size, w, r;
 
     if (!BUF_IS_VALID(buff)) {
@@ -324,8 +317,7 @@ lwrb_get_free(const lwrb_t* buff) {
  * \param[in]       buff: Buffer handle
  * \return          Number of bytes ready to be read
  */
-size_t
-lwrb_get_full(const lwrb_t* buff) {
+size_t lwrb_get_full(const lwrb_t* buff) {
     size_t size, w, r;
 
     if (!BUF_IS_VALID(buff)) {
@@ -369,8 +361,7 @@ lwrb_get_full(const lwrb_t* buff) {
  *                      When used, application must ensure there is no active read/write operation
  * \param[in]       buff: Buffer handle
  */
-void
-lwrb_reset(lwrb_t* buff) {
+void lwrb_reset(lwrb_t* buff) {
     if (BUF_IS_VALID(buff)) {
         LWRB_STORE(buff->w, 0, memory_order_release);
         LWRB_STORE(buff->r, 0, memory_order_release);
@@ -383,8 +374,7 @@ lwrb_reset(lwrb_t* buff) {
  * \param[in]       buff: Buffer handle
  * \return          Linear buffer start address
  */
-void*
-lwrb_get_linear_block_read_address(const lwrb_t* buff) {
+void* lwrb_get_linear_block_read_address(const lwrb_t* buff) {
     if (!BUF_IS_VALID(buff)) {
         return NULL;
     }
@@ -396,8 +386,7 @@ lwrb_get_linear_block_read_address(const lwrb_t* buff) {
  * \param[in]       buff: Buffer handle
  * \return          Linear buffer size in units of bytes for read operation
  */
-size_t
-lwrb_get_linear_block_read_length(const lwrb_t* buff) {
+size_t lwrb_get_linear_block_read_length(const lwrb_t* buff) {
     size_t len;
     volatile size_t w, r;
 
@@ -431,8 +420,7 @@ lwrb_get_linear_block_read_length(const lwrb_t* buff) {
  * \param[in]       len: Number of bytes to skip and mark as read
  * \return          Number of bytes skipped
  */
-size_t
-lwrb_skip(lwrb_t* buff, size_t len) {
+size_t lwrb_skip(lwrb_t* buff, size_t len) {
     size_t full, r;
 
     if (!BUF_IS_VALID(buff) || len == 0) {
@@ -456,8 +444,7 @@ lwrb_skip(lwrb_t* buff, size_t len) {
  * \param[in]       buff: Buffer handle
  * \return          Linear buffer start address
  */
-void*
-lwrb_get_linear_block_write_address(const lwrb_t* buff) {
+void* lwrb_get_linear_block_write_address(const lwrb_t* buff) {
     if (!BUF_IS_VALID(buff)) {
         return NULL;
     }
@@ -469,8 +456,7 @@ lwrb_get_linear_block_write_address(const lwrb_t* buff) {
  * \param[in]       buff: Buffer handle
  * \return          Linear buffer size in units of bytes for write operation
  */
-size_t
-lwrb_get_linear_block_write_length(const lwrb_t* buff) {
+size_t lwrb_get_linear_block_write_length(const lwrb_t* buff) {
     size_t len;
     volatile size_t w, r;
 
@@ -516,8 +502,7 @@ lwrb_get_linear_block_write_length(const lwrb_t* buff) {
  * \param[in]       len: Number of bytes to advance
  * \return          Number of bytes advanced for write operation
  */
-size_t
-lwrb_advance(lwrb_t* buff, size_t len) {
+size_t lwrb_advance(lwrb_t* buff, size_t len) {
     size_t free, w;
 
     if (!BUF_IS_VALID(buff) || len == 0) {
@@ -550,13 +535,14 @@ lwrb_advance(lwrb_t* buff, size_t len) {
  *                      Must not be set to `NULL`
  * \return          `1` if \arg bts found, `0` otherwise
  */
-uint8_t
-lwrb_find(const lwrb_t* buff, const void* bts, size_t len, size_t start_offset, size_t* found_idx) {
+uint8_t lwrb_find(const lwrb_t* buff, const void* bts, size_t len,
+                  size_t start_offset, size_t* found_idx) {
     size_t full, r;
     uint8_t found = 0;
     const uint8_t* needle = bts;
 
-    if (!BUF_IS_VALID(buff) || needle == NULL || len == 0 || found_idx == NULL) {
+    if (!BUF_IS_VALID(buff) || needle == NULL || len == 0 ||
+        found_idx == NULL) {
         return 0;
     }
     *found_idx = 0;
@@ -568,7 +554,8 @@ lwrb_find(const lwrb_t* buff, const void* bts, size_t len, size_t start_offset, 
     }
 
     /* Max number of for loops is buff_full - input_len - start_offset of buffer length */
-    for (size_t skip_x = start_offset; !found && skip_x < (full - start_offset - len); ++skip_x) {
+    for (size_t skip_x = start_offset;
+         !found && skip_x < (full - start_offset - len); ++skip_x) {
         found = 1; /* Found by default */
 
         /* Prepare the starting point for reading */

@@ -33,11 +33,11 @@ typedef struct hashmap hashmap_t;
  *
  * @note 哈希表带有两个用于哈希的辅助函数：hashmap_sip() 和 hashmap_murmur()。
  */
-hashmap_t *hashmap_new(
+hashmap_t* hashmap_new(
     size_t elsize, size_t cap, uint64_t seed0, uint64_t seed1,
-    uint64_t (*hash)(const void *item, uint64_t seed0, uint64_t seed1),
-    int (*compare)(const void *a, const void *b, void *udata),
-    void (*elfree)(void *item), void *udata);
+    uint64_t (*hash)(const void* item, uint64_t seed0, uint64_t seed1),
+    int (*compare)(const void* a, const void* b, void* udata),
+    void (*elfree)(void* item), void* udata);
 
 /**
  * @brief 释放哈希表
@@ -47,7 +47,7 @@ hashmap_t *hashmap_new(
  *
  * @note 当哈希表不再需要时，应调用此函数，以释放分配的内存并防止内存泄漏。
  */
-void hashmap_free(hashmap_t *map);
+void hashmap_free(hashmap_t* map);
 
 /**
  * @brief 快速清理哈希表
@@ -60,7 +60,7 @@ void hashmap_free(hashmap_t *map);
  *
  * @note 此函数负责清除哈希表中的数据，并可能更新容量以优化性能。
  */
-void hashmap_clear(hashmap_t *map, bool update_cap);
+void hashmap_clear(hashmap_t* map, bool update_cap);
 
 /**
  * @brief 返回哈希表中的项数
@@ -69,7 +69,7 @@ void hashmap_clear(hashmap_t *map, bool update_cap);
  *
  * @note 此函数可以用来检查给定时间点的哈希表的大小。
  */
-size_t hashmap_count(hashmap_t *map);
+size_t hashmap_count(hashmap_t* map);
 
 /**
  * @brief 检查最后一次 hashmap_set() 调用是否由于内存不足而失败
@@ -79,7 +79,7 @@ size_t hashmap_count(hashmap_t *map);
  *
  * @note 此函数用于检测最后一次 hashmap set 操作中是否存在内存不足的错误。
  */
-bool hashmap_oom(hashmap_t *map);
+bool hashmap_oom(hashmap_t* map);
 
 /**
  * @brief 根据提供的键返回一项
@@ -90,7 +90,7 @@ bool hashmap_oom(hashmap_t *map);
  *
  * @note 该函数用于使用键从哈希表中检索特定项。如果未找到该项，则返回 NULL。
  */
-const void *hashmap_get(hashmap_t *map, const void *item);
+const void* hashmap_get(hashmap_t* map, const void* item);
 
 /**
  * @brief 在哈希表中插入或替换一项
@@ -104,7 +104,7 @@ const void *hashmap_get(hashmap_t *map, const void *item);
  * @note
  * 此函数用于在哈希表中插入新项或替换现有项。可能需要内存分配以在必要时扩展哈希表。
  */
-const void *hashmap_set(hashmap_t *map, const void *item);
+const void* hashmap_set(hashmap_t* map, const void* item);
 
 /**
  * @brief 从哈希表中删除一项并返回它
@@ -113,7 +113,7 @@ const void *hashmap_set(hashmap_t *map, const void *item);
  *
  * @note 该函数用于在哈希表中找到特定项并删除它。如果找不到该项，它将返回 NULL。
  */
-const void *hashmap_delete(hashmap_t *map, const void *item);
+const void* hashmap_delete(hashmap_t* map, const void* item);
 
 /**
  * @brief 返回位于特定位置的桶中的项，或者如果桶为空，则返回 NULL
@@ -125,7 +125,7 @@ const void *hashmap_delete(hashmap_t *map, const void *item);
  * @note
  * 此函数可以用于直接索引哈希表而无需搜索。如果您知道桶的位置，可以用于有效的直接访问。
  */
-const void *hashmap_probe(hashmap_t *map, uint64_t position);
+const void* hashmap_probe(hashmap_t* map, uint64_t position);
 
 /**
  * @brief 遍历哈希表中的所有项目
@@ -137,8 +137,8 @@ const void *hashmap_probe(hashmap_t *map, uint64_t position);
  * @note
  * 该函数用于在哈希表中的所有项目上执行操作，并在需要时提供提前停止迭代的功能。
  */
-bool hashmap_scan(hashmap_t *map, bool (*iter)(const void *item, void *udata),
-                  void *udata);
+bool hashmap_scan(hashmap_t* map, bool (*iter)(const void* item, void* udata),
+                  void* udata);
 
 /**
  * @brief 一次遍历哈希表中的一个键，每次迭代都会产生一个条目引用
@@ -160,7 +160,7 @@ bool hashmap_scan(hashmap_t *map, bool (*iter)(const void *item, void *udata),
  *
  * @warning 该函数未经线程安全测试。
  */
-bool hashmap_iter(hashmap_t *map, size_t *i, void **item);
+bool hashmap_iter(hashmap_t* map, size_t* i, void** item);
 
 /**
  * @brief 根据提供的键和哈希返回一项
@@ -176,7 +176,7 @@ bool hashmap_iter(hashmap_t *map, size_t *i, void **item);
  *
  * @note 这是 hashmap_get 的一个专门版本，允许用户定义哈希函数。
  */
-const void *hashmap_get_with_hash(hashmap_t *map, const void *key,
+const void* hashmap_get_with_hash(hashmap_t* map, const void* key,
                                   uint64_t hash);
 
 /**
@@ -190,7 +190,7 @@ const void *hashmap_get_with_hash(hashmap_t *map, const void *key,
  *
  * @note 这是 hashmap_delete 的一个专门版本，允许用户定义哈希函数。
  */
-const void *hashmap_delete_with_hash(hashmap_t *map, const void *key,
+const void* hashmap_delete_with_hash(hashmap_t* map, const void* key,
                                      uint64_t hash);
 
 /**
@@ -202,17 +202,17 @@ const void *hashmap_delete_with_hash(hashmap_t *map, const void *key,
  *
  * @note 这是 hashmap_set 的一个专门版本，允许用户定义哈希函数。
  */
-const void *hashmap_set_with_hash(hashmap_t *map, const void *item,
+const void* hashmap_set_with_hash(hashmap_t* map, const void* item,
                                   uint64_t hash);
 
-void hashmap_set_grow_by_power(hashmap_t *map, size_t power);
-void hashmap_set_load_factor(hashmap_t *map, double load_factor);
+void hashmap_set_grow_by_power(hashmap_t* map, size_t power);
+void hashmap_set_load_factor(hashmap_t* map, double load_factor);
 
-uint64_t hashmap_sip(const void *data, size_t len, uint64_t seed0,
+uint64_t hashmap_sip(const void* data, size_t len, uint64_t seed0,
                      uint64_t seed1);
-uint64_t hashmap_murmur(const void *data, size_t len, uint64_t seed0,
+uint64_t hashmap_murmur(const void* data, size_t len, uint64_t seed0,
                         uint64_t seed1);
-uint64_t hashmap_xxhash3(const void *data, size_t len, uint64_t seed0,
+uint64_t hashmap_xxhash3(const void* data, size_t len, uint64_t seed0,
                          uint64_t seed1);
 
 #endif

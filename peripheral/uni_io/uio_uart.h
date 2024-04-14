@@ -35,7 +35,7 @@ extern __IO uint8_t uart_error_state;
  * @param  fmt              类似printf的格式化字符串
  * @retval 发送的字节数
  */
-extern int uart_printf(UART_HandleTypeDef *huart, const char *fmt, ...);
+extern int uart_printf(UART_HandleTypeDef* huart, const char* fmt, ...);
 
 /**
  * @brief 向指定串口发送格式化字符串(阻塞, 不使用FIFO/DMA/中断)
@@ -43,12 +43,12 @@ extern int uart_printf(UART_HandleTypeDef *huart, const char *fmt, ...);
  * @param  fmt              类似printf的格式化字符串
  * @retval 发送的字节数
  */
-extern int uart_printf_block(UART_HandleTypeDef *huart, const char *fmt, ...);
+extern int uart_printf_block(UART_HandleTypeDef* huart, const char* fmt, ...);
 
 /**
  * @brief 等待串口发送完成
  */
-extern void uart_flush(UART_HandleTypeDef *huart);
+extern void uart_flush(UART_HandleTypeDef* huart);
 
 /**
  * @brief 向指定串口发送数据
@@ -56,14 +56,14 @@ extern void uart_flush(UART_HandleTypeDef *huart);
  * @param  data             数据指针
  * @param  len              数据长度
  */
-extern int uart_write(UART_HandleTypeDef *huart, const uint8_t *data,
+extern int uart_write(UART_HandleTypeDef* huart, const uint8_t* data,
                       size_t len);
 
 /**
  * @brief 串口发送数据，阻塞时不等待
  * @note  不支持FIFO发送，直接将数据写入外设
  */
-extern int uart_write_fast(UART_HandleTypeDef *huart, uint8_t *data,
+extern int uart_write_fast(UART_HandleTypeDef* huart, uint8_t* data,
                            size_t len);
 
 /**
@@ -74,9 +74,9 @@ extern int uart_write_fast(UART_HandleTypeDef *huart, uint8_t *data,
  * @param  rxCallback       接收完成回调函数
  * @retval lfifo_t          LFIFO句柄, NULL:失败
  */
-extern lfifo_t *uart_fifo_rx_init(UART_HandleTypeDef *huart, uint8_t *buf,
+extern lfifo_t* uart_fifo_rx_init(UART_HandleTypeDef* huart, uint8_t* buf,
                                   size_t buf_size,
-                                  void (*rxCallback)(lfifo_t *fifo));
+                                  void (*rxCallback)(lfifo_t* fifo));
 /**
  * @brief 轮询以在主循环中响应串口接收完成回调
  * @note FIFO接收需要该函数, DMA接收在cbkInIRQ=0时也需要该函数
@@ -88,18 +88,18 @@ extern void uart_check_callback(void);
  * @brief 串口发送完成中断处理，在函数HAL_UART_TxCpltCallback中调用
  * @note FIFO发送需要该函数
  */
-extern void uart_tx_process(UART_HandleTypeDef *huart);
+extern void uart_tx_process(UART_HandleTypeDef* huart);
 
 /**
  * @brief 串口接收中断处理，在函数HAL_UART_RxCpltCallback中调用
  * @note FIFO接收需要该函数
  */
-extern void uart_rx_process(UART_HandleTypeDef *huart);
+extern void uart_rx_process(UART_HandleTypeDef* huart);
 
 /**
  * @brief 串口错误中断处理，在函数HAL_UART_ErrorCallback中调用
  */
-extern void uart_error_process(UART_HandleTypeDef *huart);
+extern void uart_error_process(UART_HandleTypeDef* huart);
 
 #if UIO_CFG_UART_ENABLE_FIFO_TX
 /**
@@ -109,9 +109,9 @@ extern void uart_error_process(UART_HandleTypeDef *huart);
  * @param  buf_size       缓冲区大小
  * @retval int           0:成功 -1:失败
  */
-extern int uart_fifo_tx_init(UART_HandleTypeDef *huart, uint8_t *buf,
+extern int uart_fifo_tx_init(UART_HandleTypeDef* huart, uint8_t* buf,
                              size_t buf_size);
-extern void uart_fifo_tx_deinit(UART_HandleTypeDef *huart);
+extern void uart_fifo_tx_deinit(UART_HandleTypeDef* huart);
 #endif
 
 #if UIO_CFG_UART_ENABLE_DMA_RX
@@ -125,15 +125,15 @@ extern void uart_fifo_tx_deinit(UART_HandleTypeDef *huart);
  * @param  cbkInIRQ         回调函数是否在中断中执行(极不推荐)
  * @retval LFBB_Inst_Type*  LFBB句柄, NULL:失败
  */
-extern LFBB_Inst_Type *uart_dma_rx_init(
-    UART_HandleTypeDef *huart, uint8_t *buf, size_t buf_size,
-    void (*rxCallback)(uint8_t *data, size_t len), uint8_t cbkInIRQ);
+extern LFBB_Inst_Type* uart_dma_rx_init(
+    UART_HandleTypeDef* huart, uint8_t* buf, size_t buf_size,
+    void (*rxCallback)(uint8_t* data, size_t len), uint8_t cbkInIRQ);
 
 /**
  * @brief 串口DMA接收处理，在函数HAL_UARTEx_RxEventCallback中调用
  * @note DMA接收需要该函数
  */
-extern void uart_dma_rx_process(UART_HandleTypeDef *huart, size_t Size);
+extern void uart_dma_rx_process(UART_HandleTypeDef* huart, size_t Size);
 #endif  // UIO_CFG_UART_ENABLE_DMA_RX
 
 #endif  // UIO_CFG_ENABLE_UART

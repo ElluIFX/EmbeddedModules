@@ -42,14 +42,14 @@ static const ef_env default_env_set[] = {
  *
  * @return result
  */
-__weak EfErrCode ef_port_init(ef_env const **default_env,
-                              size_t *default_env_size) {
-  EfErrCode result = EF_NO_ERR;
+__weak EfErrCode ef_port_init(ef_env const** default_env,
+                              size_t* default_env_size) {
+    EfErrCode result = EF_NO_ERR;
 
-  *default_env = default_env_set;
-  *default_env_size = sizeof(default_env_set) / sizeof(default_env_set[0]);
+    *default_env = default_env_set;
+    *default_env_size = sizeof(default_env_set) / sizeof(default_env_set[0]);
 
-  return result;
+    return result;
 }
 
 /**
@@ -62,12 +62,12 @@ __weak EfErrCode ef_port_init(ef_env const **default_env,
  *
  * @return result
  */
-__weak EfErrCode ef_port_read(uint32_t addr, uint32_t *buf, size_t size) {
-  EfErrCode result = EF_NO_ERR;
+__weak EfErrCode ef_port_read(uint32_t addr, uint32_t* buf, size_t size) {
+    EfErrCode result = EF_NO_ERR;
 
-  /* You can add your code under here. */
+    /* You can add your code under here. */
 
-  return result;
+    return result;
 }
 
 /**
@@ -81,15 +81,16 @@ __weak EfErrCode ef_port_read(uint32_t addr, uint32_t *buf, size_t size) {
  * @return result
  */
 __weak EfErrCode ef_port_erase(uint32_t addr, size_t size) {
-  EfErrCode result = EF_NO_ERR;
+    EfErrCode result = EF_NO_ERR;
 
-  /* make sure the start address is a multiple of EF_ERASE_MIN_SIZE */
-  EF_ASSERT(addr % EF_ERASE_MIN_SIZE == 0);
+    /* make sure the start address is a multiple of EF_ERASE_MIN_SIZE */
+    EF_ASSERT(addr % EF_ERASE_MIN_SIZE == 0);
 
-  /* You can add your code under here. */
+    /* You can add your code under here. */
 
-  return result;
+    return result;
 }
+
 /**
  * Write data to flash.
  * @note This operation's units is word.
@@ -101,13 +102,13 @@ __weak EfErrCode ef_port_erase(uint32_t addr, size_t size) {
  *
  * @return result
  */
-__weak EfErrCode ef_port_write(uint32_t addr, const uint32_t *buf,
+__weak EfErrCode ef_port_write(uint32_t addr, const uint32_t* buf,
                                size_t size) {
-  EfErrCode result = EF_NO_ERR;
+    EfErrCode result = EF_NO_ERR;
 
-  /* You can add your code under here. */
+    /* You can add your code under here. */
 
-  return result;
+    return result;
 }
 
 /**
@@ -121,4 +122,3 @@ __weak void ef_port_env_lock(void) { /* You can add your code under here. */
  */
 __weak void ef_port_env_unlock(void) { /* You can add your code under here. */
 }
-

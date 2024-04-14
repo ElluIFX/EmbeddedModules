@@ -95,7 +95,7 @@ spurious_interrupt:
     li    t0, 0x00001800
     csrs  mstatus, t0
     LOAD  t0,   2 * REGBYTES(sp)
-    csrs  mstatus, t0 
+    csrs  mstatus, t0
 
     LOAD  x4,   4 * REGBYTES(sp)
     LOAD  x5,   5 * REGBYTES(sp)

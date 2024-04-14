@@ -18,7 +18,7 @@
  * @brief 用于内核初始化在调用内核初始化时需保证中断处于关闭状态,
  * @warning 此函数只能执行一次, 在初始化内核之前不可调用内核其它函数。
  */
-void kl_kernel_init(void *heap_addr, kl_size_t heap_size);
+void kl_kernel_init(void* heap_addr, kl_size_t heap_size);
 
 /**
  * @brief 用于启动内核, 此函正常情况下不会返回
@@ -86,7 +86,7 @@ uint64_t kl_kernel_tick64(void);
  * @retval 返回ms对应的Tick数
  */
 static inline kl_tick_t kl_ms_to_ticks(kl_tick_t ms) {
-  return ((uint64_t)ms * KLITE_CFG_FREQ) / 1000UL;
+    return ((uint64_t)ms * KLITE_CFG_FREQ) / 1000UL;
 }
 
 /**
@@ -95,7 +95,7 @@ static inline kl_tick_t kl_ms_to_ticks(kl_tick_t ms) {
  * @retval 返回Tick对应的毫秒数
  */
 static inline kl_tick_t kl_ticks_to_ms(kl_tick_t tick) {
-  return ((uint64_t)tick * 1000UL) / KLITE_CFG_FREQ;
+    return ((uint64_t)tick * 1000UL) / KLITE_CFG_FREQ;
 }
 
 /**
@@ -104,7 +104,7 @@ static inline kl_tick_t kl_ticks_to_ms(kl_tick_t tick) {
  * @retval 返回us对应的Tick数
  */
 static inline kl_tick_t kl_us_to_ticks(kl_tick_t us) {
-  return ((uint64_t)us * KLITE_CFG_FREQ) / 1000000UL;
+    return ((uint64_t)us * KLITE_CFG_FREQ) / 1000000UL;
 }
 
 /**
@@ -113,7 +113,7 @@ static inline kl_tick_t kl_us_to_ticks(kl_tick_t us) {
  * @retval 返回Tick对应的微秒数
  */
 static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
-  return (uint64_t)tick * (1000000UL / KLITE_CFG_FREQ);
+    return (uint64_t)tick * (1000000UL / KLITE_CFG_FREQ);
 }
 
 /******************************************************************************
@@ -126,7 +126,7 @@ static inline kl_tick_t kl_ticks_to_us(kl_tick_t tick) {
  * @retval 返回要提供的内存指针或NULL
  * @note 可由用户自行实现
  */
-void *kl_heap_alloc_fault_hook(kl_size_t size);
+void* kl_heap_alloc_fault_hook(kl_size_t size);
 
 /**
  * @brief 内核栈溢出回调函数
@@ -153,8 +153,8 @@ void kl_kernel_idle_hook(void);
  * @param  avail [out] 节点实际大小(包含控制块)
  * @retval 继续迭代返回true, 结束迭代返回false
  */
-bool kl_heap_iter_nodes(void **iter_tmp, kl_thread_t *owner, kl_size_t *addr,
-                        kl_size_t *used, kl_size_t *avail);
+bool kl_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner, kl_size_t* addr,
+                        kl_size_t* used, kl_size_t* avail);
 #endif
 
 /******************************************************************************
@@ -166,13 +166,13 @@ bool kl_heap_iter_nodes(void **iter_tmp, kl_thread_t *owner, kl_size_t *addr,
  * @param size 申请内存大小
  * @retval 申请成功返回内存指针, 申请失败返回NULL
  */
-void *kl_heap_alloc(kl_size_t size);
+void* kl_heap_alloc(kl_size_t size);
 
 /**
  * @brief 释放内存, 功能和标准库的free()一样
  * @param mem 内存指针
  */
-void kl_heap_free(void *mem);
+void kl_heap_free(void* mem);
 
 /**
  * @brief 重新分配内存大小, 功能和标准库的realloc()一样
@@ -180,7 +180,7 @@ void kl_heap_free(void *mem);
  * @param size 申请内存大小
  * @retval 申请成功返回内存指针, 申请失败返回NULL
  */
-void *kl_heap_realloc(void *mem, kl_size_t size);
+void* kl_heap_realloc(void* mem, kl_size_t size);
 
 /**
  * @brief 从堆中申请一段连续的内存, 并初始化为0
@@ -188,13 +188,13 @@ void *kl_heap_realloc(void *mem, kl_size_t size);
  * @param size 申请内存块大小
  * @retval 申请成功返回内存指针, 申请失败返回NULL
  */
-static inline void *kl_heap_calloc(kl_size_t nmemb, kl_size_t size) {
-  void *mem = kl_heap_alloc(nmemb * size);
-  if (mem) {
-    void *memset(void *s, int c, size_t n);
-    memset(mem, 0, nmemb * size);
-  }
-  return mem;
+static inline void* kl_heap_calloc(kl_size_t nmemb, kl_size_t size) {
+    void* mem = kl_heap_alloc(nmemb * size);
+    if (mem) {
+        void* memset(void* s, int c, size_t n);
+        memset(mem, 0, nmemb * size);
+    }
+    return mem;
 }
 
 /**
@@ -215,7 +215,7 @@ void kl_heap_stats(kl_heap_stats_t stats);
  * @param prio 线程优先级 (>0) , 0:使用默认值
  * @retval 成功返回线程句柄, 失败返回NULL
  */
-kl_thread_t kl_thread_create(void (*entry)(void *), void *arg,
+kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
                              kl_size_t stack_size, uint32_t prio);
 
 /**
@@ -282,8 +282,8 @@ kl_tick_t kl_thread_time(kl_thread_t thread);
  * @param stack_free 剩余栈空间
  * @param stack_size 栈总大小
  */
-void kl_thread_stack_info(kl_thread_t thread, kl_size_t *stack_free,
-                          kl_size_t *stack_size);
+void kl_thread_stack_info(kl_thread_t thread, kl_size_t* stack_free,
+                          kl_size_t* stack_size);
 
 /**
  * @brief 重新设置线程优先级, 立即生效
@@ -725,7 +725,7 @@ void kl_mailbox_clear(kl_mailbox_t mailbox);
  * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 实际写入数据长度
  */
-kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, kl_size_t len,
+kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void* buf, kl_size_t len,
                           kl_tick_t timeout);
 
 /**
@@ -737,7 +737,7 @@ kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void *buf, kl_size_t len,
  * @retval 实际读取数据长度
  * @warning 如果读取缓冲区长度小于消息长度, 则消息会被截断
  */
-kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void *buf, kl_size_t len,
+kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void* buf, kl_size_t len,
                           kl_tick_t timeout);
 
 #endif  // KLITE_CFG_OPT_MAILBOX
@@ -769,14 +769,14 @@ void kl_mpool_delete(kl_mpool_t mpool);
  * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 成功返回内存块指针, 失败返回NULL
  */
-void *kl_mpool_alloc(kl_mpool_t mpool, kl_tick_t timeout);
+void* kl_mpool_alloc(kl_mpool_t mpool, kl_tick_t timeout);
 
 /**
  * @brief 释放内存块
  * @param mpool 内存池标识符
  * @param block 内存块指针
  */
-void kl_mpool_free(kl_mpool_t mpool, void *block);
+void kl_mpool_free(kl_mpool_t mpool, void* block);
 
 #endif  // KLITE_CFG_OPT_MPOOL
 
@@ -814,7 +814,7 @@ void kl_mqueue_clear(kl_mqueue_t queue);
  * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 发送成功返回true, 失败返回false
  */
-bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout);
+bool kl_mqueue_send(kl_mqueue_t queue, void* item, kl_tick_t timeout);
 
 /**
  * @brief 发送紧急消息到消息队列(插入到队列头部)
@@ -823,7 +823,7 @@ bool kl_mqueue_send(kl_mqueue_t queue, void *item, kl_tick_t timeout);
  * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 发送成功返回true, 失败返回false
  */
-bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout);
+bool kl_mqueue_send_urgent(kl_mqueue_t queue, void* item, kl_tick_t timeout);
 
 /**
  * @brief 从消息队列接收消息
@@ -832,7 +832,7 @@ bool kl_mqueue_send_urgent(kl_mqueue_t queue, void *item, kl_tick_t timeout);
  * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 接收成功返回true, 失败返回false
  */
-bool kl_mqueue_recv(kl_mqueue_t queue, void *item, kl_tick_t timeout);
+bool kl_mqueue_recv(kl_mqueue_t queue, void* item, kl_tick_t timeout);
 
 /**
  * @brief 获取消息队列中的消息数量
@@ -891,8 +891,8 @@ void kl_timer_delete(kl_timer_t timer);
  * @param  arg      定时任务参数
  * @retval 添加成功返回定时任务标识符, 失败返回NULL
  */
-kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void *),
-                                  void *arg);
+kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void*),
+                                  void* arg);
 
 /**
  * @brief 将任务从绑定的定时器中移除
@@ -948,8 +948,8 @@ void kl_thread_pool_shutdown(kl_thread_pool_t pool);
  * @param timeout 分配等待超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
  * @retval 提交成功返回true, 失败返回false
  */
-bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void *arg),
-                           void *arg, kl_tick_t timeout);
+bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void* arg),
+                           void* arg, kl_tick_t timeout);
 
 /**
  * @brief 等待线程池中的任务执行完成

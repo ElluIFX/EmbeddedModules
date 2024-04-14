@@ -23,7 +23,6 @@
  *
  */
 
-
 #ifndef GENANN_H
 #define GENANN_H
 
@@ -36,12 +35,12 @@ extern "C" {
 #ifndef GENANN_RANDOM
 /* We use the following for uniform random numbers between 0 and 1.
  * If you have a better function, redefine this macro. */
-#define GENANN_RANDOM() (((double)rand())/RAND_MAX)
+#define GENANN_RANDOM() (((double)rand()) / RAND_MAX)
 #endif
 
 struct genann;
 
-typedef double (*genann_actfun)(const struct genann *ann, double a);
+typedef double (*genann_actfun)(const struct genann* ann, double a);
 
 typedef struct genann {
     /* How many inputs, outputs, and hidden neurons. */
@@ -60,39 +59,40 @@ typedef struct genann {
     int total_neurons;
 
     /* All weights (total_weights long). */
-    double *weight;
+    double* weight;
 
     /* Stores input array and output of each neuron (total_neurons long). */
-    double *output;
+    double* output;
 
     /* Stores delta of each hidden and output neuron (total_neurons - inputs long). */
-    double *delta;
+    double* delta;
 
 } genann;
 
 /* Creates and returns a new ann. */
-genann *genann_init(int inputs, int hidden_layers, int hidden, int outputs);
+genann* genann_init(int inputs, int hidden_layers, int hidden, int outputs);
 
 /* Creates ANN from file saved with genann_write. */
-genann *genann_read(FILE *in);
+genann* genann_read(FILE* in);
 
 /* Sets weights randomly. Called by init. */
-void genann_randomize(genann *ann);
+void genann_randomize(genann* ann);
 
 /* Returns a new copy of ann. */
-genann *genann_copy(genann const *ann);
+genann* genann_copy(genann const* ann);
 
 /* Frees the memory used by an ann. */
-void genann_free(genann *ann);
+void genann_free(genann* ann);
 
 /* Runs the feedforward algorithm to calculate the ann's output. */
-double const *genann_run(genann const *ann, double const *inputs);
+double const* genann_run(genann const* ann, double const* inputs);
 
 /* Does a single backprop update. */
-void genann_train(genann const *ann, double const *inputs, double const *desired_outputs, double learning_rate);
+void genann_train(genann const* ann, double const* inputs,
+                  double const* desired_outputs, double learning_rate);
 
 /* Saves the ann. */
-void genann_write(genann const *ann, FILE *out);
+void genann_write(genann const* ann, FILE* out);
 
 #ifdef __cplusplus
 }

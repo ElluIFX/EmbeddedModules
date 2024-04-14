@@ -8,7 +8,7 @@
  * 2018-10-30     Bernard      The first version
  */
 
-#include <rtthread.h>
 #include <rthw.h>
+#include <rtthread.h>
 
 /* nothing on non-smp version */

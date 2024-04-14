@@ -31,7 +31,7 @@ extern "C" {
 
 // Exported Functions -----------------------
 
-extern void lfs_utils_add_command_to_cli(EmbeddedCli *cli, lfs_t *lfs);
+extern void lfs_utils_add_command_to_cli(EmbeddedCli* cli, lfs_t* lfs);
 
 #ifdef __cplusplus
 }

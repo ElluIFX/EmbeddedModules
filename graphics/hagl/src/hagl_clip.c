@@ -47,84 +47,84 @@ static const uint8_t BOTTOM = 0b0100;
 static const uint8_t TOP = 0b1000;
 
 static uint8_t code(int16_t x0, int16_t y0, hagl_window_t window) {
-  uint8_t code = INSIDE;
+    uint8_t code = INSIDE;
 
-  if (x0 < window.x0) {
-    code |= LEFT;
-  } else if (x0 > window.x1) {
-    code |= RIGHT;
-  }
-  if (y0 < window.y0) {
-    code |= BOTTOM;
-  } else if (y0 > window.y1) {
-    code |= TOP;
-  }
-
-  return code;
-}
-
-bool hagl_clip_line(int16_t *x0, int16_t *y0, int16_t *x1, int16_t *y1,
-                    hagl_window_t window) {
-  uint8_t code0 = code(*x0, *y0, window);
-  uint8_t code1 = code(*x1, *y1, window);
-
-  bool accept = false;
-
-  while (true) {
-    if (!(code0 | code1)) {
-      /* Both endpoints inside clipping window, trivial accept. */
-      accept = true;
-      break;
-    } else if (code0 & code1) {
-      /* Both endpoints outside clipping window, trivial reject. */
-      break;
-    } else {
-      /* Part of line inside clipping window, nontrivial situation. */
-
-      int16_t x = 0;
-      int16_t y = 0;
-      uint8_t code3 = code0 ? code0 : code1;
-
-      /* Find intersection point. */
-      /* slope = (y1 - y0) / (x1 - x0) */
-      /* x = x0 + (1 / slope) * (ym - y0), where ym is ymin or ymax */
-      /* y = y0 + slope * (xm - x0), where xm is xmin or xmax */
-      if (code3 & TOP) {
-        x = *x0 + (*x1 - *x0) * (window.y1 - *y0) / (*y1 - *y0);
-        y = window.y1;
-      } else if (code3 & BOTTOM) {
-        x = *x0 + (*x1 - *x0) * (window.y0 - *y0) / (*y1 - *y0);
-        y = window.y0;
-      } else if (code3 & RIGHT) {
-        y = *y0 + (*y1 - *y0) * (window.x1 - *x0) / (*x1 - *x0);
-        x = window.x1;
-      } else if (code3 & LEFT) {
-        y = *y0 + (*y1 - *y0) * (window.x0 - *x0) / (*x1 - *x0);
-        x = window.x0;
-      }
-
-      /* Replace the outside point with the intersection point. */
-      if (code3 == code0) {
-        *x0 = x;
-        *y0 = y;
-        code0 = code(*x0, *y0, window);
-      } else {
-        *x1 = x;
-        *y1 = y;
-        code1 = code(*x1, *y1, window);
-      }
+    if (x0 < window.x0) {
+        code |= LEFT;
+    } else if (x0 > window.x1) {
+        code |= RIGHT;
     }
-  }
+    if (y0 < window.y0) {
+        code |= BOTTOM;
+    } else if (y0 > window.y1) {
+        code |= TOP;
+    }
 
-  return accept;
+    return code;
 }
 
-void hagl_set_clip(void *_surface, uint16_t x0, uint16_t y0, uint16_t x1,
-                   uint16_t y1) {
-  hagl_surface_t *surface = _surface;
+bool hagl_clip_line(int16_t* x0, int16_t* y0, int16_t* x1, int16_t* y1,
+                    hagl_window_t window) {
+    uint8_t code0 = code(*x0, *y0, window);
+    uint8_t code1 = code(*x1, *y1, window);
 
-  surface->clip.x0 = x0;
-  surface->clip.y0 = y0;
-  surface->clip.x1 = x1;
-  surface->clip.y1 = y1;
+    bool accept = false;
+
+    while (true) {
+        if (!(code0 | code1)) {
+            /* Both endpoints inside clipping window, trivial accept. */
+            accept = true;
+            break;
+        } else if (code0 & code1) {
+            /* Both endpoints outside clipping window, trivial reject. */
+            break;
+        } else {
+            /* Part of line inside clipping window, nontrivial situation. */
+
+            int16_t x = 0;
+            int16_t y = 0;
+            uint8_t code3 = code0 ? code0 : code1;
+
+            /* Find intersection point. */
+            /* slope = (y1 - y0) / (x1 - x0) */
+            /* x = x0 + (1 / slope) * (ym - y0), where ym is ymin or ymax */
+            /* y = y0 + slope * (xm - x0), where xm is xmin or xmax */
+            if (code3 & TOP) {
+                x = *x0 + (*x1 - *x0) * (window.y1 - *y0) / (*y1 - *y0);
+                y = window.y1;
+            } else if (code3 & BOTTOM) {
+                x = *x0 + (*x1 - *x0) * (window.y0 - *y0) / (*y1 - *y0);
+                y = window.y0;
+            } else if (code3 & RIGHT) {
+                y = *y0 + (*y1 - *y0) * (window.x1 - *x0) / (*x1 - *x0);
+                x = window.x1;
+            } else if (code3 & LEFT) {
+                y = *y0 + (*y1 - *y0) * (window.x0 - *x0) / (*x1 - *x0);
+                x = window.x0;
+            }
+
+            /* Replace the outside point with the intersection point. */
+            if (code3 == code0) {
+                *x0 = x;
+                *y0 = y;
+                code0 = code(*x0, *y0, window);
+            } else {
+                *x1 = x;
+                *y1 = y;
+                code1 = code(*x1, *y1, window);
+            }
+        }
+    }
+
+    return accept;
+}
+
+void hagl_set_clip(void* _surface, uint16_t x0, uint16_t y0, uint16_t x1,
+                   uint16_t y1) {
+    hagl_surface_t* surface = _surface;
+
+    surface->clip.x0 = x0;
+    surface->clip.y0 = y0;
+    surface->clip.x1 = x1;
+    surface->clip.y1 = y1;
 }

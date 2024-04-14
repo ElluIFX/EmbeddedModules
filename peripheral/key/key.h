@@ -15,8 +15,8 @@ extern "C" {
 // 1.定义读取函数:  KEY_ID -in-> Read_Func -out-> KEY_READ_UP/DOWN
 // 2.初始化按键:    key_init(dev, Read_Func, ...)
 typedef enum {
-  KEY_READ_UP = 0,
-  KEY_READ_DOWN = 1,
+    KEY_READ_UP = 0,
+    KEY_READ_DOWN = 1,
 } key_read_e;
 
 // 读取方式1: 注册回调函数, 自动返回按键ID和事件类型
@@ -51,55 +51,58 @@ typedef enum {
 #define KEYx_IS_DOUBLE_REPEAT(IDx) (KEY_EVENT_DOUBLE_REPEAT | IDx << 8)
 // 按键x双击按住重复停止
 #define KEYx_IS_DOUBLE_REPEAT_STOP(IDx) \
-  (KEY_EVENT_DOUBLE_REPEAT_STOP | IDx << 8)
+    (KEY_EVENT_DOUBLE_REPEAT_STOP | IDx << 8)
 // 按键x按住重复停止
 #define KEYx_IS_HOLD_REPEAT_STOP(IDx) (KEY_EVENT_HOLD_REPEAT_STOP | IDx << 8)
 // 按键x多击N次
 #define KEYx_IS_MULTI(IDx, N) (KEY_EVENT_MULTI(N) | IDx << 8)
 
-typedef struct {              // 按键设备设置(key_dev->setting)
-  uint16_t check_period_ms;   // 按键检测周期 (Key_Tick调用周期)
-  uint16_t shake_filter_ms;   // 按键抖动滤波周期 (N*check_period_ms)
-  uint8_t simple_event : 1;   // 产生简单事件(按下/松开)
-  uint8_t complex_event : 1;  // 产生复杂事件(短按/长按/双击...)
-  uint8_t multi_max : 6;  // 多击最大次数 (<3:禁用多击事件, 最大63)
-  uint16_t long_ms;       // 长按时间 (0:无长按事件)
-  uint16_t hold_ms;       // 按住时间 (0:无按住事件)
-  uint16_t multi_ms;      // 多击最大间隔时间 (0:无多击事件)
-  uint16_t repeat_wait_ms;  // 按住/双击按住重复等待时间 (0:无等待)
-  uint16_t repeat_send_ms;  // 按住/双击按住重复执行间隔 (0:无重复事件)
-  uint16_t repeat_send_speedup;  // 按住/双击按住重复执行加速 (0:无加速)
-  uint16_t repeat_send_min_ms;  // 按住/双击按住重复最小间隔 (加速后)
+typedef struct {                // 按键设备设置(key_dev->setting)
+    uint16_t check_period_ms;   // 按键检测周期 (Key_Tick调用周期)
+    uint16_t shake_filter_ms;   // 按键抖动滤波周期 (N*check_period_ms)
+    uint8_t simple_event : 1;   // 产生简单事件(按下/松开)
+    uint8_t complex_event : 1;  // 产生复杂事件(短按/长按/双击...)
+    uint8_t multi_max : 6;  // 多击最大次数 (<3:禁用多击事件, 最大63)
+    uint16_t long_ms;       // 长按时间 (0:无长按事件)
+    uint16_t hold_ms;       // 按住时间 (0:无按住事件)
+    uint16_t multi_ms;      // 多击最大间隔时间 (0:无多击事件)
+    uint16_t repeat_wait_ms;  // 按住/双击按住重复等待时间 (0:无等待)
+    uint16_t repeat_send_ms;  // 按住/双击按住重复执行间隔 (0:无重复事件)
+    uint16_t repeat_send_speedup;  // 按住/双击按住重复执行加速 (0:无加速)
+    uint16_t repeat_send_min_ms;  // 按住/双击按住重复最小间隔 (加速后)
 } key_setting_t;
 
 #define KEY_BUF_SIZE 16  // 按键事件FIFO大小
 
 typedef struct __key_dev {  // 按键设备结构体
-  struct {                  // 事件FIFO
-    uint16_t value[KEY_BUF_SIZE];
-    uint8_t rd;
-    uint8_t wr;
-  } event_fifo;
-  uint8_t key_num;                               // 按键数量
-  key_setting_t setting;                         // 设备设置
-  key_read_e (*read_func)(uint8_t id);           // 读取函数
-  void (*callback)(uint8_t key, uint8_t event);  // 事件回调函数
-  struct __key {                                 // 按键状态机数组
-    void (*state)(struct __key_dev *, uint8_t, uint8_t);  // 状态机函数
-    uint16_t count_ms;                                    // 按键计时
-    uint16_t count_temp;                                  // 消抖计时
-    uint8_t multi_count;                                  // 多击计数
-  } key_arr[];
+
+    struct {  // 事件FIFO
+        uint16_t value[KEY_BUF_SIZE];
+        uint8_t rd;
+        uint8_t wr;
+    } event_fifo;
+
+    uint8_t key_num;                               // 按键数量
+    key_setting_t setting;                         // 设备设置
+    key_read_e (*read_func)(uint8_t id);           // 读取函数
+    void (*callback)(uint8_t key, uint8_t event);  // 事件回调函数
+
+    struct __key {  // 按键状态机数组
+        void (*state)(struct __key_dev*, uint8_t, uint8_t);  // 状态机函数
+        uint16_t count_ms;                                   // 按键计时
+        uint16_t count_temp;                                 // 消抖计时
+        uint8_t multi_count;                                 // 多击计数
+    } key_arr[];
 } key_dev_t;
 
 // 默认按键设置
-#define default_key_setting                                             \
-  {                                                                     \
-    .check_period_ms = 10, .shake_filter_ms = 20, .simple_event = 1,    \
-    .complex_event = 1, .multi_max = 6, .long_ms = 300, .hold_ms = 800, \
-    .multi_ms = 200, .repeat_wait_ms = 600, .repeat_send_ms = 100,      \
-    .repeat_send_speedup = 4, .repeat_send_min_ms = 10,                 \
-  }
+#define default_key_setting                                                 \
+    {                                                                       \
+        .check_period_ms = 10, .shake_filter_ms = 20, .simple_event = 1,    \
+        .complex_event = 1, .multi_max = 6, .long_ms = 300, .hold_ms = 800, \
+        .multi_ms = 200, .repeat_wait_ms = 600, .repeat_send_ms = 100,      \
+        .repeat_send_speedup = 4, .repeat_send_min_ms = 10,                 \
+    }
 
 /******************************* 事件说明 *******************************
 0.按键消抖(图表表示按键驱动读取结果KEY_READ_xxx):
@@ -171,10 +174,10 @@ typedef struct __key_dev {  // 按键设备结构体
 *******************************************************************************/
 
 // 静态声明一个按键设备(指针)(由于结构体包含柔性数组, 因此必须使用该宏声明)
-#define KEY_DEV_DEF(name, num)                                         \
-  static uint8_t __key_buf_##name[sizeof(key_dev_t) +                  \
-                                  (num) * sizeof(struct __key)] = {0}; \
-  key_dev_t *name = (key_dev_t *)__key_buf_##name
+#define KEY_DEV_DEF(name, num)                                           \
+    static uint8_t __key_buf_##name[sizeof(key_dev_t) +                  \
+                                    (num) * sizeof(struct __key)] = {0}; \
+    key_dev_t* name = (key_dev_t*)__key_buf_##name
 
 /**
  * @brief 按键系统初始化  (设置初始化为默认值)
@@ -185,7 +188,7 @@ typedef struct __key_dev {  // 按键设备结构体
  * @retval key_dev_t*     按键设备指针(NULL:初始化失败/内存分配失败)
  * @note  清理时可直接free(key_dev)
  */
-extern key_dev_t *key_init(key_dev_t *key_dev,
+extern key_dev_t* key_init(key_dev_t* key_dev,
                            key_read_e (*read_func)(uint8_t id), uint8_t num,
                            void (*callback)(uint8_t key, uint8_t event));
 
@@ -199,8 +202,8 @@ extern key_dev_t *key_init(key_dev_t *key_dev,
  * @retval key_dev_t*     按键设备指针(NULL:初始化失败/内存分配失败)
  * @note  清理时可直接free(key_dev)
  */
-extern key_dev_t *key_init_with_setting(
-    key_dev_t *key_dev, key_read_e (*read_func)(uint8_t id), uint8_t num,
+extern key_dev_t* key_init_with_setting(
+    key_dev_t* key_dev, key_read_e (*read_func)(uint8_t id), uint8_t num,
     void (*callback)(uint8_t key, uint8_t event), key_setting_t setting);
 
 /**
@@ -208,7 +211,7 @@ extern key_dev_t *key_init_with_setting(
  * @param  key_dev        按键设备指针
  * @note 调用周期必须匹配setting.check_period_ms
  */
-extern void key_tick(key_dev_t *key_dev);
+extern void key_tick(key_dev_t* key_dev);
 
 /**
  * @brief 读取按键事件FIFO
@@ -216,7 +219,7 @@ extern void key_tick(key_dev_t *key_dev);
  * @retval uint16_t       单值按键事件(按键ID<<8 | 事件类型)
  * @note 使用宏KEYx_IS_xxx判断事件
  */
-extern uint16_t key_read_event(key_dev_t *key_dev);
+extern uint16_t key_read_event(key_dev_t* key_dev);
 
 /**
  * @brief 获取按键按下状态(包含消抖)
@@ -224,14 +227,14 @@ extern uint16_t key_read_event(key_dev_t *key_dev);
  * @param  key           按键序号
  * @retval uint8_t       按键状态(KEY_READ_UP/DOWN)
  */
-extern uint8_t key_read_raw(key_dev_t *key_dev, uint8_t key);
+extern uint8_t key_read_raw(key_dev_t* key_dev, uint8_t key);
 
 /**
  * @brief 获取按键事件名称字符串
  * @param  event           按键事件
  * @retval char*           事件名称字符串
  */
-extern const char *key_get_event_name(uint16_t event);
+extern const char* key_get_event_name(uint16_t event);
 
 /**
  * @brief 获取单值按键事件对应的按键ID
@@ -258,9 +261,10 @@ extern const char *key_get_event_name(uint16_t event);
  * @param  event           按键事件
  * @retval uint8_t         多击次数(<3:非多击事件)
  */
-#define key_get_multi_event_num(event)                                        \
-  ((event & 0xFF) >= KEY_EVENT_MULTI(1) ? (event & 0xFF) - KEY_EVENT_MULTI(0) \
-                                        : 0)
+#define key_get_multi_event_num(event)         \
+    ((event & 0xFF) >= KEY_EVENT_MULTI(1)      \
+         ? (event & 0xFF) - KEY_EVENT_MULTI(0) \
+         : 0)
 
 #ifdef __cplusplus
 }

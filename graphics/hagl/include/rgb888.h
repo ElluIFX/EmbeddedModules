@@ -42,28 +42,28 @@ extern "C" {
 #include <stdint.h>
 
 typedef struct {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
 } rgb_t;
 
 #include "hsl.h"
 
-hsl_t rgb888_to_hsl(rgb_t *rgb);
-uint16_t rgb888_to_rgb565(rgb_t *input);
+hsl_t rgb888_to_hsl(rgb_t* rgb);
+uint16_t rgb888_to_rgb565(rgb_t* input);
 
 static inline int min(int a, int b) {
-  if (a > b) {
-    return b;
-  };
-  return a;
+    if (a > b) {
+        return b;
+    };
+    return a;
 }
 
 static inline int max(int a, int b) {
-  if (a > b) {
-    return a;
-  }
-  return b;
+    if (a > b) {
+        return a;
+    }
+    return b;
 }
 
 #ifdef __cplusplus

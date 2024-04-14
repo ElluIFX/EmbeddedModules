@@ -96,56 +96,56 @@ extern "C" {
 #include "modules.h"
 
 typedef struct {  // PID结构体(位置式)
-  /** 设置参数 **/
-  float setPoint;    // 设定目标
-  float proportion;  // 设定比例常数
-  float integral;    // 设定积分常数
-  float derivative;  // 设定微分常数
-  float Ts;          // 设定采样周期(必须>0)
-  float deadBand;    // 设定误差死区(>0生效)
-  float maxOutput;   // 设定输出上限(max>min生效)
-  float minOutput;   // 设定输出下限(max>min生效)
-  float base;        // 设定基准值
-  float sumILimit;   // 设定积分限幅(>0生效)
-  uint8_t integMode;  // 设定积分计算模式:0:常数,1:积分分离,2:变速积分
-  float iModeK1;  // 设定非常数积分系数1(分离阈值(>0)/变速积分K=0点(K1>K2>0))
-  float iModeK2;  // 设定非常数积分系数2(None/变速积分K=1点(K1>K2>0))
-  uint8_t propMode;  // 设定比例计算模式:0:常数,1:PonM,2:自适应
-  float pModeK1;     // 设定自适应比例常数1(>0)
-  float pModeK2;     // 设定自适应比例常数2(>0)
-  /** 计算结果 **/
-  float output;     // 输出值
-  float error_0;    // error
-  float error_1;    // error[-1]
-  float sumI;       // 误差积分
-  float sumP;       // 比例积分
-  float lastPoint;  // 上次输入
-  int limitFlag;    // 输出限幅标志(0:未限幅,1:上限,-1:下限)
+    /** 设置参数 **/
+    float setPoint;    // 设定目标
+    float proportion;  // 设定比例常数
+    float integral;    // 设定积分常数
+    float derivative;  // 设定微分常数
+    float Ts;          // 设定采样周期(必须>0)
+    float deadBand;    // 设定误差死区(>0生效)
+    float maxOutput;   // 设定输出上限(max>min生效)
+    float minOutput;   // 设定输出下限(max>min生效)
+    float base;        // 设定基准值
+    float sumILimit;   // 设定积分限幅(>0生效)
+    uint8_t integMode;  // 设定积分计算模式:0:常数,1:积分分离,2:变速积分
+    float iModeK1;  // 设定非常数积分系数1(分离阈值(>0)/变速积分K=0点(K1>K2>0))
+    float iModeK2;  // 设定非常数积分系数2(None/变速积分K=1点(K1>K2>0))
+    uint8_t propMode;  // 设定比例计算模式:0:常数,1:PonM,2:自适应
+    float pModeK1;     // 设定自适应比例常数1(>0)
+    float pModeK2;     // 设定自适应比例常数2(>0)
+    /** 计算结果 **/
+    float output;     // 输出值
+    float error_0;    // error
+    float error_1;    // error[-1]
+    float sumI;       // 误差积分
+    float sumP;       // 比例积分
+    float lastPoint;  // 上次输入
+    int limitFlag;    // 输出限幅标志(0:未限幅,1:上限,-1:下限)
 } pid_t;
 
-typedef struct {      // 时间自适应PID结构体
-  pid_t pid;          // PID结构体
-  m_time_t lastTime;  // 上次计算时间
+typedef struct {        // 时间自适应PID结构体
+    pid_t pid;          // PID结构体
+    m_time_t lastTime;  // 上次计算时间
 } pid_tad_t;
 
 /**
  * @brief 计算位置式PID
  * @retval 输出
  */
-extern float PID_Calculate(pid_t *PIDx, float nextPoint);
+extern float PID_Calculate(pid_t* PIDx, float nextPoint);
 
 /**
  * @brief 位置式PID(调度间隔自适应)
  * @retval 输出
  * @note 暂停->恢复时，pid->lastTime需要手动置为0
  */
-extern float PID_TimeAdaptive_Calculate(pid_tad_t *PIDx, float nextPoint);
+extern float PID_TimeAdaptive_Calculate(pid_tad_t* PIDx, float nextPoint);
 
 /**
  * @brief 前馈PID
  * @note 前馈环节的传递函数需根据实际情况整定，无通用模型
  */
-extern float PID_FeedForward_Calculate(pid_t *PIDx, float nextPoint);
+extern float PID_FeedForward_Calculate(pid_t* PIDx, float nextPoint);
 
 /**
  * @brief 快速增量式PID
@@ -158,17 +158,17 @@ extern float PID_QuickInc_Calculate(float setPoint, float nextPoint);
  * @brief 重置PID初始值并清空PID状态
  * @param  startPoint      PID初始值, 防止PID输出突变
  */
-extern void PID_ResetStartPoint(pid_t *PIDx, float startPoint);
+extern void PID_ResetStartPoint(pid_t* PIDx, float startPoint);
 
 /**
  * @brief 清空PID状态
  */
-extern void PID_Reset(pid_t *PIDx);
+extern void PID_Reset(pid_t* PIDx);
 
 /**
  * @brief 设置PID参数
  */
-extern void PID_SetTuning(pid_t *PIDx, float kp, float ki, float kd);
+extern void PID_SetTuning(pid_t* PIDx, float kp, float ki, float kd);
 
 #ifdef __cplusplus
 }

@@ -1,13 +1,13 @@
-Import('rtconfig')
+Import("rtconfig")
 from building import *
 
-cwd     = GetCurrentDir()
-src     = Glob('*.c')
+cwd = GetCurrentDir()
+src = Glob("*.c")
 CPPPATH = [cwd]
 
-if rtconfig.PLATFORM == 'gcc':
-    src += Glob('*_gcc.S')
+if rtconfig.PLATFORM == "gcc":
+    src += Glob("*_gcc.S")
 
-group = DefineGroup('libcpu', src, depend = [''], CPPPATH = CPPPATH)
+group = DefineGroup("libcpu", src, depend=[""], CPPPATH=CPPPATH)
 
-Return('group')
+Return("group")

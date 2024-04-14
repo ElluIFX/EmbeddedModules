@@ -62,7 +62,7 @@ extern void scheduler_idle_handler(uint64_t idleTimeUs);
 /**
  * @brief 添加调度器相关的终端命令(task/event/cortn/softint)
  */
-extern void sch_add_command_to_cli(EmbeddedCli *cli);
+extern void sch_add_command_to_cli(EmbeddedCli* cli);
 #endif  // SCH_CFG_ENABLE_TERMINAL
 
 #ifdef __cplusplus

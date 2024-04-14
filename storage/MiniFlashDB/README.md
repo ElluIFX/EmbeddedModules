@@ -17,7 +17,7 @@ target_include_directories(
 
 ### mf_config.h
 
-示例配置文件在 ` ./config`文件夹下。请将 `mf_config.h `放在`${MiniFlashDB_CONFIG_FILE_PATH}`目录下，由cmake加入头文件列表
+示例配置文件在 `./config`文件夹下。请将 `mf_config.h`放在`${MiniFlashDB_CONFIG_FILE_PATH}`目录下，由cmake加入头文件列表
 
 ```c
 // mf_config.h
@@ -35,7 +35,7 @@ target_include_directories(
 #define MF_ERASE mf_erase
 #define MF_WRITE mf_write
 
-static void mf_erase(void *addr) { 
+static void mf_erase(void *addr) {
   /* 从addr开始，擦除长度为MF_FLASH_BLOCK_SIZE的flash */
   ...
 }

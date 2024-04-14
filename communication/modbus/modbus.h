@@ -30,104 +30,105 @@ extern "C" {
 #define MODBUS_SLAVE
 
 #define MODBUS_REGISTER_LIMIT 6  // 一次最多读写寄存器个数
-#define MODBUS_BUFFER_SIZE       \
-  ((MODBUS_REGISTER_LIMIT) * 4 + \
-   20)  // 数据包最大长度(写多个寄存器的数据包长度)
+#define MODBUS_BUFFER_SIZE         \
+    ((MODBUS_REGISTER_LIMIT) * 4 + \
+     20)  // 数据包最大长度(写多个寄存器的数据包长度)
 #define MODBUS_WAITFRAME_N 5      // 指令缓存最大个数
 #define MODBUS_DEFAULT_BAUD 9600  // 默认数据收发速率, 9600bps
 
 typedef enum { ASCII_MODE, RTU_MODE } MODBUS_MODE_TYPE;
 
 typedef enum {
-  READ_COILS = 0x01,            // TODO
-  READ_DISCRETE_INPUTS = 0x02,  // TODO
-  READ_HOLDING_REGISTERS = 0x03,
-  READ_INPUT_REGISTERS = 0x04,  // TODO
-  WRITE_SINGLE_COIL = 0x05,     // TODO
-  WRITE_SINGLE_REGISTER = 0x06,
-  WRITE_MULTIPLE_COILS = 0x0F,  // TODO
-  WRITE_MULTI_REGISTER = 0x10,
-  REPORT_SLAVE_ID = 0x11,  // TODO
+    READ_COILS = 0x01,            // TODO
+    READ_DISCRETE_INPUTS = 0x02,  // TODO
+    READ_HOLDING_REGISTERS = 0x03,
+    READ_INPUT_REGISTERS = 0x04,  // TODO
+    WRITE_SINGLE_COIL = 0x05,     // TODO
+    WRITE_SINGLE_REGISTER = 0x06,
+    WRITE_MULTIPLE_COILS = 0x0F,  // TODO
+    WRITE_MULTI_REGISTER = 0x10,
+    REPORT_SLAVE_ID = 0x11,  // TODO
 } MODBUS_FUNCTION_TYPE;
 
 typedef struct _MODBUS_SETTING_T {  // ModBus实例配置信息类型
-  uint8_t address;                  // 目标设备地址
-  MODBUS_MODE_TYPE frameType;       // 工作模式, 包括 ASCII和RTU
-  u32 baudRate;                     // 数据速率, 比如9600或115200等
-  u8 register_access_limit;         // 一次最多读/写寄存器个数
-  void (*sendHandler)(uint8_t*,
-                      size_t);  // 用于发送数据的函数, 函数参数(uint8_t* data,
-                                // size_t size)数据首地址和数据字节数
+    uint8_t address;                // 目标设备地址
+    MODBUS_MODE_TYPE frameType;     // 工作模式, 包括 ASCII和RTU
+    u32 baudRate;                   // 数据速率, 比如9600或115200等
+    u8 register_access_limit;       // 一次最多读/写寄存器个数
+    void (*sendHandler)(uint8_t*,
+                        size_t);  // 用于发送数据的函数, 函数参数(uint8_t* data,
+    // size_t size)数据首地址和数据字节数
 } ModBus_Setting_T;
 
 typedef struct _MODBUS_FRAME_T {
-  u8 index;                              // 指令序号
-  uint8_t data[MODBUS_BUFFER_SIZE + 2];  // 数据, 多分配两字节保证安全
-  u8 size;                               // 数据长度
-  MODBUS_FUNCTION_TYPE type;             // 指令类型
-  u32 time;                              // 指令开始时间
-  void* responseHandler;                 // 指令执行结束回调函数指针
-  u8 responseSize;                       // 返回帧长度
-  uint16_t address;                      // 访问寄存器的地址
-  u8 count;                              // 访问寄存器的个数
+    u8 index;                              // 指令序号
+    uint8_t data[MODBUS_BUFFER_SIZE + 2];  // 数据, 多分配两字节保证安全
+    u8 size;                               // 数据长度
+    MODBUS_FUNCTION_TYPE type;             // 指令类型
+    u32 time;                              // 指令开始时间
+    void* responseHandler;  // 指令执行结束回调函数指针
+    u8 responseSize;        // 返回帧长度
+    uint16_t address;       // 访问寄存器的地址
+    u8 count;               // 访问寄存器的个数
 } MODBUS_FRAME_T;
 
-typedef void (*GetReponseHandler_T)(
-    uint16_t*, uint16_t);  // 读取寄存器回调函数指针类型,
-                           // 回到函数参数(寄存器值缓冲区首地址, 寄存器个数)
-typedef void (*SetReponseHandler_T)(
-    uint16_t, uint16_t);  // 写入寄存器回调函数指针类型,
-                          // 回调函数参数(寄存器地址, 写入个数)
+typedef void (*GetReponseHandler_T)(uint16_t*,
+                                    uint16_t);  // 读取寄存器回调函数指针类型,
+// 回到函数参数(寄存器值缓冲区首地址, 寄存器个数)
+typedef void (*SetReponseHandler_T)(uint16_t,
+                                    uint16_t);  // 写入寄存器回调函数指针类型,
+
+// 回调函数参数(寄存器地址, 写入个数)
 
 typedef struct __MODBUS_Parameter {
-  uint8_t m_address;            // 从机设备地址
-  MODBUS_MODE_TYPE m_modeType;  // 协议模式: ASCII / RTU
-  uint8_t m_receiveFrameBuffer[MODBUS_BUFFER_SIZE +
-                               2];  // 接收数据包, 多分配两字节保证安全
-  size_t m_receiveFrameBufferLen;  // 接收到的数据字节数
+    uint8_t m_address;            // 从机设备地址
+    MODBUS_MODE_TYPE m_modeType;  // 协议模式: ASCII / RTU
+    uint8_t m_receiveFrameBuffer[MODBUS_BUFFER_SIZE +
+                                 2];  // 接收数据包, 多分配两字节保证安全
+    size_t m_receiveFrameBufferLen;  // 接收到的数据字节数
 
-  uint8_t
-      m_receiveBufferTmp[MODBUS_BUFFER_SIZE +
-                         2];  // 临时储存的接收数据, 由于中断函数会修改此变量,
-                              // 因而采用循环存取, 避免中断函数外部修改此变量
-  __IO uint8_t* m_pBeginReceiveBufferTmp;  // 循环存取区开始位置
-  __IO uint8_t* m_pEndReceiveBufferTmp;  // 循环存取区结束位置的下一个位置
-  uint8_t m_hasDetectedBufferStart;
+    uint8_t
+        m_receiveBufferTmp[MODBUS_BUFFER_SIZE +
+                           2];  // 临时储存的接收数据, 由于中断函数会修改此变量,
+    // 因而采用循环存取, 避免中断函数外部修改此变量
+    __IO uint8_t* m_pBeginReceiveBufferTmp;  // 循环存取区开始位置
+    __IO uint8_t* m_pEndReceiveBufferTmp;  // 循环存取区结束位置的下一个位置
+    uint8_t m_hasDetectedBufferStart;
 
-  uint16_t m_registerData[MODBUS_REGISTER_LIMIT + 2];  // 缓存读寄存器数据
-  uint16_t m_registerCount;
-  u8 m_registerAcessLimit;
+    uint16_t m_registerData[MODBUS_REGISTER_LIMIT + 2];  // 缓存读寄存器数据
+    uint16_t m_registerCount;
+    u8 m_registerAcessLimit;
 
-  __IO m_time_t m_lastReceivedTime;  // 最近一次接受到字节数据的时刻
-  m_time_t m_lastSentTime;           // 最近一次发送数据的时刻
-  m_time_t m_receiveTimeout;  // 设定的接收等待下一字符超时时间
-  m_time_t m_sendTimeout;     // 设定等待返回帧超时时间
+    __IO m_time_t m_lastReceivedTime;  // 最近一次接受到字节数据的时刻
+    m_time_t m_lastSentTime;           // 最近一次发送数据的时刻
+    m_time_t m_receiveTimeout;  // 设定的接收等待下一字符超时时间
+    m_time_t m_sendTimeout;     // 设定等待返回帧超时时间
 
-  uint8_t m_faston;  // 是否开启快速模式
+    uint8_t m_faston;  // 是否开启快速模式
 
-  void (*m_SendHandler)(uint8_t*,
-                        size_t);  // 发送数据函数, 用于向外部设备传递数据
+    void (*m_SendHandler)(uint8_t*,
+                          size_t);  // 发送数据函数, 用于向外部设备传递数据
 
-#ifdef MODBUS_MASTER                                    // 主机
-  MODBUS_FRAME_T m_sendFrames[MODBUS_WAITFRAME_N + 2];  // 发送数据包队列
-  size_t m_sendFramesN;       // 发送数据包队列长度
-  u8 m_nextFrameIndex;        // 下一数据包序号
-  uint8_t m_waitingResponse;  // 正在等待返回帧
-#endif                        // MODBUS_MASTER
+#ifdef MODBUS_MASTER                                      // 主机
+    MODBUS_FRAME_T m_sendFrames[MODBUS_WAITFRAME_N + 2];  // 发送数据包队列
+    size_t m_sendFramesN;       // 发送数据包队列长度
+    u8 m_nextFrameIndex;        // 下一数据包序号
+    uint8_t m_waitingResponse;  // 正在等待返回帧
+#endif                          // MODBUS_MASTER
 
 #ifdef MODBUS_SLAVE  // 从机
-  uint8_t m_sendFrameBuffer[MODBUS_BUFFER_SIZE];
-  u8 m_sendFrameBufferLen;
+    uint8_t m_sendFrameBuffer[MODBUS_BUFFER_SIZE];
+    u8 m_sendFrameBufferLen;
 
-  size_t (*m_GetRegisterHandler)(
-      uint16_t, uint16_t,
-      uint16_t*);  // 读取寄存器函数, 函数参数(寄存器首地址, 寄存器个数,
-                   // 读出的数据), 返回成功读取的个数
-  size_t (*m_SetRegisterHandler)(
-      uint16_t, uint16_t,
-      uint16_t*);  // 设置寄存器函数, 函数参数(寄存器地址, 写入个数, 写入数据),
-                   // 返回成功设置的个数
-#endif             // MODBUS_SLAVE
+    size_t (*m_GetRegisterHandler)(
+        uint16_t, uint16_t,
+        uint16_t*);  // 读取寄存器函数, 函数参数(寄存器首地址, 寄存器个数,
+    // 读出的数据), 返回成功读取的个数
+    size_t (*m_SetRegisterHandler)(
+        uint16_t, uint16_t,
+        uint16_t*);  // 设置寄存器函数, 函数参数(寄存器地址, 写入个数, 写入数据),
+                     // 返回成功设置的个数
+#endif               // MODBUS_SLAVE
 
 } ModBus_parameter;
 
@@ -140,7 +141,7 @@ void ModBus_readByteFromOuter(
 void ModBus_fastMode(
     ModBus_parameter* ModBus_para,
     uint8_t faston);  // 是否开启快速指令模式, 快速模式不缓存指令,
-                      // 关闭快速模式可保证指令被执行但可能有延迟
+// 关闭快速模式可保证指令被执行但可能有延迟
 
 /** 设置数据收发速率 **/
 /*** 参数 ***

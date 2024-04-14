@@ -56,7 +56,7 @@ extern "C" {
  * @param b horizontal radius
  * @param color
  */
-void hagl_draw_ellipse(void const *surface, int16_t x0, int16_t y0, int16_t a,
+void hagl_draw_ellipse(void const* surface, int16_t x0, int16_t y0, int16_t a,
                        int16_t b, hagl_color_t color);
 
 /**
@@ -71,7 +71,7 @@ void hagl_draw_ellipse(void const *surface, int16_t x0, int16_t y0, int16_t a,
  * @param b horizontal radius
  * @param color
  */
-void hagl_fill_ellipse(void const *surface, int16_t x0, int16_t y0, int16_t a,
+void hagl_fill_ellipse(void const* surface, int16_t x0, int16_t y0, int16_t a,
                        int16_t b, hagl_color_t color);
 
 #ifdef __cplusplus

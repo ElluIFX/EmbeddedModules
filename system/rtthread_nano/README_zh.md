@@ -71,8 +71,8 @@ RT-Thread使用了[scons](http://www.scons.org)做为自身的编译构建系统
 
 截至目前，RT-Thread scons构建系统可以使用命令行方式编译代码，或者使用scons来生成不同IDE的工程文件。在使用scons时，需要对构建配置文件（rtconfig.py）中如下的变量进行配置：
 
-* ```CROSS_TOOL``` 指定希望使用的工具链，例如gcc/keil/iar. 
-* ```EXEC_PATH``` 工具链的路径. 
+* ```CROSS_TOOL``` 指定希望使用的工具链，例如gcc/keil/iar.
+* ```EXEC_PATH``` 工具链的路径.
 
 注：在SConstruct文件中：
 
@@ -80,13 +80,13 @@ RT-Thread使用了[scons](http://www.scons.org)做为自身的编译构建系统
 
 当你把相关的配置都配置正确后，你可以在具有目标目录下（这个目录应包括rtconfig.py、SContruct文件）执行以下命令：
 
-    scons 
+    scons
 
 从而简单地就编译好RT-Thread。
 
 如果你希望使用IDE来编译RT-Thread，你也可以使用命令行：
 
-    scons --target=mdk/mdk4/mdk5/iar/cb -s 
+    scons --target=mdk/mdk4/mdk5/iar/cb -s
 
 来生成mdk/iar等的工程文件。而后在IDE中打开project前缀的工程文件来编译RT-Thread。
 

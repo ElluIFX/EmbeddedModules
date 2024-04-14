@@ -37,7 +37,7 @@ extern int32_t itm_recv_char(void);
  * @param  fmt              类似printf的格式化字符串
  * @retval 发送的字节数
  */
-extern int itm_printf(uint8_t port, const char *fmt, ...);
+extern int itm_printf(uint8_t port, const char* fmt, ...);
 
 /**
  * @brief 向ITM(SWO)指定通道发送数据
@@ -46,7 +46,7 @@ extern int itm_printf(uint8_t port, const char *fmt, ...);
  * @param  len              数据长度
  * @retval 发送的字节数(0:通道未激活)
  */
-extern int itm_write(uint8_t port, uint8_t *data, size_t len);
+extern int itm_write(uint8_t port, uint8_t* data, size_t len);
 
 /**
  * @brief 从ITM(SWO)读取数据
@@ -55,7 +55,7 @@ extern int itm_write(uint8_t port, uint8_t *data, size_t len);
  * @param  timeout_ms       无数据超时时间(ms)
  * @retval 读取的字节数
  */
-extern size_t itm_read(uint8_t *data, size_t len, m_time_t timeout_ms);
+extern size_t itm_read(uint8_t* data, size_t len, m_time_t timeout_ms);
 
 #endif  // UIO_CFG_ENABLE_ITM
 

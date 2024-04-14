@@ -78,7 +78,7 @@ extern uint16_t i2c_read_word(uint8_t addr, uint8_t reg);
  * @param data 数据
  * @param len 数据长度
  */
-extern void i2c_write(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t len);
+extern void i2c_write(uint8_t addr, uint8_t reg, uint8_t* data, uint8_t len);
 
 /**
  * @brief I2C读取多个字节
@@ -88,7 +88,7 @@ extern void i2c_write(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t len);
  * @param data 数据
  * @param len 数据长度
  */
-extern void i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t len);
+extern void i2c_read(uint8_t addr, uint8_t reg, uint8_t* data, uint8_t len);
 
 /**
  * @brief I2C写入多个字节
@@ -98,7 +98,7 @@ extern void i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint8_t len);
  * @param data 数据
  * @param len 数据长度
  */
-extern void i2c_write_16addr(uint8_t addr, uint8_t reg, uint8_t *data,
+extern void i2c_write_16addr(uint8_t addr, uint8_t reg, uint8_t* data,
                              uint8_t len);
 
 /**
@@ -109,7 +109,7 @@ extern void i2c_write_16addr(uint8_t addr, uint8_t reg, uint8_t *data,
  * @param data 数据
  * @param len 数据长度
  */
-extern void i2c_read_16addr(uint8_t addr, uint8_t reg, uint8_t *data,
+extern void i2c_read_16addr(uint8_t addr, uint8_t reg, uint8_t* data,
                             uint8_t len);
 
 /**
@@ -120,7 +120,7 @@ extern void i2c_read_16addr(uint8_t addr, uint8_t reg, uint8_t *data,
  * @param data 数据
  * @param len 数据长度
  */
-extern void i2c_write_words(uint8_t addr, uint8_t reg, uint16_t *data,
+extern void i2c_write_words(uint8_t addr, uint8_t reg, uint16_t* data,
                             uint8_t len);
 
 /**
@@ -131,7 +131,7 @@ extern void i2c_write_words(uint8_t addr, uint8_t reg, uint16_t *data,
  * @param data 数据
  * @param len 数据长度
  */
-extern void i2c_read_words(uint8_t addr, uint8_t reg, uint16_t *data,
+extern void i2c_read_words(uint8_t addr, uint8_t reg, uint16_t* data,
                            uint8_t len);
 
 /**

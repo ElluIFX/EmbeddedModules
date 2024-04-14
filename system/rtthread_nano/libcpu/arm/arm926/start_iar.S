@@ -124,7 +124,7 @@ Reset_Handler:
     BIC     R0, R0, #MODEMASK
     ORR     R0, R0, #MODE_SVC|NOINT
     MSR     CPSR_cxsf, R0
-    
+
     ; Set CO-Processor
     ; little-end，disbale I/D Cache MMU, vector table is 0x00000000
     MRC     P15, 0, R0, C1, C0, 0   ; Read CP15
@@ -166,8 +166,8 @@ Setup_Stack:
     ORR     R1,R0,#MODE_SVC|NOINT
     MSR     CPSR_cxsf,R1             ; SVC mode
     LDR     SP, =SVC_STACK_START
-    
-    ; Enter the C code 
+
+    ; Enter the C code
     LDR     R0, =?main
     BLX     R0
 

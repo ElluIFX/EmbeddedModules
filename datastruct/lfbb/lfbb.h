@@ -53,13 +53,13 @@ extern "C" {
 /*************************** TYPES ****************************/
 
 typedef struct {
-  size_t size;         /**< Size of the data array */
-  uint8_t *data;       /**< Pointer to the data array */
-  bool write_wrapped;  /**< Write wrapped flag, used only in the producer */
-  bool read_wrapped;   /**< Read wrapped flag, used only in the consumer */
-  mod_atomic_size_t r; /**< Read index */
-  mod_atomic_size_t w; /**< Write index */
-  mod_atomic_size_t i; /**< Invalidated space index */
+    size_t size;         /**< Size of the data array */
+    uint8_t* data;       /**< Pointer to the data array */
+    bool write_wrapped;  /**< Write wrapped flag, used only in the producer */
+    bool read_wrapped;   /**< Read wrapped flag, used only in the consumer */
+    mod_atomic_size_t r; /**< Read index */
+    mod_atomic_size_t w; /**< Write index */
+    mod_atomic_size_t i; /**< Invalidated space index */
 } LFBB_Inst_Type;
 
 /******************** FUNCTION PROTOTYPES *********************/
@@ -71,7 +71,7 @@ typedef struct {
  * @param[in] Size of data array
  * @retval None
  */
-void LFBB_Init(LFBB_Inst_Type *inst, uint8_t *data_array, size_t size);
+void LFBB_Init(LFBB_Inst_Type* inst, uint8_t* data_array, size_t size);
 
 /**
  * @brief Acquires a linear region in the bipartite buffer for writing
@@ -80,7 +80,7 @@ void LFBB_Init(LFBB_Inst_Type *inst, uint8_t *data_array, size_t size);
  * @retval Pointer to the beginning of the linear space
  * @note Use this function if you know exactly how much data you want to write
  */
-uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, size_t free_required);
+uint8_t* LFBB_WriteAcquire(LFBB_Inst_Type* inst, size_t free_required);
 
 /**
  * @brief Acquires a linear region in the bipartite buffer for writing
@@ -89,7 +89,7 @@ uint8_t *LFBB_WriteAcquire(LFBB_Inst_Type *inst, size_t free_required);
  * @retval Pointer to the beginning of the linear space
  * @note Use this function if you want to write as much data as possible
  */
-uint8_t *LFBB_WriteAcquireAlt(LFBB_Inst_Type *inst, size_t *available);
+uint8_t* LFBB_WriteAcquireAlt(LFBB_Inst_Type* inst, size_t* available);
 
 /**
  * @brief Releases the bipartite buffer after a write
@@ -97,7 +97,7 @@ uint8_t *LFBB_WriteAcquireAlt(LFBB_Inst_Type *inst, size_t *available);
  * @param[in] Bytes written to the linear space
  * @retval None
  */
-void LFBB_WriteRelease(LFBB_Inst_Type *inst, size_t written);
+void LFBB_WriteRelease(LFBB_Inst_Type* inst, size_t written);
 
 /**
  * @brief Acquires a linear region in the bipartite buffer for reading
@@ -105,7 +105,7 @@ void LFBB_WriteRelease(LFBB_Inst_Type *inst, size_t written);
  * @param[out] Available linear data in the buffer
  * @retval Pointer to the beginning of the data
  */
-uint8_t *LFBB_ReadAcquire(LFBB_Inst_Type *inst, size_t *available);
+uint8_t* LFBB_ReadAcquire(LFBB_Inst_Type* inst, size_t* available);
 
 /**
  * @brief Releases the bipartite buffer after a read
@@ -113,14 +113,14 @@ uint8_t *LFBB_ReadAcquire(LFBB_Inst_Type *inst, size_t *available);
  * @param[in] Bytes read from the linear region
  * @retval None
  */
-void LFBB_ReadRelease(LFBB_Inst_Type *inst, size_t read);
+void LFBB_ReadRelease(LFBB_Inst_Type* inst, size_t read);
 
 /**
  * @brief Checks if the bipartite buffer is empty
  * @param[in] Instance pointer
  * @retval true if empty, false otherwise
  */
-bool LFBB_IsEmpty(LFBB_Inst_Type *inst);
+bool LFBB_IsEmpty(LFBB_Inst_Type* inst);
 
 #ifdef __cplusplus
 }

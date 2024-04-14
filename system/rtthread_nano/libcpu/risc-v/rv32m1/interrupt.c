@@ -10,14 +10,13 @@
 
 #include <rthw.h>
 
-#include <board.h>
 #include <RV32M1_ri5cy.h>
+#include <board.h>
 
 typedef void (*irq_handler_t)(void);
 extern const irq_handler_t isrTable[];
 
-void SystemIrqHandler(uint32_t mcause)
-{
+void SystemIrqHandler(uint32_t mcause) {
     uint32_t intNum;
 
     if (mcause & 0x80000000) /* For external interrupt. */

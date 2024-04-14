@@ -40,14 +40,14 @@ extern "C" {
 #endif /* __cplusplus */
 
 typedef struct {
-  double h;
-  double s;
-  double l;
+    double h;
+    double s;
+    double l;
 } hsl_t;
 
 #include "rgb888.h"
 
-rgb_t hsl_to_rgb888(hsl_t *hsl);
+rgb_t hsl_to_rgb888(hsl_t* hsl);
 
 #ifdef __cplusplus
 }

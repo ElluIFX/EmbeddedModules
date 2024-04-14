@@ -2,12 +2,8 @@
    SPDX-License-Identifier: MIT */
 
 // DO NOT STANDALONE INCLUDE.
-#if !defined CTL_LIST && \
-    !defined CTL_SLIST && \
-    !defined CTL_SET && \
-    !defined CTL_USET && \
-    !defined CTL_VEC && \
-    !defined CTL_ARR && \
+#if !defined CTL_LIST && !defined CTL_SLIST && !defined CTL_SET && \
+    !defined CTL_USET && !defined CTL_VEC && !defined CTL_ARR &&   \
     !defined CTL_DEQ
 #error "No CTL container defined for <./bits/container.h>"
 #endif
@@ -23,19 +19,16 @@
 #include <stdbool.h>
 
 #if !defined(CTL_ARR) && !defined(CTL_SLIST)
-static inline int JOIN(A, empty)(A* self)
-{
+static inline int JOIN(A, empty)(A* self) {
     return self->size == 0;
 }
 
-static inline size_t JOIN(A, size)(A *self)
-{
+static inline size_t JOIN(A, size)(A* self) {
     return self->size;
 }
 
-static inline size_t JOIN(A, max_size)(void)
-{
-    return SIZE_MAX / sizeof(T); // 32bit at most. avoid DDOS
+static inline size_t JOIN(A, max_size)(void) {
+    return SIZE_MAX / sizeof(T);  // 32bit at most. avoid DDOS
 }
 #endif
 
@@ -49,30 +42,24 @@ JOIN(I, each)(A* a)
 }
 */
 
-static inline T JOIN(A, implicit_copy)(T *self)
-{
+static inline T JOIN(A, implicit_copy)(T* self) {
     return *self;
 }
 
 // not valid for uset, str
 #if !defined(CTL_USET) && !defined(CTL_STR) && !defined(CTL_SLIST)
-static inline int JOIN(A, equal)(A* self, A* other)
-{
+static inline int JOIN(A, equal)(A* self, A* other) {
     if (JOIN(A, size)(self) != JOIN(A, size)(other))
         return 0;
     I i1 = JOIN(A, begin)(self);
     I i2 = JOIN(A, begin)(other);
-    while (!JOIN(I, done)(&i1) && !JOIN(I, done)(&i2))
-    {
-        T *r1 = JOIN(I, ref)(&i1);
-        T *r2 = JOIN(I, ref)(&i2);
-        if (self->equal)
-        {
+    while (!JOIN(I, done)(&i1) && !JOIN(I, done)(&i2)) {
+        T* r1 = JOIN(I, ref)(&i1);
+        T* r2 = JOIN(I, ref)(&i2);
+        if (self->equal) {
             if (!self->equal(r1, r2))
                 return 0;
-        }
-        else
-        {
+        } else {
             // this works with 2-way and 3-way compare
             if (self->compare(r1, r2) || self->compare(r2, r1))
                 return 0;
@@ -88,8 +75,7 @@ static inline int JOIN(A, equal)(A* self, A* other)
 #include <./bits/integral.h>
 
 #if !defined(CTL_USET)
-static inline int JOIN(A, _equal)(A *self, T *a, T *b)
-{
+static inline int JOIN(A, _equal)(A* self, T* a, T* b) {
     CTL_ASSERT_EQUAL
     if (self->equal)
         return self->equal(a, b);

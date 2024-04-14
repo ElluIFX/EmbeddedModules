@@ -20,12 +20,10 @@
 extern "C" {
 #endif
 
-
 #ifndef GET_PARENT_ADDR
-#define GET_PARENT_ADDR(pMe,tParent,eMyName) \
-    ((tParent *)((char *)(pMe) - (ptrdiff_t)&((tParent *)0)->eMyName))
+#define GET_PARENT_ADDR(pMe, tParent, eMyName) \
+    ((tParent*)((char*)(pMe) - (ptrdiff_t) & ((tParent*)0)->eMyName))
 #endif
-
 
 /*
  * RBTNode is intended to be used as the first field of a larger struct,
@@ -34,22 +32,21 @@ extern "C" {
  * rbt_create.) RBTNode is declared here to support this usage, but
  * callers must treat it as an opaque struct.
  */
-typedef struct RBTNode
-{
-    char color;                 /* node's current color, red or black */
-    struct RBTNode *left;       /* left child, or RBTNIL if none */
-    struct RBTNode *right;      /* right child, or RBTNIL if none */
-    struct RBTNode *parent;     /* parent, or NULL (not RBTNIL!) if none */
+typedef struct RBTNode {
+    char color;             /* node's current color, red or black */
+    struct RBTNode* left;   /* left child, or RBTNIL if none */
+    struct RBTNode* right;  /* right child, or RBTNIL if none */
+    struct RBTNode* parent; /* parent, or NULL (not RBTNIL!) if none */
 } RBTNode;
-
 
 #define RBTNIL (&g_sentinel)
 extern RBTNode g_sentinel;
 
 /* Support functions to be provided by caller */
-typedef int (*rbt_comparator) (const RBTNode *a, const RBTNode *b, void *arg);
-typedef int (*rbt_find_comparator) (const void *a, const RBTNode *b);
-/* 
+typedef int (*rbt_comparator)(const RBTNode* a, const RBTNode* b, void* arg);
+typedef int (*rbt_find_comparator)(const void* a, const RBTNode* b);
+
+/*
 typedef void (*rbt_combiner) (RBTNode *existing, const RBTNode *newdata, void *arg);
 typedef RBTNode *(*rbt_allocfunc) (void *arg);
 typedef void (*rbt_freefunc) (RBTNode *x, void *arg);
@@ -58,9 +55,8 @@ typedef void (*rbt_freefunc) (RBTNode *x, void *arg);
 /*
  * RBTree control structure
  */
-typedef struct
-{
-    RBTNode *root;          /* root node, or RBTNIL if tree is empty */
+typedef struct {
+    RBTNode* root; /* root node, or RBTNIL if tree is empty */
 
     /* Remaining fields are constant after rbt_create */
     rbt_comparator comparator;
@@ -68,10 +64,9 @@ typedef struct
 } RBTree;
 
 /* Available tree iteration orderings */
-typedef enum RBTOrderControl
-{
-    LeftRightWalk,              /* inorder: left child, node, right child */
-    RightLeftWalk               /* reverse inorder: right, node, left */
+typedef enum RBTOrderControl {
+    LeftRightWalk, /* inorder: left child, node, right child */
+    RightLeftWalk  /* reverse inorder: right, node, left */
 } RBTOrderControl;
 
 /*
@@ -81,29 +76,27 @@ typedef enum RBTOrderControl
  */
 typedef struct RBTreeIterator RBTreeIterator;
 
-struct RBTreeIterator
-{
-    RBTree     *rbt;
-    RBTNode    *(*iterate) (RBTreeIterator *iter);
-    RBTNode    *last_visited;
-    bool        is_over;
+struct RBTreeIterator {
+    RBTree* rbt;
+    RBTNode* (*iterate)(RBTreeIterator* iter);
+    RBTNode* last_visited;
+    bool is_over;
 };
 
+extern RBTree* rbt_create(RBTree* tree, rbt_comparator comparator,
+                          void* comparator_arg);
 
-extern RBTree *rbt_create(RBTree* tree,
-                          rbt_comparator comparator,
-                          void *comparator_arg);
+extern RBTNode* rbt_find(RBTree* rbt, const RBTNode* data);
+extern RBTNode* rbt_find2(RBTree* rbt, rbt_find_comparator comparator,
+                          const void* data);
+extern RBTNode* rbt_leftmost(RBTree* rbt);
 
-extern RBTNode *rbt_find(RBTree *rbt, const RBTNode *data);
-extern RBTNode* rbt_find2(RBTree* rbt, rbt_find_comparator comparator, const void* data);
-extern RBTNode *rbt_leftmost(RBTree *rbt);
+extern bool rbt_insert(RBTree* rbt, RBTNode* data);
+extern void rbt_delete(RBTree* rbt, RBTNode* node);
 
-extern bool rbt_insert(RBTree *rbt, RBTNode *data);
-extern void rbt_delete(RBTree *rbt, RBTNode *node);
-
-extern void rbt_begin_iterate(RBTree *rbt, RBTOrderControl ctrl,
-                              RBTreeIterator *iter);
-extern RBTNode *rbt_iterate(RBTreeIterator *iter);
+extern void rbt_begin_iterate(RBTree* rbt, RBTOrderControl ctrl,
+                              RBTreeIterator* iter);
+extern RBTNode* rbt_iterate(RBTreeIterator* iter);
 extern bool rbt_is_empty(const RBTree* rbt);
 
 #ifdef __cplusplus

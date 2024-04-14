@@ -76,7 +76,10 @@ static volatile CORE_TICKS s_tCycleElapsed = 0;
    example code) or zeroing some system parameters - e.g. setting the cpu clocks
    cycles to 0.
 */
-void start_time(void) { start_cycle_counter(); }
+void start_time(void) {
+    start_cycle_counter();
+}
+
 /* Function : stop_time
         This function will be called right after ending the timed portion of the
    benchmark.
@@ -85,7 +88,10 @@ void start_time(void) { start_cycle_counter(); }
    example code) or other system parameters - e.g. reading the current value of
    cpu cycles counter.
 */
-void stop_time(void) { s_tCycleElapsed = stop_cycle_counter(); }
+void stop_time(void) {
+    s_tCycleElapsed = stop_cycle_counter();
+}
+
 /* Function : get_time
         Return an abstract "ticks" number that signifies time on the system.
 
@@ -96,7 +102,10 @@ void stop_time(void) { s_tCycleElapsed = stop_cycle_counter(); }
    controlled by <TIMER_RES_DIVIDER>
 */
 CORE_TICKS
-get_time(void) { return s_tCycleElapsed; }
+get_time(void) {
+    return s_tCycleElapsed;
+}
+
 /* Function : time_in_secs
         Convert the value returned by get_time to seconds.
 
@@ -105,8 +114,8 @@ get_time(void) { return s_tCycleElapsed; }
    macro above.
 */
 secs_ret time_in_secs(CORE_TICKS ticks) {
-  secs_ret retval = ((secs_ret)ticks) / (secs_ret)EE_TICKS_PER_SEC;
-  return retval;
+    secs_ret retval = ((secs_ret)ticks) / (secs_ret)EE_TICKS_PER_SEC;
+    return retval;
 }
 
 ee_u32 default_num_contexts = 1;
@@ -115,23 +124,26 @@ ee_u32 default_num_contexts = 1;
         Target specific initialization code
         Test for some common mistakes.
 */
-void portable_init(core_portable *p, int *argc, char *argv[]) {
-  init_cycle_counter(false);
+void portable_init(core_portable* p, int* argc, char* argv[]) {
+    init_cycle_counter(false);
 
-  (void)argc;  // prevent unused warning
-  (void)argv;  // prevent unused warning
+    (void)argc;  // prevent unused warning
+    (void)argv;  // prevent unused warning
 
-  if (sizeof(ee_ptr_int) != sizeof(ee_u8 *)) {
-    ee_printf(
-        "ERROR! Please define ee_ptr_int to a type that holds a "
-        "pointer!\n");
-  }
-  if (sizeof(ee_u32) != 4) {
-    ee_printf("ERROR! Please define ee_u32 to a 32b unsigned type!\n");
-  }
-  p->portable_id = 1;
+    if (sizeof(ee_ptr_int) != sizeof(ee_u8*)) {
+        ee_printf(
+            "ERROR! Please define ee_ptr_int to a type that holds a "
+            "pointer!\n");
+    }
+    if (sizeof(ee_u32) != 4) {
+        ee_printf("ERROR! Please define ee_u32 to a 32b unsigned type!\n");
+    }
+    p->portable_id = 1;
 }
+
 /* Function : portable_fini
         Target specific final code
 */
-void portable_fini(core_portable *p) { p->portable_id = 0; }
+void portable_fini(core_portable* p) {
+    p->portable_id = 0;
+}

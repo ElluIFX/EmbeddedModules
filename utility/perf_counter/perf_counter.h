@@ -41,9 +41,9 @@ extern "C" {
 
 #define __PERF_COUNTER_VER_STR__ ""
 
-#define __PER_COUNTER_VER__                                                    \
-  (__PERF_COUNTER_VER_MAJOR__ * 10000ul + __PERF_COUNTER_VER_MINOR__ * 100ul + \
-   __PERF_COUNTER_VER_REVISE__)
+#define __PER_COUNTER_VER__                 \
+    (__PERF_COUNTER_VER_MAJOR__ * 10000ul + \
+     __PERF_COUNTER_VER_MINOR__ * 100ul + __PERF_COUNTER_VER_REVISE__)
 
 /*! @} */
 
@@ -159,20 +159,21 @@ __asm(".global __ensure_systick_wrapper\n\t");
     \endcode
  */
 #define __cycleof__(__STR, ...)                                             \
-  using(int64_t _ = get_system_ticks(), __cycle_count__ = _, _ = _, {       \
-    _ = get_system_ticks() - _ - g_nOffset;                                 \
-    __cycle_count__ = _;                                                    \
-    if (__PLOOC_VA_NUM_ARGS(__VA_ARGS__) == 0) {                            \
-      __perf_counter_printf__("\r\n");                                      \
-      __perf_counter_printf__("-[Cycle Report]");                           \
-      __perf_counter_printf__(                                              \
-          "--------------------------------------------\r\n");              \
-      __perf_counter_printf__(__STR " total cycle count: %ld [%016lx]\r\n", \
-                              (long)_, (long)_);                            \
-    } else {                                                                \
-      __VA_ARGS__                                                           \
-    };                                                                      \
-  })
+    using(int64_t _ = get_system_ticks(), __cycle_count__ = _, _ = _, {     \
+        _ = get_system_ticks() - _ - g_nOffset;                             \
+        __cycle_count__ = _;                                                \
+        if (__PLOOC_VA_NUM_ARGS(__VA_ARGS__) == 0) {                        \
+            __perf_counter_printf__("\r\n");                                \
+            __perf_counter_printf__("-[Cycle Report]");                     \
+            __perf_counter_printf__(                                        \
+                "--------------------------------------------\r\n");        \
+            __perf_counter_printf__(__STR                                   \
+                                    " total cycle count: %ld [%016lx]\r\n", \
+                                    (long)_, (long)_);                      \
+        } else {                                                            \
+            __VA_ARGS__                                                     \
+        };                                                                  \
+    })
 
 /*!
  * \brief measure the cpu usage for a given code segment and print out the
@@ -191,34 +192,34 @@ __asm(".global __ensure_systick_wrapper\n\t");
         }
     \endcode
  */
-#define __cpu_time__(__CNT, ...)                                       \
-  static int64_t SAFE_NAME(s_lTimestamp) = 0, SAFE_NAME(s_lTotal) = 0; \
-  static uint32_t s_wLoopCounter = (__CNT);                            \
-  using(float __usage__ = 0, ({                                        \
-          if (0 == s_wLoopCounter) {                                   \
-            __usage__ = (float)((double)SAFE_NAME(s_lTotal) /          \
-                                (double)(get_system_ticks() -          \
-                                         SAFE_NAME(s_lTimestamp)));    \
-            __usage__ *= 100.0f;                                       \
-            SAFE_NAME(s_lTimestamp) = 0;                               \
-            SAFE_NAME(s_lTotal) = 0;                                   \
-            if (__PLOOC_VA_NUM_ARGS(__VA_ARGS__) == 0) {               \
-              __perf_counter_printf__("CPU Usage %3.2f%%\r\n",         \
-                                      (double)__usage_ _);              \
-            } else {                                                   \
-              __VA_ARGS__                                              \
-            }                                                          \
-          }                                                            \
-          if (0 == SAFE_NAME(s_lTimestamp)) {                          \
-            SAFE_NAME(s_lTimestamp) = get_system_ticks();              \
-            s_wLoopCounter = (__CNT);                                  \
-          }                                                            \
-          start_task_cycle_counter();                                  \
-        }),                                                            \
-        ({                                                             \
-          SAFE_NAME(s_lTotal) += stop_task_cycle_counter();            \
-          s_wLoopCounter--;                                            \
-        }))
+#define __cpu_time__(__CNT, ...)                                          \
+    static int64_t SAFE_NAME(s_lTimestamp) = 0, SAFE_NAME(s_lTotal) = 0;  \
+    static uint32_t s_wLoopCounter = (__CNT);                             \
+    using(float __usage__ = 0, ({                                         \
+              if (0 == s_wLoopCounter) {                                  \
+                  __usage__ = (float)((double)SAFE_NAME(s_lTotal) /       \
+                                      (double)(get_system_ticks() -       \
+                                               SAFE_NAME(s_lTimestamp))); \
+                  __usage__ *= 100.0f;                                    \
+                  SAFE_NAME(s_lTimestamp) = 0;                            \
+                  SAFE_NAME(s_lTotal) = 0;                                \
+                  if (__PLOOC_VA_NUM_ARGS(__VA_ARGS__) == 0) {            \
+                      __perf_counter_printf__("CPU Usage %3.2f%%\r\n",    \
+                                              (double)__usage_ _);        \
+                  } else {                                                \
+                      __VA_ARGS__                                         \
+                  }                                                       \
+              }                                                           \
+              if (0 == SAFE_NAME(s_lTimestamp)) {                         \
+                  SAFE_NAME(s_lTimestamp) = get_system_ticks();           \
+                  s_wLoopCounter = (__CNT);                               \
+              }                                                           \
+              start_task_cycle_counter();                                 \
+          }),                                                             \
+          ({                                                              \
+              SAFE_NAME(s_lTotal) += stop_task_cycle_counter();           \
+              s_wLoopCounter--;                                           \
+          }))
 
 /*!
  * \addtogroup gBasicTimerService 1.2 Timer Service
@@ -240,13 +241,13 @@ __asm(".global __ensure_systick_wrapper\n\t");
  *
  * \return bool whether it is timeout
  */
-#define perfc_is_time_out_ms3(__ms, __timestamp_ptr, __auto_reload)         \
-  ({                                                                        \
-    static int64_t SAFE_NAME(s_lTimestamp);                                 \
-    (void)SAFE_NAME(s_lTimestamp);                                          \
-    __perfc_is_time_out(perfc_convert_ms_to_ticks(__ms), (__timestamp_ptr), \
-                        (__auto_reload));                                   \
-  })
+#define perfc_is_time_out_ms3(__ms, __timestamp_ptr, __auto_reload) \
+    ({                                                              \
+        static int64_t SAFE_NAME(s_lTimestamp);                     \
+        (void)SAFE_NAME(s_lTimestamp);                              \
+        __perfc_is_time_out(perfc_convert_ms_to_ticks(__ms),        \
+                            (__timestamp_ptr), (__auto_reload));    \
+    })
 
 /*!
  * \brief set an alarm with given period in ms and check the status
@@ -257,7 +258,7 @@ __asm(".global __ensure_systick_wrapper\n\t");
  * \return bool whether it is timeout
  */
 #define perfc_is_time_out_ms2(__ms, __timestamp_ptr) \
-  perfc_is_time_out_ms3((__ms), (__timestamp_ptr), true)
+    perfc_is_time_out_ms3((__ms), (__timestamp_ptr), true)
 
 /*!
  * \brief set an alarm with given period in ms and check the status
@@ -268,7 +269,7 @@ __asm(".global __ensure_systick_wrapper\n\t");
  * \return bool whether it is timeout
  */
 #define perfc_is_time_out_ms1(__ms) \
-  perfc_is_time_out_ms3((__ms), &SAFE_NAME(s_lTimestamp), true)
+    perfc_is_time_out_ms3((__ms), &SAFE_NAME(s_lTimestamp), true)
 
 /*!
  * \brief set an alarm with given period in ms and check the status
@@ -280,9 +281,9 @@ __asm(".global __ensure_systick_wrapper\n\t");
  *
  * \return bool whether it is timeout
  */
-#define perfc_is_time_out_ms(...)                                  \
-  CONNECT2(perfc_is_time_out_ms, __PLOOC_VA_NUM_ARGS(__VA_ARGS__)) \
-  (__VA_ARGS__)
+#define perfc_is_time_out_ms(...)                                    \
+    CONNECT2(perfc_is_time_out_ms, __PLOOC_VA_NUM_ARGS(__VA_ARGS__)) \
+    (__VA_ARGS__)
 
 /*!
  * \brief set an alarm with given period in us and check the status
@@ -293,13 +294,13 @@ __asm(".global __ensure_systick_wrapper\n\t");
  *
  * \return bool whether it is timeout
  */
-#define perfc_is_time_out_us3(__us, __timestamp_ptr, __auto_reload)         \
-  ({                                                                        \
-    static int64_t SAFE_NAME(s_lTimestamp);                                 \
-    (void)SAFE_NAME(s_lTimestamp);                                          \
-    __perfc_is_time_out(perfc_convert_us_to_ticks(__us), (__timestamp_ptr), \
-                        (__auto_reload));                                   \
-  })
+#define perfc_is_time_out_us3(__us, __timestamp_ptr, __auto_reload) \
+    ({                                                              \
+        static int64_t SAFE_NAME(s_lTimestamp);                     \
+        (void)SAFE_NAME(s_lTimestamp);                              \
+        __perfc_is_time_out(perfc_convert_us_to_ticks(__us),        \
+                            (__timestamp_ptr), (__auto_reload));    \
+    })
 
 /*!
  * \brief set an alarm with given period in us and check the status
@@ -310,7 +311,7 @@ __asm(".global __ensure_systick_wrapper\n\t");
  * \return bool whether it is timeout
  */
 #define perfc_is_time_out_us2(__us, __timestamp_ptr) \
-  perfc_is_time_out_us3((__us), (__timestamp_ptr), true)
+    perfc_is_time_out_us3((__us), (__timestamp_ptr), true)
 
 /*!
  * \brief set an alarm with given period in us and check the status
@@ -321,7 +322,7 @@ __asm(".global __ensure_systick_wrapper\n\t");
  * \return bool whether it is timeout
  */
 #define perfc_is_time_out_us1(__us) \
-  perfc_is_time_out_us3((__us), &SAFE_NAME(s_lTimestamp), true)
+    perfc_is_time_out_us3((__us), &SAFE_NAME(s_lTimestamp), true)
 
 /*!
  * \brief set an alarm with given period in us and check the status
@@ -333,9 +334,9 @@ __asm(".global __ensure_systick_wrapper\n\t");
  *
  * \return bool whether it is timeout
  */
-#define perfc_is_time_out_us(...)                                  \
-  CONNECT2(perfc_is_time_out_us, __PLOOC_VA_NUM_ARGS(__VA_ARGS__)) \
-  (__VA_ARGS__)
+#define perfc_is_time_out_us(...)                                    \
+    CONNECT2(perfc_is_time_out_us, __PLOOC_VA_NUM_ARGS(__VA_ARGS__)) \
+    (__VA_ARGS__)
 
 /*! @} */
 
@@ -373,24 +374,25 @@ __asm(".global __ensure_systick_wrapper\n\t");
             start_task_cycle_counter();                                         \
         };                                                                      \
     }))
+
 // clang-format on
 
 /*============================ TYPES =========================================*/
 typedef struct {
-  int64_t lStart;
-  int64_t lUsedTotal;
-  int32_t nUsedRecent;
-  uint16_t hwActiveCount;
-  uint16_t : 15;
-  uint16_t bEnabled : 1;
+    int64_t lStart;
+    int64_t lUsedTotal;
+    int32_t nUsedRecent;
+    uint16_t hwActiveCount;
+    uint16_t : 15;
+    uint16_t bEnabled : 1;
 } task_cycle_info_t;
 
 typedef struct task_cycle_info_agent_t task_cycle_info_agent_t;
 
 struct task_cycle_info_agent_t {
-  task_cycle_info_t *ptInfo;
-  task_cycle_info_agent_t *ptNext;
-  task_cycle_info_agent_t *ptPrev;
+    task_cycle_info_t* ptInfo;
+    task_cycle_info_agent_t* ptNext;
+    task_cycle_info_agent_t* ptPrev;
 };
 
 /*! @} */
@@ -445,7 +447,9 @@ clock(void);
  * \brief try to set a start pointer for the performance counter
  */
 __STATIC_INLINE
-void start_cycle_counter(void) { g_lLastTimeStamp = get_system_ticks(); }
+void start_cycle_counter(void) {
+    g_lLastTimeStamp = get_system_ticks();
+}
 
 /*!
  * \brief calculate the elapsed cycle count since the last start point
@@ -454,9 +458,9 @@ void start_cycle_counter(void) { g_lLastTimeStamp = get_system_ticks(); }
  */
 __STATIC_INLINE
 int64_t stop_cycle_counter(void) {
-  int64_t lTemp = (get_system_ticks() - g_lLastTimeStamp);
+    int64_t lTemp = (get_system_ticks() - g_lLastTimeStamp);
 
-  return lTemp - g_nOffset;
+    return lTemp - g_nOffset;
 }
 
 /*! @} */
@@ -532,7 +536,7 @@ extern int64_t perfc_convert_us_to_ticks(uint32_t wUS);
  * \param[in] bAutoReload whether starting next period after a timeout event.
  * \return bool whether it is timeout or not
  */
-extern bool __perfc_is_time_out(int64_t lPeriod, int64_t *plTimestamp,
+extern bool __perfc_is_time_out(int64_t lPeriod, int64_t* plTimestamp,
                                 bool bAutoReload);
 
 /*! @} */
@@ -563,35 +567,35 @@ extern bool perfc_check_task_stack_canary_safe(void);
  *
  * \return task_cycle_info_t* the cycle info object passed to this function
  */
-extern task_cycle_info_t *get_rtos_task_cycle_info(void);
+extern task_cycle_info_t* get_rtos_task_cycle_info(void);
 
 /*!
  * \brief intialize a given task_cycle_info_t object and enable it before
  *        registering it.
  * \return task_cycle_info_t* the cycle info object passed to this function
  */
-extern task_cycle_info_t *init_task_cycle_info(task_cycle_info_t *ptInfo);
+extern task_cycle_info_t* init_task_cycle_info(task_cycle_info_t* ptInfo);
 
 /*! \brief enable a given task_cycle_info_t object
  *
  * \param[in] ptInfo the address of target task_cycle_info_t object
  * \return bool previous status
  */
-extern bool enable_task_cycle_info(task_cycle_info_t *ptInfo);
+extern bool enable_task_cycle_info(task_cycle_info_t* ptInfo);
 
 /*! \brief disable a given task_cycle_info_t object
  *
  * \param[in] ptInfo the address of target task_cycle_info_t object
  * \return bool previous status
  */
-extern bool disable_task_cycle_info(task_cycle_info_t *ptInfo);
+extern bool disable_task_cycle_info(task_cycle_info_t* ptInfo);
 
 /*! \brief resume the enabled status of a given task_cycle_info_t object
  *
  * \param[in] ptInfo the address of target task_cycle_info_t object
  * \param[in] bEnabledStatus the previous status
  */
-extern void resume_task_cycle_info(task_cycle_info_t *ptInfo,
+extern void resume_task_cycle_info(task_cycle_info_t* ptInfo,
                                    bool bEnabledStatus);
 
 /*!
@@ -603,23 +607,23 @@ extern void resume_task_cycle_info(task_cycle_info_t *ptInfo,
  *
  * \return task_cycle_info_agent_t* the agent passed to this function
  */
-extern task_cycle_info_agent_t *register_task_cycle_agent(
-    task_cycle_info_t *ptInfo, task_cycle_info_agent_t *ptAgent);
+extern task_cycle_info_agent_t* register_task_cycle_agent(
+    task_cycle_info_t* ptInfo, task_cycle_info_agent_t* ptAgent);
 
 /*!
  * \brief remove a global virtual cycle counter agent from the current task
  * \param[in] ptAgent the list node currently in use
  * \return task_cycle_info_agent_t* the agent passed to this function
  */
-extern task_cycle_info_agent_t *unregister_task_cycle_agent(
-    task_cycle_info_agent_t *ptAgent);
+extern task_cycle_info_agent_t* unregister_task_cycle_agent(
+    task_cycle_info_agent_t* ptAgent);
 
 /*! \brief reset and start the virtual cycle counter for the current task
  *
  * \param[in] ptInfo the target task_cycle_info_t object
  */
 __attribute__((noinline)) extern void __start_task_cycle_counter(
-    task_cycle_info_t *ptInfo);
+    task_cycle_info_t* ptInfo);
 
 /*! \brief calculate the elapsed cycle count for current task since the last
  *        start point
@@ -636,13 +640,13 @@ __attribute__((noinline)) extern void __start_task_cycle_counter(
  * \return int64_t the elapsed cycle count.
  */
 __attribute__((noinline)) extern int64_t __stop_task_cycle_counter(
-    task_cycle_info_t *ptInfo);
+    task_cycle_info_t* ptInfo);
 
 #define start_task_cycle_counter(...) \
-  __start_task_cycle_counter((NULL, ##__VA_ARGS__))
+    __start_task_cycle_counter((NULL, ##__VA_ARGS__))
 
 #define stop_task_cycle_counter(...) \
-  __stop_task_cycle_counter((NULL, ##__VA_ARGS__))
+    __stop_task_cycle_counter((NULL, ##__VA_ARGS__))
 
 #elif !defined(__IMPLEMENT_PERF_COUNTER)
 #define start_task_cycle_counter(...) start_cycle_counter()

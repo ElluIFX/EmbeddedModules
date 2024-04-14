@@ -191,9 +191,9 @@ class ScreenManager(QWidget):
                 )
                 wr_data = pdata[:max_write_length]
                 pdata = pdata[wr_data.size :]
-                self.framebuffer[
-                    self.cursor_pos : self.cursor_pos + wr_data.size
-                ] = wr_data
+                self.framebuffer[self.cursor_pos : self.cursor_pos + wr_data.size] = (
+                    wr_data
+                )
                 self.cursor_pos += wr_data.size
                 if self.cursor_pos >= self.buf_length - self.window_back_size:
                     self.cursor_pos %= self.buf_length - self.window_back_size
@@ -205,9 +205,9 @@ class ScreenManager(QWidget):
                 )  # 指针到窗口右边界的距离
                 wr_data = pdata[:max_write_length]
                 pdata = pdata[wr_data.size :]
-                self.framebuffer[
-                    self.cursor_pos : self.cursor_pos + wr_data.size
-                ] = wr_data
+                self.framebuffer[self.cursor_pos : self.cursor_pos + wr_data.size] = (
+                    wr_data
+                )
                 self.cursor_pos += wr_data.size
                 if wr_data.size == max_write_length:
                     self.cursor_pos += self.wrap_size
@@ -321,7 +321,7 @@ class ScreenManager(QWidget):
         self.buffer += data
         while True:
             if self.state == 0:
-                idx = self.buffer.find(b"\xAA\x55")
+                idx = self.buffer.find(b"\xaa\x55")
                 if idx == -1:
                     return
                 self.buffer = self.buffer[idx:]
@@ -345,7 +345,7 @@ class ScreenManager(QWidget):
     def _send_pkt(self, type: int, data: bytes):
         if not self.serial.isOpen():
             return
-        pkt = b"\xAA\x55" + struct.pack("<BI", type, len(data)) + data
+        pkt = b"\xaa\x55" + struct.pack("<BI", type, len(data)) + data
         self.serial.write(pkt)
 
     def _send_mouse(self):

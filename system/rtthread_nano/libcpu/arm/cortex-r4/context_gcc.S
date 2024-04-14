@@ -248,4 +248,3 @@ __no_vfp_frame_do3:
     MSR     spsr_cxsf, r4
 
     LDMIA   sp!, {r0-r12,lr,pc}^ @ pop new task's r0-r12,lr & pc, copy spsr to cpsr
-

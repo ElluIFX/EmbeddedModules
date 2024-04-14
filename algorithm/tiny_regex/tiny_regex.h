@@ -98,8 +98,8 @@ typedef uint32_t pat_size_t;
 #endif
 
 typedef struct {
-  const char* Data;
-  uint32_t Size;
+    const char* Data;
+    uint32_t Size;
 } tr_res_t;
 
 tr_res_t tregex_match_str(const char* _srcstr, uint32_t _slen,

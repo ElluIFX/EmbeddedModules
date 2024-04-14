@@ -96,12 +96,12 @@ extern "C" {
 #ifdef DBG_COLOR
 #define _DBG_COLOR(n) rt_kprintf("\033[" #n "m")
 #define _DBG_LOG_HDR(lvl_name, color_n) \
-  rt_kprintf("\033[" #color_n "m[" lvl_name "/" DBG_SECTION_NAME "] ")
+    rt_kprintf("\033[" #color_n "m[" lvl_name "/" DBG_SECTION_NAME "] ")
 #define _DBG_LOG_X_END rt_kprintf("\033[0m\n")
 #else
 #define _DBG_COLOR(n)
 #define _DBG_LOG_HDR(lvl_name, color_n) \
-  rt_kprintf("[" lvl_name "/" DBG_SECTION_NAME "] ")
+    rt_kprintf("[" lvl_name "/" DBG_SECTION_NAME "] ")
 #define _DBG_LOG_X_END rt_kprintf("\n")
 #endif /* DBG_COLOR */
 
@@ -110,39 +110,39 @@ extern "C" {
  * NOTE: This is a NOT RECOMMENDED API. Please using LOG_X API.
  *       It will be DISCARDED later. Because it will take up more resources.
  */
-#define dbg_log(level, fmt, ...)    \
-  if ((level) <= DBG_LEVEL) {       \
-    switch (level) {                \
-      case DBG_ERROR:               \
-        _DBG_LOG_HDR("E", 31);      \
-        break;                      \
-      case DBG_WARNING:             \
-        _DBG_LOG_HDR("W", 33);      \
-        break;                      \
-      case DBG_INFO:                \
-        _DBG_LOG_HDR("I", 32);      \
-        break;                      \
-      case DBG_LOG:                 \
-        _DBG_LOG_HDR("D", 0);       \
-        break;                      \
-      default:                      \
-        break;                      \
-    }                               \
-    rt_kprintf(fmt, ##__VA_ARGS__); \
-    _DBG_COLOR(0);                  \
-  }
+#define dbg_log(level, fmt, ...)        \
+    if ((level) <= DBG_LEVEL) {         \
+        switch (level) {                \
+            case DBG_ERROR:             \
+                _DBG_LOG_HDR("E", 31);  \
+                break;                  \
+            case DBG_WARNING:           \
+                _DBG_LOG_HDR("W", 33);  \
+                break;                  \
+            case DBG_INFO:              \
+                _DBG_LOG_HDR("I", 32);  \
+                break;                  \
+            case DBG_LOG:               \
+                _DBG_LOG_HDR("D", 0);   \
+                break;                  \
+            default:                    \
+                break;                  \
+        }                               \
+        rt_kprintf(fmt, ##__VA_ARGS__); \
+        _DBG_COLOR(0);                  \
+    }
 
-#define dbg_here                                                          \
-  if ((DBG_LEVEL) <= DBG_LOG) {                                           \
-    rt_kprintf(DBG_SECTION_NAME " Here %s:%d\n", __FUNCTION__, __LINE__); \
-  }
+#define dbg_here                                                              \
+    if ((DBG_LEVEL) <= DBG_LOG) {                                             \
+        rt_kprintf(DBG_SECTION_NAME " Here %s:%d\n", __FUNCTION__, __LINE__); \
+    }
 
 #define dbg_log_line(lvl, color_n, fmt, ...) \
-  do {                                       \
-    _DBG_LOG_HDR(lvl, color_n);              \
-    rt_kprintf(fmt, ##__VA_ARGS__);          \
-    _DBG_LOG_X_END;                          \
-  } while (0)
+    do {                                     \
+        _DBG_LOG_HDR(lvl, color_n);          \
+        rt_kprintf(fmt, ##__VA_ARGS__);      \
+        _DBG_LOG_X_END;                      \
+    } while (0)
 
 #define dbg_raw(...) rt_kprintf(__VA_ARGS__);
 

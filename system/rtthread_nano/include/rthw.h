@@ -25,22 +25,21 @@ extern "C" {
  * Some macros define
  */
 #ifndef HWREG32
-#define HWREG32(x)          (*((volatile rt_uint32_t *)(x)))
+#define HWREG32(x) (*((volatile rt_uint32_t*)(x)))
 #endif
 #ifndef HWREG16
-#define HWREG16(x)          (*((volatile rt_uint16_t *)(x)))
+#define HWREG16(x) (*((volatile rt_uint16_t*)(x)))
 #endif
 #ifndef HWREG8
-#define HWREG8(x)           (*((volatile rt_uint8_t *)(x)))
+#define HWREG8(x) (*((volatile rt_uint8_t*)(x)))
 #endif
 
 #ifndef RT_CPU_CACHE_LINE_SZ
-#define RT_CPU_CACHE_LINE_SZ    32
+#define RT_CPU_CACHE_LINE_SZ 32
 #endif
 
-enum RT_HW_CACHE_OPS
-{
-    RT_HW_CACHE_FLUSH      = 0x01,
+enum RT_HW_CACHE_OPS {
+    RT_HW_CACHE_FLUSH = 0x01,
     RT_HW_CACHE_INVALIDATE = 0x02,
 };
 
@@ -60,24 +59,21 @@ void rt_hw_cpu_dcache_ops(int ops, void* addr, int size);
 void rt_hw_cpu_reset(void);
 void rt_hw_cpu_shutdown(void);
 
-rt_uint8_t *rt_hw_stack_init(void       *entry,
-                             void       *parameter,
-                             rt_uint8_t *stack_addr,
-                             void       *exit);
+rt_uint8_t* rt_hw_stack_init(void* entry, void* parameter,
+                             rt_uint8_t* stack_addr, void* exit);
 
 /*
  * Interrupt handler definition
  */
-typedef void (*rt_isr_handler_t)(int vector, void *param);
+typedef void (*rt_isr_handler_t)(int vector, void* param);
 
-struct rt_irq_desc
-{
+struct rt_irq_desc {
     rt_isr_handler_t handler;
-    void            *param;
+    void* param;
 
 #ifdef RT_USING_INTERRUPT_INFO
-    char             name[RT_NAME_MAX];
-    rt_uint32_t      counter;
+    char name[RT_NAME_MAX];
+    rt_uint32_t counter;
 #endif
 };
 
@@ -87,10 +83,8 @@ struct rt_irq_desc
 void rt_hw_interrupt_init(void);
 void rt_hw_interrupt_mask(int vector);
 void rt_hw_interrupt_umask(int vector);
-rt_isr_handler_t rt_hw_interrupt_install(int              vector,
-                                         rt_isr_handler_t handler,
-                                         void            *param,
-                                         const char      *name);
+rt_isr_handler_t rt_hw_interrupt_install(int vector, rt_isr_handler_t handler,
+                                         void* param, const char* name);
 
 rt_base_t rt_hw_interrupt_disable(void);
 void rt_hw_interrupt_enable(rt_base_t level);
@@ -102,15 +96,15 @@ void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to);
 void rt_hw_context_switch_to(rt_ubase_t to);
 void rt_hw_context_switch_interrupt(rt_ubase_t from, rt_ubase_t to);
 
-void rt_hw_console_output(const char *str);
+void rt_hw_console_output(const char* str);
 
-void rt_hw_backtrace(rt_uint32_t *fp, rt_ubase_t thread_entry);
+void rt_hw_backtrace(rt_uint32_t* fp, rt_ubase_t thread_entry);
 void rt_hw_show_memory(rt_uint32_t addr, rt_size_t size);
 
 /*
  * Exception interfaces
  */
-void rt_hw_exception_install(rt_err_t (*exception_handle)(void *context));
+void rt_hw_exception_install(rt_err_t (*exception_handle)(void* context));
 
 /*
  * delay interfaces
@@ -118,10 +112,10 @@ void rt_hw_exception_install(rt_err_t (*exception_handle)(void *context));
 void rt_hw_us_delay(rt_uint32_t us);
 
 #define RT_DEFINE_SPINLOCK(x)
-#define RT_DECLARE_SPINLOCK(x)    rt_ubase_t x
+#define RT_DECLARE_SPINLOCK(x) rt_ubase_t x
 
-#define rt_hw_spin_lock(lock)     *(lock) = rt_hw_interrupt_disable()
-#define rt_hw_spin_unlock(lock)   rt_hw_interrupt_enable(*(lock))
+#define rt_hw_spin_lock(lock) *(lock) = rt_hw_interrupt_disable()
+#define rt_hw_spin_unlock(lock) rt_hw_interrupt_enable(*(lock))
 
 #ifdef __cplusplus
 }

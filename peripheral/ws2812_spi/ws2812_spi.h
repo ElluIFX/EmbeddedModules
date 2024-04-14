@@ -16,10 +16,11 @@ extern "C" {
 
 #if __has_include("spi.h")
 #include "spi.h"
+
 typedef struct {
-  uint8_t* buffer;  // 缓冲区
-  uint16_t length;  // 灯带长度
-  SPI_HandleTypeDef* hspi;
+    uint8_t* buffer;  // 缓冲区
+    uint16_t length;  // 灯带长度
+    SPI_HandleTypeDef* hspi;
 } ws2812_strip_t;
 
 /**

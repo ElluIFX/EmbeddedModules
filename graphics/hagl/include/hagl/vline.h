@@ -55,7 +55,7 @@ extern "C" {
  * @param height
  * @param color
  */
-void hagl_draw_vline_xyh(void const *surface, int16_t x0, int16_t y0,
+void hagl_draw_vline_xyh(void const* surface, int16_t x0, int16_t y0,
                          uint16_t height, hagl_color_t color);
 
 /**
@@ -69,10 +69,10 @@ void hagl_draw_vline_xyh(void const *surface, int16_t x0, int16_t y0,
  * @param y1
  * @param color
  */
-static inline void hagl_draw_vline_xyy(void const *surface, int16_t x0,
+static inline void hagl_draw_vline_xyy(void const* surface, int16_t x0,
                                        int16_t y0, int16_t y1,
                                        hagl_color_t color) {
-  hagl_draw_vline_xyh(surface, x0, y0, abs(y1 - y0) + 1, color);
+    hagl_draw_vline_xyh(surface, x0, y0, abs(y1 - y0) + 1, color);
 }
 
 /**
@@ -86,9 +86,9 @@ static inline void hagl_draw_vline_xyy(void const *surface, int16_t x0,
  * @param height
  * @param color
  */
-static inline void hagl_draw_vline(void const *surface, int16_t x0, int16_t y0,
+static inline void hagl_draw_vline(void const* surface, int16_t x0, int16_t y0,
                                    uint16_t height, hagl_color_t color) {
-  hagl_draw_vline_xyh(surface, x0, y0, height, color);
+    hagl_draw_vline_xyh(surface, x0, y0, height, color);
 }
 
 #ifdef __cplusplus

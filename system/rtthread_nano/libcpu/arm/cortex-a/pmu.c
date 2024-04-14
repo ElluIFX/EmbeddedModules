@@ -6,11 +6,10 @@
  * Change Logs:
  * Date           Author       Notes
  */
-#include <rtthread.h>
 #include "pmu.h"
+#include <rtthread.h>
 
-void rt_hw_pmu_dump_feature(void)
-{
+void rt_hw_pmu_dump_feature(void) {
     unsigned long reg;
 
     reg = rt_hw_pmu_get_control();

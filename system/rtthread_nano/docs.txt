@@ -24,5 +24,3 @@ https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-nano/nano-
 
 在 RT-Thread Nano 上添加控制台(打印)与 FinSH
 https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-nano/finsh-port/an0045-finsh-port
-
-

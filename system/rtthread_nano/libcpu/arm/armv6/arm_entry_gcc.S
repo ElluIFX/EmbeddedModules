@@ -122,5 +122,3 @@ __check_vfp_instruction:
 	mov pc,	lr				@ CP13
 	mov pc,	lr				@ CP14 DEBUG
 	mov pc,	lr				@ CP15 SYS CONTROL
-
-

@@ -63,13 +63,13 @@ typedef uint64_t timelib_t;
  * to the standard C structure for time information.
  */
 struct timelib_tm {
-  uint8_t tm_sec;   //!< Seconds
-  uint8_t tm_min;   //!< Minutes
-  uint8_t tm_hour;  //!< Hours
-  uint8_t tm_wday;  //!< Day of week, sunday is day 1
-  uint8_t tm_mday;  //!< Day of the month
-  uint8_t tm_mon;   //!< Month
-  uint8_t tm_year;  //!< Year offset from 1970;
+    uint8_t tm_sec;   //!< Seconds
+    uint8_t tm_min;   //!< Minutes
+    uint8_t tm_hour;  //!< Hours
+    uint8_t tm_wday;  //!< Day of week, sunday is day 1
+    uint8_t tm_mday;  //!< Day of the month
+    uint8_t tm_mon;   //!< Month
+    uint8_t tm_year;  //!< Year offset from 1970;
 };
 
 typedef struct timelib_tm timelib_tm_t;
@@ -78,9 +78,9 @@ typedef struct timelib_tm timelib_tm_t;
  * @brief Enumeration defines the current state of the system time
  */
 enum time_status {
-  E_TIME_NOT_SET = 0,  //!< Time has not been set
-  E_TIME_NEEDS_SYNC,   //!< Time was set, but needs to be synced with timebase
-  E_TIME_OK,           //!< Time is valid and in sync with time source
+    E_TIME_NOT_SET = 0,  //!< Time has not been set
+    E_TIME_NEEDS_SYNC,   //!< Time was set, but needs to be synced with timebase
+    E_TIME_OK,           //!< Time is valid and in sync with time source
 };
 
 /**
@@ -375,7 +375,7 @@ void timelib_set_provider(timelib_callback_t callback, timelib_t timespan);
  * Computes the day of the week. Sunday is day 1 and saturday is 7
  */
 #define timelib_dow(t) \
-  (((t / TIMELIB_SECS_PER_DAY + 4) % TIMELIB_DAYS_PER_WEEK) + 1)
+    (((t / TIMELIB_SECS_PER_DAY + 4) % TIMELIB_DAYS_PER_WEEK) + 1)
 
 /**
  * Computes the number of elapsed days for the given timestamp
@@ -390,22 +390,22 @@ void timelib_set_provider(timelib_callback_t callback, timelib_t timespan);
 /**
  * Calculates the timestamp of the previous midnight for the given time
  */
-#define timelib_prev_midnight(t)                              \
-  (uint32_t)(((uint32_t)t / (uint32_t)TIMELIB_SECS_PER_DAY) * \
-             (uint32_t)TIMELIB_SECS_PER_DAY)
+#define timelib_prev_midnight(t)                                \
+    (uint32_t)(((uint32_t)t / (uint32_t)TIMELIB_SECS_PER_DAY) * \
+               (uint32_t)TIMELIB_SECS_PER_DAY)
 
 /**
  * Calculates the timestamp of the next midnight for the given time
  */
 #define timelib_next_midnight(t) \
-  (timelib_prev_midnight(t) + TIMELIB_SECS_PER_DAY)
+    (timelib_prev_midnight(t) + TIMELIB_SECS_PER_DAY)
 
 /**
  * Calculates the timestamp of the previous hour for the given time
  */
-#define timelib_prev_hour(t)                                   \
-  (uint32_t)(((uint32_t)t / (uint32_t)TIMELIB_SECS_PER_HOUR) * \
-             (uint32_t)TIMELIB_SECS_PER_HOUR)
+#define timelib_prev_hour(t)                                     \
+    (uint32_t)(((uint32_t)t / (uint32_t)TIMELIB_SECS_PER_HOUR) * \
+               (uint32_t)TIMELIB_SECS_PER_HOUR)
 
 /**
  * Calculates the timestamp of the next hour for the given time
@@ -416,7 +416,7 @@ void timelib_set_provider(timelib_callback_t callback, timelib_t timespan);
  * Calculates the number of seconds elapsed since the start of the week
  */
 #define timelib_secs_this_week(t) \
-  (timelib_seconds_today(t) + ((timelib_dow(t) - 1) * TIMELIB_SECS_PER_DAY))
+    (timelib_seconds_today(t) + ((timelib_dow(t) - 1) * TIMELIB_SECS_PER_DAY))
 
 /**
  * Calculates the timestamp at midnight of the last Sunday

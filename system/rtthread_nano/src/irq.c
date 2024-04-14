@@ -25,18 +25,17 @@ static void (*rt_interrupt_leave_hook)(void);
  *
  * @note the hook function must be simple and never be blocked or suspend.
  */
-void rt_interrupt_enter_sethook(void (*hook)(void))
-{
+void rt_interrupt_enter_sethook(void (*hook)(void)) {
     rt_interrupt_enter_hook = hook;
 }
+
 /**
  * @ingroup Hook
  * This function set a hook function when the system exit a interrupt.
  *
  * @note the hook function must be simple and never be blocked or suspend.
  */
-void rt_interrupt_leave_sethook(void (*hook)(void))
-{
+void rt_interrupt_leave_sethook(void (*hook)(void)) {
     rt_interrupt_leave_hook = hook;
 }
 #endif
@@ -58,16 +57,15 @@ volatile rt_uint8_t rt_interrupt_nest;
  *
  * @see rt_interrupt_leave
  */
-void rt_interrupt_enter(void)
-{
+void rt_interrupt_enter(void) {
     rt_base_t level;
 
-    RT_DEBUG_LOG(RT_DEBUG_IRQ, ("irq coming..., irq nest:%d\n",
-                                rt_interrupt_nest));
+    RT_DEBUG_LOG(RT_DEBUG_IRQ,
+                 ("irq coming..., irq nest:%d\n", rt_interrupt_nest));
 
     level = rt_hw_interrupt_disable();
-    rt_interrupt_nest ++;
-    RT_OBJECT_HOOK_CALL(rt_interrupt_enter_hook,());
+    rt_interrupt_nest++;
+    RT_OBJECT_HOOK_CALL(rt_interrupt_enter_hook, ());
     rt_hw_interrupt_enable(level);
 }
 
@@ -78,16 +76,14 @@ void rt_interrupt_enter(void)
  *
  * @see rt_interrupt_enter
  */
-void rt_interrupt_leave(void)
-{
+void rt_interrupt_leave(void) {
     rt_base_t level;
 
-    RT_DEBUG_LOG(RT_DEBUG_IRQ, ("irq leave, irq nest:%d\n",
-                                rt_interrupt_nest));
+    RT_DEBUG_LOG(RT_DEBUG_IRQ, ("irq leave, irq nest:%d\n", rt_interrupt_nest));
 
     level = rt_hw_interrupt_disable();
-    rt_interrupt_nest --;
-    RT_OBJECT_HOOK_CALL(rt_interrupt_leave_hook,());
+    rt_interrupt_nest--;
+    RT_OBJECT_HOOK_CALL(rt_interrupt_leave_hook, ());
     rt_hw_interrupt_enable(level);
 }
 
@@ -99,8 +95,7 @@ void rt_interrupt_leave(void)
  *
  * @return the number of nested interrupts.
  */
-RT_WEAK rt_uint8_t rt_interrupt_get_nest(void)
-{
+RT_WEAK rt_uint8_t rt_interrupt_get_nest(void) {
     rt_uint8_t ret;
     rt_base_t level;
 

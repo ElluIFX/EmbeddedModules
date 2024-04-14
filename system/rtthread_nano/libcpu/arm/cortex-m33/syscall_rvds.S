@@ -28,7 +28,7 @@ tzcall PROC
 tzcall_entry     PROC
     PUSH    {R1, R4, LR}
     MOV     R4, R1                  ; copy thread SP to R4
-    LDMFD   R4!, {r0 - r3}          ; pop user stack, get input arg0, arg1, arg2 
+    LDMFD   R4!, {r0 - r3}          ; pop user stack, get input arg0, arg1, arg2
     STMFD   R4!, {r0 - r3}          ; push stack, user stack recovery
     BL      rt_secure_svc_handle    ; call fun
     POP     {R1, R4, LR}

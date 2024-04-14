@@ -42,8 +42,7 @@
 
 #define A JOIN(pqu, T)
 
-static inline A JOIN(A, init)(int _compare(T *, T *))
-{
+static inline A JOIN(A, init)(int _compare(T*, T*)) {
     A self = JOIN(A, __INIT)();
     if (_compare)
         self.compare = _compare;
@@ -52,46 +51,38 @@ static inline A JOIN(A, init)(int _compare(T *, T *))
     return self;
 }
 
-static inline void JOIN(A, up)(A *self, size_t n)
-{
+static inline void JOIN(A, up)(A* self, size_t n) {
     ASSERT(self->compare || !"compare undefined");
-    if (n > 0)
-    {
+    if (n > 0) {
         size_t p = (n - 1) / 2;
-        T *x = &self->vector[n];
-        T *y = &self->vector[p];
-        if (self->compare(y, x))
-        {
+        T* x = &self->vector[n];
+        T* y = &self->vector[p];
+        if (self->compare(y, x)) {
             SWAP(T, x, y);
             JOIN(A, up)(self, p);
         }
     }
 }
 
-static inline void JOIN(A, down)(A *self, size_t n)
-{
+static inline void JOIN(A, down)(A* self, size_t n) {
     ASSERT(self->compare || !"compare undefined");
     size_t min = 2;
     if (self->size < min)
         return;
-    else if (self->size == min)
-    {
-        T *a = &self->vector[0];
-        T *b = &self->vector[1];
+    else if (self->size == min) {
+        T* a = &self->vector[0];
+        T* b = &self->vector[1];
         if (self->compare(a, b))
             SWAP(T, a, b);
-    }
-    else
-    {
+    } else {
         size_t l = 2 * n + 1;
         size_t r = 2 * n + 2;
-        if (r < self->size)
-        {
-            size_t index = self->compare(&self->vector[r], &self->vector[l]) ? l : r;
-            T *x = &self->vector[index];
-            T *y = &self->vector[n];
-            if (self->compare(y, x))
-            {
+        if (r < self->size) {
+            size_t index =
+                self->compare(&self->vector[r], &self->vector[l]) ? l : r;
+            T* x = &self->vector[index];
+            T* y = &self->vector[n];
+            if (self->compare(y, x)) {
                 SWAP(T, x, y);
                 JOIN(A, down)(self, index);
             }
@@ -99,21 +90,18 @@ static inline void JOIN(A, down)(A *self, size_t n)
     }
 }
 
-static inline void JOIN(A, push)(A *self, T value)
-{
+static inline void JOIN(A, push)(A* self, T value) {
     JOIN(A, push_back)(self, value);
     JOIN(A, up)(self, self->size - 1);
 }
 
-static inline void JOIN(A, pop)(A *self)
-{
+static inline void JOIN(A, pop)(A* self) {
     SWAP(T, JOIN(A, front)(self), JOIN(A, back)(self));
     JOIN(A, pop_back)(self);
     JOIN(A, down)(self, 0);
 }
 
-static inline void JOIN(A, emplace)(A *self, T *value)
-{
+static inline void JOIN(A, emplace)(A* self, T* value) {
     JOIN(A, push_back)(self, *value);
     JOIN(A, up)(self, self->size - 1);
     // JOIN(A, it) pos = JOIN(A, begin)(self);
@@ -145,7 +133,7 @@ static inline void JOIN(A, emplace)(A *self, T *value)
 #undef each
 #undef remove_if
 
-#undef T // See HOLD.
+#undef T  // See HOLD.
 #undef POD
 #undef NOT_INTEGRAL
 #undef A

@@ -15,14 +15,14 @@ extern "C" {
 #endif
 
 typedef struct {
-  int dummy;
+    int dummy;
 } s_awaiter_t;
 
 #define __await__ __awaiter_dummy__
-#define __async__ s_awaiter_t *__awaiter_dummy__
+#define __async__ s_awaiter_t* __awaiter_dummy__
 
 /* Function type for task entrance */
-typedef void (*s_task_fn_t)(__async__, void *arg);
+typedef void (*s_task_fn_t)(__async__, void* arg);
 
 /* #define USE_SWAP_CONTEXT                                            */
 /* #define USE_JUMP_FCONTEXT                                           */
@@ -37,26 +37,26 @@ typedef void (*s_task_fn_t)(__async__, void *arg);
 #include "s_port_stm32.h"
 
 typedef struct {
-  s_list_t wait_list;
+    s_list_t wait_list;
 #ifdef USE_DEAD_TASK_CHECKING
-  s_list_t self;
+    s_list_t self;
 #endif
-  bool locked;
+    bool locked;
 } s_mutex_t;
 
 typedef struct {
-  s_list_t wait_list;
+    s_list_t wait_list;
 #ifdef USE_DEAD_TASK_CHECKING
-  s_list_t self;
+    s_list_t self;
 #endif
 } s_event_t;
 
 typedef struct {
-  uint16_t max_count;
-  uint16_t begin;
-  uint16_t available_count;
-  uint16_t element_size;
-  s_event_t event;
+    uint16_t max_count;
+    uint16_t begin;
+    uint16_t available_count;
+    uint16_t element_size;
+    s_event_t event;
 } s_chan_t;
 
 #include "s_task_internal.h"
@@ -64,19 +64,19 @@ typedef struct {
 /* Initialize the task system. */
 void s_task_init_system_(void);
 #define s_task_init_system() \
-  __async__ = 0;             \
-  (void)__awaiter_dummy__;   \
-  s_task_init_system_()
+    __async__ = 0;           \
+    (void)__awaiter_dummy__; \
+    s_task_init_system_()
 
 /* Create a new task */
-void s_task_create(void *stack, size_t stack_size, s_task_fn_t entry,
-                   void *arg);
+void s_task_create(void* stack, size_t stack_size, s_task_fn_t entry,
+                   void* arg);
 
 /* Wait a task to exit */
-int s_task_join(__async__, void *stack);
+int s_task_join(__async__, void* stack);
 
 /* Kill a task */
-void s_task_kill(void *stack);
+void s_task_kill(void* stack);
 
 /* Sleep in ticks */
 int s_task_sleep_ticks(__async__, my_clock_t ticks);
@@ -91,7 +91,7 @@ int s_task_sleep(__async__, uint32_t sec);
 void s_task_yield(__async__);
 
 /* Cancel task waiting and make it running */
-void s_task_cancel_wait(void *stack);
+void s_task_cancel_wait(void* stack);
 
 /* Get free stack size (for debug) */
 size_t s_task_get_stack_free_size(void);
@@ -100,77 +100,77 @@ size_t s_task_get_stack_free_size(void);
 /* void dump_tasks(__async__); */
 
 /* Initialize a mutex */
-void s_mutex_init(s_mutex_t *mutex);
+void s_mutex_init(s_mutex_t* mutex);
 
 /* Lock the mutex */
-int s_mutex_lock(__async__, s_mutex_t *mutex);
+int s_mutex_lock(__async__, s_mutex_t* mutex);
 
 /* Unlock the mutex */
-void s_mutex_unlock(s_mutex_t *mutex);
+void s_mutex_unlock(s_mutex_t* mutex);
 
 /* Initialize a wait event */
-void s_event_init(s_event_t *event);
+void s_event_init(s_event_t* event);
 
 /* Set event */
-void s_event_set(s_event_t *event);
+void s_event_set(s_event_t* event);
 
 /* Wait event
  *  return 0 on event set
  *  return -1 on event waiting cancelled
  */
-int s_event_wait(__async__, s_event_t *event);
+int s_event_wait(__async__, s_event_t* event);
 
 /* Wait event with timeout */
-int s_event_wait_msec(__async__, s_event_t *event, uint32_t msec);
+int s_event_wait_msec(__async__, s_event_t* event, uint32_t msec);
 
 /* Wait event with timeout */
-int s_event_wait_sec(__async__, s_event_t *event, uint32_t msec);
+int s_event_wait_sec(__async__, s_event_t* event, uint32_t msec);
 
 /* macro: Declare the chan variable
  *    name: name of the chan
  *    TYPE: type of element in the chan
  *    count: max count of element buffer in the chan
  */
-#define s_chan_declare(name, TYPE, count)                             \
-  s_chan_t name[1 + ((count) * sizeof(TYPE) + sizeof(s_chan_t) - 1) / \
-                        sizeof(s_chan_t)]
+#define s_chan_declare(name, TYPE, count)                               \
+    s_chan_t name[1 + ((count) * sizeof(TYPE) + sizeof(s_chan_t) - 1) / \
+                          sizeof(s_chan_t)]
 
 /* macro: Initialize the chan (parameters same as what's in s_declare_chan).
  * To make a chan, we need to use "s_chan_declare" and then call "s_chan_init".
  */
-#define s_chan_init(name, TYPE, count)       \
-  do {                                       \
-    (&name[0])->max_count = (count);         \
-    (&name[0])->begin = 0;                   \
-    (&name[0])->available_count = 0;         \
-    (&name[0])->element_size = sizeof(TYPE); \
-    s_event_init(&(&name[0])->event);        \
-  } while (0)
+#define s_chan_init(name, TYPE, count)           \
+    do {                                         \
+        (&name[0])->max_count = (count);         \
+        (&name[0])->begin = 0;                   \
+        (&name[0])->available_count = 0;         \
+        (&name[0])->element_size = sizeof(TYPE); \
+        s_event_init(&(&name[0])->event);        \
+    } while (0)
 
 /* Put element into chan
  *  return 0 on chan put successfully
  *  return -1 on chan cancelled
  */
-int s_chan_put(__async__, s_chan_t *chan, const void *in_object);
+int s_chan_put(__async__, s_chan_t* chan, const void* in_object);
 
 /* Put number of elements into chan
  *  return 0 on chan put successfully
  *  return -1 on chan cancelled
  */
-int s_chan_put_n(__async__, s_chan_t *chan, const void *in_object,
+int s_chan_put_n(__async__, s_chan_t* chan, const void* in_object,
                  uint16_t number);
 
 /* Get element from chan
  *  return 0 on chan get successfully
  *  return -1 on chan cancelled
  */
-int s_chan_get(__async__, s_chan_t *chan, void *out_object);
+int s_chan_get(__async__, s_chan_t* chan, void* out_object);
 
 /* Get number of elements from chan
  *  return 0 on chan get successfully
  *  return -1 on chan cancelled
  */
-int s_chan_get_n(__async__, s_chan_t *chan, void *out_object, uint16_t number);
+int s_chan_get_n(__async__, s_chan_t* chan, void* out_object, uint16_t number);
 
 /* milliseconds to ticks */
 my_clock_t msec_to_ticks(uint32_t msec);
@@ -184,7 +184,7 @@ uint32_t ticks_to_sec(my_clock_t ticks);
 #ifdef USE_IN_EMBEDDED
 
 /* Set event in interrupt */
-void s_event_set__in_irq(s_event_t *event);
+void s_event_set__in_irq(s_event_t* event);
 
 /*
  * Task waits event from irq. Disable irq before call this function!
@@ -194,7 +194,7 @@ void s_event_set__in_irq(s_event_t *event);
  *   ...
  *   S_IRQ_ENABLE()
  */
-int s_event_wait__from_irq(__async__, s_event_t *event);
+int s_event_wait__from_irq(__async__, s_event_t* event);
 
 /*
  * Task waits event from irq. Disable irq before call this function!
@@ -204,7 +204,7 @@ int s_event_wait__from_irq(__async__, s_event_t *event);
  *   ...
  *   S_IRQ_ENABLE()
  */
-int s_event_wait_msec__from_irq(__async__, s_event_t *event, uint32_t msec);
+int s_event_wait_msec__from_irq(__async__, s_event_t* event, uint32_t msec);
 
 /*
  * Task waits event from irq. Disable irq before call this function!
@@ -214,48 +214,48 @@ int s_event_wait_msec__from_irq(__async__, s_event_t *event, uint32_t msec);
  *   ...
  *   S_IRQ_ENABLE()
  */
-int s_event_wait_sec__from_irq(__async__, s_event_t *event, uint32_t sec);
+int s_event_wait_sec__from_irq(__async__, s_event_t* event, uint32_t sec);
 
 /* Task puts element into chan and waits interrupt to read the chan */
-void s_chan_put__to_irq(__async__, s_chan_t *chan, const void *in_object);
+void s_chan_put__to_irq(__async__, s_chan_t* chan, const void* in_object);
 
 /* Task puts number of elements into chan and waits interrupt to read the chan
  */
-void s_chan_put_n__to_irq(__async__, s_chan_t *chan, const void *in_object,
+void s_chan_put_n__to_irq(__async__, s_chan_t* chan, const void* in_object,
                           uint16_t number);
 
 /* Task waits interrupt to write the chan and then gets element from chan */
-void s_chan_get__from_irq(__async__, s_chan_t *chan, void *out_object);
+void s_chan_get__from_irq(__async__, s_chan_t* chan, void* out_object);
 
 /* Task waits interrupt to write the chan and then gets number of elements from
  * chan */
-void s_chan_get_n__from_irq(__async__, s_chan_t *chan, void *out_object,
+void s_chan_get_n__from_irq(__async__, s_chan_t* chan, void* out_object,
                             uint16_t number);
 
 /*
  * Interrupt writes element into the chan,
  * return number of element was written into chan
  */
-uint16_t s_chan_put__in_irq(s_chan_t *chan, const void *in_object);
+uint16_t s_chan_put__in_irq(s_chan_t* chan, const void* in_object);
 
 /*
  * Interrupt writes number of elements into the chan,
  * return number of element was written into chan
  */
-uint16_t s_chan_put_n__in_irq(s_chan_t *chan, const void *in_object,
+uint16_t s_chan_put_n__in_irq(s_chan_t* chan, const void* in_object,
                               uint16_t number);
 
 /*
  * Interrupt reads element from chan,
  * return number of element was read from chan
  */
-uint16_t s_chan_get__in_irq(s_chan_t *chan, void *out_object);
+uint16_t s_chan_get__in_irq(s_chan_t* chan, void* out_object);
 
 /*
  * Interrupt reads number of elements from chan,
  * return number of element was read from chan
  */
-uint16_t s_chan_get_n__in_irq(s_chan_t *chan, void *out_object,
+uint16_t s_chan_get_n__in_irq(s_chan_t* chan, void* out_object,
                               uint16_t number);
 
 #endif

@@ -6,13 +6,13 @@
 /*               TYPEDEF                */
 
 typedef struct Heap4Stats {
-  size_t xAvailableHeapSpaceInBytes;
-  size_t xSizeOfLargestFreeBlockInBytes;
-  size_t xSizeOfSmallestFreeBlockInBytes;
-  size_t xNumberOfFreeBlocks;
-  size_t xMinimumEverFreeBytesRemaining;
-  size_t xNumberOfSuccessfulAllocations;
-  size_t xNumberOfSuccessfulFrees;
+    size_t xAvailableHeapSpaceInBytes;
+    size_t xSizeOfLargestFreeBlockInBytes;
+    size_t xSizeOfSmallestFreeBlockInBytes;
+    size_t xNumberOfFreeBlocks;
+    size_t xMinimumEverFreeBytesRemaining;
+    size_t xNumberOfSuccessfulAllocations;
+    size_t xNumberOfSuccessfulFrees;
 } HeapStats_t;
 
 /*              EXPORTED FUNCTION                */

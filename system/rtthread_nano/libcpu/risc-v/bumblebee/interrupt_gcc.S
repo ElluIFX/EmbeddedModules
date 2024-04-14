@@ -6,7 +6,7 @@
  * Change Logs:
  * Date           Author       Notes
  */
- 
+
 #include "cpuport.h"
 
  .section      .text.entry

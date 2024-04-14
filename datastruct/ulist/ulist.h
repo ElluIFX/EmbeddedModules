@@ -21,24 +21,26 @@ extern "C" {
 #define SLICE_END (INT32_MAX - 1)  // like list[index:] in Python
 
 typedef struct {
-  void* data;              // 数据缓冲区
-  mod_size_t num;          // 列表内元素个数
-  mod_size_t cap;          // 缓冲区容量(元素个数)
-  mod_size_t isize;        // 元素大小(字节)
-  uint8_t cfg;             // 配置
-  uint8_t dyn;             // 是否动态分配
-  void (*elfree)(void*);   // 元素释放函数
-  MOD_MUTEX_HANDLE mutex;  // 互斥锁
+    void* data;              // 数据缓冲区
+    mod_size_t num;          // 列表内元素个数
+    mod_size_t cap;          // 缓冲区容量(元素个数)
+    mod_size_t isize;        // 元素大小(字节)
+    uint8_t cfg;             // 配置
+    uint8_t dyn;             // 是否动态分配
+    void (*elfree)(void*);   // 元素释放函数
+    MOD_MUTEX_HANDLE mutex;  // 互斥锁
 } ulist_t;
+
 typedef ulist_t* ULIST;
 
 typedef struct {
-  ULIST target;
-  mod_offset_t step;
-  mod_offset_t start;
-  mod_offset_t end;
-  mod_offset_t now;
+    ULIST target;
+    mod_offset_t step;
+    mod_offset_t start;
+    mod_offset_t end;
+    mod_offset_t now;
 } ulist_iter_t;
+
 typedef ulist_iter_t* ULIST_ITER;
 
 #define ULIST_DIRTY_REGION_FILL_DATA 0x00  // 区域填充值
@@ -415,13 +417,17 @@ extern void ulist_mem_shrink(ULIST list, uint8_t force_auto_free);
  * @brief 获取列表长度
  * @param  list       列表结构体
  */
-static inline mod_size_t ulist_len(ULIST list) { return list->num; }
+static inline mod_size_t ulist_len(ULIST list) {
+    return list->num;
+}
 
 /**
  * @brief 获取列表当前存储区长度
  * @param  list       列表结构体
  */
-static inline mod_size_t ulist_capacity(ULIST list) { return list->cap; }
+static inline mod_size_t ulist_capacity(ULIST list) {
+    return list->cap;
+}
 
 /**
  * @brief 获取列表对应位置的元素指针
@@ -434,7 +440,7 @@ static inline mod_size_t ulist_capacity(ULIST list) { return list->cap; }
 extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
                                       mod_offset_t step, bool isStart);
 #define _ulist_foreach_init_ptr(list, type, index, step, isStart) \
-  ((type*)__ulist_foreach_init_ptr(list, index, step, isStart))
+    ((type*)__ulist_foreach_init_ptr(list, index, step, isStart))
 /**
  * @brief 循环遍历列表, 就像 `for var in list[from_index:to_index:step]` 一样
  * @param  list       列表结构体
@@ -446,16 +452,16 @@ extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
  * @note step为负数时, from_index应大于to_index
  * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
-#define ulist_foreach_from_to_step(list, type, var, from_index, to_index,  \
-                                   step)                                   \
-  for (type* var##_end =                                                   \
-           _ulist_foreach_init_ptr(list, type, to_index, step, false);     \
-       var##_end != NULL; var##_end = NULL)                                \
-    for (type* var =                                                       \
-             _ulist_foreach_init_ptr(list, type, from_index, step, true);  \
-         var != NULL &&                                                    \
-         ((step > 0 && var < var##_end) || (step < 0 && var > var##_end)); \
-         var += step)
+#define ulist_foreach_from_to_step(list, type, var, from_index, to_index,      \
+                                   step)                                       \
+    for (type* var##_end =                                                     \
+             _ulist_foreach_init_ptr(list, type, to_index, step, false);       \
+         var##_end != NULL; var##_end = NULL)                                  \
+        for (type* var =                                                       \
+                 _ulist_foreach_init_ptr(list, type, from_index, step, true);  \
+             var != NULL &&                                                    \
+             ((step > 0 && var < var##_end) || (step < 0 && var > var##_end)); \
+             var += step)
 
 /**
  * @brief 循环遍历列表, 就像 `for var in list[from_index:to_index]` 一样
@@ -467,7 +473,7 @@ extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
  * @note 无越界检查, 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from_to(list, type, var, from_index, to_index) \
-  ulist_foreach_from_to_step(list, type, var, from_index, to_index, 1)
+    ulist_foreach_from_to_step(list, type, var, from_index, to_index, 1)
 
 /**
  * @brief 循环遍历列表, 就像 `for var in list` 一样
@@ -478,7 +484,7 @@ extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
  * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach(list, type, var) \
-  ulist_foreach_from_to(list, type, var, 0, SLICE_END)
+    ulist_foreach_from_to(list, type, var, 0, SLICE_END)
 
 /**
  * @brief 循环遍历列表, 就像 `for var in list[from_index:]` 一样
@@ -490,7 +496,7 @@ extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
  * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_from(list, type, var, from_index) \
-  ulist_foreach_from_to(list, type, var, from_index, SLICE_END)
+    ulist_foreach_from_to(list, type, var, from_index, SLICE_END)
 
 /**
  * @brief 循环遍历列表, 就像 `for var in list[:to_index]` 一样
@@ -502,7 +508,7 @@ extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
  * 不要在循环中修改列表结构，如必须增删需考虑修改[var]_end
  */
 #define ulist_foreach_to(list, type, var, to_index) \
-  ulist_foreach_from_to(list, type, var, 0, to_index)
+    ulist_foreach_from_to(list, type, var, 0, to_index)
 
 #ifdef __cplusplus
 }

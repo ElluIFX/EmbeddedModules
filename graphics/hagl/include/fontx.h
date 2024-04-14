@@ -59,22 +59,22 @@ extern "C" {
 
 /* Pitch is bytes per row. Size is size in bytes. */
 typedef struct {
-  uint8_t width;
-  uint8_t height;
-  uint8_t size;
-  uint8_t pitch;
-  const uint8_t *buffer;
+    uint8_t width;
+    uint8_t height;
+    uint8_t size;
+    uint8_t pitch;
+    const uint8_t* buffer;
 } fontx_glyph_t;
 
 typedef struct {
-  char name[9];
-  uint8_t width;
-  uint8_t height;
-  uint8_t type;
+    char name[9];
+    uint8_t width;
+    uint8_t height;
+    uint8_t type;
 } fontx_meta_t;
 
-uint8_t fontx_meta(fontx_meta_t *meta, const uint8_t *font);
-uint8_t fontx_glyph(fontx_glyph_t *glyph, wchar_t code, const uint8_t *font);
+uint8_t fontx_meta(fontx_meta_t* meta, const uint8_t* font);
+uint8_t fontx_glyph(fontx_glyph_t* glyph, wchar_t code, const uint8_t* font);
 
 #ifdef __cplusplus
 }

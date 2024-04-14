@@ -40,10 +40,10 @@ extern "C" {
 #endif /* __cplusplus */
 
 typedef struct {
-  uint16_t x0;
-  uint16_t y0;
-  uint16_t x1;
-  uint16_t y1;
+    uint16_t x0;
+    uint16_t y0;
+    uint16_t x1;
+    uint16_t y1;
 } hagl_window_t;
 
 #ifdef __cplusplus

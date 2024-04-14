@@ -14,10 +14,10 @@ extern "C" {
 #endif
 #include "modules.h"
 
-typedef struct {       // 用户任务结构
-  void (*task)(void);  // 任务函数指针
-  uint32_t period;     // 任务调度周期(ms->Tick)
-  m_time_t lastRun;    // 上次执行时间(Tick)
+typedef struct {         // 用户任务结构
+    void (*task)(void);  // 任务函数指针
+    uint32_t period;     // 任务调度周期(ms->Tick)
+    m_time_t lastRun;    // 上次执行时间(Tick)
 } scheduler_task_t;
 
 #define _SCH_CFG_SECTION(x) __attribute__((section(".scheduler_list.s" x)))
@@ -27,10 +27,10 @@ typedef struct {       // 用户任务结构
  * @param func 任务函数
  * @param periodMs 任务调度周期(ms)
  */
-#define SCH_TASK(func, periodMs)                                   \
-  __attribute__((used))                                            \
-  scheduler_task_t _sch_task_item_##func _SCH_CFG_SECTION("1") = { \
-      func, (periodMs), 0}
+#define SCH_TASK(func, periodMs)                                     \
+    __attribute__((used))                                            \
+    scheduler_task_t _sch_task_item_##func _SCH_CFG_SECTION("1") = { \
+        func, (periodMs), 0}
 
 /**
  * @brief 时分调度器主函数

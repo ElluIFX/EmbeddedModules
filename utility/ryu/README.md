@@ -6,7 +6,7 @@ representation.
 This implementation consists mostly of the code taken directly from the
 original work in the [ulfjack/ryu](https://github.com/ulfjack/ryu) project,
 with the additon of a new `ryu_string` function, that provides a little extra
-safety and convenience. 
+safety and convenience.
 
 Also, this library is a single self-contained C file for easily adding to
 exising projects.
@@ -21,12 +21,12 @@ exising projects.
 // to store the double into the C string buffer.
 // If the returned length is greater than nbytes-1, then only a parital copy
 // occurred.
-// 
-// The format is one of 
+//
+// The format is one of
 //   'e' (-d.ddddedd, a decimal exponent)
 //   'E' (-d.ddddEdd, a decimal exponent)
 //   'f' (-ddd.dddd, no exponent)
-//   'g' ('e' for large exponents, 'f' otherwise) 
+//   'g' ('e' for large exponents, 'f' otherwise)
 //   'G' ('E' for large exponents, 'f' otherwise)
 //   'j' ('g' for large exponents, 'f' otherwise) (matches javascript format)
 //   'J' ('G' for large exponents, 'f' otherwise) (matches javascript format)
@@ -39,7 +39,7 @@ size_t ryu_string(double d, char fmt, char *dst, size_t nbytes)
 char buf[32];
 size_t n = ryu_string(-112.89123883, 'f', buf, sizeof(buf));
 if (n >= sizeof(buf)) {
-	// Buffer is too small to store the floating point as a string.
+ // Buffer is too small to store the floating point as a string.
 }
 printf("%s\n", buf);
 

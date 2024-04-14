@@ -155,11 +155,12 @@ What is and is not allowed.
 
 4. All source files must be compiled with the same flags.
 5. All data type sizes must match size in bits such that:
- * `ee_u8` is an unsigned 8-bit datatype.
- * `ee_s16` is a signed 16-bit datatype.
- * `ee_u16` is an unsigned 16-bit datatype.
- * `ee_s32` is a signed 32-bit datatype.
- * `ee_u32` is an unsigned 32-bit datatype.
+
+* `ee_u8` is an unsigned 8-bit datatype.
+* `ee_s16` is a signed 16-bit datatype.
+* `ee_u16` is an unsigned 16-bit datatype.
+* `ee_s32` is a signed 32-bit datatype.
+* `ee_u32` is an unsigned 32-bit datatype.
 
 ## Allowed
 
@@ -305,6 +306,7 @@ The list itself will be initialized on a block of memory that will be passed in 
 The linked list will be initialized such that 1/4 of the list pointers point to sequential areas in memory, and 3/4 of the list pointers are distributed in a non sequential manner. This is done to emulate a linked list that had add/remove happen for a while disrupting the neat order, and then a series of adds that are likely to come from sequential memory locations.
 
 For the benchmark itself:
+
 * Multiple find operations are going to be performed. These find operations may result in the whole list being traversed. The result of each find will become part of the output chain.
 * The list will be sorted using merge sort based on the data16 value, and then derive CRC of the data16 item in order for part of the list. The CRC will become part of the output chain.
 * The list will be sorted again using merge sort based on the idx value. This sort will guarantee that the list is returned to the primary state before leaving the function, so that multiple iterations of the function will have the same result. CRC of the data16 for part of the list will again be calculated and become part of the output chain.
@@ -328,6 +330,7 @@ Matrix B will be initialized with medium values (upper half of the bits all zero
 Matrix C will be used for the result.
 
 For the benchmark itself:
+
 * Multiple A by a constant into C, add the upper bits of each of the values in the result matrix. The result will become part of the output chain.
 * Multiple A by column X of B into C, add the upper bits of each of the values in the result matrix. The result will become part of the output chain.
 * Multiple A by B into C, add the upper bits of each of the values in the result matrix. The result will become part of the output chain.
@@ -345,6 +348,7 @@ This code will perform a realistic task, be small enough to easily understand, a
 For input, the memory block will be initialized with comma separated values of mixed formats, as well as invalid inputs.
 
 For the benchmark itself:
+
 * Invoke the state machine on all of the input and count final states and state transitions. CRC of all final states and transitions will become part of the output chain.
 * Modify the input at intervals (inject errors) and repeat the state machine operation.
 * Modify the input back to original form.

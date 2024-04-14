@@ -41,42 +41,42 @@ extern "C" {
 /* EasyFlash types plugin's software version number */
 #define EF_TYPES_SW_VERSION "0.11.03"
 
-typedef cJSON *(*ef_types_set_cb)(void *struct_obj);
-typedef void *(*ef_types_get_cb)(cJSON *json_obj);
+typedef cJSON* (*ef_types_set_cb)(void* struct_obj);
+typedef void* (*ef_types_get_cb)(cJSON* json_obj);
 
-void ef_types_init(S2jHook *hook);
-bool ef_get_bool(const char *key);
-char ef_get_char(const char *key);
-short ef_get_short(const char *key);
-int ef_get_int(const char *key);
-long ef_get_long(const char *key);
-float ef_get_float(const char *key);
-double ef_get_double(const char *key);
-void ef_get_bool_array(const char *key, bool *value);
-void ef_get_char_array(const char *key, char *value);
-void ef_get_short_array(const char *key, short *value);
-void ef_get_int_array(const char *key, int *value);
-void ef_get_long_array(const char *key, long *value);
-void ef_get_float_array(const char *key, float *value);
-void ef_get_double_array(const char *key, double *value);
-void ef_get_string_array(const char *key, char **value);
-void *ef_get_struct(const char *key, ef_types_get_cb get_cb);
-EfErrCode ef_set_bool(const char *key, bool value);
-EfErrCode ef_set_char(const char *key, char value);
-EfErrCode ef_set_short(const char *key, short value);
-EfErrCode ef_set_int(const char *key, int value);
-EfErrCode ef_set_long(const char *key, long value);
-EfErrCode ef_set_float(const char *key, float value);
-EfErrCode ef_set_double(const char *key, double value);
-EfErrCode ef_set_bool_array(const char *key, bool *value, size_t len);
-EfErrCode ef_set_char_array(const char *key, char *value, size_t len);
-EfErrCode ef_set_short_array(const char *key, short *value, size_t len);
-EfErrCode ef_set_int_array(const char *key, int *value, size_t len);
-EfErrCode ef_set_long_array(const char *key, long *value, size_t len);
-EfErrCode ef_set_float_array(const char *key, float *value, size_t len);
-EfErrCode ef_set_double_array(const char *key, double *value, size_t len);
-EfErrCode ef_set_string_array(const char *key, char **value, size_t len);
-EfErrCode ef_set_struct(const char *key, void *value, ef_types_set_cb set_cb);
+void ef_types_init(S2jHook* hook);
+bool ef_get_bool(const char* key);
+char ef_get_char(const char* key);
+short ef_get_short(const char* key);
+int ef_get_int(const char* key);
+long ef_get_long(const char* key);
+float ef_get_float(const char* key);
+double ef_get_double(const char* key);
+void ef_get_bool_array(const char* key, bool* value);
+void ef_get_char_array(const char* key, char* value);
+void ef_get_short_array(const char* key, short* value);
+void ef_get_int_array(const char* key, int* value);
+void ef_get_long_array(const char* key, long* value);
+void ef_get_float_array(const char* key, float* value);
+void ef_get_double_array(const char* key, double* value);
+void ef_get_string_array(const char* key, char** value);
+void* ef_get_struct(const char* key, ef_types_get_cb get_cb);
+EfErrCode ef_set_bool(const char* key, bool value);
+EfErrCode ef_set_char(const char* key, char value);
+EfErrCode ef_set_short(const char* key, short value);
+EfErrCode ef_set_int(const char* key, int value);
+EfErrCode ef_set_long(const char* key, long value);
+EfErrCode ef_set_float(const char* key, float value);
+EfErrCode ef_set_double(const char* key, double value);
+EfErrCode ef_set_bool_array(const char* key, bool* value, size_t len);
+EfErrCode ef_set_char_array(const char* key, char* value, size_t len);
+EfErrCode ef_set_short_array(const char* key, short* value, size_t len);
+EfErrCode ef_set_int_array(const char* key, int* value, size_t len);
+EfErrCode ef_set_long_array(const char* key, long* value, size_t len);
+EfErrCode ef_set_float_array(const char* key, float* value, size_t len);
+EfErrCode ef_set_double_array(const char* key, double* value, size_t len);
+EfErrCode ef_set_string_array(const char* key, char** value, size_t len);
+EfErrCode ef_set_struct(const char* key, void* value, ef_types_set_cb set_cb);
 
 #ifdef __cplusplus
 }

@@ -14,14 +14,14 @@ extern "C" {
 #include "modules.h"
 
 typedef struct {
-  GPIO_TypeDef* sclkPort;
-  uint16_t sclkPin;
-  GPIO_TypeDef* mosiPort;
-  uint16_t mosiPin;
-  GPIO_TypeDef* misoPort;
-  uint16_t misoPin;
-  GPIO_TypeDef* csPort;
-  uint16_t csPin;
+    GPIO_TypeDef* sclkPort;
+    uint16_t sclkPin;
+    GPIO_TypeDef* mosiPort;
+    uint16_t mosiPin;
+    GPIO_TypeDef* misoPort;
+    uint16_t misoPin;
+    GPIO_TypeDef* csPort;
+    uint16_t csPin;
 } sw_spi_t;
 
 extern void sw_spi_init(sw_spi_t* spidev);

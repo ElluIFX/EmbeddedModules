@@ -48,13 +48,13 @@ void kl_port_context_switch(void);
 // @param arg: 线程参数
 // @param exit: 线程结束回调地址
 // @return: 线程栈指针
-void *kl_port_stack_init(void *stack_base, void *stack_top, void *entry,
-                         void *arg, void *exit);
+void* kl_port_stack_init(void* stack_base, void* stack_top, void* entry,
+                         void* arg, void* exit);
 
 // 平台实现: 重置线程栈
 // @param stack_base: 栈基地址
 // @param stack_top: 栈顶地址
-void kl_port_stack_reset(void *stack_base, void *stack_top);
+void kl_port_stack_reset(void* stack_base, void* stack_top);
 
 // 平台实现: 进入临界区
 void kl_port_enter_critical(void);
@@ -63,13 +63,13 @@ void kl_port_enter_critical(void);
 void kl_port_leave_critical(void);
 
 // 初始化内核堆
-void kl_heap_init(void *addr, kl_size_t size);
+void kl_heap_init(void* addr, kl_size_t size);
 
 // 内核时钟递增
 void kl_kernel_tick_source(kl_tick_t time);
 
 // 内核空闲线程
-void kl_kernel_idle_entry(void *args);
+void kl_kernel_idle_entry(void* args);
 
 // 处理线程空闲任务
 void kl_thread_idle_task(void);
@@ -129,61 +129,61 @@ void kl_sched_tcb_sleep(kl_thread_t tcb, kl_tick_t timeout);
 // 将线程加入等待队列
 // @param tcb: 线程控制块
 // @param list: 等待队列
-void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list *list);
+void kl_sched_tcb_wait(kl_thread_t tcb, struct kl_thread_list* list);
 
 // 将线程同时加入等待队列和睡眠队列
 // @param tcb: 线程控制块
 // @param list: 等待队列
 // @param timeout: 睡眠时间(等待超时时间)
-void kl_sched_tcb_timed_wait(kl_thread_t tcb, struct kl_thread_list *list,
+void kl_sched_tcb_timed_wait(kl_thread_t tcb, struct kl_thread_list* list,
                              kl_tick_t timeout);
 
 // 尝试唤醒等待队列中的线程
 // @param list: 等待队列
 // @return: 被唤醒的线程控制块, NULL表示无等待线程
-kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list *list);
+kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list* list);
 
 // Heap使用的独立互斥锁实现 (不支持递归!)
-#define __KL_HEAP_MUTEX_IMPL__                             \
-  volatile static uint8_t heap_lock = 0;                   \
-  static struct kl_thread_list heap_waitlist;              \
-  static void heap_mutex_lock(void) {                      \
-    kl_port_enter_critical();                              \
-    if (!heap_lock) {                                      \
-      heap_lock = 1;                                       \
-    } else {                                               \
-      kl_sched_tcb_wait(kl_sched_tcb_now, &heap_waitlist); \
-      kl_sched_switch();                                   \
-    }                                                      \
-    kl_port_leave_critical();                              \
-  }                                                        \
-  static void heap_mutex_unlock(void) {                    \
-    kl_port_enter_critical();                              \
-    if (kl_sched_tcb_wake_from(&heap_waitlist)) {          \
-      kl_sched_preempt(false);                             \
-    } else {                                               \
-      heap_lock = 0;                                       \
-    }                                                      \
-    kl_port_leave_critical();                              \
-  }
+#define __KL_HEAP_MUTEX_IMPL__                                   \
+    volatile static uint8_t heap_lock = 0;                       \
+    static struct kl_thread_list heap_waitlist;                  \
+    static void heap_mutex_lock(void) {                          \
+        kl_port_enter_critical();                                \
+        if (!heap_lock) {                                        \
+            heap_lock = 1;                                       \
+        } else {                                                 \
+            kl_sched_tcb_wait(kl_sched_tcb_now, &heap_waitlist); \
+            kl_sched_switch();                                   \
+        }                                                        \
+        kl_port_leave_critical();                                \
+    }                                                            \
+    static void heap_mutex_unlock(void) {                        \
+        kl_port_enter_critical();                                \
+        if (kl_sched_tcb_wake_from(&heap_waitlist)) {            \
+            kl_sched_preempt(false);                             \
+        } else {                                                 \
+            heap_lock = 0;                                       \
+        }                                                        \
+        kl_port_leave_critical();                                \
+    }
 
 // 设置当前线程的errno
-#define KL_SET_ERRNO(errno)                     \
-  do {                                          \
-    if (kl_sched_tcb_now) {                     \
-      kl_port_enter_critical();                 \
-      kl_sched_tcb_now->err = (uint8_t)(errno); \
-      kl_port_leave_critical();                 \
-    }                                           \
-  } while (0)
+#define KL_SET_ERRNO(errno)                           \
+    do {                                              \
+        if (kl_sched_tcb_now) {                       \
+            kl_port_enter_critical();                 \
+            kl_sched_tcb_now->err = (uint8_t)(errno); \
+            kl_port_leave_critical();                 \
+        }                                             \
+    } while (0)
 
-#define KL_RET_CHECK_TIMEOUT()           \
-  do {                                   \
-    if (kl_sched_tcb_now->timeout > 0) { \
-      KL_SET_ERRNO(KL_ETIMEOUT);         \
-      return false;                      \
-    }                                    \
-    return true;                         \
-  } while (0)
+#define KL_RET_CHECK_TIMEOUT()               \
+    do {                                     \
+        if (kl_sched_tcb_now->timeout > 0) { \
+            KL_SET_ERRNO(KL_ETIMEOUT);       \
+            return false;                    \
+        }                                    \
+        return true;                         \
+    } while (0)
 
 #endif

@@ -2,6 +2,7 @@
 
 ## 目录
 
+- [s\_task - 跨平台的C语言协程多任务库](#s_task---跨平台的c语言协程多任务库)
   - [目录](#目录)
   - [特性](#特性)
   - [协程 vs 多线程](#协程-vs-多线程)
@@ -12,14 +13,20 @@
   - [兼容性列表](#兼容性列表)
   - [编译](#编译)
     - [Posix - Linux / FreeBSD / MacOS / MingW(MSYS2)](#posix---linux--freebsd--macos--mingwmsys2)
-    - [其他 - Windows / STM8 / Cortex-M / Arduino, 和更多单片机 ...](#其他---windows--stm8--cortex-m--arduino-和更多单片机-)
-  - [如何在您的项目中使用s_task？](#如何在您的项目中使用s_task)
+    - [其他 - Windows / STM8 / Cortex-M / Arduino, 和更多单片机](#其他---windows--stm8--cortex-m--arduino-和更多单片机)
+  - [如何在您的项目中使用s\_task？](#如何在您的项目中使用s_task)
   - [API](#api)
     - [Task （任务）](#task-任务)
     - [Chan （数据通道）](#chan-数据通道)
     - [Mutex （互斥量）](#mutex-互斥量)
     - [Event （事件）](#event-事件)
   - [嵌入式平台](#嵌入式平台)
+    - [Chan for interrupt (中断和任务的数据通道，仅嵌入式平台支持，STM8/STM32/M051/Arduino)](#chan-for-interrupt-中断和任务的数据通道仅嵌入式平台支持stm8stm32m051arduino)
+      - [任务里调用的 chan api](#任务里调用的-chan-api)
+      - [中断里调用 chan api](#中断里调用-chan-api)
+    - [Event for interrupt (中断里的事件，仅嵌入式平台支持，STM8/STM32/M051/Arduino)](#event-for-interrupt-中断里的事件仅嵌入式平台支持stm8stm32m051arduino)
+      - [任务里调用的 event api](#任务里调用的-event-api)
+      - [中断里调用的 event api](#中断里调用的-event-api)
   - [希望移植到新的平台？](#希望移植到新的平台)
   - [联系方式](#联系方式)
   - [其他协程库对比](#其他协程库对比)
@@ -27,34 +34,34 @@
 
 ## 特性
 
- + 全c和汇编实现，紧凑小巧又不失实用，并且不需要c++。
- + 协程切换代码来自boost汇编，性能极好，稳定可靠，移植性好，几乎全平台支持。
- + 和libuv（稍作修改）无缝融合，完美支持跨平台网络编程。
- + 支持 __await__ , __async__ 关键词，含义和用法都其他语言的await/async相同 --
+- 全c和汇编实现，紧凑小巧又不失实用，并且不需要c++。
+- 协程切换代码来自boost汇编，性能极好，稳定可靠，移植性好，几乎全平台支持。
+- 和libuv（稍作修改）无缝融合，完美支持跨平台网络编程。
+- 支持 __await__ , __async__ 关键词，含义和用法都其他语言的await/async相同 --
     没有调用 await 函数的地方，协程肯定不会被切换出去，可确保共享数据不会被其他协程改变。
     具备传染性，能调用 await 的函数，一定在一个 async 函数里。这个async 函数需要用 await 调用。
- + 支持协程间的event变量、mutex锁、chan数据通道等，方便不同协程间同步数据和状态。这个方式比其他协程resume函数更好用和可控。
- + 除支持windows, linux, macos这些常规环境外，更能为stm32等嵌入式小芯片环境提供多任务支持（注：小芯片环境下不支持libuv)。
- + 在嵌入式小芯片下使用，s_task是个恰到好处的RTOS -- 没有动态内存分配，增加程序大小不到 1.5k, 不增加程序空间负担，支持任务和中断间通讯。
+- 支持协程间的event变量、mutex锁、chan数据通道等，方便不同协程间同步数据和状态。这个方式比其他协程resume函数更好用和可控。
+- 除支持windows, linux, macos这些常规环境外，更能为stm32等嵌入式小芯片环境提供多任务支持（注：小芯片环境下不支持libuv)。
+- 在嵌入式小芯片下使用，s_task是个恰到好处的RTOS -- 没有动态内存分配，增加程序大小不到 1.5k, 不增加程序空间负担，支持任务和中断间通讯。
 
 ## 协程 vs 多线程
 
 协程和多线程编程模式对比，协程的优势极其明显 --
 
-+ **协程不会陷入死锁的窘境。**
-  
-+ **协程需要的代码量极小。**
-  
+- **协程不会陷入死锁的窘境。**
+
+- **协程需要的代码量极小。**
+
   一般协程比多线程更少的代码量就能实现，这在资源捉襟见肘的嵌入式单片机中尤其重要。有时跑个多线程 RTOS 库，应用自己都没空间了。s_task协程只增加了不到 1.5K 的代码量，这对单片机极其友好。
 
-+ **协程主动让出CPU，没有也不需要 “抢占式多任务” 。**
-  
-  您没看错，人们已经开始反思，“抢占式多任务” 根本不是啥优势，而是**多线程最大的缺点**，更是**bug之源**。主动让出CPU的协程，减少bug的同时，更能带来更好的CPU利用率，更多的并发任务数。这也是近年来，不管C++, C#, nodejs, java, php各式语言，都开始引入协程的原因。
+- **协程主动让出CPU，没有也不需要 “抢占式多任务” 。**
 
-+ **协程比任何的所谓 “实时操作系统RTOS” 更实时。**
-  
-+ **协程有 __await__ 标注任务可能切换。**
-  
+  您没看错，人们已经开始反思，“抢占式多任务” 根本不是啥优势，而是__多线程最大的缺点__，更是__bug之源__。主动让出CPU的协程，减少bug的同时，更能带来更好的CPU利用率，更多的并发任务数。这也是近年来，不管C++, C#, nodejs, java, php各式语言，都开始引入协程的原因。
+
+- **协程比任何的所谓 “实时操作系统RTOS” 更实时。**
+
+- **协程有 __await__ 标注任务可能切换。**
+
   通过__await__标注，程序员明确的知道，在某个函数在运行的时候，CPU可能会被切换到其他任务。如此多任务间共享变量变得无比安全，这点是线程不能比的。
 
 s_task协程库，更是打造了全平台兼容的协程支持环境，从高端linux服务器、windows/apple桌面，到安卓ndk，到stm32、arduino等各式嵌入式无操作系统环境都能支持，有些芯片的运行内存甚至可以低至1K大小。（[参考兼容性列表](#%e5%85%bc%e5%ae%b9%e6%80%a7)）
@@ -184,7 +191,7 @@ out0:;
 #include "src/s_task/s_task.h"
 
 //这个程序运行了三个任务
-// 1) 任务 main_task - 
+// 1) 任务 main_task -
 //    等10秒并设置退出标志 g_exit，
 //    在所有其他任务退出后，将LED设为常量。
 // 2) 任务 sub_task_fast_blinking -
@@ -212,7 +219,7 @@ void sub_task_fast_blinking(__async__, void* arg) {
         s_task_msleep(__await__, 50);        // 等50毫秒
         digitalWrite(LED_BUILTIN, LOW);      // 熄灭LED
         s_task_msleep(__await__, 50);        // 等50毫秒
-    }    
+    }
 }
 
 void sub_task_set_low(__async__, void* arg) {
@@ -222,7 +229,7 @@ void sub_task_set_low(__async__, void* arg) {
         s_task_sleep(__await__, 1);          // 等1秒
         g_is_low = false;                    // 打开LED快闪
         s_task_sleep(__await__, 3);          // 等3秒
-    }    
+    }
 }
 
 void main_task(__async__, void* arg) {
@@ -240,7 +247,7 @@ void main_task(__async__, void* arg) {
 }
 
 void loop() {
-    
+
     s_task_init_system();
     main_task(__await__, NULL);
 
@@ -250,10 +257,9 @@ void loop() {
 }
 ```
 
-
 ## 兼容性列表
 
-"s_task" 可以作为一个单独的库使用，也可以配合libuv实现跨平台网络编程（编译时加上宏定义**USE_LIBUV**）。
+"s_task" 可以作为一个单独的库使用，也可以配合libuv实现跨平台网络编程（编译时加上宏定义__USE_LIBUV__）。
 
 | 平台                                     | coroutine协程      | libuv支持          |
 |------------------------------------------|--------------------|--------------------|
@@ -262,7 +268,7 @@ void loop() {
 | MacOS                                    | :heavy_check_mark: | :heavy_check_mark: |
 | FreeBSD (12.1, x64)                      | :heavy_check_mark: | :heavy_check_mark: |
 | Android                                  | :heavy_check_mark: | :heavy_check_mark: |
-| MingW (https://www.msys2.org/)           | :heavy_check_mark: | :heavy_check_mark: |
+| MingW (<https://www.msys2.org/>)           | :heavy_check_mark: | :heavy_check_mark: |
 | ARMv6-M (M051, 树莓派 Raspberry Pi Pico) | :heavy_check_mark: | :x:                |
 | ARMv7-M (STM32F103, STM32F302)           | :heavy_check_mark: | :x:                |
 | STM8 (STM8S103, STM8L051F3)              | :heavy_check_mark: | :x:                |
@@ -271,14 +277,15 @@ void loop() {
 | Arduino DUE (ATSAM3X8E)                  | :heavy_check_mark: | :x:                |
 
    linux在以下硬件环境测试通过
-   * i686 (ubuntu-16.04)
-   * x86_64 (centos-8.1)
-   * arm (树莓派32位)
-   * aarch64 (① 树莓派64位, ② ubuntu 14.04 / centos7.6 运行于华为鲲鹏920)
-   * mipsel (openwrt ucLinux 3.10.14 for MT7628)
-   * mips64 (fedora for loongson 3A-4000 龙芯)
-   * ppc64 / ppc64le (centos-7.8.2003 altarch)
-   * riscv64 ([jslinux](https://bellard.org/jslinux/vm.html?cpu=riscv64&url=buildroot-riscv64.cfg&mem=256))
+
+- i686 (ubuntu-16.04)
+- x86_64 (centos-8.1)
+- arm (树莓派32位)
+- aarch64 (① 树莓派64位, ② ubuntu 14.04 / centos7.6 运行于华为鲲鹏920)
+- mipsel (openwrt ucLinux 3.10.14 for MT7628)
+- mips64 (fedora for loongson 3A-4000 龙芯)
+- ppc64 / ppc64le (centos-7.8.2003 altarch)
+- riscv64 ([jslinux](https://bellard.org/jslinux/vm.html?cpu=riscv64&url=buildroot-riscv64.cfg&mem=256))
 
 ## 编译
 
@@ -293,7 +300,7 @@ void loop() {
 
     cmake . -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
 
-### 其他 - Windows / STM8 / Cortex-M / Arduino, 和更多单片机 ...
+### 其他 - Windows / STM8 / Cortex-M / Arduino, 和更多单片机
 
 | 平台                       | 项目                                  | 工具链                                              |
 |----------------------------|---------------------------------------|-----------------------------------------------------|
@@ -314,11 +321,11 @@ void loop() {
 
 在 linux/unix 等环境里，可以先用cmake编译，编译完成后，将产生可以直接用于您的项目的链接库文件，您可以通过以下简单3步使用s_task --
 
-* 将 libs_task.a 加入到您的项目
-* #include "[s_task.h](include/s_task.h)"
-* 编译时加上宏定义 USE_LIBUV
+- 将 libs_task.a 加入到您的项目
+- #include "[s_task.h](include/s_task.h)"
+- 编译时加上宏定义 USE_LIBUV
 
-在 arduino 上使用，可以复制目录 "[include](include)" 和 "[src](src)" 下的所有*.h, *.c文件到您的项目的 src/s_task目录下。这里有个实际的目录结果可供参考："[build/arduino/](build/arduino/)"。
+在 arduino 上使用，可以复制目录 "[include](include)" 和 "[src](src)" 下的所有*.h,*.c文件到您的项目的 src/s_task目录下。这里有个实际的目录结果可供参考："[build/arduino/](build/arduino/)"。
 
 在 windows 或其他平台，请用 build 目录下的项目作为项目模板和参考。
 
@@ -327,8 +334,8 @@ void loop() {
 ### Task （任务）
 
 ```c
-/* 
- * Return values -- 
+/*
+ * Return values --
  * For all functions marked by __async__ and hava an int return value, will
  *     return 0 on waiting successfully,
  *     return -1 on waiting cancalled by s_task_cancel_wait() called by other task.
@@ -379,28 +386,28 @@ s_chan_declare(name,TYPE,count);
  */
 s_chan_init(name,TYPE,count);
 
-/* 
+/*
  * Put element into chan
  *  return 0 on chan put successfully
  *  return -1 on chan cancelled
  */
 int s_chan_put(__async__, s_chan_t *chan, const void *in_object);
 
-/* 
+/*
  * Put number of elements into chan
  *  return 0 on chan put successfully
  *  return -1 on chan cancelled
  */
 int s_chan_put_n(__async__, s_chan_t *chan, const void *in_object, uint16_t number);
 
-/* 
+/*
  * Get element from chan
  *  return 0 on chan get successfully
  *  return -1 on chan cancelled
  */
 int s_chan_get(__async__, s_chan_t *chan, void *out_object);
 
-/* 
+/*
  * Get number of elements from chan
  *  return 0 on chan get successfully
  *  return -1 on chan cancelled
@@ -441,6 +448,7 @@ int s_event_wait_sec(__async__, s_event_t *event, uint32_t sec);
 ```
 
 ## 嵌入式平台
+
 <details>
   <summary>嵌入式平台特殊API</summary>
 
@@ -495,7 +503,7 @@ uint16_t s_chan_get_n__in_irq(s_chan_t *chan, void *out_object, uint16_t number)
 #### 任务里调用的 event api
 
 ```c
-/* 
+/*
  * Wait event from irq, disable irq before call this function!
  *   S_IRQ_DISABLE()
  *   ...
@@ -505,7 +513,7 @@ uint16_t s_chan_get_n__in_irq(s_chan_t *chan, void *out_object, uint16_t number)
  */
 int s_event_wait__from_irq(__async__, s_event_t *event);
 
-/* 
+/*
  * Wait event from irq, disable irq before call this function!
  *   S_IRQ_DISABLE()
  *   ...
@@ -515,7 +523,7 @@ int s_event_wait__from_irq(__async__, s_event_t *event);
  */
 int s_event_wait_msec__from_irq(__async__, s_event_t *event, uint32_t msec);
 
-/* 
+/*
  * Wait event from irq, disable irq before call this function!
  *   S_IRQ_DISABLE()
  *   ...
@@ -551,6 +559,7 @@ void my_on_idle(uint64_t max_idle_ms) {
     /* 增加使CPU睡眠代码，最长不超过  max_idle_ms 毫秒 */
 }
 ```
+
 </details>
 
 ## 希望移植到新的平台？
@@ -565,24 +574,24 @@ void my_on_idle(uint64_t max_idle_ms) {
 
 ## 其他协程库对比
 
-+ coro: http://www.goron.de/~froese/coro/
-+ coroutine(a asymmetric coroutine library for C): https://github.com/cloudwu/coroutine
-+ coroutine(a asymmetric coroutine (lua like) with fixed-size stack): https://github.com/xphh/coroutine
-+ coroutine(coroutine library with pthread-like interface in pure C): https://github.com/Marcus366/coroutine
-+ coroutines(A lightweight coroutine library written in C and assembler): https://github.com/xya/coroutines
-+ fcontext: https://github.com/reginaldl/fcontext
-+ hev-task-system: https://github.com/heiher/hev-task-system
-+ libaco: https://github.com/hnes/libaco
-+ libconcurrency: http://code.google.com/p/libconcurrency/
-+ libconcurrent: https://github.com/sharow/libconcurrent
-+ libcoro: http://software.schmorp.de/pkg/libcoro.html
-+ libcoroutine: https://github.com/stevedekorte/coroutine
-+ libfiber: http://www.rkeene.org/projects/info/wiki/22
-+ libtask: https://code.google.com/p/libtask/
-+ libwire: https://github.com/baruch/libwire
-+ micro: https://github.com/mikewei/micoro
-+ mill: https://github.com/sustrik/mill
-+ Portable Coroutine Library (PCL): http://xmailserver.org/libpcl.html
+- coro: <http://www.goron.de/~froese/coro/>
+- coroutine(a asymmetric coroutine library for C): <https://github.com/cloudwu/coroutine>
+- coroutine(a asymmetric coroutine (lua like) with fixed-size stack): <https://github.com/xphh/coroutine>
+- coroutine(coroutine library with pthread-like interface in pure C): <https://github.com/Marcus366/coroutine>
+- coroutines(A lightweight coroutine library written in C and assembler): <https://github.com/xya/coroutines>
+- fcontext: <https://github.com/reginaldl/fcontext>
+- hev-task-system: <https://github.com/heiher/hev-task-system>
+- libaco: <https://github.com/hnes/libaco>
+- libconcurrency: <http://code.google.com/p/libconcurrency/>
+- libconcurrent: <https://github.com/sharow/libconcurrent>
+- libcoro: <http://software.schmorp.de/pkg/libcoro.html>
+- libcoroutine: <https://github.com/stevedekorte/coroutine>
+- libfiber: <http://www.rkeene.org/projects/info/wiki/22>
+- libtask: <https://code.google.com/p/libtask/>
+- libwire: <https://github.com/baruch/libwire>
+- micro: <https://github.com/mikewei/micoro>
+- mill: <https://github.com/sustrik/mill>
+- Portable Coroutine Library (PCL): <http://xmailserver.org/libpcl.html>
 
 ## 感谢
 

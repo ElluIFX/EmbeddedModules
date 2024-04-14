@@ -9,16 +9,15 @@
  * 2015-04-15     ArdaFu     Split from AT91SAM9260 BSP
  */
 
-#include <rtthread.h>
 #include <rthw.h>
+#include <rtthread.h>
 
-#define INT_IRQ     0x00
-#define INT_FIQ     0x01
+#define INT_IRQ 0x00
+#define INT_FIQ 0x01
 
-extern struct rt_thread *rt_current_thread;
+extern struct rt_thread* rt_current_thread;
 
-struct rt_hw_register
-{
+struct rt_hw_register {
     rt_uint32_t r0;
     rt_uint32_t r1;
     rt_uint32_t r2;
@@ -38,30 +37,30 @@ struct rt_hw_register
     rt_uint32_t cpsr;
     rt_uint32_t ORIG_r0;
 };
-static rt_err_t (*rt_exception_hook)(void *context) = RT_NULL;
-void rt_hw_exception_install(rt_err_t (*exception_handle)(void *context))
-{
+
+static rt_err_t (*rt_exception_hook)(void* context) = RT_NULL;
+
+void rt_hw_exception_install(rt_err_t (*exception_handle)(void* context)) {
     rt_exception_hook = exception_handle;
 }
+
 /**
  * this function will show registers of CPU
  *
  * @param regs the registers point
  */
 
-void rt_hw_show_register(struct rt_hw_register *regs)
-{
+void rt_hw_show_register(struct rt_hw_register* regs) {
     rt_kprintf("Execption:\n");
-    rt_kprintf("r00:0x%08x r01:0x%08x r02:0x%08x r03:0x%08x\n",
-               regs->r0, regs->r1, regs->r2, regs->r3);
-    rt_kprintf("r04:0x%08x r05:0x%08x r06:0x%08x r07:0x%08x\n",
-               regs->r4, regs->r5, regs->r6, regs->r7);
-    rt_kprintf("r08:0x%08x r09:0x%08x r10:0x%08x\n",
-               regs->r8, regs->r9, regs->r10);
-    rt_kprintf("fp :0x%08x ip :0x%08x\n",
-               regs->fp, regs->ip);
-    rt_kprintf("sp :0x%08x lr :0x%08x pc :0x%08x\n",
-               regs->sp, regs->lr, regs->pc);
+    rt_kprintf("r00:0x%08x r01:0x%08x r02:0x%08x r03:0x%08x\n", regs->r0,
+               regs->r1, regs->r2, regs->r3);
+    rt_kprintf("r04:0x%08x r05:0x%08x r06:0x%08x r07:0x%08x\n", regs->r4,
+               regs->r5, regs->r6, regs->r7);
+    rt_kprintf("r08:0x%08x r09:0x%08x r10:0x%08x\n", regs->r8, regs->r9,
+               regs->r10);
+    rt_kprintf("fp :0x%08x ip :0x%08x\n", regs->fp, regs->ip);
+    rt_kprintf("sp :0x%08x lr :0x%08x pc :0x%08x\n", regs->sp, regs->lr,
+               regs->pc);
     rt_kprintf("cpsr:0x%08x\n", regs->cpsr);
 }
 
@@ -73,14 +72,13 @@ void rt_hw_show_register(struct rt_hw_register *regs)
  *
  * @note never invoke this function in application
  */
-void rt_hw_trap_udef(struct rt_hw_register *regs)
-{
-    if (rt_exception_hook != RT_NULL)
-    {
+void rt_hw_trap_udef(struct rt_hw_register* regs) {
+    if (rt_exception_hook != RT_NULL) {
         rt_err_t result;
 
         result = rt_exception_hook(regs);
-        if (result == RT_EOK) return;
+        if (result == RT_EOK)
+            return;
     }
     rt_hw_show_register(regs);
 
@@ -99,14 +97,13 @@ void rt_hw_trap_udef(struct rt_hw_register *regs)
  *
  * @note never invoke this function in application
  */
-void rt_hw_trap_swi(struct rt_hw_register *regs)
-{
-    if (rt_exception_hook != RT_NULL)
-    {
+void rt_hw_trap_swi(struct rt_hw_register* regs) {
+    if (rt_exception_hook != RT_NULL) {
         rt_err_t result;
 
         result = rt_exception_hook(regs);
-        if (result == RT_EOK) return;
+        if (result == RT_EOK)
+            return;
     }
     rt_hw_show_register(regs);
 
@@ -122,14 +119,13 @@ void rt_hw_trap_swi(struct rt_hw_register *regs)
  *
  * @note never invoke this function in application
  */
-void rt_hw_trap_pabt(struct rt_hw_register *regs)
-{
-    if (rt_exception_hook != RT_NULL)
-    {
+void rt_hw_trap_pabt(struct rt_hw_register* regs) {
+    if (rt_exception_hook != RT_NULL) {
         rt_err_t result;
 
         result = rt_exception_hook(regs);
-        if (result == RT_EOK) return;
+        if (result == RT_EOK)
+            return;
     }
     rt_hw_show_register(regs);
 
@@ -147,14 +143,13 @@ void rt_hw_trap_pabt(struct rt_hw_register *regs)
  *
  * @note never invoke this function in application
  */
-void rt_hw_trap_dabt(struct rt_hw_register *regs)
-{
-    if (rt_exception_hook != RT_NULL)
-    {
+void rt_hw_trap_dabt(struct rt_hw_register* regs) {
+    if (rt_exception_hook != RT_NULL) {
         rt_err_t result;
 
         result = rt_exception_hook(regs);
-        if (result == RT_EOK) return;
+        if (result == RT_EOK)
+            return;
     }
     rt_hw_show_register(regs);
 
@@ -171,14 +166,13 @@ void rt_hw_trap_dabt(struct rt_hw_register *regs)
  *
  * @note never invoke this function in application
  */
-void rt_hw_trap_resv(struct rt_hw_register *regs)
-{
-    if (rt_exception_hook != RT_NULL)
-    {
+void rt_hw_trap_resv(struct rt_hw_register* regs) {
+    if (rt_exception_hook != RT_NULL) {
         rt_err_t result;
 
         result = rt_exception_hook(regs);
-        if (result == RT_EOK) return;
+        if (result == RT_EOK)
+            return;
     }
     rt_kprintf("not used\n");
     rt_hw_show_register(regs);
@@ -187,12 +181,10 @@ void rt_hw_trap_resv(struct rt_hw_register *regs)
 
 extern void rt_interrupt_dispatch(rt_uint32_t fiq_irq);
 
-void rt_hw_trap_irq(void)
-{
+void rt_hw_trap_irq(void) {
     rt_interrupt_dispatch(INT_IRQ);
 }
 
-void rt_hw_trap_fiq(void)
-{
+void rt_hw_trap_fiq(void) {
     rt_interrupt_dispatch(INT_FIQ);
 }

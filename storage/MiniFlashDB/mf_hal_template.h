@@ -20,10 +20,10 @@
 
 /* 从addr开始，擦除长度为MF_FLASH_BLOCK_SIZE的flash */
 __attribute__((unused)) static void mf_erase(uint32_t addr) {
-  // 实际入参只可能是MF_FLASH_MAIN_ADDR或MF_FLASH_BACKUP_ADDR，可以考虑简化
+    // 实际入参只可能是MF_FLASH_MAIN_ADDR或MF_FLASH_BACKUP_ADDR，可以考虑简化
 }
 
 /* 从addr开始，把buf写入长度为MF_FLASH_BLOCK_SIZE的flash */
-__attribute__((unused)) static void mf_write(uint32_t addr, void *buf) {
-  // 同理，也可以考虑简化
+__attribute__((unused)) static void mf_write(uint32_t addr, void* buf) {
+    // 同理，也可以考虑简化
 }

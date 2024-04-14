@@ -1,16 +1,16 @@
 # ModBus
-Library for Modbus, master/slave, ASCII/RTU, multi-platform, C language
 
+Library for Modbus, master/slave, ASCII/RTU, multi-platform, C language
 
 #### ModBus 主/从机协议
 
-   - 支持 ASCII / RTU 两种模式
+- 支持 ASCII / RTU 两种模式
 
-   - 可以创建多个实例
+- 可以创建多个实例
 
-   - 读写寄存器使用非堵塞式, 通过绑定回调函数获取结果
+- 读写寄存器使用非堵塞式, 通过绑定回调函数获取结果
 
-#### 使用方法:
+#### 使用方法
 
 ##### 主机
 

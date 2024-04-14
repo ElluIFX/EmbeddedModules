@@ -18,28 +18,28 @@
 
 #include <./ctl_unordered_set.h>
 
-static inline I JOIN(A, insert_or_assign)(A *self, T value) {
-  B *node;
-  if ((node = JOIN(A, find_node)(self, value))) {
-    FREE_VALUE(self, value);
-    return JOIN(I, iter)(self, node);
-  } else {
-    JOIN(A, _pre_insert_grow)(self);
-    return JOIN(I, iter)(self, *JOIN(A, push_cached)(self, &value));
-  }
+static inline I JOIN(A, insert_or_assign)(A* self, T value) {
+    B* node;
+    if ((node = JOIN(A, find_node)(self, value))) {
+        FREE_VALUE(self, value);
+        return JOIN(I, iter)(self, node);
+    } else {
+        JOIN(A, _pre_insert_grow)(self);
+        return JOIN(I, iter)(self, *JOIN(A, push_cached)(self, &value));
+    }
 }
 
-static inline I JOIN(A, insert_or_assign_found)(A *self, T value, int *foundp) {
-  B *node;
-  if ((node = JOIN(A, find_node)(self, value))) {
-    FREE_VALUE(self, value);
-    *foundp = 1;
-    return JOIN(I, iter)(self, node);
-  } else {
-    JOIN(A, _pre_insert_grow)(self);
-    *foundp = 0;
-    return JOIN(I, iter)(self, *JOIN(A, push_cached)(self, &value));
-  }
+static inline I JOIN(A, insert_or_assign_found)(A* self, T value, int* foundp) {
+    B* node;
+    if ((node = JOIN(A, find_node)(self, value))) {
+        FREE_VALUE(self, value);
+        *foundp = 1;
+        return JOIN(I, iter)(self, node);
+    } else {
+        JOIN(A, _pre_insert_grow)(self);
+        *foundp = 0;
+        return JOIN(I, iter)(self, *JOIN(A, push_cached)(self, &value));
+    }
 }
 
 #undef CTL_UMAP

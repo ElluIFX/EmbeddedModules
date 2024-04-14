@@ -13,7 +13,7 @@
  * 2013-11-04   bright       fixed hardfault bug for gcc.
  * 2019-03-31   xuzhuoyi     port to Cortex-M23.
  */
- 
+
     .cpu    cortex-m23
     .fpu    softvfp
     .syntax unified

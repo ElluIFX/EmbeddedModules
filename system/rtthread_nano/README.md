@@ -31,7 +31,7 @@ RT-Thread Nano 以软件包的方式集成在 Keil MDK 与 CubeMX 中，可以�
 - [使用 KEIL MDK 移植 RT-Thread Nano](nano-port-keil/nano-port-keil.md)
 - [使用 CubeMX 移植 RT-Thread Nano](nano-port-cube/nano-port-cube.md)
 - [使用 IAR 移植 RT-Thread Nano](nano-port-iar/nano-port-iar.md)
-- [移植 RT-Thread Nano 到 RISC-V](nano-port-gcc-riscv/nano-port-gcc-riscv.md) 
+- [移植 RT-Thread Nano 到 RISC-V](nano-port-gcc-riscv/nano-port-gcc-riscv.md)
 
 **4、使用简单**
 
@@ -59,4 +59,3 @@ Nano 资源占用情况举例：在运行两个线程 (main 线程 + idle 线程
 ### 开源免费（Apache 2.0）
 
 RT-Thread Nano 实时操作系统遵循 Apache 许可证 2.0 版本，实时操作系统内核及所有开源组件可以免费在商业产品中使用，不需要公布应用程序源码，没有潜在商业风险。
-

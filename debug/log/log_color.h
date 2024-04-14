@@ -55,7 +55,7 @@
 #define __T_FMT2(fmt1, fmt2) "\033[" fmt1 ";" fmt2 "m"
 #define __T_FMT3(fmt1, fmt2, fmt3) "\033[" fmt1 ";" fmt2 ";" fmt3 "m"
 #define __T_FMT4(fmt1, fmt2, fmt3, fmt4) \
-  "\033[" fmt1 ";" fmt2 ";" fmt3 ";" fmt4 "m"
+    "\033[" fmt1 ";" fmt2 ";" fmt3 ";" fmt4 "m"
 #else
 #define __T_FMT1(fmt) ""
 #define __T_FMT2(fmt1, fmt2) ""
@@ -69,9 +69,9 @@
  * @note 背景: 在颜色后加 _BK
  * @note 格式: T_RESET/T_BOLD/T_UNDERLINE/T_BLINK/T_REVERSE/T_HIDE
  */
-#define T_FMT(...)           \
-  EVAL(__T_FMT, __VA_ARGS__) \
-  (__VA_ARGS__)
+#define T_FMT(...)             \
+    EVAL(__T_FMT, __VA_ARGS__) \
+    (__VA_ARGS__)
 #define T_RST T_FMT(T_RESET)
 
 #endif  // __LOG_COLOR_H__

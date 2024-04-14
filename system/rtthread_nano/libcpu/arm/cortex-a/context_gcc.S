@@ -179,4 +179,3 @@ rt_hw_context_switch_exit:
     ldmfd   sp!, {r1}
     msr     spsr_cxsf, r1        /* original mode */
     ldmfd   sp!, {r0-r12,lr,pc}^ /* irq return */
-

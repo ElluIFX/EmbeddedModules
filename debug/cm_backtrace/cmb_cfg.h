@@ -34,9 +34,9 @@
 /* print line, must config by user */
 /* e.g., printf(__VA_ARGS__);printf("\r\n")  or  SEGGER_RTT_printf(0,
  * __VA_ARGS__);SEGGER_RTT_WriteString(0, "\r\n")  */
-#define cmb_println(...)     \
-  printf_block(__VA_ARGS__); \
-  printf_block("\r\n")
+#define cmb_println(...)       \
+    printf_block(__VA_ARGS__); \
+    printf_block("\r\n")
 
 #if !KCONFIG_AVAILABLE
 

@@ -30,7 +30,7 @@ extern "C" {
 #define printf_flush() ((void)0)
 #define printf_block(...) SEGGER_RTT_printf(0, ##__VA_ARGS__)
 #define println(fmt, ...) \
-  SEGGER_RTT_printf(0, fmt UIO_CFG_PRINTF_ENDL, ##__VA_ARGS__)
+    SEGGER_RTT_printf(0, fmt UIO_CFG_PRINTF_ENDL, ##__VA_ARGS__)
 #elif UIO_CFG_PRINTF_USE_CDC && UIO_CFG_ENABLE_CDC
 #define printf(...) cdc_printf(__VA_ARGS__)
 #define printf_flush() cdc_printf_flush()
@@ -43,54 +43,57 @@ extern "C" {
 #define println(fmt, ...) itm_printf(0, fmt UIO_CFG_PRINTF_ENDL, ##__VA_ARGS__)
 #else
 #define printf(fmt, ...) \
-  uart_printf(&UIO_CFG_PRINTF_UART_PORT, fmt, ##__VA_ARGS__)
+    uart_printf(&UIO_CFG_PRINTF_UART_PORT, fmt, ##__VA_ARGS__)
 #define printf_flush() uart_flush(&UIO_CFG_PRINTF_UART_PORT)
 #define printf_block(...) \
-  uart_printf_block(&UIO_CFG_PRINTF_UART_PORT, ##__VA_ARGS__)
+    uart_printf_block(&UIO_CFG_PRINTF_UART_PORT, ##__VA_ARGS__)
 #define println(fmt, ...) printf(fmt UIO_CFG_PRINTF_ENDL, ##__VA_ARGS__)
 #endif  // UIO_CFG_PRINTF_USE_*
 
 #if UIO_CFG_PRINTF_REDIRECT_PUTX
 static inline int __putchar(int ch) {
 #if UIO_CFG_PRINTF_USE_RTT
-  SEGGER_RTT_Write(0, &ch, 1);
+    SEGGER_RTT_Write(0, &ch, 1);
 #elif UIO_CFG_PRINTF_USE_CDC && UIO_CFG_ENABLE_CDC
-  cdc_write(&ch, 1);
+    cdc_write(&ch, 1);
 #elif UIO_CFG_PRINTF_USE_ITM
-  itm_send_char(0, ch);
+    itm_send_char(0, ch);
 #else
-  uart_write(&UIO_CFG_PRINTF_UART_PORT, (uint8_t *)&ch, 1);
+    uart_write(&UIO_CFG_PRINTF_UART_PORT, (uint8_t*)&ch, 1);
 #endif  // UIO_CFG_PRINTF_USE_*
-  return ch;
+    return ch;
 }
-static inline int __puts(const char *s) {
+
+static inline int __puts(const char* s) {
 #if UIO_CFG_PRINTF_USE_RTT
-  SEGGER_RTT_Write(0, s, strlen(s));
+    SEGGER_RTT_Write(0, s, strlen(s));
 #elif UIO_CFG_PRINTF_USE_CDC && UIO_CFG_ENABLE_CDC
-  cdc_write((uint8_t *)s, strlen(s));
+    cdc_write((uint8_t*)s, strlen(s));
 #elif UIO_CFG_PRINTF_USE_ITM
-  while (*s) {
-    itm_send_char(0, *s++);
-  }
+    while (*s) {
+        itm_send_char(0, *s++);
+    }
 #else
-  size_t strlen(const char *s);
-  uart_write(&UIO_CFG_PRINTF_UART_PORT, (uint8_t *)s, strlen(s));
+    size_t strlen(const char* s);
+    uart_write(&UIO_CFG_PRINTF_UART_PORT, (uint8_t*)s, strlen(s));
 #endif  // UIO_CFG_PRINTF_USE_*
-  return 0;
+    return 0;
 }
+
 static inline int __getchar(void) {
 #if UIO_CFG_PRINTF_USE_RTT
-  char ch;
-  SEGGER_RTT_Read(0, &ch, 1);
-  return ch;
+    char ch;
+    SEGGER_RTT_Read(0, &ch, 1);
+    return ch;
 #elif UIO_CFG_PRINTF_USE_CDC && UIO_CFG_ENABLE_CDC
-  return -1;  // not supported
+    return -1;  // not supported
 #elif UIO_CFG_PRINTF_USE_ITM
-  return itm_recv_char();
+    return itm_recv_char();
 #else
-  return -1;  // not supported
+    return -1;  // not supported
 #endif  // UIO_CFG_PRINTF_USE_*
 }
+
 #undef putchar
 #undef puts
 #undef getchar

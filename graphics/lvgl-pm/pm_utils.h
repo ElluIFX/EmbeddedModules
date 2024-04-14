@@ -3,6 +3,6 @@
 
 #include "lvgl.h"
 
-void pm_reset_style(lv_obj_t *obj);
+void pm_reset_style(lv_obj_t* obj);
 
 #endif

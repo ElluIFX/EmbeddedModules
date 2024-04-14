@@ -10,39 +10,39 @@
 // 结构体 xv 是一个表达式值。
 // 这通常作为 xv_eval 函数的结果创建，但也可以使用 xv_new_*() 函数进行创建。
 struct xv {
-  uint64_t priv[2];
+    uint64_t priv[2];
 };
 
 // 枚举 xv_type 是从 xv_type() 函数返回的。
 enum xv_type {
-  XV_ERROR,
-  XV_UNDEFINED,
-  XV_NULL,
-  XV_STRING,
-  XV_NUMBER,
-  XV_BOOLEAN,
-  XV_FUNCTION,
-  XV_ARRAY,
-  XV_JSON,
-  XV_OBJECT,
+    XV_ERROR,
+    XV_UNDEFINED,
+    XV_NULL,
+    XV_STRING,
+    XV_NUMBER,
+    XV_BOOLEAN,
+    XV_FUNCTION,
+    XV_ARRAY,
+    XV_JSON,
+    XV_OBJECT,
 };
 
 // struct xv_env 是一个提供给 xv_eval 的自定义环境。
 struct xv_env {
-  // no_case 告诉 xv_eval 执行不区分大小写的比较。
-  bool no_case;
-  // udata 是自定义用户数据。
-  void *udata;
-  // ref 是一个回调函数，它返回未知标识符、属性和函数的引用值。
-  struct xv (*ref)(struct xv this, struct xv ident, void *udata);
+    // no_case 告诉 xv_eval 执行不区分大小写的比较。
+    bool no_case;
+    // udata 是自定义用户数据。
+    void* udata;
+    // ref 是一个回调函数，它返回未知标识符、属性和函数的引用值。
+    struct xv (*ref)(struct xv this, struct xv ident, void* udata);
 };
 
 // xv_eval 函数用来评估一个表达式并返回结果值。
 //
 // 如果 xv_eval 的结果出现错误，例如语法错误或系统内存耗尽，
 // 则可以使用 xv_is_err() 来检查结果。
-struct xv xv_eval(const char *expr, struct xv_env *env);
-struct xv xv_evaln(const char *expr, size_t len, struct xv_env *env);
+struct xv xv_eval(const char* expr, struct xv_env* env);
+struct xv xv_evaln(const char* expr, size_t len, struct xv_env* env);
 
 // xv_cleanup 函数用于重置环境并释放可能在 xv_eval 过程中分配的任何内存。
 //
@@ -67,7 +67,7 @@ void xv_cleanup(void);
 //        // ... 复制未完成 ...
 //    }
 //
-size_t xv_string_copy(struct xv value, char *dst, size_t n);
+size_t xv_string_copy(struct xv value, char* dst, size_t n);
 
 // xv_string 返回值的字符串表示。
 //
@@ -76,7 +76,7 @@ size_t xv_string_copy(struct xv value, char *dst, size_t n);
 // 或者，可以使用 xv_string_copy 来避免分配内存。
 //
 // 如果系统内存不足，返回 NULL。
-char *xv_string(struct xv value);
+char* xv_string(struct xv value);
 
 // xv_string_length 返回值的字符串表示的长度。
 size_t xv_string_length(struct xv value);
@@ -91,7 +91,7 @@ int64_t xv_int64(struct xv value);
 uint64_t xv_uint64(struct xv value);
 
 // xv_object 返回用户定义的对象，如果没有则返回 NULL。
-const void *xv_object(struct xv value);
+const void* xv_object(struct xv value);
 
 // xv_object_tag 返回用户定义对象的标签，如果没有则返回 0。
 uint32_t xv_object_tag(struct xv value);
@@ -130,36 +130,36 @@ struct xv xv_array_at(struct xv value, size_t index);
 // 这个函数执行的是二进制字符比较。逐个比较两个字符串中的每个字符。
 // 如果它们等于彼此，则一直进行比较，直到字符不同，或者到达值的结束或 C
 // 字符串中的空字符终止符。 如果结果是小于、等于、大于则返回 < 0、0、> 0。
-int xv_string_compare(struct xv value, const char *str);
-int xv_string_comparen(struct xv value, const char *str, size_t len);
+int xv_string_compare(struct xv value, const char* str);
+int xv_string_comparen(struct xv value, const char* str, size_t len);
 
-int xv_string_equal(struct xv value, const char *str);
-int xv_string_equaln(struct xv value, const char *str, size_t len);
+int xv_string_equal(struct xv value, const char* str);
+int xv_string_equaln(struct xv value, const char* str, size_t len);
 
 // value construction
-struct xv xv_new_string(const char *str);
-struct xv xv_new_stringn(const char *str, size_t len);
-struct xv xv_new_object(const void *ptr, uint32_t tag);
-struct xv xv_new_json(const char *json);
-struct xv xv_new_jsonn(const char *json, size_t len);
+struct xv xv_new_string(const char* str);
+struct xv xv_new_stringn(const char* str, size_t len);
+struct xv xv_new_object(const void* ptr, uint32_t tag);
+struct xv xv_new_json(const char* json);
+struct xv xv_new_jsonn(const char* json, size_t len);
 struct xv xv_new_double(double d);
 struct xv xv_new_int64(int64_t i);
 struct xv xv_new_uint64(uint64_t u);
 struct xv xv_new_boolean(bool t);
 struct xv xv_new_undefined(void);
 struct xv xv_new_null(void);
-struct xv xv_new_error(const char *msg);
-struct xv xv_new_array(const struct xv *const *values, size_t nvalues);
+struct xv xv_new_error(const char* msg);
+struct xv xv_new_array(const struct xv* const* values, size_t nvalues);
 struct xv xv_new_function(struct xv (*func)(struct xv this,
-                                            const struct xv args, void *udata));
+                                            const struct xv args, void* udata));
 
 // struct xv_memstats 是 xv_memstats 返回的结构体
 struct xv_memstats {
-  size_t thread_total_size;  // 线程局部内存空间的总大小
-  size_t thread_size;        // 已使用的线程局部内存空间的字节数
-  size_t thread_allocs;      // 线程局部内存空间的分配次数
-  size_t heap_allocs;        // 线程局部堆分配次数
-  size_t heap_size;          // 已使用的线程局部堆字节数
+    size_t thread_total_size;  // 线程局部内存空间的总大小
+    size_t thread_size;    // 已使用的线程局部内存空间的字节数
+    size_t thread_allocs;  // 线程局部内存空间的分配次数
+    size_t heap_allocs;    // 线程局部堆分配次数
+    size_t heap_size;      // 已使用的线程局部堆字节数
 };
 
 // xv_memstats 返回由于 xv_eval 调用产生的各种内存统计信息。

@@ -7,10 +7,10 @@
 
  Below is the public api currently provided by "list".
 
-## list_t *list_new();
+## list_t *list_new()
 
  Allocate and initialize a `list`.
- 
+
     list_t *mylist = list_new();
 
 ## list_node_t \*list_node_new(void *val)
@@ -25,7 +25,7 @@ node->val; // "my value"
 ## list_node_t \* list_rpush(list_t \*self, list_node_t *node)
 
  Append _node_ to _self_, returning _node_.
- 
+
 ```c
 list_rpush(list, list_node_new("value"));
 list->tail->val; // "value"
@@ -39,7 +39,7 @@ list->tail->val; // "value"
 list_node_t *last = list_rpop(names);
 ```
 
-##  list_node_t \*list_lpush(list_t \*self, list_node_t *node)
+## list_node_t \*list_lpush(list_t \*self, list_node_t *node)
 
  Prepend _node_ to _self_, returning _node_.
 
@@ -96,13 +96,13 @@ list_iterator_t *it = list_iterator_new(list, LIST_HEAD);
 while ((node = list_iterator_next(it))) {
   puts(node->val);
 }
-```  
+```
 
 ## list_node_t \*list_iterator_next(list_iterator_t *self)
 
   Return the next `list_node_t` or __NULL__.
 
-## void list_iterator_destroy(list_iterator_t *self);
+## void list_iterator_destroy(list_iterator_t *self)
 
   Free the iterator only.
 
@@ -140,9 +140,9 @@ stdout:
 ## Benchmarks
 
     $ make benchmark
-    
+
      10,000,000 nodes
-    
+
                   lpush: 0.5000s
                   rpush: 0.5000s
                    lpop: 0.0312s
@@ -153,17 +153,15 @@ stdout:
           at(1,000,000): 0.0000s
            at(-100,000): 0.0000s
 
-
-
 ## Testing
 
-    $ make test
+    make test
 
-## License 
+## License
 
 (The MIT License)
 
-Copyright (c) 2009-2010 TJ Holowaychuk &lt;tj@vision-media.ca&gt;
+Copyright (c) 2009-2010 TJ Holowaychuk &lt;<tj@vision-media.ca>&gt;
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

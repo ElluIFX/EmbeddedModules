@@ -43,24 +43,24 @@ extern "C" {
 #endif /* __cplusplus */
 
 typedef struct {
-  clock_t start;
-  uint32_t frames;
-  float smoothing;
-  float current;
+    clock_t start;
+    uint32_t frames;
+    float smoothing;
+    float current;
 } fps_instance_t;
 
 /**
  * Initialize the given FPS counter instance
  */
-static inline void fps_init(fps_instance_t *fps) {
-  fps->start = clock() - 1;
-  fps->frames = 0;
-  fps->current = 0.0;
+static inline void fps_init(fps_instance_t* fps) {
+    fps->start = clock() - 1;
+    fps->frames = 0;
+    fps->current = 0.0;
 
-  /* Larger value is less smoothing. */
-  if (!fps->smoothing) {
-    fps->smoothing = 0.98;
-  }
+    /* Larger value is less smoothing. */
+    if (!fps->smoothing) {
+        fps->smoothing = 0.98;
+    }
 }
 
 /**
@@ -71,27 +71,27 @@ static inline void fps_init(fps_instance_t *fps) {
  *
  * @return current fps
  */
-static inline float fps_update(fps_instance_t *fps) {
-  float measured = 0.0;
-  clock_t ticks = clock() - fps->start;
-  ;
+static inline float fps_update(fps_instance_t* fps) {
+    float measured = 0.0;
+    clock_t ticks = clock() - fps->start;
+    ;
 
-  fps->frames++;
+    fps->frames++;
 
-  measured = fps->frames / (float)ticks * CLOCKS_PER_SEC;
-  fps->current =
-      (measured * fps->smoothing) + (fps->current * (1.0 - fps->smoothing));
+    measured = fps->frames / (float)ticks * CLOCKS_PER_SEC;
+    fps->current =
+        (measured * fps->smoothing) + (fps->current * (1.0 - fps->smoothing));
 
-  return fps->current;
+    return fps->current;
 }
 
 /**
  * Reset the given FPS counter instance
  */
-static inline void fps_reset(fps_instance_t *fps) {
-  fps->start = clock() - 1;
-  fps->frames = 0;
-  fps->current = 0;
+static inline void fps_reset(fps_instance_t* fps) {
+    fps->start = clock() - 1;
+    fps->frames = 0;
+    fps->current = 0;
 }
 
 #ifdef __cplusplus

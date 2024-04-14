@@ -11,17 +11,16 @@
 #include <rthw.h>
 #include <rtthread.h>
 
-RT_WEAK void machine_reset(void)
-{
+RT_WEAK void machine_reset(void) {
     rt_kprintf("reboot system...\n");
     rt_hw_interrupt_disable();
-    while (1);
+    while (1)
+        ;
 }
 
-RT_WEAK void machine_shutdown(void)
-{
+RT_WEAK void machine_shutdown(void) {
     rt_kprintf("shutdown...\n");
     rt_hw_interrupt_disable();
-    while (1);
+    while (1)
+        ;
 }
-

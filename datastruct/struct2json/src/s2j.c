@@ -31,8 +31,13 @@
 
 #include "modules.h"
 
-static void *m_alloc_warp(size_t size) { return m_alloc(size); }
-static void m_free_warp(void *ptr) { m_free(ptr); }
+static void* m_alloc_warp(size_t size) {
+    return m_alloc(size);
+}
+
+static void m_free_warp(void* ptr) {
+    m_free(ptr);
+}
 
 S2jHook s2jHook = {
     .malloc_fn = m_alloc_warp,
@@ -43,15 +48,15 @@ S2jHook s2jHook = {
  * struct2json library initialize
  * @note It will initialize cJSON library hooks.
  */
-void s2j_init(S2jHook *hook) {
-  /* initialize cJSON library */
-  cJSON_InitHooks((cJSON_Hooks *)hook);
-  /* initialize hooks */
-  if (hook) {
-    s2jHook.malloc_fn = (hook->malloc_fn) ? hook->malloc_fn : m_alloc_warp;
-    s2jHook.free_fn = (hook->free_fn) ? hook->free_fn : m_free_warp;
-  } else {
-    hook->malloc_fn = m_alloc_warp;
-    hook->free_fn = m_free_warp;
-  }
+void s2j_init(S2jHook* hook) {
+    /* initialize cJSON library */
+    cJSON_InitHooks((cJSON_Hooks*)hook);
+    /* initialize hooks */
+    if (hook) {
+        s2jHook.malloc_fn = (hook->malloc_fn) ? hook->malloc_fn : m_alloc_warp;
+        s2jHook.free_fn = (hook->free_fn) ? hook->free_fn : m_free_warp;
+    } else {
+        hook->malloc_fn = m_alloc_warp;
+        hook->free_fn = m_free_warp;
+    }
 }

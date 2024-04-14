@@ -79,4 +79,3 @@ _reswitch:
     STR     R1, [R2]
     MOV     PC, LR
     END
-    

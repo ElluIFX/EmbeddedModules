@@ -18,42 +18,37 @@ extern void machine_reset(void);
 extern void machine_shutdown(void);
 
 #ifdef __GNUC__
-rt_inline rt_uint32_t cp15_rd(void)
-{
+rt_inline rt_uint32_t cp15_rd(void) {
     rt_uint32_t i;
 
-    asm ("mrc p15, 0, %0, c1, c0, 0":"=r" (i));
+    asm("mrc p15, 0, %0, c1, c0, 0" : "=r"(i));
     return i;
 }
 
-rt_inline void cache_enable(rt_uint32_t bit)
-{
-    __asm__ __volatile__(           \
-        "mrc  p15,0,r0,c1,c0,0\n\t" \
-        "orr  r0,r0,%0\n\t"         \
-        "mcr  p15,0,r0,c1,c0,0"     \
-        :                           \
-        :"r" (bit)                  \
-        :"memory");
+rt_inline void cache_enable(rt_uint32_t bit) {
+    __asm__ __volatile__(
+        "mrc  p15,0,r0,c1,c0,0\n\t"
+        "orr  r0,r0,%0\n\t"
+        "mcr  p15,0,r0,c1,c0,0"
+        :
+        : "r"(bit)
+        : "memory");
 }
 
-rt_inline void cache_disable(rt_uint32_t bit)
-{
-    __asm__ __volatile__(           \
-        "mrc  p15,0,r0,c1,c0,0\n\t" \
-        "bic  r0,r0,%0\n\t"         \
-        "mcr  p15,0,r0,c1,c0,0"     \
-        :                           \
-        :"r" (bit)                  \
-        :"memory");
+rt_inline void cache_disable(rt_uint32_t bit) {
+    __asm__ __volatile__(
+        "mrc  p15,0,r0,c1,c0,0\n\t"
+        "bic  r0,r0,%0\n\t"
+        "mcr  p15,0,r0,c1,c0,0"
+        :
+        : "r"(bit)
+        : "memory");
 }
-
 
 #endif
 
 #ifdef __CC_ARM
-rt_inline rt_uint32_t cp15_rd(void)
-{
+rt_inline rt_uint32_t cp15_rd(void) {
     rt_uint32_t i;
 
     __asm
@@ -64,8 +59,7 @@ rt_inline rt_uint32_t cp15_rd(void)
     return i;
 }
 
-rt_inline void cache_enable(rt_uint32_t bit)
-{
+rt_inline void cache_enable(rt_uint32_t bit) {
     rt_uint32_t value;
 
     __asm
@@ -76,8 +70,7 @@ rt_inline void cache_enable(rt_uint32_t bit)
     }
 }
 
-rt_inline void cache_disable(rt_uint32_t bit)
-{
+rt_inline void cache_disable(rt_uint32_t bit) {
     rt_uint32_t value;
 
     __asm
@@ -93,8 +86,7 @@ rt_inline void cache_disable(rt_uint32_t bit)
  * enable I-Cache
  *
  */
-void rt_hw_cpu_icache_enable()
-{
+void rt_hw_cpu_icache_enable() {
     cache_enable(ICACHE_MASK);
 }
 
@@ -102,8 +94,7 @@ void rt_hw_cpu_icache_enable()
  * disable I-Cache
  *
  */
-void rt_hw_cpu_icache_disable()
-{
+void rt_hw_cpu_icache_disable() {
     cache_disable(ICACHE_MASK);
 }
 
@@ -111,8 +102,7 @@ void rt_hw_cpu_icache_disable()
  * return the status of I-Cache
  *
  */
-rt_base_t rt_hw_cpu_icache_status()
-{
+rt_base_t rt_hw_cpu_icache_status() {
     return (cp15_rd() & ICACHE_MASK);
 }
 
@@ -120,8 +110,7 @@ rt_base_t rt_hw_cpu_icache_status()
  * enable D-Cache
  *
  */
-void rt_hw_cpu_dcache_enable()
-{
+void rt_hw_cpu_dcache_enable() {
     cache_enable(DCACHE_MASK);
 }
 
@@ -129,8 +118,7 @@ void rt_hw_cpu_dcache_enable()
  * disable D-Cache
  *
  */
-void rt_hw_cpu_dcache_disable()
-{
+void rt_hw_cpu_dcache_disable() {
     cache_disable(DCACHE_MASK);
 }
 
@@ -138,8 +126,7 @@ void rt_hw_cpu_dcache_disable()
  * return the status of D-Cache
  *
  */
-rt_base_t rt_hw_cpu_dcache_status()
-{
+rt_base_t rt_hw_cpu_dcache_status() {
     return (cp15_rd() & DCACHE_MASK);
 }
 
@@ -147,13 +134,13 @@ rt_base_t rt_hw_cpu_dcache_status()
  * reset cpu by dog's time-out
  *
  */
-void rt_hw_cpu_reset()
-{
+void rt_hw_cpu_reset() {
 
     rt_kprintf("Restarting system...\n");
     machine_reset();
 
-    while(1);   /* loop forever and wait for reset to happen */
+    while (1)
+        ; /* loop forever and wait for reset to happen */
 
     /* NEVER REACHED */
 }
@@ -162,15 +149,13 @@ void rt_hw_cpu_reset()
  *  shutdown CPU
  *
  */
-void rt_hw_cpu_shutdown()
-{
+void rt_hw_cpu_shutdown() {
     rt_uint32_t level;
     rt_kprintf("shutdown...\n");
 
     level = rt_hw_interrupt_disable();
     machine_shutdown();
-    while (level)
-    {
+    while (level) {
         RT_ASSERT(0);
     }
 }
@@ -187,8 +172,7 @@ void rt_hw_cpu_shutdown()
  * shall return 0.
  */
 #if defined(__CC_ARM)
-int __rt_ffs(int value)
-{
+int __rt_ffs(int value) {
     register rt_uint32_t x;
 
     if (value == 0)
@@ -205,8 +189,7 @@ int __rt_ffs(int value)
     return x;
 }
 #elif defined(__IAR_SYSTEMS_ICC__)
-int __rt_ffs(int value)
-{
+int __rt_ffs(int value) {
     if (value == 0)
         return value;
 
@@ -216,19 +199,17 @@ int __rt_ffs(int value)
     __ASM("RSB  r0, r4, #32");
 }
 #elif defined(__GNUC__)
-int __rt_ffs(int value)
-{
+int __rt_ffs(int value) {
     if (value == 0)
         return value;
 
     value &= (-value);
-    asm ("clz %0, %1": "=r"(value) :"r"(value));
+    asm("clz %0, %1" : "=r"(value) : "r"(value));
 
     return (32 - value);
 }
 #endif
 
 #endif
-
 
 /*@}*/

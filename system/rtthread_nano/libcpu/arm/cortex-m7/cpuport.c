@@ -19,13 +19,15 @@
 
 #include <rtthread.h>
 
-#if               /* ARMCC */ (  (defined ( __CC_ARM ) && defined ( __TARGET_FPU_VFP ))    \
-                  /* Clang */ || (defined ( __CLANG_ARM ) && defined ( __VFP_FP__ ) && !defined(__SOFTFP__)) \
-                  /* IAR */   || (defined ( __ICCARM__ ) && defined ( __ARMVFP__ ))        \
-                  /* GNU */   || (defined ( __GNUC__ ) && defined ( __VFP_FP__ ) && !defined(__SOFTFP__)) )
-#define USE_FPU   1
+#if /* ARMCC */ (                                                   \
+    (defined(__CC_ARM) && defined(__TARGET_FPU_VFP)) /* Clang */ || \
+    (defined(__CLANG_ARM) && defined(__VFP_FP__) &&                 \
+     !defined(__SOFTFP__)) /* IAR */                                \
+    || (defined(__ICCARM__) && defined(__ARMVFP__)) /* GNU */ ||    \
+    (defined(__GNUC__) && defined(__VFP_FP__) && !defined(__SOFTFP__)))
+#define USE_FPU 1
 #else
-#define USE_FPU   0
+#define USE_FPU 0
 #endif
 
 /* exception and interrupt handler table */
@@ -33,10 +35,9 @@ rt_uint32_t rt_interrupt_from_thread;
 rt_uint32_t rt_interrupt_to_thread;
 rt_uint32_t rt_thread_switch_interrupt_flag;
 /* exception hook */
-static rt_err_t (*rt_exception_hook)(void *context) = RT_NULL;
+static rt_err_t (*rt_exception_hook)(void* context) = RT_NULL;
 
-struct exception_stack_frame
-{
+struct exception_stack_frame {
     rt_uint32_t r0;
     rt_uint32_t r1;
     rt_uint32_t r2;
@@ -47,8 +48,7 @@ struct exception_stack_frame
     rt_uint32_t psr;
 };
 
-struct stack_frame
-{
+struct stack_frame {
 #if USE_FPU
     rt_uint32_t flag;
 #endif /* USE_FPU */
@@ -66,8 +66,7 @@ struct stack_frame
     struct exception_stack_frame exception_stack_frame;
 };
 
-struct exception_stack_frame_fpu
-{
+struct exception_stack_frame_fpu {
     rt_uint32_t r0;
     rt_uint32_t r1;
     rt_uint32_t r2;
@@ -100,8 +99,7 @@ struct exception_stack_frame_fpu
 #endif
 };
 
-struct stack_frame_fpu
-{
+struct stack_frame_fpu {
     rt_uint32_t flag;
 
     /* r4 ~ r11 register */
@@ -137,35 +135,33 @@ struct stack_frame_fpu
     struct exception_stack_frame_fpu exception_stack_frame;
 };
 
-rt_uint8_t *rt_hw_stack_init(void       *tentry,
-                             void       *parameter,
-                             rt_uint8_t *stack_addr,
-                             void       *texit)
-{
-    struct stack_frame *stack_frame;
-    rt_uint8_t         *stk;
-    unsigned long       i;
+rt_uint8_t* rt_hw_stack_init(void* tentry, void* parameter,
+                             rt_uint8_t* stack_addr, void* texit) {
+    struct stack_frame* stack_frame;
+    rt_uint8_t* stk;
+    unsigned long i;
 
-    stk  = stack_addr + sizeof(rt_uint32_t);
-    stk  = (rt_uint8_t *)RT_ALIGN_DOWN((rt_uint32_t)stk, 8);
+    stk = stack_addr + sizeof(rt_uint32_t);
+    stk = (rt_uint8_t*)RT_ALIGN_DOWN((rt_uint32_t)stk, 8);
     stk -= sizeof(struct stack_frame);
 
-    stack_frame = (struct stack_frame *)stk;
+    stack_frame = (struct stack_frame*)stk;
 
     /* init all register */
-    for (i = 0; i < sizeof(struct stack_frame) / sizeof(rt_uint32_t); i ++)
-    {
-        ((rt_uint32_t *)stack_frame)[i] = 0xdeadbeef;
+    for (i = 0; i < sizeof(struct stack_frame) / sizeof(rt_uint32_t); i++) {
+        ((rt_uint32_t*)stack_frame)[i] = 0xdeadbeef;
     }
 
-    stack_frame->exception_stack_frame.r0  = (unsigned long)parameter; /* r0 : argument */
-    stack_frame->exception_stack_frame.r1  = 0;                        /* r1 */
-    stack_frame->exception_stack_frame.r2  = 0;                        /* r2 */
-    stack_frame->exception_stack_frame.r3  = 0;                        /* r3 */
-    stack_frame->exception_stack_frame.r12 = 0;                        /* r12 */
-    stack_frame->exception_stack_frame.lr  = (unsigned long)texit;     /* lr */
-    stack_frame->exception_stack_frame.pc  = (unsigned long)tentry;    /* entry point, pc */
-    stack_frame->exception_stack_frame.psr = 0x01000000L;              /* PSR */
+    stack_frame->exception_stack_frame.r0 =
+        (unsigned long)parameter;               /* r0 : argument */
+    stack_frame->exception_stack_frame.r1 = 0;  /* r1 */
+    stack_frame->exception_stack_frame.r2 = 0;  /* r2 */
+    stack_frame->exception_stack_frame.r3 = 0;  /* r3 */
+    stack_frame->exception_stack_frame.r12 = 0; /* r12 */
+    stack_frame->exception_stack_frame.lr = (unsigned long)texit; /* lr */
+    stack_frame->exception_stack_frame.pc =
+        (unsigned long)tentry;                            /* entry point, pc */
+    stack_frame->exception_stack_frame.psr = 0x01000000L; /* PSR */
 
 #if USE_FPU
     stack_frame->flag = 0;
@@ -180,40 +176,47 @@ rt_uint8_t *rt_hw_stack_init(void       *tentry,
  *
  * @param exception_handle the exception handling hook function.
  */
-void rt_hw_exception_install(rt_err_t (*exception_handle)(void *context))
-{
+void rt_hw_exception_install(rt_err_t (*exception_handle)(void* context)) {
     rt_exception_hook = exception_handle;
 }
 
-#define SCB_CFSR        (*(volatile const unsigned *)0xE000ED28) /* Configurable Fault Status Register */
-#define SCB_HFSR        (*(volatile const unsigned *)0xE000ED2C) /* HardFault Status Register */
-#define SCB_MMAR        (*(volatile const unsigned *)0xE000ED34) /* MemManage Fault Address register */
-#define SCB_BFAR        (*(volatile const unsigned *)0xE000ED38) /* Bus Fault Address Register */
-#define SCB_AIRCR       (*(volatile unsigned long *)0xE000ED0C)  /* Reset control Address Register */
-#define SCB_RESET_VALUE 0x05FA0004                               /* Reset value, write to SCB_AIRCR can reset cpu */
+#define SCB_CFSR \
+    (*(volatile const unsigned*)0xE000ED28) /* Configurable Fault Status Register */
+#define SCB_HFSR \
+    (*(volatile const unsigned*)0xE000ED2C) /* HardFault Status Register */
+#define SCB_MMAR \
+    (*(volatile const unsigned*)0xE000ED34) /* MemManage Fault Address register */
+#define SCB_BFAR \
+    (*(volatile const unsigned*)0xE000ED38) /* Bus Fault Address Register */
+#define SCB_AIRCR \
+    (*(volatile unsigned long*)0xE000ED0C) /* Reset control Address Register */
+#define SCB_RESET_VALUE \
+    0x05FA0004 /* Reset value, write to SCB_AIRCR can reset cpu */
 
-#define SCB_CFSR_MFSR   (*(volatile const unsigned char*)0xE000ED28)  /* Memory-management Fault Status Register */
-#define SCB_CFSR_BFSR   (*(volatile const unsigned char*)0xE000ED29)  /* Bus Fault Status Register */
-#define SCB_CFSR_UFSR   (*(volatile const unsigned short*)0xE000ED2A) /* Usage Fault Status Register */
+#define SCB_CFSR_MFSR \
+    (*(volatile const unsigned char*)0xE000ED28) /* Memory-management Fault Status Register */
+#define SCB_CFSR_BFSR \
+    (*(volatile const unsigned char*)0xE000ED29) /* Bus Fault Status Register */
+#define SCB_CFSR_UFSR \
+    (*(volatile const unsigned short*)0xE000ED2A) /* Usage Fault Status Register */
 
-struct exception_info
-{
+struct exception_info {
     rt_uint32_t exc_return;
     struct stack_frame stack_frame;
 };
 
-void rt_hw_hard_fault_exception(struct exception_info *exception_info)
-{
+void rt_hw_hard_fault_exception(struct exception_info* exception_info) {
     extern long list_thread(void);
-    struct exception_stack_frame *exception_stack = &exception_info->stack_frame.exception_stack_frame;
-    struct stack_frame *context = &exception_info->stack_frame;
+    struct exception_stack_frame* exception_stack =
+        &exception_info->stack_frame.exception_stack_frame;
+    struct stack_frame* context = &exception_info->stack_frame;
 
-    if (rt_exception_hook != RT_NULL)
-    {
+    if (rt_exception_hook != RT_NULL) {
         rt_err_t result;
 
         result = rt_exception_hook(exception_stack);
-        if (result == RT_EOK) return;
+        if (result == RT_EOK)
+            return;
     }
 
     rt_kprintf("psr: 0x%08x\n", context->exception_stack_frame.psr);
@@ -234,30 +237,25 @@ void rt_hw_hard_fault_exception(struct exception_info *exception_info)
     rt_kprintf(" lr: 0x%08x\n", context->exception_stack_frame.lr);
     rt_kprintf(" pc: 0x%08x\n", context->exception_stack_frame.pc);
 
-    if (exception_info->exc_return & (1 << 2))
-    {
+    if (exception_info->exc_return & (1 << 2)) {
         rt_kprintf("hard fault on thread: %s\r\n\r\n", rt_thread_self()->name);
 
-    }
-    else
-    {
+    } else {
         rt_kprintf("hard fault on handler\r\n\r\n");
     }
 
-    if ( (exception_info->exc_return & 0x10) == 0)
-    {
+    if ((exception_info->exc_return & 0x10) == 0) {
         rt_kprintf("FPU active!\r\n");
     }
 
-
-    while (1);
+    while (1)
+        ;
 }
 
 /**
  * shutdown CPU
  */
-void rt_hw_cpu_shutdown(void)
-{
+void rt_hw_cpu_shutdown(void) {
     rt_kprintf("shutdown...\n");
 
     RT_ASSERT(0);
@@ -266,8 +264,7 @@ void rt_hw_cpu_shutdown(void)
 /**
  * reset CPU
  */
-RT_WEAK void rt_hw_cpu_reset(void)
-{
+RT_WEAK void rt_hw_cpu_reset(void) {
     SCB_AIRCR = SCB_RESET_VALUE;
 }
 
@@ -283,21 +280,17 @@ RT_WEAK void rt_hw_cpu_reset(void)
  * shall return 0.
  */
 #if defined(__CC_ARM)
-__asm int __rt_ffs(int value)
-{
-    CMP     r0, #0x00
-    BEQ     exit
+__asm int __rt_ffs(int value) {
+    CMP r0,
+# 0x00 BEQ exit
 
-    RBIT    r0, r0
-    CLZ     r0, r0
-    ADDS    r0, r0, #0x01
+        RBIT r0, r0 CLZ r0, r0 ADDS r0, r0,
+# 0x01
 
-exit
-    BX      lr
+        exit BX lr
 }
 #elif defined(__CLANG_ARM)
-int __rt_ffs(int value)
-{
+int __rt_ffs(int value) {
     __asm volatile(
         "CMP     r0, #0x00            \n"
         "BEQ     exit                 \n"
@@ -309,14 +302,13 @@ int __rt_ffs(int value)
         "exit:                        \n"
 
         : "=r"(value)
-        : "r"(value)
-    );
+        : "r"(value));
     return value;
 }
 #elif defined(__IAR_SYSTEMS_ICC__)
-int __rt_ffs(int value)
-{
-    if (value == 0) return value;
+int __rt_ffs(int value) {
+    if (value == 0)
+        return value;
 
     asm("RBIT %0, %1" : "=r"(value) : "r"(value));
     asm("CLZ  %0, %1" : "=r"(value) : "r"(value));
@@ -325,8 +317,7 @@ int __rt_ffs(int value)
     return value;
 }
 #elif defined(__GNUC__)
-int __rt_ffs(int value)
-{
+int __rt_ffs(int value) {
     return __builtin_ffs(value);
 }
 #endif

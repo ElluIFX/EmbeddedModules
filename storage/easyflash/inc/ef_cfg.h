@@ -64,8 +64,8 @@
 #define EF_WRITE_GRAN /* @note you must define it for a value */
 
 /* The size of read_env and continue_ff_addr function used*/
-#define EF_READ_BUF_SIZE                                                      \
-  32 /* @default 32, Larger numbers can improve first-time speed of alloc_env \
+#define EF_READ_BUF_SIZE \
+    32 /* @default 32, Larger numbers can improve first-time speed of alloc_env \
         but require more stack space*/
 /*
  *

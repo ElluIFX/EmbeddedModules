@@ -32,7 +32,7 @@ MODE_SYS        EQU     0X1F
 MODEMASK        EQU     0X1F
 
 NOINT           EQU     0xC0
-    
+
 ;----------------------- Stack and Heap Definitions ----------------------------
     AREA    STACK, NOINIT, READWRITE, ALIGN=3
 Stack_Mem
@@ -114,7 +114,7 @@ Reset_Handler
     BIC     R0,R0,#MODEMASK
     ORR     R0,R0,#MODE_SVC:OR:NOINT
     MSR     CPSR_cxsf,R0
-    
+
     ; Set CO-Processor
     ; little-end，disbale I/D Cache MMU, vector table is 0x00000000
     MRC     p15, 0, R0, c1, c0, 0   ; Read CP15
@@ -160,7 +160,7 @@ Setup_Stack
     ; Enter the C code
     LDR     R0, =__main
     BLX     R0
-    
+
 ;----------------- Exception Handler -------------------------------------------
     IMPORT rt_hw_trap_udef
     IMPORT rt_hw_trap_swi
@@ -276,16 +276,16 @@ rt_hw_context_switch_interrupt_do PROC
 ; User Stack and Heap initialization
 ;*******************************************************************************
                  IF      :DEF:__MICROLIB
-                
+
                  EXPORT  __initial_sp
                  EXPORT  __heap_base
                  EXPORT  __heap_limit
-                
+
                  ELSE
-                
+
                  IMPORT  __use_two_region_memory
                  EXPORT  __user_initial_stackheap
-                 
+
 __user_initial_stackheap
 
                  LDR     R0, = Heap_Mem                         ; heap base

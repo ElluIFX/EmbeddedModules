@@ -20,7 +20,7 @@ static EasyUIDriver_t driver;
 #define UI_MAX_LAYER 10
 #define SCROLL_BAR_WIDTH 4
 #define ITEM_HEIGHT \
-  (driver.font_height + (driver.font_height >> 1))  // 1.5 * font_height
+    (driver.font_height + (driver.font_height >> 1))  // 1.5 * font_height
 #define ITEM_LINES ((uint8_t)(driver.height / ITEM_HEIGHT))
 #define ANIM_TIME 50  // in ms, smaller the quicker.
 
@@ -64,112 +64,117 @@ bool functionIsRunning = false, uiListLoop = true;
  * uiParamType, if uiParamType is double, the int param x should be x.0
  *          `ITEM_PROGRESS_BAR`: the incoming param should be 0 - 100
  */
-EasyUIItem_t *EasyUIAddItem(EasyUIItem_t *item, EasyUIPage_t *page,
-                            EasyUIItem_e func, char *_title, ...) {
-  if (!page) return NULL;
-  if (!item) item = (EasyUIItem_t *)m_alloc(sizeof(EasyUIItem_t));
-  if (item) {
-    va_list variableArg;
-    va_start(variableArg, _title);
-    *item->flag = false;
-    item->flagDefault = false;
-    *item->param = 0;
-    item->paramDefault = 0;
-    item->paramBackup = 0;
-    item->pageId = 0;
-    item->eventCnt = 0;
-    item->Event = NULL;
-    item->title = _title;
-    item->funcType = func;
-    item->enable = true;
-    item->eventWhenEditVal = false;
-    switch (item->funcType) {
-      case ITEM_JUMP_PAGE:
-        item->pageId =
-            ((EasyUIPage_t *)va_arg(variableArg, EasyUIPage_t *))->id;
-        break;
-      case ITEM_RADIO_BUTTON:
-        item->flag = va_arg(variableArg, bool *);
-        item->flagDefault = *item->flag;
-        item->paramIndex = va_arg(variableArg, uint8_t *);
-        item->Event = va_arg(variableArg, void (*)(EasyUIItem_t *));
-        break;
-      case ITEM_CHECKBOX:
-      case ITEM_SWITCH:
-        item->flag = va_arg(variableArg, bool *);
-        item->flagDefault = *item->flag;
-        item->Event = va_arg(variableArg, void (*)(EasyUIItem_t *));
-        break;
-      case ITEM_PROGRESS_BAR:
-        item->msg = va_arg(variableArg, char *);
-        item->param = va_arg(variableArg, uiParamType *);
-        item->Event = va_arg(variableArg, void (*)(EasyUIItem_t *));
-        break;
-      case ITEM_VALUE_EDITOR:
-        item->param = va_arg(variableArg, uiParamType *);
-        item->paramBackup = *item->param;
-        item->paramDefault = *item->param;
-        item->paramMax = va_arg(variableArg, uiParamType);
-        item->paramMin = va_arg(variableArg, uiParamType);
-        item->precision = va_arg(variableArg, int);
-        item->Event = va_arg(variableArg, void (*)(EasyUIItem_t *));
-        if (item->Event != NULL)
-          item->eventWhenEditVal = (bool)va_arg(variableArg, int);
-        break;
-      case ITEM_MESSAGE:
-        item->msg = va_arg(variableArg, char *);
-        item->Event = va_arg(variableArg, void (*)(EasyUIItem_t *));
-      case ITEM_PAGE_DESCRIPTION:
-        break;
-      case ITEM_DIALOG:
-        item->msg = va_arg(variableArg, char *);
-        item->flag = va_arg(variableArg, bool *);
-        item->Event = va_arg(variableArg, void (*)(EasyUIItem_t *));
-        item->flagDefault = *item->flag;
-        break;
-      case ITEM_COMBO_BOX:
-        item->paramIndex = va_arg(variableArg, uint8_t *);
-        item->comboList = va_arg(variableArg, char *);
-        item->Event = va_arg(variableArg, void (*)(EasyUIItem_t *));
-        break;
-      default:
-        break;
+EasyUIItem_t* EasyUIAddItem(EasyUIItem_t* item, EasyUIPage_t* page,
+                            EasyUIItem_e func, char* _title, ...) {
+    if (!page)
+        return NULL;
+    if (!item)
+        item = (EasyUIItem_t*)m_alloc(sizeof(EasyUIItem_t));
+    if (item) {
+        va_list variableArg;
+        va_start(variableArg, _title);
+        *item->flag = false;
+        item->flagDefault = false;
+        *item->param = 0;
+        item->paramDefault = 0;
+        item->paramBackup = 0;
+        item->pageId = 0;
+        item->eventCnt = 0;
+        item->Event = NULL;
+        item->title = _title;
+        item->funcType = func;
+        item->enable = true;
+        item->eventWhenEditVal = false;
+        switch (item->funcType) {
+            case ITEM_JUMP_PAGE:
+                item->pageId =
+                    ((EasyUIPage_t*)va_arg(variableArg, EasyUIPage_t*))->id;
+                break;
+            case ITEM_RADIO_BUTTON:
+                item->flag = va_arg(variableArg, bool*);
+                item->flagDefault = *item->flag;
+                item->paramIndex = va_arg(variableArg, uint8_t*);
+                item->Event = va_arg(variableArg, void (*)(EasyUIItem_t*));
+                break;
+            case ITEM_CHECKBOX:
+            case ITEM_SWITCH:
+                item->flag = va_arg(variableArg, bool*);
+                item->flagDefault = *item->flag;
+                item->Event = va_arg(variableArg, void (*)(EasyUIItem_t*));
+                break;
+            case ITEM_PROGRESS_BAR:
+                item->msg = va_arg(variableArg, char*);
+                item->param = va_arg(variableArg, uiParamType*);
+                item->Event = va_arg(variableArg, void (*)(EasyUIItem_t*));
+                break;
+            case ITEM_VALUE_EDITOR:
+                item->param = va_arg(variableArg, uiParamType*);
+                item->paramBackup = *item->param;
+                item->paramDefault = *item->param;
+                item->paramMax = va_arg(variableArg, uiParamType);
+                item->paramMin = va_arg(variableArg, uiParamType);
+                item->precision = va_arg(variableArg, int);
+                item->Event = va_arg(variableArg, void (*)(EasyUIItem_t*));
+                if (item->Event != NULL)
+                    item->eventWhenEditVal = (bool)va_arg(variableArg, int);
+                break;
+            case ITEM_MESSAGE:
+                item->msg = va_arg(variableArg, char*);
+                item->Event = va_arg(variableArg, void (*)(EasyUIItem_t*));
+            case ITEM_PAGE_DESCRIPTION:
+                break;
+            case ITEM_DIALOG:
+                item->msg = va_arg(variableArg, char*);
+                item->flag = va_arg(variableArg, bool*);
+                item->Event = va_arg(variableArg, void (*)(EasyUIItem_t*));
+                item->flagDefault = *item->flag;
+                break;
+            case ITEM_COMBO_BOX:
+                item->paramIndex = va_arg(variableArg, uint8_t*);
+                item->comboList = va_arg(variableArg, char*);
+                item->Event = va_arg(variableArg, void (*)(EasyUIItem_t*));
+                break;
+            default:
+                break;
+        }
+
+        item->next = NULL;
+
+        if (page->itemHead == NULL) {
+            item->id = 0;
+            page->itemHead = item;
+            page->itemTail = item;
+        } else {
+            item->id = page->itemTail->id + 1;
+            page->itemTail->next = item;
+            page->itemTail = page->itemTail->next;
+        }
+
+        item->lineId = item->id;
+        item->posForCal = 0;
+        item->step = 0;
+        item->position = 0;
+        va_end(variableArg);
     }
-
-    item->next = NULL;
-
-    if (page->itemHead == NULL) {
-      item->id = 0;
-      page->itemHead = item;
-      page->itemTail = item;
-    } else {
-      item->id = page->itemTail->id + 1;
-      page->itemTail->next = item;
-      page->itemTail = page->itemTail->next;
-    }
-
-    item->lineId = item->id;
-    item->posForCal = 0;
-    item->step = 0;
-    item->position = 0;
-    va_end(variableArg);
-  }
-  return item;
+    return item;
 }
 
-void EasyUIDelItem(EasyUIItem_t *item, EasyUIPage_t *page, bool dynamic) {
-  if (item == NULL) return;
-  EasyUIItem_t *tmp = page->itemHead;
-  if (tmp == item) {
-    page->itemHead = page->itemHead->next;
-    if (dynamic) m_free(item);
-    return;
-  }
-  while (tmp->next != item) {
-    tmp = tmp->next;
-  }
-  tmp->next = item->next;
-  if (dynamic) m_free(item);
+void EasyUIDelItem(EasyUIItem_t* item, EasyUIPage_t* page, bool dynamic) {
+    if (item == NULL)
+        return;
+    EasyUIItem_t* tmp = page->itemHead;
+    if (tmp == item) {
+        page->itemHead = page->itemHead->next;
+        if (dynamic)
+            m_free(item);
+        return;
+    }
+    while (tmp->next != item) {
+        tmp = tmp->next;
+    }
+    tmp->next = item->next;
+    if (dynamic)
+        m_free(item);
 }
 
 /*!
@@ -184,54 +189,59 @@ void EasyUIDelItem(EasyUIItem_t *item, EasyUIPage_t *page, bool dynamic) {
  * @note    The main page should always be the fist one to be
  * added.
  */
-EasyUIPage_t *EasyUIAddPage(EasyUIPage_t *page, EasyUIPage_e func,
-                            void (*custom_func)(EasyUIPage_t *,
-                                                EasyUIDriver_t *)) {
-  if (!page) page = (EasyUIPage_t *)m_alloc(sizeof(EasyUIPage_t));
-  if (!page) return NULL;
-  page->Event = NULL;
-  page->itemHead = NULL;
-  page->itemTail = NULL;
-  page->next = NULL;
+EasyUIPage_t* EasyUIAddPage(EasyUIPage_t* page, EasyUIPage_e func,
+                            void (*custom_func)(EasyUIPage_t*,
+                                                EasyUIDriver_t*)) {
+    if (!page)
+        page = (EasyUIPage_t*)m_alloc(sizeof(EasyUIPage_t));
+    if (!page)
+        return NULL;
+    page->Event = NULL;
+    page->itemHead = NULL;
+    page->itemTail = NULL;
+    page->next = NULL;
 
-  page->funcType = func;
-  if (page->funcType == PAGE_CUSTOM) {
-    page->Event = custom_func;
-  }
+    page->funcType = func;
+    if (page->funcType == PAGE_CUSTOM) {
+        page->Event = custom_func;
+    }
 
-  if (uiPageHead == NULL) {
-    page->id = 0;
-    uiPageHead = page;
-    uiPageTail = page;
-  } else {
-    page->id = uiPageTail->id + 1;
-    uiPageTail->next = page;
-    uiPageTail = uiPageTail->next;
-  }
-  return page;
+    if (uiPageHead == NULL) {
+        page->id = 0;
+        uiPageHead = page;
+        uiPageTail = page;
+    } else {
+        page->id = uiPageTail->id + 1;
+        uiPageTail->next = page;
+        uiPageTail = uiPageTail->next;
+    }
+    return page;
 }
 
-void EasyUIDelPage(EasyUIPage_t *page, bool dynamic) {
-  if (page == NULL) return;
-  if (dynamic) {
-    EasyUIItem_t *item = page->itemHead;
-    while (item != NULL) {
-      EasyUIItem_t *tmp = item;
-      item = item->next;
-      m_free(tmp);
+void EasyUIDelPage(EasyUIPage_t* page, bool dynamic) {
+    if (page == NULL)
+        return;
+    if (dynamic) {
+        EasyUIItem_t* item = page->itemHead;
+        while (item != NULL) {
+            EasyUIItem_t* tmp = item;
+            item = item->next;
+            m_free(tmp);
+        }
     }
-  }
-  EasyUIPage_t *tmp = uiPageHead;
-  if (tmp == page) {
-    uiPageHead = uiPageHead->next;
-    if (dynamic) m_free(page);
-    return;
-  }
-  while (tmp->next != page) {
-    tmp = tmp->next;
-  }
-  tmp->next = page->next;
-  if (dynamic) m_free(page);
+    EasyUIPage_t* tmp = uiPageHead;
+    if (tmp == page) {
+        uiPageHead = uiPageHead->next;
+        if (dynamic)
+            m_free(page);
+        return;
+    }
+    while (tmp->next != page) {
+        tmp = tmp->next;
+    }
+    tmp->next = page->next;
+    if (dynamic)
+        m_free(page);
 }
 
 /*!
@@ -244,30 +254,30 @@ void EasyUIDelPage(EasyUIPage_t *page, bool dynamic) {
  *          Also use after all the initialization is done for better experience
  */
 void EasyUITransitionAnim() {
-  for (int j = 1; j < driver.height + 1; j += 2) {
-    for (int i = 0; i < driver.width + 1; i += 2) {
-      driver.drawPoint(i, j, driver.bgcolor);
+    for (int j = 1; j < driver.height + 1; j += 2) {
+        for (int i = 0; i < driver.width + 1; i += 2) {
+            driver.drawPoint(i, j, driver.bgcolor);
+        }
     }
-  }
-  driver.flush();
-  for (int j = 1; j < driver.height + 1; j += 2) {
-    for (int i = 1; i < driver.width + 1; i += 2) {
-      driver.drawPoint(i, j, driver.bgcolor);
+    driver.flush();
+    for (int j = 1; j < driver.height + 1; j += 2) {
+        for (int i = 1; i < driver.width + 1; i += 2) {
+            driver.drawPoint(i, j, driver.bgcolor);
+        }
     }
-  }
-  driver.flush();
-  for (int j = 0; j < driver.height + 1; j += 2) {
-    for (int i = 1; i < driver.width + 1; i += 2) {
-      driver.drawPoint(i, j, driver.bgcolor);
+    driver.flush();
+    for (int j = 0; j < driver.height + 1; j += 2) {
+        for (int i = 1; i < driver.width + 1; i += 2) {
+            driver.drawPoint(i, j, driver.bgcolor);
+        }
     }
-  }
-  driver.flush();
-  for (int j = 1; j < driver.height + 1; j += 2) {
-    for (int i = 1; i < driver.width + 1; i += 2) {
-      driver.drawPoint(i - 1, j - 1, driver.bgcolor);
+    driver.flush();
+    for (int j = 1; j < driver.height + 1; j += 2) {
+        for (int i = 1; i < driver.width + 1; i += 2) {
+            driver.drawPoint(i - 1, j - 1, driver.bgcolor);
+        }
     }
-  }
-  driver.flush();
+    driver.flush();
 }
 
 /*!
@@ -277,24 +287,24 @@ void EasyUITransitionAnim() {
  * @return  void
  */
 void EasyUIBackgroundBlur() {
-  for (int j = 1; j < driver.height + 1; j += 2) {
-    for (int i = 0; i < driver.width + 1; i += 2) {
-      driver.drawPoint(i, j, driver.bgcolor);
+    for (int j = 1; j < driver.height + 1; j += 2) {
+        for (int i = 0; i < driver.width + 1; i += 2) {
+            driver.drawPoint(i, j, driver.bgcolor);
+        }
     }
-  }
-  driver.flush();
-  for (int j = 1; j < driver.height + 1; j += 2) {
-    for (int i = 1; i < driver.width + 1; i += 2) {
-      driver.drawPoint(i, j, driver.bgcolor);
+    driver.flush();
+    for (int j = 1; j < driver.height + 1; j += 2) {
+        for (int i = 1; i < driver.width + 1; i += 2) {
+            driver.drawPoint(i, j, driver.bgcolor);
+        }
     }
-  }
-  driver.flush();
-  for (int j = 0; j < driver.height + 1; j += 2) {
-    for (int i = 1; i < driver.width + 1; i += 2) {
-      driver.drawPoint(i, j, driver.bgcolor);
+    driver.flush();
+    for (int j = 0; j < driver.height + 1; j += 2) {
+        for (int i = 1; i < driver.width + 1; i += 2) {
+            driver.drawPoint(i, j, driver.bgcolor);
+        }
     }
-  }
-  driver.flush();
+    driver.flush();
 }
 
 /*!
@@ -303,29 +313,32 @@ void EasyUIBackgroundBlur() {
  * @param   msg     The message need to be displayed
  * @return  void
  */
-void EasyUIDrawMsgBox(char *msg, uint8_t reset) {
-  static uint16_t width = 0;
-  if (reset) width = 0;
-  uint16_t newwidth = strlen(msg) * driver.font_width + 5;
-  if (newwidth > width) width = newwidth;
-  uint16_t x, y;
-  uint8_t offset = 2;
-  x = (driver.width - width) / 2;
-  y = (driver.height - ITEM_HEIGHT) / 2;
-  driver.drawRBox(x + offset, y - offset, width, ITEM_HEIGHT, driver.bgcolor,
-                  1);
-  driver.drawRFrame(x + offset, y - offset, width, ITEM_HEIGHT, driver.color,
+void EasyUIDrawMsgBox(char* msg, uint8_t reset) {
+    static uint16_t width = 0;
+    if (reset)
+        width = 0;
+    uint16_t newwidth = strlen(msg) * driver.font_width + 5;
+    if (newwidth > width)
+        width = newwidth;
+    uint16_t x, y;
+    uint8_t offset = 2;
+    x = (driver.width - width) / 2;
+    y = (driver.height - ITEM_HEIGHT) / 2;
+    driver.drawRBox(x + offset, y - offset, width, ITEM_HEIGHT, driver.bgcolor,
                     1);
-  driver.drawRBox(x - offset, y + offset, width, ITEM_HEIGHT, driver.color, 1);
-  x = (driver.width - newwidth) / 2;
-  driver.enableXorRegion(x - offset + 2,
-                         y + offset + (ITEM_HEIGHT - driver.font_height) / 2,
-                         newwidth, driver.font_height);
-  driver.showStr(x - offset + 2,
-                 y + offset + (ITEM_HEIGHT - driver.font_height) / 2, msg,
-                 driver.color);
-  driver.disableXorRegion();
-  driver.flush();
+    driver.drawRFrame(x + offset, y - offset, width, ITEM_HEIGHT, driver.color,
+                      1);
+    driver.drawRBox(x - offset, y + offset, width, ITEM_HEIGHT, driver.color,
+                    1);
+    x = (driver.width - newwidth) / 2;
+    driver.enableXorRegion(x - offset + 2,
+                           y + offset + (ITEM_HEIGHT - driver.font_height) / 2,
+                           newwidth, driver.font_height);
+    driver.showStr(x - offset + 2,
+                   y + offset + (ITEM_HEIGHT - driver.font_height) / 2, msg,
+                   driver.color);
+    driver.disableXorRegion();
+    driver.flush();
 }
 
 /*!
@@ -336,48 +349,52 @@ void EasyUIDrawMsgBox(char *msg, uint8_t reset) {
  *
  * @note    Internal call
  */
-void EasyUIDrawProgressBar(EasyUIItem_t *item) {
-  int16_t x, y;
-  uint16_t width, height;
-  uint16_t barWidth;
-  float barCurWidth;
-  uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2 + 1;
-  uint16_t msg_len = strlen(item->msg);
+void EasyUIDrawProgressBar(EasyUIItem_t* item) {
+    int16_t x, y;
+    uint16_t width, height;
+    uint16_t barWidth;
+    float barCurWidth;
+    uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2 + 1;
+    uint16_t msg_len = strlen(item->msg);
 
-  driver.disableXorRegion();
+    driver.disableXorRegion();
 
-  // Display information and draw box
-  height = ITEM_HEIGHT * 2 + 2;
-  if (msg_len + 1 > 12)
-    width = (msg_len + 1) * driver.font_width + 7;
-  else
-    width = 12 * driver.font_width + 7;
-  if (width < 3 * driver.width / 4) width = 3 * driver.width / 4;
-  x = (driver.width - width) / 2;
-  y = (driver.height - height) / 2;
+    // Display information and draw box
+    height = ITEM_HEIGHT * 2 + 2;
+    if (msg_len + 1 > 12)
+        width = (msg_len + 1) * driver.font_width + 7;
+    else
+        width = 12 * driver.font_width + 7;
+    if (width < 3 * driver.width / 4)
+        width = 3 * driver.width / 4;
+    x = (driver.width - width) / 2;
+    y = (driver.height - height) / 2;
 
-  barWidth = width - 4 * driver.font_width - 10;
-  barCurWidth = *item->param;
-  if (barCurWidth > 100) barCurWidth = 100;
-  if (barCurWidth < 0) barCurWidth = 0;
-  barCurWidth = barCurWidth / 100.0 * barWidth;
+    barWidth = width - 4 * driver.font_width - 10;
+    barCurWidth = *item->param;
+    if (barCurWidth > 100)
+        barCurWidth = 100;
+    if (barCurWidth < 0)
+        barCurWidth = 0;
+    barCurWidth = barCurWidth / 100.0 * barWidth;
 
-  driver.drawFrame(x - 1, y - 1, width + 2, height + 2, driver.color);
-  driver.drawBox(x, y, width, height, driver.bgcolor);
-  driver.showStr(x + 3, y + itemHeightOffset, item->msg, driver.color);
-  driver.drawFrame(x + 3, y + ITEM_HEIGHT + itemHeightOffset, barWidth,
-                   driver.font_height, driver.color);
-  if (barCurWidth > 4)
-    driver.drawBox(x + 5, y + ITEM_HEIGHT + itemHeightOffset + 2,
-                   barCurWidth - 4, driver.font_height - 4, driver.color);
-  if (*item->param < 100)
-    driver.showFloat(x + width - 4 * driver.font_width - 4,
-                     y + ITEM_HEIGHT + itemHeightOffset, *item->param, 0, 1,
-                     driver.color);
-  else
-    driver.showStr(x + width - 4 * driver.font_width - 4,
-                   y + ITEM_HEIGHT + itemHeightOffset, "100%%", driver.color);
-  driver.flush();
+    driver.drawFrame(x - 1, y - 1, width + 2, height + 2, driver.color);
+    driver.drawBox(x, y, width, height, driver.bgcolor);
+    driver.showStr(x + 3, y + itemHeightOffset, item->msg, driver.color);
+    driver.drawFrame(x + 3, y + ITEM_HEIGHT + itemHeightOffset, barWidth,
+                     driver.font_height, driver.color);
+    if (barCurWidth > 4)
+        driver.drawBox(x + 5, y + ITEM_HEIGHT + itemHeightOffset + 2,
+                       barCurWidth - 4, driver.font_height - 4, driver.color);
+    if (*item->param < 100)
+        driver.showFloat(x + width - 4 * driver.font_width - 4,
+                         y + ITEM_HEIGHT + itemHeightOffset, *item->param, 0, 1,
+                         driver.color);
+    else
+        driver.showStr(x + width - 4 * driver.font_width - 4,
+                       y + ITEM_HEIGHT + itemHeightOffset, "100%%",
+                       driver.color);
+    driver.flush();
 }
 
 /*!
@@ -394,51 +411,52 @@ void EasyUIDrawProgressBar(EasyUIItem_t *item) {
  */
 void EasyUIDrawCheckbox(int16_t x, int16_t y, uint16_t size, uint8_t offset,
                         bool boolValue, uint8_t r) {
-  driver.drawRBox(x, y, size, size, driver.color, r);
-  if (!boolValue)
-    driver.drawBox(x + offset, y + offset, size - 2 * offset, size - 2 * offset,
-                   driver.bgcolor);
+    driver.drawRBox(x, y, size, size, driver.color, r);
+    if (!boolValue)
+        driver.drawBox(x + offset, y + offset, size - 2 * offset,
+                       size - 2 * offset, driver.bgcolor);
 }
 
 void EasyUIDrawRadio(int16_t x, int16_t y, uint16_t r, uint8_t offset,
                      bool boolValue) {
-  driver.drawCircle(x, y, r, driver.color);
-  if (!boolValue) driver.drawCircle(x, y, r - offset, driver.bgcolor);
+    driver.drawCircle(x, y, r, driver.color);
+    if (!boolValue)
+        driver.drawCircle(x, y, r - offset, driver.bgcolor);
 }
 
-void EasyUIDrawComboBox(EasyUIItem_t *item) {
-  char *str = item->comboList;
-  uint8_t idx = *item->paramIndex;
-  while (idx--) {
-    str += strlen(str) + 1;
-    if (*str == 0) {
-      str = item->comboList;
-      *item->paramIndex = 0;
-      break;
+void EasyUIDrawComboBox(EasyUIItem_t* item) {
+    char* str = item->comboList;
+    uint8_t idx = *item->paramIndex;
+    while (idx--) {
+        str += strlen(str) + 1;
+        if (*str == 0) {
+            str = item->comboList;
+            *item->paramIndex = 0;
+            break;
+        }
     }
-  }
-  int len = strlen(str);
-  driver.showStr(
-      driver.width - 7 - (len + 1) * driver.font_width - SCROLL_BAR_WIDTH,
-      item->position, str, driver.color);
-  driver.showStr(
-      driver.width - 7 - (len + 2) * driver.font_width - SCROLL_BAR_WIDTH,
-      item->position, "[", driver.color);
-  driver.showStr(driver.width - 7 - 1 * driver.font_width - SCROLL_BAR_WIDTH,
-                 item->position, "]", driver.color);
+    int len = strlen(str);
+    driver.showStr(
+        driver.width - 7 - (len + 1) * driver.font_width - SCROLL_BAR_WIDTH,
+        item->position, str, driver.color);
+    driver.showStr(
+        driver.width - 7 - (len + 2) * driver.font_width - SCROLL_BAR_WIDTH,
+        item->position, "[", driver.color);
+    driver.showStr(driver.width - 7 - 1 * driver.font_width - SCROLL_BAR_WIDTH,
+                   item->position, "]", driver.color);
 }
 
-void EasyUIComboBoxAddOne(EasyUIItem_t *item) {
-  (*item->paramIndex)++;
-  char *str = item->comboList;
-  uint8_t idx = *item->paramIndex;
-  while (idx--) {
-    str += strlen(str) + 1;
-  }
-  if (*str == 0) {
-    str = item->comboList;
-    *item->paramIndex = 0;
-  }
+void EasyUIComboBoxAddOne(EasyUIItem_t* item) {
+    (*item->paramIndex)++;
+    char* str = item->comboList;
+    uint8_t idx = *item->paramIndex;
+    while (idx--) {
+        str += strlen(str) + 1;
+    }
+    if (*str == 0) {
+        str = item->comboList;
+        *item->paramIndex = 0;
+    }
 }
 
 /*!
@@ -452,60 +470,61 @@ void EasyUIComboBoxAddOne(EasyUIItem_t *item) {
  *
  * @note    Internal call
  */
-void EasyUIGetItemPos(EasyUIPage_t *page, EasyUIItem_t *item, uint8_t index,
+void EasyUIGetItemPos(EasyUIPage_t* page, EasyUIItem_t* item, uint8_t index,
                       uint8_t timer) {
-  static uint16_t time = 0;
-  static int16_t move = 0, target = 0;
-  static uint8_t lastIndex = 0, moveFlag = 0;
-  uint8_t speed = ANIM_TIME / timer;
+    static uint16_t time = 0;
+    static int16_t move = 0, target = 0;
+    static uint8_t lastIndex = 0, moveFlag = 0;
+    uint8_t speed = ANIM_TIME / timer;
 
-  uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2;
+    uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2;
 
-  // Item need to move or not
-  if (moveFlag == 0) {
-    for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-         itemTmp = itemTmp->next) {
-      if (index != itemTmp->id) continue;
-      if (itemTmp->lineId < 0) {
-        move = itemTmp->lineId;
-        moveFlag = 1;
-        break;
-      } else if (itemTmp->lineId > ITEM_LINES - 1) {
-        move = itemTmp->lineId - ITEM_LINES + 1;
-        moveFlag = 1;
-        break;
-      }
+    // Item need to move or not
+    if (moveFlag == 0) {
+        for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+             itemTmp = itemTmp->next) {
+            if (index != itemTmp->id)
+                continue;
+            if (itemTmp->lineId < 0) {
+                move = itemTmp->lineId;
+                moveFlag = 1;
+                break;
+            } else if (itemTmp->lineId > ITEM_LINES - 1) {
+                move = itemTmp->lineId - ITEM_LINES + 1;
+                moveFlag = 1;
+                break;
+            }
+        }
     }
-  }
 
-  // Change the item lineId and get target position
-  for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-       itemTmp = itemTmp->next) {
-    itemTmp->lineId -= move;
-  }
-  move = 0;
-  moveFlag = 0;
-  target = itemHeightOffset + item->lineId * ITEM_HEIGHT;
+    // Change the item lineId and get target position
+    for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+         itemTmp = itemTmp->next) {
+        itemTmp->lineId -= move;
+    }
+    move = 0;
+    moveFlag = 0;
+    target = itemHeightOffset + item->lineId * ITEM_HEIGHT;
 
-  // Calculate current position
-  if (time == 0 || index != lastIndex) {
-    item->step = ((float)target - (float)item->position) / speed;
-  }
-  if (time >= ANIM_TIME) {
-    item->posForCal = target;
-  } else
-    item->posForCal += item->step;
+    // Calculate current position
+    if (time == 0 || index != lastIndex) {
+        item->step = ((float)target - (float)item->position) / speed;
+    }
+    if (time >= ANIM_TIME) {
+        item->posForCal = target;
+    } else
+        item->posForCal += item->step;
 
-  item->position = (int16_t)item->posForCal;
-  lastIndex = index;
+    item->position = (int16_t)item->posForCal;
+    lastIndex = index;
 
-  // Time counter
-  if (item->next == NULL) {
-    if (target == item->position)
-      time = 0;
-    else
-      time += timer;
-  }
+    // Time counter
+    if (item->next == NULL) {
+        if (target == item->position)
+            time = 0;
+        else
+            time += timer;
+    }
 }
 
 /*!
@@ -515,96 +534,96 @@ void EasyUIGetItemPos(EasyUIPage_t *page, EasyUIItem_t *item, uint8_t index,
  *
  * @note    Internal call
  */
-void EasyUIDisplayItem(EasyUIItem_t *item) {
-  if (!item->enable) {
-    driver.showStr(2, item->position, "x", driver.color);
-    driver.showStr(5 + driver.font_width, item->position, item->title,
-                   driver.color);
-    return;
-  }
-  switch (item->funcType) {
-    case ITEM_JUMP_PAGE:
-      driver.showStr(2, item->position, "+", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      break;
-    case ITEM_PAGE_DESCRIPTION:
-      driver.showStr(2, item->position, item->title, driver.color);
-      break;
-    case ITEM_CHECKBOX:
-      driver.showStr(2, item->position, "-", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      // EasyUIDrawCheckbox(
-      //     driver.width - 7 - SCROLL_BAR_WIDTH - ITEM_HEIGHT + 2,
-      //     item->position - (ITEM_HEIGHT - driver.font_height) / 2 + 1,
-      //     ITEM_HEIGHT - 4, 2, *item->flag, 1);
-      if (*item->flag)
-        driver.showStr(
-            driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
-            item->position, "[+]", driver.color);
-      else
-        driver.showStr(
-            driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
-            item->position, "[ ]", driver.color);
-      break;
-    case ITEM_RADIO_BUTTON:
-      driver.showStr(2, item->position, "|", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      // EasyUIDrawRadio(
-      //     driver.width - 7 - SCROLL_BAR_WIDTH - ITEM_HEIGHT + 2,
-      //     item->position - (ITEM_HEIGHT - driver.font_height) / 2 + 1,
-      //     (ITEM_HEIGHT - 4) / 2, 2, *item->flag);
-      if (*item->flag)
-        driver.showStr(
-            driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
-            item->position, "(+)", driver.color);
-      else
-        driver.showStr(
-            driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
-            item->position, "( )", driver.color);
-      break;
-    case ITEM_SWITCH:
-      driver.showStr(2, item->position, "-", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      if (*item->flag)
-        driver.showStr(
-            driver.width - 7 - 4 * driver.font_width - SCROLL_BAR_WIDTH,
-            item->position, "[on]", driver.color);
-      else
-        driver.showStr(
-            driver.width - 7 - 5 * driver.font_width - SCROLL_BAR_WIDTH,
-            item->position, "[off]", driver.color);
-      break;
-    case ITEM_VALUE_EDITOR:
-      driver.showStr(2, item->position, "=", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      driver.showFloat(
-          driver.width - 7 - 8 * driver.font_width - SCROLL_BAR_WIDTH,
-          item->position, *item->param, 8, item->precision, driver.color);
-      break;
-    case ITEM_DIALOG:
-    case ITEM_PROGRESS_BAR:
-    case ITEM_MESSAGE:
-      driver.showStr(2, item->position, "~", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      break;
-    case ITEM_COMBO_BOX:
-      driver.showStr(2, item->position, "=", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      EasyUIDrawComboBox(item);
-      break;
-    default:
-      driver.showStr(2, item->position, " ", driver.color);
-      driver.showStr(5 + driver.font_width, item->position, item->title,
-                     driver.color);
-      break;
-  }
+void EasyUIDisplayItem(EasyUIItem_t* item) {
+    if (!item->enable) {
+        driver.showStr(2, item->position, "x", driver.color);
+        driver.showStr(5 + driver.font_width, item->position, item->title,
+                       driver.color);
+        return;
+    }
+    switch (item->funcType) {
+        case ITEM_JUMP_PAGE:
+            driver.showStr(2, item->position, "+", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            break;
+        case ITEM_PAGE_DESCRIPTION:
+            driver.showStr(2, item->position, item->title, driver.color);
+            break;
+        case ITEM_CHECKBOX:
+            driver.showStr(2, item->position, "-", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            // EasyUIDrawCheckbox(
+            //     driver.width - 7 - SCROLL_BAR_WIDTH - ITEM_HEIGHT + 2,
+            //     item->position - (ITEM_HEIGHT - driver.font_height) / 2 + 1,
+            //     ITEM_HEIGHT - 4, 2, *item->flag, 1);
+            if (*item->flag)
+                driver.showStr(
+                    driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
+                    item->position, "[+]", driver.color);
+            else
+                driver.showStr(
+                    driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
+                    item->position, "[ ]", driver.color);
+            break;
+        case ITEM_RADIO_BUTTON:
+            driver.showStr(2, item->position, "|", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            // EasyUIDrawRadio(
+            //     driver.width - 7 - SCROLL_BAR_WIDTH - ITEM_HEIGHT + 2,
+            //     item->position - (ITEM_HEIGHT - driver.font_height) / 2 + 1,
+            //     (ITEM_HEIGHT - 4) / 2, 2, *item->flag);
+            if (*item->flag)
+                driver.showStr(
+                    driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
+                    item->position, "(+)", driver.color);
+            else
+                driver.showStr(
+                    driver.width - 7 - 3 * driver.font_width - SCROLL_BAR_WIDTH,
+                    item->position, "( )", driver.color);
+            break;
+        case ITEM_SWITCH:
+            driver.showStr(2, item->position, "-", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            if (*item->flag)
+                driver.showStr(
+                    driver.width - 7 - 4 * driver.font_width - SCROLL_BAR_WIDTH,
+                    item->position, "[on]", driver.color);
+            else
+                driver.showStr(
+                    driver.width - 7 - 5 * driver.font_width - SCROLL_BAR_WIDTH,
+                    item->position, "[off]", driver.color);
+            break;
+        case ITEM_VALUE_EDITOR:
+            driver.showStr(2, item->position, "=", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            driver.showFloat(
+                driver.width - 7 - 8 * driver.font_width - SCROLL_BAR_WIDTH,
+                item->position, *item->param, 8, item->precision, driver.color);
+            break;
+        case ITEM_DIALOG:
+        case ITEM_PROGRESS_BAR:
+        case ITEM_MESSAGE:
+            driver.showStr(2, item->position, "~", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            break;
+        case ITEM_COMBO_BOX:
+            driver.showStr(2, item->position, "=", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            EasyUIDrawComboBox(item);
+            break;
+        default:
+            driver.showStr(2, item->position, " ", driver.color);
+            driver.showStr(5 + driver.font_width, item->position, item->title,
+                           driver.color);
+            break;
+    }
 }
 
 /*!
@@ -618,115 +637,121 @@ void EasyUIDisplayItem(EasyUIItem_t *item) {
  *
  * @note    Internal call
  */
-void EasyUIDrawIndicator(EasyUIPage_t *page, uint8_t index, uint8_t timer,
+void EasyUIDrawIndicator(EasyUIPage_t* page, uint8_t index, uint8_t timer,
                          uint8_t status) {
-  static uint16_t time = 0;
-  static uint8_t lastIndex = 0;
-  static uint16_t lengthTarget = 0, yTarget = 0;
-  static float stepLength = 0, stepY = 0, length = 0, y = 10000000;
-  float speed = ANIM_TIME / timer;
-  if (y > 1000000) y = driver.height;
-  if (status) y = driver.height;
+    static uint16_t time = 0;
+    static uint8_t lastIndex = 0;
+    static uint16_t lengthTarget = 0, yTarget = 0;
+    static float stepLength = 0, stepY = 0, length = 0, y = 10000000;
+    float speed = ANIM_TIME / timer;
+    if (y > 1000000)
+        y = driver.height;
+    if (status)
+        y = driver.height;
 
-  // Get Initial length
-  if ((int)length == 0) {
-    if (page->itemHead->funcType == ITEM_PAGE_DESCRIPTION)
-      length = (float)(strlen(page->itemHead->title)) * driver.font_width + 5;
-    else
-      length =
-          (float)(strlen(page->itemHead->title) + 1) * driver.font_width + 8;
-  }
-
-  // Get target length and y
-  for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-       itemTmp = itemTmp->next) {
-    if (index == itemTmp->id) {
-      if (itemTmp->funcType == ITEM_PAGE_DESCRIPTION)
-        lengthTarget = (strlen(itemTmp->title)) * driver.font_width + 5;
-      else
-        lengthTarget = (strlen(itemTmp->title) + 1) * driver.font_width + 8;
-      yTarget = itemTmp->lineId * ITEM_HEIGHT;
-      if (index != lastIndex &&
-          UABSMINUS(index, lastIndex) < page->itemTail->id) {
-        if (itemTmp->position < 0)
-          y = (float)3 * ITEM_HEIGHT / 4;
-        else if (itemTmp->position >= (ITEM_LINES)*ITEM_HEIGHT)
-          y = (ITEM_LINES - 2) * ITEM_HEIGHT + (float)ITEM_HEIGHT / 4;
-      }
-      break;
+    // Get Initial length
+    if ((int)length == 0) {
+        if (page->itemHead->funcType == ITEM_PAGE_DESCRIPTION)
+            length =
+                (float)(strlen(page->itemHead->title)) * driver.font_width + 5;
+        else
+            length =
+                (float)(strlen(page->itemHead->title) + 1) * driver.font_width +
+                8;
     }
-  }
 
-  // Calculate current position
-  if (time == 0 || index != lastIndex) {
-    stepLength = ((float)lengthTarget - (float)length) / speed;
-    stepY = ((float)yTarget - (float)y) / speed;
-  }
-  if (time >= ANIM_TIME) {
-    length = lengthTarget;
-    y = yTarget;
-  } else {
-    length += stepLength;
-    y += stepY;
-  }
+    // Get target length and y
+    for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+         itemTmp = itemTmp->next) {
+        if (index == itemTmp->id) {
+            if (itemTmp->funcType == ITEM_PAGE_DESCRIPTION)
+                lengthTarget = (strlen(itemTmp->title)) * driver.font_width + 5;
+            else
+                lengthTarget =
+                    (strlen(itemTmp->title) + 1) * driver.font_width + 8;
+            yTarget = itemTmp->lineId * ITEM_HEIGHT;
+            if (index != lastIndex &&
+                UABSMINUS(index, lastIndex) < page->itemTail->id) {
+                if (itemTmp->position < 0)
+                    y = (float)3 * ITEM_HEIGHT / 4;
+                else if (itemTmp->position >= (ITEM_LINES)*ITEM_HEIGHT)
+                    y = (ITEM_LINES - 2) * ITEM_HEIGHT + (float)ITEM_HEIGHT / 4;
+            }
+            break;
+        }
+    }
 
-  // Draw rounded box and scroll bar
-  driver.enableXorRegion(0, y, driver.width, ITEM_HEIGHT);
-  driver.drawRBox(0, (int16_t)y, (int16_t)length, ITEM_HEIGHT, driver.color, 1);
-  driver.disableXorRegion();
-  driver.drawRBox(driver.width - SCROLL_BAR_WIDTH, (int16_t)y, SCROLL_BAR_WIDTH,
-                  ITEM_HEIGHT, driver.color, 1);
-  lastIndex = index;
+    // Calculate current position
+    if (time == 0 || index != lastIndex) {
+        stepLength = ((float)lengthTarget - (float)length) / speed;
+        stepY = ((float)yTarget - (float)y) / speed;
+    }
+    if (time >= ANIM_TIME) {
+        length = lengthTarget;
+        y = yTarget;
+    } else {
+        length += stepLength;
+        y += stepY;
+    }
 
-  // Time counter
-  if ((int)length == lengthTarget && (int)y == yTarget)
-    time = 0;
-  else
-    time += timer;
+    // Draw rounded box and scroll bar
+    driver.enableXorRegion(0, y, driver.width, ITEM_HEIGHT);
+    driver.drawRBox(0, (int16_t)y, (int16_t)length, ITEM_HEIGHT, driver.color,
+                    1);
+    driver.disableXorRegion();
+    driver.drawRBox(driver.width - SCROLL_BAR_WIDTH, (int16_t)y,
+                    SCROLL_BAR_WIDTH, ITEM_HEIGHT, driver.color, 1);
+    lastIndex = index;
+
+    // Time counter
+    if ((int)length == lengthTarget && (int)y == yTarget)
+        time = 0;
+    else
+        time += timer;
 }
 
 void EasyUIJumpPage(uint8_t pageId) {
-  itemIndex[layer] = itemIdx;
-  layer++;
-  pageIndex[layer] = pageId;
-  itemIndex[layer] = 0;
-  EasyUIPage_t *page = uiPageHead;
-  while (page->id != pageId) {
-    page = page->next;
-  }
-  for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-       itemTmp = itemTmp->next) {
-    itemTmp->position = 0;
-    itemTmp->posForCal = 0;
-  }
-  functionIsRunning = false;
-  EasyUITransitionAnim();
+    itemIndex[layer] = itemIdx;
+    layer++;
+    pageIndex[layer] = pageId;
+    itemIndex[layer] = 0;
+    EasyUIPage_t* page = uiPageHead;
+    while (page->id != pageId) {
+        page = page->next;
+    }
+    for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+         itemTmp = itemTmp->next) {
+        itemTmp->position = 0;
+        itemTmp->posForCal = 0;
+    }
+    functionIsRunning = false;
+    EasyUITransitionAnim();
 }
 
 void EasyUIJumpItem(uint8_t pageId, uint8_t itemId, bool enter) {
-  itemIndex[layer] = itemIdx;
-  layer++;
-  pageIndex[layer] = pageId;
-  itemIndex[layer] = 0;
-  EasyUIPage_t *page = uiPageHead;
-  while (page->id != pageId) {
-    page = page->next;
-  }
-  itemIdx = itemId;
-  for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-       itemTmp = itemTmp->next) {
-    if (enter) {
-      EasyUIGetItemPos(page, itemTmp, itemId, ANIM_TIME);
-      EasyUIDrawIndicator(page, itemId, ANIM_TIME, 1);
-    } else {
-      itemTmp->position = 0;
-      itemTmp->posForCal = 0;
+    itemIndex[layer] = itemIdx;
+    layer++;
+    pageIndex[layer] = pageId;
+    itemIndex[layer] = 0;
+    EasyUIPage_t* page = uiPageHead;
+    while (page->id != pageId) {
+        page = page->next;
     }
-  }
-  functionIsRunning = false;
-  cacheActionFlag.enter = enter;
-  autoReturn = enter;
-  EasyUITransitionAnim();
+    itemIdx = itemId;
+    for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+         itemTmp = itemTmp->next) {
+        if (enter) {
+            EasyUIGetItemPos(page, itemTmp, itemId, ANIM_TIME);
+            EasyUIDrawIndicator(page, itemId, ANIM_TIME, 1);
+        } else {
+            itemTmp->position = 0;
+            itemTmp->posForCal = 0;
+        }
+    }
+    functionIsRunning = false;
+    cacheActionFlag.enter = enter;
+    autoReturn = enter;
+    EasyUITransitionAnim();
 }
 
 /*!
@@ -739,318 +764,344 @@ void EasyUIJumpItem(uint8_t pageId, uint8_t itemId, bool enter) {
  *
  * @note    Internal call
  */
-void EasyUIItemOperationResponse(EasyUIPage_t *page, EasyUIItem_t *item,
-                                 uint8_t *index) {
-  item->eventCnt = 0;
-  EasyUIItem_t *itemStart = NULL;
-  switch (item->funcType) {
-    case ITEM_JUMP_PAGE:
-      if (layer == UI_MAX_LAYER - 1) break;
-      pageIndex[layer] = page->id;
-      itemIndex[layer] = *index;
-      layer++;
-      pageIndex[layer] = item->pageId;
-      *index = 0;
-      for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-           itemTmp = itemTmp->next) {
-        itemTmp->position = 0;
-        itemTmp->posForCal = 0;
-      }
-      EasyUITransitionAnim();
-      break;
-    case ITEM_CHECKBOX:
-    case ITEM_SWITCH:
-      *item->flag = !*item->flag;
-      if (item->Event != NULL) item->Event(item);
-      break;
-    case ITEM_COMBO_BOX:
-      EasyUIComboBoxAddOne(item);
-      if (item->Event != NULL) item->Event(item);
-      break;
-    case ITEM_RADIO_BUTTON:
-      for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-           itemTmp = itemTmp->next) {
-        if (itemStart == NULL && itemTmp->funcType == ITEM_RADIO_BUTTON) {
-          itemStart = itemTmp;
-          *item->paramIndex = 0;
-        }
-        if (itemTmp->funcType != ITEM_RADIO_BUTTON) itemStart = NULL;
-        if (itemTmp->id == item->id) break;
-        (*item->paramIndex)++;
-      }
-      while (itemStart != NULL && itemStart->funcType == ITEM_RADIO_BUTTON) {
-        *itemStart->flag = false;
-        itemStart = itemStart->next;
-      }
-      *item->flag = true;
-      if (item->Event != NULL) item->Event(item);
-      break;
-    case ITEM_DIALOG:
-      *item->flag = item->flagDefault;
-    case ITEM_PROGRESS_BAR:
-    case ITEM_VALUE_EDITOR:
-    case ITEM_MESSAGE:
-      functionIsRunning = true;
-      EasyUIBackgroundBlur();
-      break;
-    default:
-      break;
-  }
+void EasyUIItemOperationResponse(EasyUIPage_t* page, EasyUIItem_t* item,
+                                 uint8_t* index) {
+    item->eventCnt = 0;
+    EasyUIItem_t* itemStart = NULL;
+    switch (item->funcType) {
+        case ITEM_JUMP_PAGE:
+            if (layer == UI_MAX_LAYER - 1)
+                break;
+            pageIndex[layer] = page->id;
+            itemIndex[layer] = *index;
+            layer++;
+            pageIndex[layer] = item->pageId;
+            *index = 0;
+            for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+                 itemTmp = itemTmp->next) {
+                itemTmp->position = 0;
+                itemTmp->posForCal = 0;
+            }
+            EasyUITransitionAnim();
+            break;
+        case ITEM_CHECKBOX:
+        case ITEM_SWITCH:
+            *item->flag = !*item->flag;
+            if (item->Event != NULL)
+                item->Event(item);
+            break;
+        case ITEM_COMBO_BOX:
+            EasyUIComboBoxAddOne(item);
+            if (item->Event != NULL)
+                item->Event(item);
+            break;
+        case ITEM_RADIO_BUTTON:
+            for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+                 itemTmp = itemTmp->next) {
+                if (itemStart == NULL &&
+                    itemTmp->funcType == ITEM_RADIO_BUTTON) {
+                    itemStart = itemTmp;
+                    *item->paramIndex = 0;
+                }
+                if (itemTmp->funcType != ITEM_RADIO_BUTTON)
+                    itemStart = NULL;
+                if (itemTmp->id == item->id)
+                    break;
+                (*item->paramIndex)++;
+            }
+            while (itemStart != NULL &&
+                   itemStart->funcType == ITEM_RADIO_BUTTON) {
+                *itemStart->flag = false;
+                itemStart = itemStart->next;
+            }
+            *item->flag = true;
+            if (item->Event != NULL)
+                item->Event(item);
+            break;
+        case ITEM_DIALOG:
+            *item->flag = item->flagDefault;
+        case ITEM_PROGRESS_BAR:
+        case ITEM_VALUE_EDITOR:
+        case ITEM_MESSAGE:
+            functionIsRunning = true;
+            EasyUIBackgroundBlur();
+            break;
+        default:
+            break;
+    }
 }
 
-bool EasyUIDrawDialog(EasyUIItem_t *item) {
-  int16_t x1, x2, y1, y2, offset;
-  uint16_t width, height;
-  uint16_t title_len = strlen(item->title);
-  uint16_t msg_len = strlen(item->msg);
-  uint16_t max_len = title_len > msg_len ? title_len : msg_len;
-  if (max_len + 1 > 12)
-    width = (max_len + 1) * driver.font_width + 7;
-  else
-    width = 12 * driver.font_width + 7;
-  if (driver.height >= 4 * ITEM_HEIGHT) {
-    height = ITEM_HEIGHT * 3 + 4;
-    driver.drawBox((driver.width - width) / 2, (driver.height - height) / 2,
-                   width, height, driver.bgcolor);
-    // draw dialog
-    driver.drawRFrame((driver.width - width) / 2 - 1,
-                      (driver.height - height) / 2 - 1, width + 2, height + 2,
-                      driver.color, 2);
-    // print title in the middle of the dialog
-    driver.showStr((driver.width - title_len * driver.font_width) / 2,
-                   (driver.height - height) / 2 + 4, item->title, driver.color);
-    // print message
-    driver.showStr((driver.width - msg_len * driver.font_width) / 2,
-                   (driver.height - height) / 2 + 4 + ITEM_HEIGHT, item->msg,
-                   driver.color);
-    // yes or no at bottom
-    x1 = (driver.width) / 2 - width / 4 - 3 * driver.font_width / 2;
-    x2 = (driver.width) / 2 + width / 4 - 2 * driver.font_width / 2;
-    y1 = (driver.height - height) / 2 + 4 + 2 * ITEM_HEIGHT;
-    y2 = y1;
-    // draw indicator
-    if (*item->flag) {
-      driver.drawRBox(x1 - 3 - driver.font_width / 2, y1 - 3,
-                      3 * driver.font_width + 6, driver.font_height + 6,
-                      driver.color, 1);
-      driver.enableXorRegion(x1 - 3, y1 - 3, 3 * driver.font_width + 6,
-                             driver.font_height + 6);
+bool EasyUIDrawDialog(EasyUIItem_t* item) {
+    int16_t x1, x2, y1, y2, offset;
+    uint16_t width, height;
+    uint16_t title_len = strlen(item->title);
+    uint16_t msg_len = strlen(item->msg);
+    uint16_t max_len = title_len > msg_len ? title_len : msg_len;
+    if (max_len + 1 > 12)
+        width = (max_len + 1) * driver.font_width + 7;
+    else
+        width = 12 * driver.font_width + 7;
+    if (driver.height >= 4 * ITEM_HEIGHT) {
+        height = ITEM_HEIGHT * 3 + 4;
+        driver.drawBox((driver.width - width) / 2, (driver.height - height) / 2,
+                       width, height, driver.bgcolor);
+        // draw dialog
+        driver.drawRFrame((driver.width - width) / 2 - 1,
+                          (driver.height - height) / 2 - 1, width + 2,
+                          height + 2, driver.color, 2);
+        // print title in the middle of the dialog
+        driver.showStr((driver.width - title_len * driver.font_width) / 2,
+                       (driver.height - height) / 2 + 4, item->title,
+                       driver.color);
+        // print message
+        driver.showStr((driver.width - msg_len * driver.font_width) / 2,
+                       (driver.height - height) / 2 + 4 + ITEM_HEIGHT,
+                       item->msg, driver.color);
+        // yes or no at bottom
+        x1 = (driver.width) / 2 - width / 4 - 3 * driver.font_width / 2;
+        x2 = (driver.width) / 2 + width / 4 - 2 * driver.font_width / 2;
+        y1 = (driver.height - height) / 2 + 4 + 2 * ITEM_HEIGHT;
+        y2 = y1;
+        // draw indicator
+        if (*item->flag) {
+            driver.drawRBox(x1 - 3 - driver.font_width / 2, y1 - 3,
+                            3 * driver.font_width + 6, driver.font_height + 6,
+                            driver.color, 1);
+            driver.enableXorRegion(x1 - 3, y1 - 3, 3 * driver.font_width + 6,
+                                   driver.font_height + 6);
+        } else {
+            driver.drawRBox(x2 - 3 - driver.font_width / 2, y2 - 3,
+                            3 * driver.font_width + 6, driver.font_height + 6,
+                            driver.color, 1);
+            driver.enableXorRegion(x2 - 3 - driver.font_width / 2, y2 - 3,
+                                   3 * driver.font_width + 6,
+                                   driver.font_height + 6);
+        }
+        driver.showStr(x1 - driver.font_width / 2, y1, "YES", driver.color);
+        driver.showStr(x2, y2, "NO", driver.color);
     } else {
-      driver.drawRBox(x2 - 3 - driver.font_width / 2, y2 - 3,
-                      3 * driver.font_width + 6, driver.font_height + 6,
-                      driver.color, 1);
-      driver.enableXorRegion(x2 - 3 - driver.font_width / 2, y2 - 3,
-                             3 * driver.font_width + 6, driver.font_height + 6);
+        height = ITEM_HEIGHT * 2 + 4;
+        width += 4 * driver.font_width;
+        driver.drawBox((driver.width - width) / 2, (driver.height - height) / 2,
+                       width, height, driver.bgcolor);
+        // draw dialog
+        driver.drawRFrame((driver.width - width) / 2 - 1,
+                          (driver.height - height) / 2 - 1, width + 2,
+                          height + 2, driver.color, 2);
+        // print title in the left of the dialog
+        driver.showStr((driver.width - width) / 2 + 4,
+                       (driver.height - height) / 2 + 4, item->title,
+                       driver.color);
+        // print message
+        driver.showStr((driver.width - width) / 2 + 4,
+                       (driver.height - height) / 2 + 4 + ITEM_HEIGHT,
+                       item->msg, driver.color);
+        // yes or no at right
+        x1 = (driver.width - width) / 2 + width - 1 * driver.font_width - 4;
+        x2 = x1;
+        y1 = (driver.height - height) / 2 + 4;
+        y2 = y1 + ITEM_HEIGHT;
+        // draw indicator
+        if (*item->flag) {
+            driver.drawRBox(x1 - 3, y1 - 3, driver.font_width + 6,
+                            driver.font_height + 6, driver.color, 1);
+            driver.enableXorRegion(x1 - 3, y1 - 3, driver.font_width + 6,
+                                   driver.font_height + 6);
+        } else {
+            driver.drawRBox(x2 - 3, y2 - 3, driver.font_width + 6,
+                            driver.font_height + 6, driver.color, 1);
+            driver.enableXorRegion(x2 - 3, y2 - 3, driver.font_width + 6,
+                                   driver.font_height + 6);
+        }
+        driver.showStr(x1, y1, "Y", driver.color);
+        driver.showStr(x2, y2, "N", driver.color);
     }
-    driver.showStr(x1 - driver.font_width / 2, y1, "YES", driver.color);
-    driver.showStr(x2, y2, "NO", driver.color);
-  } else {
-    height = ITEM_HEIGHT * 2 + 4;
-    width += 4 * driver.font_width;
-    driver.drawBox((driver.width - width) / 2, (driver.height - height) / 2,
-                   width, height, driver.bgcolor);
-    // draw dialog
-    driver.drawRFrame((driver.width - width) / 2 - 1,
-                      (driver.height - height) / 2 - 1, width + 2, height + 2,
-                      driver.color, 2);
-    // print title in the left of the dialog
-    driver.showStr((driver.width - width) / 2 + 4,
-                   (driver.height - height) / 2 + 4, item->title, driver.color);
-    // print message
-    driver.showStr((driver.width - width) / 2 + 4,
-                   (driver.height - height) / 2 + 4 + ITEM_HEIGHT, item->msg,
-                   driver.color);
-    // yes or no at right
-    x1 = (driver.width - width) / 2 + width - 1 * driver.font_width - 4;
-    x2 = x1;
-    y1 = (driver.height - height) / 2 + 4;
-    y2 = y1 + ITEM_HEIGHT;
-    // draw indicator
-    if (*item->flag) {
-      driver.drawRBox(x1 - 3, y1 - 3, driver.font_width + 6,
-                      driver.font_height + 6, driver.color, 1);
-      driver.enableXorRegion(x1 - 3, y1 - 3, driver.font_width + 6,
-                             driver.font_height + 6);
+    driver.disableXorRegion();
+    // operation move reaction
+    if (uiActionFlag.forward || uiActionFlag.backward) {
+        *item->flag = !*item->flag;
+    } else if (uiActionFlag.enter) {
+        EasyUIEventExit();
+        return true;
+    } else if (uiActionFlag.exit) {
+        *item->flag = item->flagDefault;
+        EasyUIEventExit();
+        return false;
+    }
+    driver.flush();
+    return false;
+}
+
+bool EasyUIDrawValueEditor(EasyUIItem_t* item) {
+    static uint8_t step = 0;
+    static uint8_t index = 0;
+    static bool changeVal = false, changeStep = false;
+    static const uiParamType steps[] = {0.0001, 0.001, 0.01, 0.1,  1,
+                                        10,     100,   1000, 10000};
+    static uint8_t step_min = 0,
+                   step_max = sizeof(steps) / sizeof(steps[0]) - 1;
+    int16_t x, y;
+    uint16_t width, height;
+    uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2 + 1;
+    bool ret = false;
+    bool large = driver.height >= 4 * ITEM_HEIGHT + 8;
+    // init
+    if (item->eventCnt == 0) {
+        if (item->precision >= 4)
+            step_min = 0;
+        else if (item->precision > 0)
+            step_min = 4 - item->precision;
+        else
+            step_min = 4;
+        index = 0;
+        step = step_min;
+    }
+    if (strlen(item->title) + 1 > 12)
+        width = (strlen(item->title) + 1) * driver.font_width + 7;
+    else
+        width = 12 * driver.font_width + 7;
+    if (width < 2 * driver.width / 3)
+        width = 2 * driver.width / 3;
+    // Display information
+    if (large) {
+        height = ITEM_HEIGHT * 4 + 2;
     } else {
-      driver.drawRBox(x2 - 3, y2 - 3, driver.font_width + 6,
-                      driver.font_height + 6, driver.color, 1);
-      driver.enableXorRegion(x2 - 3, y2 - 3, driver.font_width + 6,
-                             driver.font_height + 6);
+        height = ITEM_HEIGHT * 2 + 2;
+        width += 8 * driver.font_width;
+        if (width > driver.width)
+            width = driver.width - 4;
     }
-    driver.showStr(x1, y1, "Y", driver.color);
-    driver.showStr(x2, y2, "N", driver.color);
-  }
-  driver.disableXorRegion();
-  // operation move reaction
-  if (uiActionFlag.forward || uiActionFlag.backward) {
-    *item->flag = !*item->flag;
-  } else if (uiActionFlag.enter) {
+    x = (driver.width - width) / 2;
+    y = (driver.height - height) / 2;
+    driver.drawFrame(x - 1, y - 1, width + 2, height + 2, driver.color);
+    driver.drawBox(x, y, width, height, driver.bgcolor);
+    if (large) {
+        driver.showStr(x + 3, y + itemHeightOffset, item->title, driver.color);
+        y += ITEM_HEIGHT;
+    }
+    driver.showStr(x + 3, y + itemHeightOffset, "Value: ", driver.color);
+    driver.showStr(x + 3, y + 1 * ITEM_HEIGHT + itemHeightOffset,
+                   "Step+: ", driver.color);
+    if (large) {
+        driver.showStr(x + 3, y + 2 * ITEM_HEIGHT + itemHeightOffset, "Confirm",
+                       driver.color);
+        driver.showStr(x + width - 6 * driver.font_width - 4,
+                       y + 2 * ITEM_HEIGHT + itemHeightOffset, "Cancel",
+                       driver.color);
+    } else {
+        driver.showStr(x + width - 1 * driver.font_width - 4,
+                       y + itemHeightOffset, "Y", driver.color);
+        driver.showStr(x + width - 1 * driver.font_width - 4,
+                       y + ITEM_HEIGHT + itemHeightOffset, "N", driver.color);
+    }
+    // Change value of param or step
+    if (changeVal) {
+        if (uiActionFlag.forward)
+            *item->param += steps[step];
+        if (uiActionFlag.backward)
+            *item->param -= steps[step];
+        if (*item->param > item->paramMax)
+            *item->param = item->paramMax;
+        if (*item->param < item->paramMin)
+            *item->param = item->paramMin;
+        if (item->eventWhenEditVal &&
+            (uiActionFlag.forward || uiActionFlag.backward)) {
+            ret = true;
+        }
+    } else if (changeStep) {  // no loop
+        if (uiActionFlag.forward && step < step_max)
+            step++;
+        if (uiActionFlag.backward && step > step_min)
+            step--;
+    } else {
+        if (uiActionFlag.forward)
+            index = (index + 1) % 4;
+        if (uiActionFlag.backward)
+            index = (index + 3) % 4;
+    }
+    // Display step and value
+    driver.showFloat(x + 3 + 7 * driver.font_width, y + itemHeightOffset,
+                     *item->param, 0, item->precision, driver.color);
+    driver.showFloat(x + 3 + 7 * driver.font_width,
+                     y + ITEM_HEIGHT + itemHeightOffset, steps[step], 0,
+                     item->precision, driver.color);
+    // Operation move reaction
+    if (uiActionFlag.enter) {
+        if (index == 0) {
+            changeVal = !changeVal;
+        } else if (index == 1) {
+            changeStep = !changeStep;
+        } else if (index == 2) {
+            goto confirm_flag;
+        } else {
+            goto cancel_flag;
+        }
+    }
+    if (uiActionFlag.exit) {
+        if (index == 0 && changeVal) {
+            changeVal = false;
+        } else if (index == 1 && changeStep) {
+            changeStep = false;
+        } else {
+            goto cancel_flag;
+        }
+    }
+    // Draw indicator
+    if (index == 0) {  // Change value
+        if (changeVal) {
+            driver.enableXorRegion(x + 2, y + 2, 6 * driver.font_width + 3,
+                                   ITEM_HEIGHT - 2);
+            driver.drawRBox(x + 1, y + 1, 6 * driver.font_width + 5,
+                            ITEM_HEIGHT, driver.color, 1);
+            driver.disableXorRegion();
+        } else {
+            driver.drawRFrame(x + 1, y + 1, 6 * driver.font_width + 5,
+                              ITEM_HEIGHT, driver.color, 1);
+        }
+    } else if (index == 1) {  // Change step
+        if (changeStep) {
+            driver.enableXorRegion(x + 2, y + 2 + ITEM_HEIGHT,
+                                   6 * driver.font_width + 3, ITEM_HEIGHT - 2);
+            driver.drawRBox(x + 2, y + 2 + ITEM_HEIGHT,
+                            6 * driver.font_width + 3, ITEM_HEIGHT - 2,
+                            driver.color, 1);
+            driver.disableXorRegion();
+        } else {
+            driver.drawRFrame(x + 1, y + 1 + ITEM_HEIGHT,
+                              6 * driver.font_width + 5, ITEM_HEIGHT,
+                              driver.color, 1);
+        }
+    } else if (index == 2) {  // Confirm
+        if (large) {
+            driver.drawRFrame(x + 1, y + 1 + 2 * ITEM_HEIGHT,
+                              7 * driver.font_width + 5, ITEM_HEIGHT,
+                              driver.color, 1);
+        } else {
+            driver.drawRFrame(x + width - driver.font_width - 6, y + 1,
+                              driver.font_width + 5, ITEM_HEIGHT, driver.color,
+                              1);
+        }
+    } else {  // Cancel
+        if (large) {
+            driver.drawRFrame(
+                x + width - 6 * driver.font_width - 6, y + 1 + 2 * ITEM_HEIGHT,
+                6 * driver.font_width + 5, ITEM_HEIGHT, driver.color, 1);
+        } else {
+            driver.drawRFrame(x + width - driver.font_width - 6,
+                              y + 1 + ITEM_HEIGHT, driver.font_width + 5,
+                              ITEM_HEIGHT, driver.color, 1);
+        }
+    }
+    driver.flush();
+    return ret;
+confirm_flag:
+    item->paramBackup = *item->param;
     EasyUIEventExit();
     return true;
-  } else if (uiActionFlag.exit) {
-    *item->flag = item->flagDefault;
-    EasyUIEventExit();
-    return false;
-  }
-  driver.flush();
-  return false;
-}
-
-bool EasyUIDrawValueEditor(EasyUIItem_t *item) {
-  static uint8_t step = 0;
-  static uint8_t index = 0;
-  static bool changeVal = false, changeStep = false;
-  static const uiParamType steps[] = {0.0001, 0.001, 0.01, 0.1,  1,
-                                      10,     100,   1000, 10000};
-  static uint8_t step_min = 0, step_max = sizeof(steps) / sizeof(steps[0]) - 1;
-  int16_t x, y;
-  uint16_t width, height;
-  uint8_t itemHeightOffset = (ITEM_HEIGHT - driver.font_height) / 2 + 1;
-  bool ret = false;
-  bool large = driver.height >= 4 * ITEM_HEIGHT + 8;
-  // init
-  if (item->eventCnt == 0) {
-    if (item->precision >= 4)
-      step_min = 0;
-    else if (item->precision > 0)
-      step_min = 4 - item->precision;
-    else
-      step_min = 4;
-    index = 0;
-    step = step_min;
-  }
-  if (strlen(item->title) + 1 > 12)
-    width = (strlen(item->title) + 1) * driver.font_width + 7;
-  else
-    width = 12 * driver.font_width + 7;
-  if (width < 2 * driver.width / 3) width = 2 * driver.width / 3;
-  // Display information
-  if (large) {
-    height = ITEM_HEIGHT * 4 + 2;
-  } else {
-    height = ITEM_HEIGHT * 2 + 2;
-    width += 8 * driver.font_width;
-    if (width > driver.width) width = driver.width - 4;
-  }
-  x = (driver.width - width) / 2;
-  y = (driver.height - height) / 2;
-  driver.drawFrame(x - 1, y - 1, width + 2, height + 2, driver.color);
-  driver.drawBox(x, y, width, height, driver.bgcolor);
-  if (large) {
-    driver.showStr(x + 3, y + itemHeightOffset, item->title, driver.color);
-    y += ITEM_HEIGHT;
-  }
-  driver.showStr(x + 3, y + itemHeightOffset, "Value: ", driver.color);
-  driver.showStr(x + 3, y + 1 * ITEM_HEIGHT + itemHeightOffset,
-                 "Step+: ", driver.color);
-  if (large) {
-    driver.showStr(x + 3, y + 2 * ITEM_HEIGHT + itemHeightOffset, "Confirm",
-                   driver.color);
-    driver.showStr(x + width - 6 * driver.font_width - 4,
-                   y + 2 * ITEM_HEIGHT + itemHeightOffset, "Cancel",
-                   driver.color);
-  } else {
-    driver.showStr(x + width - 1 * driver.font_width - 4, y + itemHeightOffset,
-                   "Y", driver.color);
-    driver.showStr(x + width - 1 * driver.font_width - 4,
-                   y + ITEM_HEIGHT + itemHeightOffset, "N", driver.color);
-  }
-  // Change value of param or step
-  if (changeVal) {
-    if (uiActionFlag.forward) *item->param += steps[step];
-    if (uiActionFlag.backward) *item->param -= steps[step];
-    if (*item->param > item->paramMax) *item->param = item->paramMax;
-    if (*item->param < item->paramMin) *item->param = item->paramMin;
-    if (item->eventWhenEditVal &&
-        (uiActionFlag.forward || uiActionFlag.backward)) {
-      ret = true;
-    }
-  } else if (changeStep) {  // no loop
-    if (uiActionFlag.forward && step < step_max) step++;
-    if (uiActionFlag.backward && step > step_min) step--;
-  } else {
-    if (uiActionFlag.forward) index = (index + 1) % 4;
-    if (uiActionFlag.backward) index = (index + 3) % 4;
-  }
-  // Display step and value
-  driver.showFloat(x + 3 + 7 * driver.font_width, y + itemHeightOffset,
-                   *item->param, 0, item->precision, driver.color);
-  driver.showFloat(x + 3 + 7 * driver.font_width,
-                   y + ITEM_HEIGHT + itemHeightOffset, steps[step], 0,
-                   item->precision, driver.color);
-  // Operation move reaction
-  if (uiActionFlag.enter) {
-    if (index == 0) {
-      changeVal = !changeVal;
-    } else if (index == 1) {
-      changeStep = !changeStep;
-    } else if (index == 2) {
-      goto confirm_flag;
-    } else {
-      goto cancel_flag;
-    }
-  }
-  if (uiActionFlag.exit) {
-    if (index == 0 && changeVal) {
-      changeVal = false;
-    } else if (index == 1 && changeStep) {
-      changeStep = false;
-    } else {
-      goto cancel_flag;
-    }
-  }
-  // Draw indicator
-  if (index == 0) {  // Change value
-    if (changeVal) {
-      driver.enableXorRegion(x + 2, y + 2, 6 * driver.font_width + 3,
-                             ITEM_HEIGHT - 2);
-      driver.drawRBox(x + 1, y + 1, 6 * driver.font_width + 5, ITEM_HEIGHT,
-                      driver.color, 1);
-      driver.disableXorRegion();
-    } else {
-      driver.drawRFrame(x + 1, y + 1, 6 * driver.font_width + 5, ITEM_HEIGHT,
-                        driver.color, 1);
-    }
-  } else if (index == 1) {  // Change step
-    if (changeStep) {
-      driver.enableXorRegion(x + 2, y + 2 + ITEM_HEIGHT,
-                             6 * driver.font_width + 3, ITEM_HEIGHT - 2);
-      driver.drawRBox(x + 2, y + 2 + ITEM_HEIGHT, 6 * driver.font_width + 3,
-                      ITEM_HEIGHT - 2, driver.color, 1);
-      driver.disableXorRegion();
-    } else {
-      driver.drawRFrame(x + 1, y + 1 + ITEM_HEIGHT, 6 * driver.font_width + 5,
-                        ITEM_HEIGHT, driver.color, 1);
-    }
-  } else if (index == 2) {  // Confirm
-    if (large) {
-      driver.drawRFrame(x + 1, y + 1 + 2 * ITEM_HEIGHT,
-                        7 * driver.font_width + 5, ITEM_HEIGHT, driver.color,
-                        1);
-    } else {
-      driver.drawRFrame(x + width - driver.font_width - 6, y + 1,
-                        driver.font_width + 5, ITEM_HEIGHT, driver.color, 1);
-    }
-  } else {  // Cancel
-    if (large) {
-      driver.drawRFrame(x + width - 6 * driver.font_width - 6,
-                        y + 1 + 2 * ITEM_HEIGHT, 6 * driver.font_width + 5,
-                        ITEM_HEIGHT, driver.color, 1);
-    } else {
-      driver.drawRFrame(x + width - driver.font_width - 6, y + 1 + ITEM_HEIGHT,
-                        driver.font_width + 5, ITEM_HEIGHT, driver.color, 1);
-    }
-  }
-  driver.flush();
-  return ret;
-confirm_flag:
-  item->paramBackup = *item->param;
-  EasyUIEventExit();
-  return true;
 cancel_flag:
-  *item->param = item->paramBackup;
-  EasyUIEventExit();
-  return item->eventWhenEditVal;
+    *item->param = item->paramBackup;
+    EasyUIEventExit();
+    return item->eventWhenEditVal;
 }
 
 /*!
@@ -1059,12 +1110,12 @@ cancel_flag:
  * @return  void
  */
 void EasyUIEventExit(void) {
-  functionIsRunning = false;
-  EasyUIBackgroundBlur();
-  if (autoReturn) {
-    cacheActionFlag.exit = 1;
-    autoReturn = false;
-  }
+    functionIsRunning = false;
+    EasyUIBackgroundBlur();
+    if (autoReturn) {
+        cacheActionFlag.exit = 1;
+        autoReturn = false;
+    }
 }
 
 /*!
@@ -1073,9 +1124,9 @@ void EasyUIEventExit(void) {
  * @return  void
  */
 void EasyUIInit(EasyUIDriver_t driver_settings) {
-  driver = driver_settings;
-  driver.init();
-  driver.clear();
+    driver = driver_settings;
+    driver.init();
+    driver.clear();
 }
 
 /*!
@@ -1085,10 +1136,10 @@ void EasyUIInit(EasyUIDriver_t driver_settings) {
  * @return  void
  */
 void EasyUIInformAction(EasyUIAction_t action) {
-  cacheActionFlag.forward = action == ACT_FORWARD;
-  cacheActionFlag.backward = action == ACT_BACKWARD;
-  cacheActionFlag.enter = action == ACT_ENTER;
-  cacheActionFlag.exit = action == ACT_EXIT;
+    cacheActionFlag.forward = action == ACT_FORWARD;
+    cacheActionFlag.backward = action == ACT_BACKWARD;
+    cacheActionFlag.enter = action == ACT_ENTER;
+    cacheActionFlag.exit = action == ACT_EXIT;
 }
 
 /*!
@@ -1098,133 +1149,138 @@ void EasyUIInformAction(EasyUIAction_t action) {
  * @return  void
  */
 void EasyUI(uint16_t timer) {
-  uiActionFlag = cacheActionFlag;
-  memset(&cacheActionFlag, 0, sizeof(cacheActionFlag));
-  driver.disableXorRegion();
+    uiActionFlag = cacheActionFlag;
+    memset(&cacheActionFlag, 0, sizeof(cacheActionFlag));
+    driver.disableXorRegion();
 
-  // Get current page by id
-  EasyUIPage_t *page = uiPageHead;
-  while (page->id != pageIndex[layer]) {
-    page = page->next;
-  }
-
-  // Quit UI to run function
-  // If running function and hold the confirm button, quit the function
-  if (functionIsRunning) {
-    for (EasyUIItem_t *item = page->itemHead; item != NULL; item = item->next) {
-      if (item->id != itemIdx) {
-        continue;
-      }
-      switch (item->funcType) {
-        case ITEM_PROGRESS_BAR:
-          EasyUIDrawProgressBar(item);
-          if (item->Event != NULL) item->Event(item);
-          break;
-        case ITEM_VALUE_EDITOR:
-          if (EasyUIDrawValueEditor(item)) {
-            if (item->Event != NULL) item->Event(item);
-          }
-          break;
-        case ITEM_DIALOG:
-          if (EasyUIDrawDialog(item)) {
-            if (item->Event != NULL) item->Event(item);
-          }
-          break;
-        case ITEM_MESSAGE:
-          EasyUIDrawMsgBox(item->msg, item->eventCnt == 0);
-          if (item->Event != NULL) item->Event(item);
-          break;
-        default:
-          if (item->Event != NULL)
-            item->Event(item);
-          else
-            functionIsRunning = false;
-          break;
-      }
-      item->eventCnt++;
-      break;
+    // Get current page by id
+    EasyUIPage_t* page = uiPageHead;
+    while (page->id != pageIndex[layer]) {
+        page = page->next;
     }
-    return;
-  }
 
-  driver.clear();
+    // Quit UI to run function
+    // If running function and hold the confirm button, quit the function
+    if (functionIsRunning) {
+        for (EasyUIItem_t* item = page->itemHead; item != NULL;
+             item = item->next) {
+            if (item->id != itemIdx) {
+                continue;
+            }
+            switch (item->funcType) {
+                case ITEM_PROGRESS_BAR:
+                    EasyUIDrawProgressBar(item);
+                    if (item->Event != NULL)
+                        item->Event(item);
+                    break;
+                case ITEM_VALUE_EDITOR:
+                    if (EasyUIDrawValueEditor(item)) {
+                        if (item->Event != NULL)
+                            item->Event(item);
+                    }
+                    break;
+                case ITEM_DIALOG:
+                    if (EasyUIDrawDialog(item)) {
+                        if (item->Event != NULL)
+                            item->Event(item);
+                    }
+                    break;
+                case ITEM_MESSAGE:
+                    EasyUIDrawMsgBox(item->msg, item->eventCnt == 0);
+                    if (item->Event != NULL)
+                        item->Event(item);
+                    break;
+                default:
+                    if (item->Event != NULL)
+                        item->Event(item);
+                    else
+                        functionIsRunning = false;
+                    break;
+            }
+            item->eventCnt++;
+            break;
+        }
+        return;
+    }
 
-  if (page->funcType == PAGE_CUSTOM) {
-    page->Event(page, &driver);
+    driver.clear();
 
+    if (page->funcType == PAGE_CUSTOM) {
+        page->Event(page, &driver);
+
+        if (layer == 0) {
+            driver.flush();
+            return;
+        }
+
+        if (uiActionFlag.exit) {
+            pageIndex[layer] = 0;
+            itemIndex[layer] = 0;
+            layer--;
+            itemIdx = itemIndex[layer];
+            EasyUITransitionAnim();
+            EasyUIDrawIndicator(page, itemIdx, timer, 1);
+        }
+
+        driver.flush();
+        return;
+    }
+
+    // Display every item in current page
+    for (EasyUIItem_t* item = page->itemHead; item != NULL; item = item->next) {
+        EasyUIGetItemPos(page, item, itemIdx, timer);
+        EasyUIDisplayItem(item);
+    }
+    // Draw indicator and scroll bar
+    EasyUIDrawIndicator(page, itemIdx, timer, 0);
+
+    // Operation move reaction
+    uint8_t itemSum = page->itemTail->id;
+    if (uiActionFlag.forward) {
+        if (itemIdx < itemSum)
+            itemIdx++;
+        else if (uiListLoop)
+            itemIdx = 0;
+    }
+    if (uiActionFlag.backward) {
+        if (itemIdx > 0)
+            itemIdx--;
+        else if (uiListLoop)
+            itemIdx = itemSum;
+    }
+    EasyUIItem_t* item = page->itemHead;
+    while (item->id != itemIdx) {
+        item = item->next;
+    }
+    if (item->funcType == ITEM_PAGE_DESCRIPTION) {
+        if (item == page->itemHead) {
+            if (uiActionFlag.enter && FIRST_ITEM_PAGE_DESCRIPTION_AS_RETURN)
+                uiActionFlag.exit = 1;
+        } else if (SKIP_ITEM_PAGE_DESCRIPTION) {
+            cacheActionFlag = uiActionFlag;
+        }
+    } else if (item->enable) {
+        if (uiActionFlag.enter) {
+            EasyUIItemOperationResponse(page, item, &itemIdx);
+        }
+    } else if (SKIP_DISABLED_ITEM) {
+        cacheActionFlag = uiActionFlag;
+    }
     if (layer == 0) {
-      driver.flush();
-      return;
+        driver.flush();
+        return;
     }
-
     if (uiActionFlag.exit) {
-      pageIndex[layer] = 0;
-      itemIndex[layer] = 0;
-      layer--;
-      itemIdx = itemIndex[layer];
-      EasyUITransitionAnim();
-      EasyUIDrawIndicator(page, itemIdx, timer, 1);
+        pageIndex[layer] = 0;
+        itemIndex[layer] = 0;
+        layer--;
+        itemIdx = itemIndex[layer];
+        for (EasyUIItem_t* itemTmp = page->itemHead; itemTmp != NULL;
+             itemTmp = itemTmp->next) {
+            itemTmp->position = 0;
+            itemTmp->posForCal = 0;
+        }
+        EasyUITransitionAnim();
     }
-
     driver.flush();
-    return;
-  }
-
-  // Display every item in current page
-  for (EasyUIItem_t *item = page->itemHead; item != NULL; item = item->next) {
-    EasyUIGetItemPos(page, item, itemIdx, timer);
-    EasyUIDisplayItem(item);
-  }
-  // Draw indicator and scroll bar
-  EasyUIDrawIndicator(page, itemIdx, timer, 0);
-
-  // Operation move reaction
-  uint8_t itemSum = page->itemTail->id;
-  if (uiActionFlag.forward) {
-    if (itemIdx < itemSum)
-      itemIdx++;
-    else if (uiListLoop)
-      itemIdx = 0;
-  }
-  if (uiActionFlag.backward) {
-    if (itemIdx > 0)
-      itemIdx--;
-    else if (uiListLoop)
-      itemIdx = itemSum;
-  }
-  EasyUIItem_t *item = page->itemHead;
-  while (item->id != itemIdx) {
-    item = item->next;
-  }
-  if (item->funcType == ITEM_PAGE_DESCRIPTION) {
-    if (item == page->itemHead) {
-      if (uiActionFlag.enter && FIRST_ITEM_PAGE_DESCRIPTION_AS_RETURN)
-        uiActionFlag.exit = 1;
-    } else if (SKIP_ITEM_PAGE_DESCRIPTION) {
-      cacheActionFlag = uiActionFlag;
-    }
-  } else if (item->enable) {
-    if (uiActionFlag.enter) {
-      EasyUIItemOperationResponse(page, item, &itemIdx);
-    }
-  } else if (SKIP_DISABLED_ITEM) {
-    cacheActionFlag = uiActionFlag;
-  }
-  if (layer == 0) {
-    driver.flush();
-    return;
-  }
-  if (uiActionFlag.exit) {
-    pageIndex[layer] = 0;
-    itemIndex[layer] = 0;
-    layer--;
-    itemIdx = itemIndex[layer];
-    for (EasyUIItem_t *itemTmp = page->itemHead; itemTmp != NULL;
-         itemTmp = itemTmp->next) {
-      itemTmp->position = 0;
-      itemTmp->posForCal = 0;
-    }
-    EasyUITransitionAnim();
-  }
-  driver.flush();
 }

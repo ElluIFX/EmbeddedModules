@@ -25,7 +25,7 @@ extern void vofa_add(float value);
 /**
  * @brief 向VOFA缓冲区添加浮点数组
  */
-extern void vofa_add_array(float *value, uint8_t len);
+extern void vofa_add_array(float* value, uint8_t len);
 
 /**
  * @brief 清空VOFA缓冲区
@@ -35,12 +35,12 @@ extern void vofa_clear(void);
 /**
  * @brief 向指定串口发送VOFA数据
  */
-extern void vofa_send_uart(UART_HandleTypeDef *huart);
+extern void vofa_send_uart(UART_HandleTypeDef* huart);
 
 /**
  * @brief 向指定串口发送VOFA数据(如串口未就绪则丢弃)
  */
-extern void vofa_send_uart_fast(UART_HandleTypeDef *huart);
+extern void vofa_send_uart_fast(UART_HandleTypeDef* huart);
 
 #if UIO_CFG_ENABLE_CDC
 /**

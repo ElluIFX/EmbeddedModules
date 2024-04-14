@@ -40,55 +40,55 @@ SPDX-License-Identifier: BSD-2-Clause
 
 #include <stdint.h>
 
-hsl_t rgb888_to_hsl(rgb_t *rgb) {
-  hsl_t hsl;
-  float r, g, b, h, s, l;
-  r = rgb->r / 256.0;
-  g = rgb->g / 256.0;
-  b = rgb->b / 256.0;
+hsl_t rgb888_to_hsl(rgb_t* rgb) {
+    hsl_t hsl;
+    float r, g, b, h, s, l;
+    r = rgb->r / 256.0;
+    g = rgb->g / 256.0;
+    b = rgb->b / 256.0;
 
-  float maxColor = max(r, max(g, b));
-  float minColor = min(r, min(g, b));
+    float maxColor = max(r, max(g, b));
+    float minColor = min(r, min(g, b));
 
-  /* R == G == B, so it's a shade of gray. */
-  if (minColor == maxColor) {
-    h = 0.0;
-    s = 0.0;
-    l = r;
-  } else {
-    l = (minColor + maxColor) / 2;
-
-    if (l < 0.5) {
-      s = (maxColor - minColor) / (maxColor + minColor);
+    /* R == G == B, so it's a shade of gray. */
+    if (minColor == maxColor) {
+        h = 0.0;
+        s = 0.0;
+        l = r;
     } else {
-      s = (maxColor - minColor) / (2.0 - maxColor - minColor);
+        l = (minColor + maxColor) / 2;
+
+        if (l < 0.5) {
+            s = (maxColor - minColor) / (maxColor + minColor);
+        } else {
+            s = (maxColor - minColor) / (2.0 - maxColor - minColor);
+        }
+
+        if (r == maxColor) {
+            h = (g - b) / (maxColor - minColor);
+        } else if (g == maxColor) {
+            h = 2.0 + (b - r) / (maxColor - minColor);
+        } else {
+            h = 4.0 + (r - g) / (maxColor - minColor);
+        }
+
+        h /= 6; /* To bring it to a number between 0 and 1. */
+        if (h < 0) {
+            h++;
+        }
     }
 
-    if (r == maxColor) {
-      h = (g - b) / (maxColor - minColor);
-    } else if (g == maxColor) {
-      h = 2.0 + (b - r) / (maxColor - minColor);
-    } else {
-      h = 4.0 + (r - g) / (maxColor - minColor);
-    }
+    hsl.h = (uint8_t)(h * 255.0);
+    hsl.s = (uint8_t)(s * 255.0);
+    hsl.l = (uint8_t)(l * 255.0);
 
-    h /= 6; /* To bring it to a number between 0 and 1. */
-    if (h < 0) {
-      h++;
-    }
-  }
-
-  hsl.h = (uint8_t)(h * 255.0);
-  hsl.s = (uint8_t)(s * 255.0);
-  hsl.l = (uint8_t)(l * 255.0);
-
-  return hsl;
+    return hsl;
 }
 
-uint16_t rgb888_to_rgb565(rgb_t *input) {
-  uint16_t r5 = (input->r * 249 + 1014) >> 11;
-  uint16_t g6 = (input->g * 253 + 505) >> 10;
-  uint16_t b5 = (input->b * 249 + 1014) >> 11;
+uint16_t rgb888_to_rgb565(rgb_t* input) {
+    uint16_t r5 = (input->r * 249 + 1014) >> 11;
+    uint16_t g6 = (input->g * 253 + 505) >> 10;
+    uint16_t b5 = (input->b * 249 + 1014) >> 11;
 
-  return (r5 | g6 | b5);
+    return (r5 | g6 | b5);
 }

@@ -1,6 +1,6 @@
 # btree.c
 
-A B-tree implementation in C. 
+A B-tree implementation in C.
 
 ## Features
 
@@ -42,17 +42,17 @@ bool user_iter(const void *a, void *udata) {
 }
 
 int main() {
-    // create a new btree where each item is a `struct user`. 
+    // create a new btree where each item is a `struct user`.
     struct btree *tr = btree_new(sizeof(struct user), 0, user_compare, NULL);
 
-    // load some users into the btree. Each set operation performas a copy of 
+    // load some users into the btree. Each set operation performas a copy of
     // the data that is pointed to in the second argument.
     btree_set(tr, &(struct user){ .first="Dale", .last="Murphy", .age=44 });
     btree_set(tr, &(struct user){ .first="Roger", .last="Craig", .age=68 });
     btree_set(tr, &(struct user){ .first="Jane", .last="Murphy", .age=47 });
 
-    struct user *user; 
-    
+    struct user *user;
+
     printf("\n-- get some users --\n");
     user = btree_get(tr, &(struct user){ .first="Jane", .last="Murphy" });
     printf("%s age=%d\n", user->first, user->age);
@@ -92,12 +92,12 @@ int main() {
 // Roger age=68
 // Dale age=44
 // not exists
-// 
+//
 // -- iterate over all users --
 // Roger Craig (age=68)
 // Dale Murphy (age=44)
 // Jane Murphy (age=47)
-// 
+//
 // -- iterate beginning with last name `Murphy` --
 // Dale Murphy (age=44)
 // Jane Murphy (age=47)
@@ -160,8 +160,8 @@ btree_load     # same as btree_set but optimized for fast loading, 10x boost.
 ## Testing and benchmarks
 
 ```sh
-$ tests/run.sh        # run tests
-$ tests/run.sh bench  # run benchmarks
+tests/run.sh        # run tests
+tests/run.sh bench  # run benchmarks
 ```
 
 The following benchmarks were run on my 2021 Apple M1 Max using clang-17.

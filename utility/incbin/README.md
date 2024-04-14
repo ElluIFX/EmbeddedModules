@@ -19,7 +19,7 @@ Include binary and textual files in your C/C++ applications with ease
     // default type is `unsigned char`.
     INCBIN(MyType, IconTyped, "icon.png");
 
-    // INCTXT is the same as INCBIN but it uses type `char` by default and 
+    // INCTXT is the same as INCBIN but it uses type `char` by default and
     // implicitly adds a NUL-terminator byte to the included data, making it
     // safe to use as a string in C.
     INCTXT(Readme, "readme.md");
@@ -69,6 +69,7 @@ If your compiler is not listed, as long as it supports GCC inline assembler, thi
 should work.
 
 ## MISRA
+
 INCBIN can be used in MISRA C setting. However it should be independently checked
 due to its use of inline assembly to achieve what it does. Independent verification
 of the header has been done several times based on commit: 7e327a28ba5467c4202ec37874beca7084e4b08c
@@ -88,6 +89,7 @@ code. The table of the alignments for SIMD this header recognizes is as follows:
 | AVX512                                  | 64        |
 
 ## Prefix
+
 By default, `incbin.h` emits symbols with a `g` prefix. This can be adjusted by
 defining `INCBIN_PREFIX` before including `incbin.h` with a desired prefix. For
 instance
@@ -117,6 +119,7 @@ You can also choose to have no prefix by defining the prefix with nothing, for e
 ```
 
 ## Style
+
 By default, `incbin.h` emits symbols with `CamelCase` style. This can be adjusted
 by defining `INCBIN_STYLE` before including `incbin.h` to change the style. There
 are two possible styles to choose from
@@ -141,6 +144,7 @@ Combining both the style and prefix allows for you to adjust `incbin.h` to suite
 your existing style and practices.
 
 ## Overriding Linker Output section
+
 By default, `incbin.h` emits into the read-only linker output section used on
 the detected platform. If you need to override this for whatever reason, you
 can manually specify the linker output section.

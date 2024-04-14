@@ -1,4 +1,5 @@
 # crc-lib-c
+
 基于C语言的CRC校验库，包括常用的21个CRC参数模型实现
 
 #### 常用的CRC参数模型
@@ -33,5 +34,5 @@
 
 离线计算工具：
 
-- CRC_Calc v0.1：http://xz.w10a.com/Small/CRCJISUANQI.zip
-- 格西CRC计算器：http://www.geshe.com/home/products/GToolbox/bin/GCRC.exe
+- CRC_Calc v0.1：<http://xz.w10a.com/Small/CRCJISUANQI.zip>
+- 格西CRC计算器：<http://www.geshe.com/home/products/GToolbox/bin/GCRC.exe>

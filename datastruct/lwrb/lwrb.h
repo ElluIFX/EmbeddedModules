@@ -80,10 +80,14 @@ typedef void (*lwrb_evt_fn)(struct lwrb* buff, lwrb_evt_type_t evt, size_t bp);
  * \brief           Buffer structure
  */
 typedef struct lwrb {
-    uint8_t* buff;  /*!< Pointer to buffer data. Buffer is considered initialized when `buff != NULL` and `size > 0` */
-    size_t size;    /*!< Size of buffer data. Size of actual buffer is `1` byte less than value holds */
-    lwrb_ulong_t r; /*!< Next read pointer. Buffer is considered empty when `r == w` and full when `w == r - 1` */
-    lwrb_ulong_t w; /*!< Next write pointer. Buffer is considered empty when `r == w` and full when `w == r - 1` */
+    uint8_t*
+        buff; /*!< Pointer to buffer data. Buffer is considered initialized when `buff != NULL` and `size > 0` */
+    size_t
+        size; /*!< Size of buffer data. Size of actual buffer is `1` byte less than value holds */
+    lwrb_ulong_t
+        r; /*!< Next read pointer. Buffer is considered empty when `r == w` and full when `w == r - 1` */
+    lwrb_ulong_t
+        w; /*!< Next write pointer. Buffer is considered empty when `r == w` and full when `w == r - 1` */
     lwrb_evt_fn evt_fn; /*!< Pointer to event callback function */
 } lwrb_t;
 
@@ -113,7 +117,8 @@ size_t lwrb_get_linear_block_write_length(const lwrb_t* buff);
 size_t lwrb_advance(lwrb_t* buff, size_t len);
 
 /* Search in buffer */
-uint8_t lwrb_find(const lwrb_t* buff, const void* bts, size_t len, size_t start_offset, size_t* found_idx);
+uint8_t lwrb_find(const lwrb_t* buff, const void* bts, size_t len,
+                  size_t start_offset, size_t* found_idx);
 
 /**
  * \}

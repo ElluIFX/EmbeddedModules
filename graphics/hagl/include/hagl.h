@@ -66,11 +66,11 @@ extern "C" {
 #define HAGL_ERR_GENERAL (1)
 #define HAGL_ERR_FILE_IO (2)
 
-hagl_backend_t *hagl_init(void);
-size_t hagl_flush(hagl_backend_t *backend);
-void hagl_close(hagl_backend_t *backend);
+hagl_backend_t* hagl_init(void);
+size_t hagl_flush(hagl_backend_t* backend);
+void hagl_close(hagl_backend_t* backend);
 
-void hagl_clear(void *surface);
+void hagl_clear(void* surface);
 
 #ifdef __cplusplus
 }

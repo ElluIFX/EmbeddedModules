@@ -31,21 +31,20 @@ extern "C" {
  * struct type.
  */
 #define rt_container_of(ptr, type, member) \
-    ((type *)((char *)(ptr) - (unsigned long)(&((type *)0)->member)))
-
+    ((type*)((char*)(ptr) - (unsigned long)(&((type*)0)->member)))
 
 /**
  * @brief initialize a list object
  */
-#define RT_LIST_OBJECT_INIT(object) { &(object), &(object) }
+#define RT_LIST_OBJECT_INIT(object) \
+    { &(object), &(object) }
 
 /**
  * @brief initialize a list
  *
  * @param l list to be initialized
  */
-rt_inline void rt_list_init(rt_list_t *l)
-{
+rt_inline void rt_list_init(rt_list_t* l) {
     l->next = l->prev = l;
 }
 
@@ -55,8 +54,7 @@ rt_inline void rt_list_init(rt_list_t *l)
  * @param l list to insert it
  * @param n new node to be inserted
  */
-rt_inline void rt_list_insert_after(rt_list_t *l, rt_list_t *n)
-{
+rt_inline void rt_list_insert_after(rt_list_t* l, rt_list_t* n) {
     l->next->prev = n;
     n->next = l->next;
 
@@ -70,8 +68,7 @@ rt_inline void rt_list_insert_after(rt_list_t *l, rt_list_t *n)
  * @param n new node to be inserted
  * @param l list to insert it
  */
-rt_inline void rt_list_insert_before(rt_list_t *l, rt_list_t *n)
-{
+rt_inline void rt_list_insert_before(rt_list_t* l, rt_list_t* n) {
     l->prev->next = n;
     n->prev = l->prev;
 
@@ -83,8 +80,7 @@ rt_inline void rt_list_insert_before(rt_list_t *l, rt_list_t *n)
  * @brief remove node from list.
  * @param n the node to remove from the list.
  */
-rt_inline void rt_list_remove(rt_list_t *n)
-{
+rt_inline void rt_list_remove(rt_list_t* n) {
     n->next->prev = n->prev;
     n->prev->next = n->next;
 
@@ -95,8 +91,7 @@ rt_inline void rt_list_remove(rt_list_t *n)
  * @brief tests whether a list is empty
  * @param l the list to test.
  */
-rt_inline int rt_list_isempty(const rt_list_t *l)
-{
+rt_inline int rt_list_isempty(const rt_list_t* l) {
     return l->next == l;
 }
 
@@ -104,14 +99,12 @@ rt_inline int rt_list_isempty(const rt_list_t *l)
  * @brief get the list length
  * @param l the list to get.
  */
-rt_inline unsigned int rt_list_len(const rt_list_t *l)
-{
+rt_inline unsigned int rt_list_len(const rt_list_t* l) {
     unsigned int len = 0;
-    const rt_list_t *p = l;
-    while (p->next != l)
-    {
+    const rt_list_t* p = l;
+    while (p->next != l) {
         p = p->next;
-        len ++;
+        len++;
     }
 
     return len;
@@ -123,8 +116,7 @@ rt_inline unsigned int rt_list_len(const rt_list_t *l)
  * @param type the type of structure
  * @param member the name of list in structure
  */
-#define rt_list_entry(node, type, member) \
-    rt_container_of(node, type, member)
+#define rt_list_entry(node, type, member) rt_container_of(node, type, member)
 
 /**
  * rt_list_for_each - iterate over a list
@@ -140,9 +132,9 @@ rt_inline unsigned int rt_list_len(const rt_list_t *l)
  * @n:      another rt_list_t * to use as temporary storage
  * @head:   the head for your list.
  */
-#define rt_list_for_each_safe(pos, n, head) \
+#define rt_list_for_each_safe(pos, n, head)                \
     for (pos = (head)->next, n = pos->next; pos != (head); \
-        pos = n, n = pos->next)
+         pos = n, n = pos->next)
 
 /**
  * rt_list_for_each_entry  -   iterate over list of given type
@@ -150,9 +142,9 @@ rt_inline unsigned int rt_list_len(const rt_list_t *l)
  * @head:   the head for your list.
  * @member: the name of the list_struct within the struct.
  */
-#define rt_list_for_each_entry(pos, head, member) \
+#define rt_list_for_each_entry(pos, head, member)                 \
     for (pos = rt_list_entry((head)->next, typeof(*pos), member); \
-         &pos->member != (head); \
+         &pos->member != (head);                                  \
          pos = rt_list_entry(pos->member.next, typeof(*pos), member))
 
 /**
@@ -162,10 +154,10 @@ rt_inline unsigned int rt_list_len(const rt_list_t *l)
  * @head:   the head for your list.
  * @member: the name of the list_struct within the struct.
  */
-#define rt_list_for_each_entry_safe(pos, n, head, member) \
-    for (pos = rt_list_entry((head)->next, typeof(*pos), member), \
-         n = rt_list_entry(pos->member.next, typeof(*pos), member); \
-         &pos->member != (head); \
+#define rt_list_for_each_entry_safe(pos, n, head, member)          \
+    for (pos = rt_list_entry((head)->next, typeof(*pos), member),  \
+        n = rt_list_entry(pos->member.next, typeof(*pos), member); \
+         &pos->member != (head);                                   \
          pos = n, n = rt_list_entry(n->member.next, typeof(*n), member))
 
 /**
@@ -179,80 +171,75 @@ rt_inline unsigned int rt_list_len(const rt_list_t *l)
 #define rt_list_first_entry(ptr, type, member) \
     rt_list_entry((ptr)->next, type, member)
 
-#define RT_SLIST_OBJECT_INIT(object) { RT_NULL }
+#define RT_SLIST_OBJECT_INIT(object) \
+    { RT_NULL }
 
 /**
  * @brief initialize a single list
  *
  * @param l the single list to be initialized
  */
-rt_inline void rt_slist_init(rt_slist_t *l)
-{
+rt_inline void rt_slist_init(rt_slist_t* l) {
     l->next = RT_NULL;
 }
 
-rt_inline void rt_slist_append(rt_slist_t *l, rt_slist_t *n)
-{
-    struct rt_slist_node *node;
+rt_inline void rt_slist_append(rt_slist_t* l, rt_slist_t* n) {
+    struct rt_slist_node* node;
 
     node = l;
-    while (node->next) node = node->next;
+    while (node->next)
+        node = node->next;
 
     /* append the node to the tail */
     node->next = n;
     n->next = RT_NULL;
 }
 
-rt_inline void rt_slist_insert(rt_slist_t *l, rt_slist_t *n)
-{
+rt_inline void rt_slist_insert(rt_slist_t* l, rt_slist_t* n) {
     n->next = l->next;
     l->next = n;
 }
 
-rt_inline unsigned int rt_slist_len(const rt_slist_t *l)
-{
+rt_inline unsigned int rt_slist_len(const rt_slist_t* l) {
     unsigned int len = 0;
-    const rt_slist_t *list = l->next;
-    while (list != RT_NULL)
-    {
+    const rt_slist_t* list = l->next;
+    while (list != RT_NULL) {
         list = list->next;
-        len ++;
+        len++;
     }
 
     return len;
 }
 
-rt_inline rt_slist_t *rt_slist_remove(rt_slist_t *l, rt_slist_t *n)
-{
+rt_inline rt_slist_t* rt_slist_remove(rt_slist_t* l, rt_slist_t* n) {
     /* remove slist head */
-    struct rt_slist_node *node = l;
-    while (node->next && node->next != n) node = node->next;
+    struct rt_slist_node* node = l;
+    while (node->next && node->next != n)
+        node = node->next;
 
     /* remove node */
-    if (node->next != (rt_slist_t *)0) node->next = node->next->next;
+    if (node->next != (rt_slist_t*)0)
+        node->next = node->next->next;
 
     return l;
 }
 
-rt_inline rt_slist_t *rt_slist_first(rt_slist_t *l)
-{
+rt_inline rt_slist_t* rt_slist_first(rt_slist_t* l) {
     return l->next;
 }
 
-rt_inline rt_slist_t *rt_slist_tail(rt_slist_t *l)
-{
-    while (l->next) l = l->next;
+rt_inline rt_slist_t* rt_slist_tail(rt_slist_t* l) {
+    while (l->next)
+        l = l->next;
 
     return l;
 }
 
-rt_inline rt_slist_t *rt_slist_next(rt_slist_t *n)
-{
+rt_inline rt_slist_t* rt_slist_next(rt_slist_t* n) {
     return n->next;
 }
 
-rt_inline int rt_slist_isempty(rt_slist_t *l)
-{
+rt_inline int rt_slist_isempty(rt_slist_t* l) {
     return l->next == RT_NULL;
 }
 
@@ -262,8 +249,7 @@ rt_inline int rt_slist_isempty(rt_slist_t *l)
  * @param type the type of structure
  * @param member the name of list in structure
  */
-#define rt_slist_entry(node, type, member) \
-    rt_container_of(node, type, member)
+#define rt_slist_entry(node, type, member) rt_container_of(node, type, member)
 
 /**
  * rt_slist_for_each - iterate over a single list
@@ -279,9 +265,9 @@ rt_inline int rt_slist_isempty(rt_slist_t *l)
  * @head:   the head for your single list.
  * @member: the name of the list_struct within the struct.
  */
-#define rt_slist_for_each_entry(pos, head, member) \
+#define rt_slist_for_each_entry(pos, head, member)                 \
     for (pos = rt_slist_entry((head)->next, typeof(*pos), member); \
-         &pos->member != (RT_NULL); \
+         &pos->member != (RT_NULL);                                \
          pos = rt_slist_entry(pos->member.next, typeof(*pos), member))
 
 /**

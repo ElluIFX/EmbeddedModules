@@ -39,21 +39,21 @@ extern "C" {
  * @param  cbkInIRQ        回调函数是否在中断中执行
  * @retval lfifo_t         接收LFIFO句柄, NULL:失败
  */
-lfifo_t *cdc_fifo_init(uint8_t *txBuf, size_t txBufSize, uint8_t *rxBuf,
-                       size_t rxBufSize, void (*rxCallback)(lfifo_t *fifo),
+lfifo_t* cdc_fifo_init(uint8_t* txBuf, size_t txBufSize, uint8_t* rxBuf,
+                       size_t rxBufSize, void (*rxCallback)(lfifo_t* fifo),
                        uint8_t cbkInIRQ);
 
 /**
  * @brief USB CDC 发送格式化字符串
  */
-extern int cdc_printf(char *fmt, ...);
+extern int cdc_printf(char* fmt, ...);
 
 /**
  * @brief USB CDC 发送数据
  * @param  buf              数据指针
  * @param  len              数据长度
  */
-extern void cdc_write(uint8_t *buf, size_t len);
+extern void cdc_write(uint8_t* buf, size_t len);
 
 /**
  * @brief USB是否已连接

@@ -58,7 +58,7 @@ extern "C" {
  * @param y3
  * @param color
  */
-void hagl_draw_triangle(void const *surface, int16_t x0, int16_t y0, int16_t x1,
+void hagl_draw_triangle(void const* surface, int16_t x0, int16_t y0, int16_t x1,
                         int16_t y1, int16_t x2, int16_t y2, hagl_color_t color);
 
 /**
@@ -76,7 +76,7 @@ void hagl_draw_triangle(void const *surface, int16_t x0, int16_t y0, int16_t x1,
  * @param y3
  * @param color
  */
-void hagl_fill_triangle(void const *surface, int16_t x0, int16_t y0, int16_t x1,
+void hagl_fill_triangle(void const* surface, int16_t x0, int16_t y0, int16_t x1,
                         int16_t y1, int16_t x2, int16_t y2, hagl_color_t color);
 
 #ifdef __cplusplus

@@ -74,13 +74,13 @@ typedef uint32_t y_uint32_t;
 
 /* 功能的状态报告. */
 typedef enum {
-  Y_OK = 0x00u,           /**< 传输成功. */
-  Y_ERROR_CRC = 0x01u,    /**< CRC 校验误差. */
-  Y_ERROR_NUMBER = 0x02u, /**< 包数量不匹配错误. */
-  Y_ERROR_UART = 0x04u,   /**< 传输错误. */
-  Y_ERROR_FLASH = 0x06u,  /**< Flash 错误. */
-  Y_EOY = 0x07u,          /**< 文件传输结束 */
-  Y_ERROR = 0xFFu         /**< 其他错误. */
+    Y_OK = 0x00u,           /**< 传输成功. */
+    Y_ERROR_CRC = 0x01u,    /**< CRC 校验误差. */
+    Y_ERROR_NUMBER = 0x02u, /**< 包数量不匹配错误. */
+    Y_ERROR_UART = 0x04u,   /**< 传输错误. */
+    Y_ERROR_FLASH = 0x06u,  /**< Flash 错误. */
+    Y_EOY = 0x07u,          /**< 文件传输结束 */
+    Y_ERROR = 0xFFu         /**< 其他错误. */
 } ymodem_status;
 
 #define Y_UNUSED(Y) (void)Y /* To avoid gcc/g++ warnings */
@@ -88,16 +88,16 @@ typedef enum {
 /***************************** 对外函数 ***************************************/
 /* 用户调用 */
 y_uint16_t ymodem_receive(void);
-void ymodem_receive_buffer(y_uint8_t *data, y_uint16_t data_len);
+void ymodem_receive_buffer(y_uint8_t* data, y_uint16_t data_len);
 
 /* 用户需实现 */
 y_uint32_t y_get_tick(void);
 int y_transmit_ch(y_uint8_t ch);
-int y_receive_nanme_size_callback(void **ptr, char *file_name,
+int y_receive_nanme_size_callback(void** ptr, char* file_name,
                                   y_uint32_t file_size);
-int y_receive_file_data_callback(void **ptr, char *file_data,
+int y_receive_file_data_callback(void** ptr, char* file_data,
                                  y_uint32_t w_size);
-int y_receive_file_callback(void **ptr);
+int y_receive_file_callback(void** ptr);
 /***************************** 对外函数 ***************************************/
 
 #endif /* XMODEM_H_ */

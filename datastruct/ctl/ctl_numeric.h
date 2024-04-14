@@ -9,10 +9,8 @@
 
 #if !defined(CTL_USET) && !defined(CTL_SET) && !defined(CTL_PQU)
 
-static inline void JOIN(A, iota)(A *self, T value)
-{
-    ctl_foreach(A, self, i)
-    {
+static inline void JOIN(A, iota)(A* self, T value) {
+    ctl_foreach(A, self, i) {
 #ifdef POD
         *i.ref = value;
         value += 1;
@@ -26,13 +24,11 @@ static inline void JOIN(A, iota)(A *self, T value)
     }
 }
 
-static inline void JOIN(A, iota_range)(I *range, T value)
-{
+static inline void JOIN(A, iota_range)(I* range, T value) {
 #ifndef POD
     A* self = range->container;
 #endif
-    ctl_foreach_range_(A, i, range)
-    {
+    ctl_foreach_range_(A, i, range) {
 #ifdef POD
         *i.ref = value;
         value += 1;
@@ -44,4 +40,4 @@ static inline void JOIN(A, iota_range)(I *range, T value)
     }
 }
 
-#endif // PQU,USET,SET
+#endif  // PQU,USET,SET

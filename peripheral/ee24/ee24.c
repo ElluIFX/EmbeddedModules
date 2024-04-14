@@ -22,14 +22,14 @@
 **************    Private Functions
 ************************************************************************************************************/
 
-static void EE24_Lock(EE24_HandleTypeDef *Handle) {
-  MOD_MUTEX_ACQUIRE(Handle->Mutex);
+static void EE24_Lock(EE24_HandleTypeDef* Handle) {
+    MOD_MUTEX_ACQUIRE(Handle->Mutex);
 }
 
 /***********************************************************************************************************/
 
-static void EE24_UnLock(EE24_HandleTypeDef *Handle) {
-  MOD_MUTEX_RELEASE(Handle->Mutex);
+static void EE24_UnLock(EE24_HandleTypeDef* Handle) {
+    MOD_MUTEX_RELEASE(Handle->Mutex);
 }
 
 /************************************************************************************************************
@@ -47,22 +47,22 @@ static void EE24_UnLock(EE24_HandleTypeDef *Handle) {
  *
  * @retval bool: true or false
  */
-bool EE24_Init(EE24_HandleTypeDef *Handle, I2C_HandleTypeDef *HI2c,
+bool EE24_Init(EE24_HandleTypeDef* Handle, I2C_HandleTypeDef* HI2c,
                uint8_t I2CAddress) {
-  bool answer = false;
-  do {
-    if ((Handle == NULL) || (HI2c == NULL)) {
-      break;
-    }
-    Handle->HI2c = HI2c;
-    Handle->Address = I2CAddress;
-    if (HAL_I2C_IsDeviceReady(Handle->HI2c, Handle->Address, 2, 100) ==
-        HAL_OK) {
-      answer = true;
-    }
-  } while (0);
+    bool answer = false;
+    do {
+        if ((Handle == NULL) || (HI2c == NULL)) {
+            break;
+        }
+        Handle->HI2c = HI2c;
+        Handle->Address = I2CAddress;
+        if (HAL_I2C_IsDeviceReady(Handle->HI2c, Handle->Address, 2, 100) ==
+            HAL_OK) {
+            answer = true;
+        }
+    } while (0);
 
-  return answer;
+    return answer;
 }
 #else
 /**
@@ -78,25 +78,25 @@ bool EE24_Init(EE24_HandleTypeDef *Handle, I2C_HandleTypeDef *HI2c,
  *
  * @retval bool: true or false
  */
-bool EE24_Init(EE24_HandleTypeDef *Handle, I2C_HandleTypeDef *HI2c,
-               uint8_t I2CAddress, GPIO_TypeDef *WpGpio, uint16_t WpPin) {
-  bool answer = false;
-  do {
-    if ((Handle == NULL) || (HI2c == NULL) || (WpGpio == NULL)) {
-      break;
-    }
-    Handle->HI2c = HI2c;
-    Handle->Address = I2CAddress;
-    Handle->WpGpio = WpGpio;
-    Handle->WpPin = WpPin;
-    HAL_GPIO_WritePin(Handle->WpGpio, Handle->WpPin, GPIO_PIN_SET);
-    if (HAL_I2C_IsDeviceReady(Handle->HI2c, Handle->Address, 2, 100) ==
-        HAL_OK) {
-      answer = true;
-    }
-  } while (0);
+bool EE24_Init(EE24_HandleTypeDef* Handle, I2C_HandleTypeDef* HI2c,
+               uint8_t I2CAddress, GPIO_TypeDef* WpGpio, uint16_t WpPin) {
+    bool answer = false;
+    do {
+        if ((Handle == NULL) || (HI2c == NULL) || (WpGpio == NULL)) {
+            break;
+        }
+        Handle->HI2c = HI2c;
+        Handle->Address = I2CAddress;
+        Handle->WpGpio = WpGpio;
+        Handle->WpPin = WpPin;
+        HAL_GPIO_WritePin(Handle->WpGpio, Handle->WpPin, GPIO_PIN_SET);
+        if (HAL_I2C_IsDeviceReady(Handle->HI2c, Handle->Address, 2, 100) ==
+            HAL_OK) {
+            answer = true;
+        }
+    } while (0);
 
-  return answer;
+    return answer;
 }
 #endif
 
@@ -114,40 +114,42 @@ bool EE24_Init(EE24_HandleTypeDef *Handle, I2C_HandleTypeDef *HI2c,
  *
  * @retval bool: true or false
  */
-bool EE24_Read(EE24_HandleTypeDef *Handle, uint32_t Address, uint8_t *Data,
+bool EE24_Read(EE24_HandleTypeDef* Handle, uint32_t Address, uint8_t* Data,
                size_t Len, uint32_t Timeout) {
-  EE24_Lock(Handle);
-  bool answer = false;
-  do {
+    EE24_Lock(Handle);
+    bool answer = false;
+    do {
 #if ((EE24_SIZE == EE24_1KBIT) || (EE24_SIZE == EE24_2KBIT))
-    if (HAL_I2C_Mem_Read(Handle->HI2c, Handle->Address, Address,
-                         I2C_MEMADD_SIZE_8BIT, Data, Len, Timeout) == HAL_OK)
+        if (HAL_I2C_Mem_Read(Handle->HI2c, Handle->Address, Address,
+                             I2C_MEMADD_SIZE_8BIT, Data, Len,
+                             Timeout) == HAL_OK)
 #elif (EE24_SIZE == EE24_4KBIT)
-    if (HAL_I2C_Mem_Read(Handle->HI2c,
-                         Handle->Address | ((Address & 0x0100) >> 7),
-                         (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, Len,
-                         Timeout) == HAL_OK)
+        if (HAL_I2C_Mem_Read(Handle->HI2c,
+                             Handle->Address | ((Address & 0x0100) >> 7),
+                             (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, Len,
+                             Timeout) == HAL_OK)
 #elif (EE24_SIZE == EE24_8KBIT)
-    if (HAL_I2C_Mem_Read(Handle->HI2c,
-                         Handle->Address | ((Address & 0x0300) >> 7),
-                         (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, Len,
-                         Timeout) == HAL_OK)
+        if (HAL_I2C_Mem_Read(Handle->HI2c,
+                             Handle->Address | ((Address & 0x0300) >> 7),
+                             (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, Len,
+                             Timeout) == HAL_OK)
 #elif (EE24_SIZE == EE24_16KBIT)
-    if (HAL_I2C_Mem_Read(Handle->HI2c,
-                         Handle->Address | ((Address & 0x0700) >> 7),
-                         (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, Len,
-                         Timeout) == HAL_OK)
+        if (HAL_I2C_Mem_Read(Handle->HI2c,
+                             Handle->Address | ((Address & 0x0700) >> 7),
+                             (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, Len,
+                             Timeout) == HAL_OK)
 #else
-    if (HAL_I2C_Mem_Read(Handle->HI2c, Handle->Address, Address,
-                         I2C_MEMADD_SIZE_16BIT, Data, Len, Timeout) == HAL_OK)
+        if (HAL_I2C_Mem_Read(Handle->HI2c, Handle->Address, Address,
+                             I2C_MEMADD_SIZE_16BIT, Data, Len,
+                             Timeout) == HAL_OK)
 #endif
-    {
-      answer = true;
-    }
-  } while (0);
+        {
+            answer = true;
+        }
+    } while (0);
 
-  EE24_UnLock(Handle);
-  return answer;
+    EE24_UnLock(Handle);
+    return answer;
 }
 
 /***********************************************************************************************************/
@@ -164,66 +166,68 @@ bool EE24_Read(EE24_HandleTypeDef *Handle, uint32_t Address, uint8_t *Data,
  *
  * @retval bool: true or false
  */
-bool EE24_Write(EE24_HandleTypeDef *Handle, uint32_t Address, uint8_t *Data,
+bool EE24_Write(EE24_HandleTypeDef* Handle, uint32_t Address, uint8_t* Data,
                 size_t Len, uint32_t Timeout) {
-  EE24_Lock(Handle);
-  bool answer = false;
-  do {
-    uint16_t w;
-    uint32_t startTime = HAL_GetTick();
+    EE24_Lock(Handle);
+    bool answer = false;
+    do {
+        uint16_t w;
+        uint32_t startTime = HAL_GetTick();
 #if EE24_USE_WP_PIN
-    HAL_GPIO_WritePin(Handle->WpGpio, Handle->WpPin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(Handle->WpGpio, Handle->WpPin, GPIO_PIN_RESET);
 #endif
-    while (1) {
-      w = EE24_PSIZE - (Address % EE24_PSIZE);
-      if (w > Len) {
-        w = Len;
-      }
+        while (1) {
+            w = EE24_PSIZE - (Address % EE24_PSIZE);
+            if (w > Len) {
+                w = Len;
+            }
 #if ((EE24_SIZE == EE24_1KBIT) || (EE24_SIZE == EE24_2KBIT))
-      if (HAL_I2C_Mem_Write(Handle->HI2c, Handle->Address, Address,
-                            I2C_MEMADD_SIZE_8BIT, Data, w, Timeout) == HAL_OK)
+            if (HAL_I2C_Mem_Write(Handle->HI2c, Handle->Address, Address,
+                                  I2C_MEMADD_SIZE_8BIT, Data, w,
+                                  Timeout) == HAL_OK)
 #elif (EE24_SIZE == EE24_4KBIT)
-      if (HAL_I2C_Mem_Write(Handle->HI2c,
-                            Handle->Address | ((Address & 0x0100) >> 7),
-                            (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, w,
-                            Timeout) == HAL_OK)
+            if (HAL_I2C_Mem_Write(Handle->HI2c,
+                                  Handle->Address | ((Address & 0x0100) >> 7),
+                                  (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data,
+                                  w, Timeout) == HAL_OK)
 #elif (EE24_SIZE == EE24_8KBIT)
-      if (HAL_I2C_Mem_Write(Handle->HI2c,
-                            Handle->Address | ((Address & 0x0300) >> 7),
-                            (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, w,
-                            Timeout) == HAL_OK)
+            if (HAL_I2C_Mem_Write(Handle->HI2c,
+                                  Handle->Address | ((Address & 0x0300) >> 7),
+                                  (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data,
+                                  w, Timeout) == HAL_OK)
 #elif (EE24_SIZE == EE24_16KBIT)
-      if (HAL_I2C_Mem_Write(Handle->HI2c,
-                            Handle->Address | ((Address & 0x0700) >> 7),
-                            (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data, w,
-                            Timeout) == HAL_OK)
+            if (HAL_I2C_Mem_Write(Handle->HI2c,
+                                  Handle->Address | ((Address & 0x0700) >> 7),
+                                  (Address & 0xff), I2C_MEMADD_SIZE_8BIT, Data,
+                                  w, Timeout) == HAL_OK)
 #else
-      if (HAL_I2C_Mem_Write(Handle->HI2c, Handle->Address, Address,
-                            I2C_MEMADD_SIZE_16BIT, Data, w, Timeout) == HAL_OK)
+            if (HAL_I2C_Mem_Write(Handle->HI2c, Handle->Address, Address,
+                                  I2C_MEMADD_SIZE_16BIT, Data, w,
+                                  Timeout) == HAL_OK)
 #endif
-      {
-        m_delay_ms(10);
-        Len -= w;
-        Data += w;
-        Address += w;
-        if (Len == 0) {
-          answer = true;
-          break;
+            {
+                m_delay_ms(10);
+                Len -= w;
+                Data += w;
+                Address += w;
+                if (Len == 0) {
+                    answer = true;
+                    break;
+                }
+                if (m_time_ms() - startTime >= Timeout) {
+                    break;
+                }
+            } else {
+                break;
+            }
         }
-        if (m_time_ms() - startTime >= Timeout) {
-          break;
-        }
-      } else {
-        break;
-      }
-    }
-  } while (0);
+    } while (0);
 
 #if EE24_USE_WP_PIN
-  HAL_GPIO_WritePin(Handle->WpGpio, Handle->WpPin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(Handle->WpGpio, Handle->WpPin, GPIO_PIN_SET);
 #endif
-  EE24_UnLock(Handle);
-  return answer;
+    EE24_UnLock(Handle);
+    return answer;
 }
 
 /***********************************************************************************************************/

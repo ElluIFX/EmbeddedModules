@@ -16,17 +16,15 @@ _define_integral_compare(long)
 
 #if defined(POD) && !defined(NOT_INTEGRAL)
 
-static inline int _JOIN(A, _default_integral_compare3)(T *a, T *b)
-{
+static inline int _JOIN(A, _default_integral_compare3)(T* a, T* b) {
     return *a > *b ? 1 : *a < *b ? -1 : 0;
 }
-static inline int _JOIN(A, _default_integral_compare)(T *a, T *b)
-{
+
+static inline int _JOIN(A, _default_integral_compare)(T* a, T* b) {
     return *a < *b;
 }
 
-static inline int _JOIN(A, _default_integral_equal)(T *a, T *b)
-{
+static inline int _JOIN(A, _default_integral_equal)(T* a, T* b) {
     return *a == *b;
     // or the slow 2x compare, which is used in _equal.
     /*return _JOIN(A, _default_integral_compare)(a, b) == 0 &&
@@ -34,22 +32,20 @@ static inline int _JOIN(A, _default_integral_equal)(T *a, T *b)
     */
 }
 
-static inline size_t _JOIN(A, _default_integral_hash)(T *a)
-{
+static inline size_t _JOIN(A, _default_integral_hash)(T* a) {
     return (size_t)*a;
 }
 
 #include <string.h>
 
-#if defined str || defined u8string || defined charp || defined u8ident || defined ucharp
+#if defined str || defined u8string || defined charp || defined u8ident || \
+    defined ucharp
 
-static inline size_t _JOIN(A, _default_string_hash)(T *key)
-{
+static inline size_t _JOIN(A, _default_string_hash)(T* key) {
     size_t h;
     /* FNV1a, not wyhash */
     h = 2166136261u;
-    for (unsigned i = 0; i < strlen((char *)key); i++)
-    {
+    for (unsigned i = 0; i < strlen((char*)key); i++) {
         h ^= (unsigned char)key[i];
         h *= 16777619;
     }
@@ -62,45 +58,58 @@ static inline size_t _JOIN(A, _default_string_hash)(T *key)
 #define CTL_STRINGIFY(n) CTL_STRINGIFY_HELPER(n)
 #define _strEQcc(s1c, s2c) !strcmp(s1c "", s2c "")
 
-static inline bool _JOIN(A, _type_is_integral)(void)
-{
-    return _strEQcc(CTL_STRINGIFY(T), "int") || _strEQcc(CTL_STRINGIFY(T), "long") ||
-           _strEQcc(CTL_STRINGIFY(T), "bool") || _strEQcc(CTL_STRINGIFY(T), "char") ||
-           _strEQcc(CTL_STRINGIFY(T), "short") || _strEQcc(CTL_STRINGIFY(T), "float") ||
-           _strEQcc(CTL_STRINGIFY(T), "double") || _strEQcc(CTL_STRINGIFY(T), "char8_t") ||
-           _strEQcc(CTL_STRINGIFY(T), "wchar_t") || _strEQcc(CTL_STRINGIFY(T), "char16_t") ||
-           _strEQcc(CTL_STRINGIFY(T), "char32_t") || _strEQcc(CTL_STRINGIFY(T), "long_double") ||
-           _strEQcc(CTL_STRINGIFY(T), "long_long") || _strEQcc(CTL_STRINGIFY(T), "int8_t") ||
-           _strEQcc(CTL_STRINGIFY(T), "uint8_t") || _strEQcc(CTL_STRINGIFY(T), "uint16_t") ||
-           _strEQcc(CTL_STRINGIFY(T), "uint32_t") || _strEQcc(CTL_STRINGIFY(T), "uint64_t") ||
-           _strEQcc(CTL_STRINGIFY(T), "int16_t") || _strEQcc(CTL_STRINGIFY(T), "int32_t") ||
-           _strEQcc(CTL_STRINGIFY(T), "int64_t") || _strEQcc(CTL_STRINGIFY(T), "unsigned_int") ||
-           _strEQcc(CTL_STRINGIFY(T), "unsigned_long") || _strEQcc(CTL_STRINGIFY(T), "unsigned_long_long") ||
+static inline bool _JOIN(A, _type_is_integral)(void) {
+    return _strEQcc(CTL_STRINGIFY(T), "int") ||
+           _strEQcc(CTL_STRINGIFY(T), "long") ||
+           _strEQcc(CTL_STRINGIFY(T), "bool") ||
+           _strEQcc(CTL_STRINGIFY(T), "char") ||
+           _strEQcc(CTL_STRINGIFY(T), "short") ||
+           _strEQcc(CTL_STRINGIFY(T), "float") ||
+           _strEQcc(CTL_STRINGIFY(T), "double") ||
+           _strEQcc(CTL_STRINGIFY(T), "char8_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "wchar_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "char16_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "char32_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "long_double") ||
+           _strEQcc(CTL_STRINGIFY(T), "long_long") ||
+           _strEQcc(CTL_STRINGIFY(T), "int8_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "uint8_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "uint16_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "uint32_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "uint64_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "int16_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "int32_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "int64_t") ||
+           _strEQcc(CTL_STRINGIFY(T), "unsigned_int") ||
+           _strEQcc(CTL_STRINGIFY(T), "unsigned_long") ||
+           _strEQcc(CTL_STRINGIFY(T), "unsigned_long_long") ||
            _strEQcc(CTL_STRINGIFY(T), "unsigned_char") ||
            /* and some common abbrevations */
-           _strEQcc(CTL_STRINGIFY(T), "uchar") || _strEQcc(CTL_STRINGIFY(T), "uint") ||
-           _strEQcc(CTL_STRINGIFY(T), "ulong") || _strEQcc(CTL_STRINGIFY(T), "ldbl") ||
+           _strEQcc(CTL_STRINGIFY(T), "uchar") ||
+           _strEQcc(CTL_STRINGIFY(T), "uint") ||
+           _strEQcc(CTL_STRINGIFY(T), "ulong") ||
+           _strEQcc(CTL_STRINGIFY(T), "ldbl") ||
            _strEQcc(CTL_STRINGIFY(T), "llong");
 }
 
 // not C++
 #ifndef __cplusplus
-#define __set_str_hash(self, t)                                                                                        \
-    {                                                                                                                  \
-        typeof(t) tmp = (x);                                                                                           \
-        if (__builtin_types_compatible_p(typeof(t), char *))                                                           \
-            self->hash = _JOIN(A, _default_string_hash);                                                               \
-        else if (__builtin_types_compatible_p(typeof(t), unsigned char *))                                             \
-            self->hash = _JOIN(A, _default_string_hash);                                                               \
+#define __set_str_hash(self, t)                                           \
+    {                                                                     \
+        typeof(t) tmp = (x);                                              \
+        if (__builtin_types_compatible_p(typeof(t), char*))               \
+            self->hash = _JOIN(A, _default_string_hash);                  \
+        else if (__builtin_types_compatible_p(typeof(t), unsigned char*)) \
+            self->hash = _JOIN(A, _default_string_hash);                  \
     }
 #else
 #define __set_str_hash(self, t) self->hash = _JOIN(A, _default_string_hash)
 #endif
 
-static inline void _JOIN(A, _set_default_methods)(A *self)
-{
+static inline void _JOIN(A, _set_default_methods)(A* self) {
 #if !defined CTL_STR
-#if defined str || defined u8string || defined charp || defined u8ident || defined ucharp
+#if defined str || defined u8string || defined charp || defined u8ident || \
+    defined ucharp
     {
 #ifdef CTL_USET
         if (!self->hash)
@@ -116,8 +125,7 @@ static inline void _JOIN(A, _set_default_methods)(A *self)
 #endif
 #endif
 #ifdef CTL_USET
-        if (!self->hash)
-            self->hash = _JOIN(A, _default_integral_hash);
+        if (!self->hash) self->hash = _JOIN(A, _default_integral_hash);
 #else
     if (!self->compare)
         self->compare = _JOIN(A, _default_integral_compare);
@@ -129,8 +137,7 @@ static inline void _JOIN(A, _set_default_methods)(A *self)
 #else
 
 // non-integral types have no default methods. you need to set
-static inline void _JOIN(A, _set_default_methods)(A *self)
-{
+static inline void _JOIN(A, _set_default_methods)(A* self) {
     (void)self;
 }
 

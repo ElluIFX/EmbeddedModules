@@ -7,7 +7,7 @@ extern "C" {
 #if SCH_CFG_ENABLE_COROUTINE
 #include "scheduler_coroutine_internal.h"
 
-typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类型
+typedef void (*cortn_func_t)(__async__, void* args);  // 协程函数指针类型
 
 /**
  * @brief 初始化协程
@@ -78,7 +78,7 @@ typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类�
 /**
  * @brief 异步执行其他协程
  */
-#define ASYNC_RUN(name, func, args) sch_cortn_run(name, func, (void *)args)
+#define ASYNC_RUN(name, func, args) sch_cortn_run(name, func, (void*)args)
 
 /**
  * @brief 等待直到指定协程完成
@@ -88,12 +88,12 @@ typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类�
 /**
  * @brief 等待消息并将消息指针赋值给指定变量
  */
-#define AWAIT_RECV_MSG(to_ptr) __AWAIT(__Internal_AwaitMsg, (void **)&(to_ptr))
+#define AWAIT_RECV_MSG(to_ptr) __AWAIT(__Internal_AwaitMsg, (void**)&(to_ptr))
 
 /**
  * @brief 发送消息给指定协程, 立即返回
  */
-#define ASYNC_SEND_MSG(name, msg) sch_cortn_send_msg((name), (void *)(msg));
+#define ASYNC_SEND_MSG(name, msg) sch_cortn_send_msg((name), (void*)(msg));
 
 /**
  * @brief 获取互斥锁, 阻塞直至获取成功
@@ -112,14 +112,14 @@ typedef void (*cortn_func_t)(__async__, void *args);  // 协程函数指针类�
  * @param  args             任务参数
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_cortn_run(const char *name, cortn_func_t func, void *args);
+extern uint8_t sch_cortn_run(const char* name, cortn_func_t func, void* args);
 
 /**
  * @brief 停止一个协程
  * @param  name            协程名
  * @retval uint8_t         是否成功
  */
-extern uint8_t sch_cortn_stop(const char *name);
+extern uint8_t sch_cortn_stop(const char* name);
 
 /**
  * @brief 获取调度器内协程数量
@@ -131,14 +131,14 @@ extern uint16_t sch_cortn_get_num(void);
  * @param  name             协程名
  * @retval uint8_t             协程是否正在运行
  */
-extern uint8_t sch_cortn_get_running(const char *name);
+extern uint8_t sch_cortn_get_running(const char* name);
 
 /**
  * @brief 查询指定协程是否处于等待消息状态
  * @param  name             协程名
  * @retval uint8_t             协程是否处于等待消息状态
  */
-extern uint8_t sch_cortn_get_waiting_msg(const char *name);
+extern uint8_t sch_cortn_get_waiting_msg(const char* name);
 
 /**
  * @brief 发送消息给指定协程并唤醒
@@ -146,7 +146,7 @@ extern uint8_t sch_cortn_get_waiting_msg(const char *name);
  * @param  msg              消息指针
  * @retval uint8_t          是否成功
  */
-extern uint8_t sch_cortn_send_msg(const char *name, void *msg);
+extern uint8_t sch_cortn_send_msg(const char* name, void* msg);
 
 #endif  // SCH_CFG_ENABLE_COROUTINE
 #ifdef __cplusplus

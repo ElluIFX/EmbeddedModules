@@ -1,14 +1,16 @@
 # lvgl_gaussian_blur
 
 #### 介绍
+
 基于lvgl下实现高斯模糊，垂直模糊，均值模糊，lvgl毛玻璃效果
 
 #### 使用说明
 
-1.  添加頭文件
-	#include "lvgl/lvgl.h"
-	#include "lvglGaussian.h"
+1. 添加頭文件
+ #include "lvgl/lvgl.h"
+ #include "lvglGaussian.h"
 2.使用實例
+
 ```
 #define CANVAS_WIDTH  1280
 #define CANVAS_HEIGHT  720
@@ -28,7 +30,7 @@ void lvglDecodeImg::lv_example_canvas_1(void)
     gaussian_blur.canvas = canvas;
     gaussian_blur.x = 50;
     gaussian_blur.y = 280;
-    gaussian_blur.width = 500; 
+    gaussian_blur.width = 500;
     gaussian_blur.height = 390;
     gaussian_blur.r = 20; //模糊半径，越大越模糊
     gaussian_blur.border_width = 1;
@@ -40,10 +42,11 @@ void lvglDecodeImg::lv_example_canvas_1(void)
 
     gaussian_blur.x = 570;
     gaussian_blur.y = 280;
-    gaussian_blur.width = 660; 
+    gaussian_blur.width = 660;
     gaussian_blur.height = 390;
     gaussian.lv_draw_gaussian_blur(gaussian_blur);
-}  
+}
 ```
+
 ![](./img1.jpg)
 ![](./img2.jpg)

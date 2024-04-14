@@ -4,6 +4,4 @@
 
 Documentation for uthash is available at:
 
-https://troydhanson.github.io/uthash/
-
-
+<https://troydhanson.github.io/uthash/>

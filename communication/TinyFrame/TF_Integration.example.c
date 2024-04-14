@@ -10,8 +10,8 @@
  * listener timeout feature.
  */
 
-__weak void TF_WriteImpl(TinyFrame *tf, const uint8_t *buff, uint32_t len) {
-  // send to UART
+__weak void TF_WriteImpl(TinyFrame* tf, const uint8_t* buff, uint32_t len) {
+    // send to UART
 }
 
 // --------- Mutex callbacks ----------
@@ -19,14 +19,14 @@ __weak void TF_WriteImpl(TinyFrame *tf, const uint8_t *buff, uint32_t len) {
 // DELETE if mutex is not used
 
 /** Claim the TX interface before composing and sending a frame */
-__weak bool TF_ClaimTx(TinyFrame *tf) {
-  // take mutex
-  return true;  // we succeeded
+__weak bool TF_ClaimTx(TinyFrame* tf) {
+    // take mutex
+    return true;  // we succeeded
 }
 
 /** Free the TX interface after composing and sending a frame */
-__weak void TF_ReleaseTx(TinyFrame *tf) {
-  // release mutex
+__weak void TF_ReleaseTx(TinyFrame* tf) {
+    // release mutex
 }
 
 // --------- Custom checksums ---------
@@ -34,12 +34,16 @@ __weak void TF_ReleaseTx(TinyFrame *tf) {
 // DELETE those if you use one of the built-in checksum types
 
 /** Initialize a checksum */
-__weak TF_CKSUM TF_CksumStart(void) { return 0; }
+__weak TF_CKSUM TF_CksumStart(void) {
+    return 0;
+}
 
 /** Update a checksum with a byte */
 __weak TF_CKSUM TF_CksumAdd(TF_CKSUM cksum, uint8_t byte) {
-  return cksum ^ byte;
+    return cksum ^ byte;
 }
 
 /** Finalize the checksum calculation */
-__weak TF_CKSUM TF_CksumEnd(TF_CKSUM cksum) { return cksum; }
+__weak TF_CKSUM TF_CksumEnd(TF_CKSUM cksum) {
+    return cksum;
+}

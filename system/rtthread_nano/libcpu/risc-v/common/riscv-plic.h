@@ -36,76 +36,76 @@
 #define PLIC_CLAIM_SHIFT_PER_TARGET 12
 
 #if defined(__GNUC__) && !defined(__ASSEMBLER__)
-__attribute__((always_inline)) static inline void __plic_set_feature(unsigned int feature)
-{
-    volatile unsigned int *feature_ptr = (volatile unsigned int *)PLIC_BASE_ADDR;
+__attribute__((always_inline)) static inline void __plic_set_feature(
+    unsigned int feature) {
+    volatile unsigned int* feature_ptr = (volatile unsigned int*)PLIC_BASE_ADDR;
     *feature_ptr = feature;
 }
 
-__attribute__((always_inline)) static inline void __plic_set_threshold(unsigned int threshold)
-{
+__attribute__((always_inline)) static inline void __plic_set_threshold(
+    unsigned int threshold) {
     unsigned int hart_id = read_csr(mhartid);
-    volatile unsigned int *threshold_ptr = (volatile unsigned int *)(PLIC_BASE_ADDR +
-                                                                     PLIC_THRESHOLD_OFFSET +
-                                                                     (hart_id << PLIC_THRESHOLD_SHIFT_PER_TARGET));
+    volatile unsigned int* threshold_ptr =
+        (volatile unsigned int*)(PLIC_BASE_ADDR + PLIC_THRESHOLD_OFFSET +
+                                 (hart_id << PLIC_THRESHOLD_SHIFT_PER_TARGET));
     *threshold_ptr = threshold;
 }
 
-__attribute__((always_inline)) static inline void __plic_set_priority(unsigned int source, unsigned int priority)
-{
-    volatile unsigned int *priority_ptr = (volatile unsigned int *)(PLIC_BASE_ADDR +
-                                                                    PLIC_PRIORITY_OFFSET +
-                                                                    (source << PLIC_PRIORITY_SHIFT_PER_SOURCE));
+__attribute__((always_inline)) static inline void __plic_set_priority(
+    unsigned int source, unsigned int priority) {
+    volatile unsigned int* priority_ptr =
+        (volatile unsigned int*)(PLIC_BASE_ADDR + PLIC_PRIORITY_OFFSET +
+                                 (source << PLIC_PRIORITY_SHIFT_PER_SOURCE));
     *priority_ptr = priority;
 }
 
-__attribute__((always_inline)) static inline void __plic_set_pending(unsigned int source)
-{
-    volatile unsigned int *current_ptr = (volatile unsigned int *)(PLIC_BASE_ADDR +
-                                                                   PLIC_PENDING_OFFSET +
-                                                                   ((source >> 5) << 2));
+__attribute__((always_inline)) static inline void __plic_set_pending(
+    unsigned int source) {
+    volatile unsigned int* current_ptr =
+        (volatile unsigned int*)(PLIC_BASE_ADDR + PLIC_PENDING_OFFSET +
+                                 ((source >> 5) << 2));
     *current_ptr = (1 << (source & 0x1F));
 }
 
-__attribute__((always_inline)) static inline void __plic_irq_enable(unsigned int source)
-{
+__attribute__((always_inline)) static inline void __plic_irq_enable(
+    unsigned int source) {
     unsigned int hart_id = read_csr(mhartid);
-    volatile unsigned int *current_ptr = (volatile unsigned int *)(PLIC_BASE_ADDR +
-                                                                   PLIC_ENABLE_OFFSET +
-                                                                   (hart_id << PLIC_ENABLE_SHIFT_PER_TARGET) +
-                                                                   ((source >> 5) << 2));
+    volatile unsigned int* current_ptr =
+        (volatile unsigned int*)(PLIC_BASE_ADDR + PLIC_ENABLE_OFFSET +
+                                 (hart_id << PLIC_ENABLE_SHIFT_PER_TARGET) +
+                                 ((source >> 5) << 2));
     unsigned int current = *current_ptr;
     current = current | (1 << (source & 0x1F));
     *current_ptr = current;
 }
 
-__attribute__((always_inline)) static inline void __plic_irq_disable(unsigned int source)
-{
+__attribute__((always_inline)) static inline void __plic_irq_disable(
+    unsigned int source) {
     unsigned int hart_id = read_csr(mhartid);
-    volatile unsigned int *current_ptr = (volatile unsigned int *)(PLIC_BASE_ADDR +
-                                                                   PLIC_ENABLE_OFFSET +
-                                                                   (hart_id << PLIC_ENABLE_SHIFT_PER_TARGET) +
-                                                                   ((source >> 5) << 2));
+    volatile unsigned int* current_ptr =
+        (volatile unsigned int*)(PLIC_BASE_ADDR + PLIC_ENABLE_OFFSET +
+                                 (hart_id << PLIC_ENABLE_SHIFT_PER_TARGET) +
+                                 ((source >> 5) << 2));
     unsigned int current = *current_ptr;
     current = current & ~((1 << (source & 0x1F)));
     *current_ptr = current;
 }
 
-__attribute__((always_inline)) static inline unsigned int __plic_irq_claim(void)
-{
+__attribute__((always_inline)) static inline unsigned int __plic_irq_claim(
+    void) {
     unsigned int hart_id = read_csr(mhartid);
-    volatile unsigned int *claim_addr = (volatile unsigned int *)(PLIC_BASE_ADDR +
-                                                                  PLIC_CLAIM_OFFSET +
-                                                                  (hart_id << PLIC_CLAIM_SHIFT_PER_TARGET));
+    volatile unsigned int* claim_addr =
+        (volatile unsigned int*)(PLIC_BASE_ADDR + PLIC_CLAIM_OFFSET +
+                                 (hart_id << PLIC_CLAIM_SHIFT_PER_TARGET));
     return *claim_addr;
 }
 
-__attribute__((always_inline)) static inline void __plic_irq_complete(unsigned int source)
-{
+__attribute__((always_inline)) static inline void __plic_irq_complete(
+    unsigned int source) {
     unsigned int hart_id = read_csr(mhartid);
-    volatile unsigned int *claim_addr = (volatile unsigned int *)(PLIC_BASE_ADDR +
-                                                                  PLIC_CLAIM_OFFSET +
-                                                                  (hart_id << PLIC_CLAIM_SHIFT_PER_TARGET));
+    volatile unsigned int* claim_addr =
+        (volatile unsigned int*)(PLIC_BASE_ADDR + PLIC_CLAIM_OFFSET +
+                                 (hart_id << PLIC_CLAIM_SHIFT_PER_TARGET));
     *claim_addr = source;
 }
 #endif /* end of __GNUC__ */

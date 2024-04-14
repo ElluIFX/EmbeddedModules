@@ -46,7 +46,7 @@ uint8_t EE_PageCount(void);
  * @param PageOffset Page offset (reverse order, 0 is Last page)
  * @return NULL if failed
  */
-uint8_t *EE_PageAddress(uint8_t PageOffset);
+uint8_t* EE_PageAddress(uint8_t PageOffset);
 
 /**
  * @brief Erase a page
@@ -63,7 +63,7 @@ bool EE_Erase(uint8_t PageOffset);
  * @param Size Data size
  * @return true if successful
  */
-bool EE_Read(uint8_t PageOffset, uint8_t *Data, uint32_t Size);
+bool EE_Read(uint8_t PageOffset, uint8_t* Data, uint32_t Size);
 
 /**
  * @brief Write data to a page
@@ -74,7 +74,7 @@ bool EE_Read(uint8_t PageOffset, uint8_t *Data, uint32_t Size);
  * manually)
  * @return true if successful
  */
-bool EE_Write(uint8_t PageOffset, uint8_t *Data, uint32_t Size, bool Erase);
+bool EE_Write(uint8_t PageOffset, uint8_t* Data, uint32_t Size, bool Erase);
 
 #ifdef __cplusplus
 }

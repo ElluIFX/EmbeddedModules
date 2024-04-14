@@ -12,7 +12,7 @@
  * 2013-06-18   aozima       add restore MSP feature.
  * 2013-11-04   bright       fixed hardfault bug for gcc.
  */
- 
+
     .cpu    cortex-m0
     .fpu    softvfp
     .syntax unified

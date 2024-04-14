@@ -54,7 +54,7 @@ extern "C" {
  * @param r radius
  * @param color
  */
-void hagl_draw_circle(void const *surface, int16_t x0, int16_t y0, int16_t r,
+void hagl_draw_circle(void const* surface, int16_t x0, int16_t y0, int16_t r,
                       hagl_color_t color);
 
 /**
@@ -67,7 +67,7 @@ void hagl_draw_circle(void const *surface, int16_t x0, int16_t y0, int16_t r,
  * @param r radius
  * @param color
  */
-void hagl_fill_circle(void const *surface, int16_t x0, int16_t y0, int16_t r,
+void hagl_fill_circle(void const* surface, int16_t x0, int16_t y0, int16_t r,
                       hagl_color_t color);
 
 #ifdef __cplusplus

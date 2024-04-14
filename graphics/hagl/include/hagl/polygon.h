@@ -59,7 +59,7 @@ extern "C" {
  * @param vertices pointer to (an array) of vertices
  * @param color
  */
-void hagl_draw_polygon(void const *surface, int16_t amount, int16_t *vertices,
+void hagl_draw_polygon(void const* surface, int16_t amount, int16_t* vertices,
                        hagl_color_t color);
 
 /**
@@ -77,7 +77,7 @@ void hagl_draw_polygon(void const *surface, int16_t amount, int16_t *vertices,
  * @param vertices pointer to (an array) of vertices
  * @param color
  */
-void hagl_fill_polygon(void const *surface, int16_t amount, int16_t *vertices,
+void hagl_fill_polygon(void const* surface, int16_t amount, int16_t* vertices,
                        hagl_color_t color);
 
 #ifdef __cplusplus

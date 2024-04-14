@@ -23,35 +23,35 @@
 
 /* Flash读写函数 */
 __attribute__((unused)) static void mf_erase(uint32_t addr) {
-  uint8_t offset;
-  for (offset = 0;; offset++) {
-    if (offset >= EE_PAGE_NUMBER) {
-      LOG_ERROR("failed find page %p", addr);
-      return;
+    uint8_t offset;
+    for (offset = 0;; offset++) {
+        if (offset >= EE_PAGE_NUMBER) {
+            LOG_ERROR("failed find page %p", addr);
+            return;
+        }
+        if (addr == (uint32_t)EE_PageAddress(offset)) {
+            break;
+        }
     }
-    if (addr == (uint32_t)EE_PageAddress(offset)) {
-      break;
+    LOG_DEBUG("erasing offset %d, address=%X", offset, addr);
+    if (!EE_Erase(offset)) {
+        LOG_ERROR("erase failed at %d", offset);
     }
-  }
-  LOG_DEBUG("erasing offset %d, address=%X", offset, addr);
-  if (!EE_Erase(offset)) {
-    LOG_ERROR("erase failed at %d", offset);
-  }
 }
 
 __attribute__((unused)) static void mf_write(uint32_t addr, void* buf) {
-  uint8_t offset;
-  for (offset = 0;; offset++) {
-    if (offset >= EE_PAGE_NUMBER) {
-      LOG_ERROR("failed find page %p", addr);
-      return;
+    uint8_t offset;
+    for (offset = 0;; offset++) {
+        if (offset >= EE_PAGE_NUMBER) {
+            LOG_ERROR("failed find page %p", addr);
+            return;
+        }
+        if (addr == (uint32_t)EE_PageAddress(offset)) {
+            break;
+        }
     }
-    if (addr == (uint32_t)EE_PageAddress(offset)) {
-      break;
+    LOG_DEBUG("writing offset %d, address=%X, size=%d", offset, addr, EE_SIZE);
+    if (!EE_Write(offset, buf, EE_SIZE, false)) {
+        LOG_ERROR("write failed at %d", offset);
     }
-  }
-  LOG_DEBUG("writing offset %d, address=%X, size=%d", offset, addr, EE_SIZE);
-  if (!EE_Write(offset, buf, EE_SIZE, false)) {
-    LOG_ERROR("write failed at %d", offset);
-  }
 }

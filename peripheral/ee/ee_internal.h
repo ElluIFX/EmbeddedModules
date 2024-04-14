@@ -10,32 +10,32 @@
 #ifdef STM32F0
 #define EE_ERASE EE_ERASE_PAGE_ADDRESS
 #define FLASH_SIZE \
-  ((((uint32_t)(*((uint16_t *)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
+    ((((uint32_t)(*((uint16_t*)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
 #endif
 
 #ifdef STM32F1
 #define EE_ERASE EE_ERASE_PAGE_ADDRESS
 #define FLASH_SIZE \
-  ((((uint32_t)(*((uint16_t *)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
+    ((((uint32_t)(*((uint16_t*)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
 #endif
 
 #ifdef STM32F2
 #define EE_ERASE EE_ERASE_SECTOR_NUMBER
 #define FLASH_SIZE \
-  ((((uint32_t)(*((uint16_t *)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
+    ((((uint32_t)(*((uint16_t*)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
 #endif
 
 #ifdef STM32F3
 #define EE_ERASE EE_ERASE_PAGE_ADDRESS
 #define FLASH_SIZE \
-  ((((uint32_t)(*((uint16_t *)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
+    ((((uint32_t)(*((uint16_t*)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
 #endif
 
 #ifdef STM32F4
 #define EE_ERASE EE_ERASE_SECTOR_NUMBER
 #define EE_SIZE 0x20000
 #define FLASH_SIZE \
-  ((((uint32_t)(*((uint16_t *)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
+    ((((uint32_t)(*((uint16_t*)FLASHSIZE_BASE)) & (0xFFFFU))) * 1024)
 #endif
 
 #ifdef STM32F7
@@ -135,10 +135,10 @@
 #ifndef EE_ADDRESS
 #if (EE_BANK_SELECT == FLASH_BANK_2)
 #define EE_ADDRESS(PageOffset) \
-  (FLASH_BASE + EE_SIZE * ((EE_FLASH_SIZE / EE_SIZE) - 1 - PageOffset))
+    (FLASH_BASE + EE_SIZE * ((EE_FLASH_SIZE / EE_SIZE) - 1 - PageOffset))
 #else
 #define EE_ADDRESS(PageOffset) \
-  (FLASH_BASE + EE_SIZE * (EE_LAST_PAGE_SECTOR - PageOffset))
+    (FLASH_BASE + EE_SIZE * (EE_LAST_PAGE_SECTOR - PageOffset))
 #endif
 #endif
 

@@ -330,7 +330,6 @@ Often you need to create SDS string directly from `printf` format specifiers.
 Because `sdscatprintf` is actually a function that concatenates strings, all
 you need is to concatenate your string to an empty string:
 
-
 ```c
 char *name = "Anna";
 int loc = 2500;

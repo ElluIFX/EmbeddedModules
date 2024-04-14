@@ -149,7 +149,6 @@ extern "C" {
 #define LWPRINTF_CFG_ENABLE_STD_NAMES 0
 #endif /* LWPRINTF_CFG_ENABLE_SHORTNAMES */
 
-
 /**
  * \}
  */
@@ -190,8 +189,9 @@ typedef int (*lwprintf_output_fn)(int ch, struct lwprintf* lwobj);
  * \brief           LwPRINTF instance
  */
 typedef struct lwprintf {
-  lwprintf_output_fn out_fn; /*!< Output function for direct print operations */
-  void* arg;                 /*!< Output function argument */
+    lwprintf_output_fn
+        out_fn; /*!< Output function for direct print operations */
+    void* arg;  /*!< Output function argument */
 } lwprintf_t;
 
 uint8_t lwprintf_init_ex(lwprintf_t* lwobj, lwprintf_output_fn out_fn);
@@ -214,7 +214,7 @@ int lwprintf_snprintf_ex(lwprintf_t* const lwobj, char* s, size_t n,
  * would have been written, not counting the terminating null character.
  */
 #define lwprintf_sprintf_ex(lwobj, s, format, ...) \
-  lwprintf_snprintf_ex((lwobj), (s), SIZE_MAX, (format), ##__VA_ARGS__)
+    lwprintf_snprintf_ex((lwobj), (s), SIZE_MAX, (format), ##__VA_ARGS__)
 
 /**
  * \brief           Initialize default LwPRINTF instance
@@ -243,7 +243,7 @@ int lwprintf_snprintf_ex(lwprintf_t* const lwobj, char* s, size_t n,
  * had been sufficiently large, not counting the terminating null character.
  */
 #define lwprintf_printf(format, ...) \
-  lwprintf_printf_ex(NULL, (format), ##__VA_ARGS__)
+    lwprintf_printf_ex(NULL, (format), ##__VA_ARGS__)
 
 /**
  * \brief           Write formatted data from variable argument list to sized
@@ -260,7 +260,7 @@ int lwprintf_snprintf_ex(lwprintf_t* const lwobj, char* s, size_t n,
  * terminating null character.
  */
 #define lwprintf_vsnprintf(s, n, format, arg) \
-  lwprintf_vsnprintf_ex(NULL, (s), (n), (format), (arg))
+    lwprintf_vsnprintf_ex(NULL, (s), (n), (format), (arg))
 
 /**
  * \brief           Write formatted data from variable argument list to sized
@@ -276,7 +276,7 @@ int lwprintf_snprintf_ex(lwprintf_t* const lwobj, char* s, size_t n,
  * character.
  */
 #define lwprintf_snprintf(s, n, format, ...) \
-  lwprintf_snprintf_ex(NULL, (s), (n), (format), ##__VA_ARGS__)
+    lwprintf_snprintf_ex(NULL, (s), (n), (format), ##__VA_ARGS__)
 
 /**
  * \brief           Write formatted data from variable argument list to sized
@@ -289,7 +289,7 @@ int lwprintf_snprintf_ex(lwprintf_t* const lwobj, char* s, size_t n,
  * character.
  */
 #define lwprintf_sprintf(s, format, ...) \
-  lwprintf_sprintf_ex(NULL, (s), (format), ##__VA_ARGS__)
+    lwprintf_sprintf_ex(NULL, (s), (format), ##__VA_ARGS__)
 
 #if LWPRINTF_CFG_ENABLE_SHORTNAMES || __DOXYGEN__
 

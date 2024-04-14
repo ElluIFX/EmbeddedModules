@@ -1,4 +1,4 @@
-		
+
 <h1 align="center" style="font-weight: bold; margin-top: 20px; margin-bottom: 20px;">fifofast</h4>
 
 <h3 align="center" style="font-weight: bold; margin-top: 20px; margin-bottom: 20px;">A fast, generic fifo for MCUs.</h4>
@@ -22,8 +22,8 @@
   <a href="#credits">Credits</a>
 </p>
 
-
 ## Introduction
+
 First-In-First-Out (FIFO) buffers are one of the most used data structures, especially on micro controllers (MCUs) to handle data input/output in real time. Although there are countless of implementations, there wasn't a single one that is well optimized for entry level MCUs.
 
 **fifofast** was specifically designed to consume as little CPU time and SRAM as possible, while providing more versatility and features than typical implementations. It is ideally suited to buffer serial data, ADC measurement results or arbitrary data shared between differnt time critical functions.
@@ -31,29 +31,32 @@ First-In-First-Out (FIFO) buffers are one of the most used data structures, espe
 <br>
 
 ## Key Features
- - **generic data:** fifofast supports **_any_** data type, even custom typedef'd ones
- - **static memory:** no additional overhead through dynamic memory management
- - **inline support:** speeds up execution, especially from ISRs (Interrupt Service Routines)
- - **minimal RAM:** a typical fifo has only **3 _byte_** management overhead
- - **easy to use:** all typical fifo functions are implemented (and they work like you expect)
- - **supports debugging:** with the build-in debugger of Atmel Studio 7
- - **well documented:** extensive use of comments within the source code
+
+- **generic data:** fifofast supports **_any_** data type, even custom typedef'd ones
+- **static memory:** no additional overhead through dynamic memory management
+- **inline support:** speeds up execution, especially from ISRs (Interrupt Service Routines)
+- **minimal RAM:** a typical fifo has only **3 _byte_** management overhead
+- **easy to use:** all typical fifo functions are implemented (and they work like you expect)
+- **supports debugging:** with the build-in debugger of Atmel Studio 7
+- **well documented:** extensive use of comments within the source code
 
 <br>
 
 ## Limititations
+
 - **Fifo size:**<br>
   The fifo size is limited to 2ⁿ elements to make use of the fast wrapping functionality. Other sizes will be automatically rounded up.
-  
+
 - **Element size:**<br>
   Normal fifos can store elements of any size. An exception are point-able fifos, which have a maximum element size of 255 bytes.
-   
+
 - **Programm memory usage:**<br>
   Each function-like macro or inline function pastes new code at its location. Compared to a regular function-based fifo the program memory usage (flash) is higher.
 
 <br>
 
 ## Minimal Code Example
+
 The declaration of a fifo is slightly different to support generic types, but they are accessed just like you'd expect. This is the minimum code example that can be compiled:
 
 ```c
@@ -70,7 +73,7 @@ int main(void)
 {
     // volatile prevents the compiler from optimizing the variable away
     volatile int8_t tmp;
-    
+
     // write a value to the fifo
     _fff_write(fifo_int8, -42);
 
@@ -87,45 +90,51 @@ You find this a variation of this snippet and much more in [`fifofast_test.c`](f
 <br>
 
 ## Getting Started
+
 This section is written especially for everyone who is **not familiar** with the used tools. If you run into problems, please [ask for clarification](#get-help).<br>
 
 ### Step 1: Software and Tools
- - [**Atmel Studio 7.0**][tool-atmel-studio-7-0] **(Build 1931) [free]**<br>
+
+- [**Atmel Studio 7.0**][tool-atmel-studio-7-0] **(Build 1931) [free]**<br>
    The installer contains all tools you need to open, edit, compile, simulate and flash this code. If you favor another development tool, feel free to use it instead. (But please understand that I can not provide any support).
- - **An AVR8 ISP/JTAG programmer [optional]**<br>
+- **An AVR8 ISP/JTAG programmer [optional]**<br>
    To program AVR8 MCUs I use the [AVR Dragon][tool-avr-dragon]. It can be also used as a debugger and is available within Atmel Studio by default.
 
 ### Step 2: Download fifofast
- - Clone this repository or hit [Download][git-download] and extract the .zip file.
+
+- Clone this repository or hit [Download][git-download] and extract the .zip file.
 
 ### Step 3: Browse the project
- - **Open the project in Atmel Studio:**<br>
+
+- **Open the project in Atmel Studio:**<br>
    Either double click `fifofast.atsln` or open Atmel Studio and select "File -> Open -> Project/Solution..."
 
- - **Open any file of your interest:**<br>
+- **Open any file of your interest:**<br>
    Select the file in the top right window "Solution Explorer". If the window is not visible, open it by pressing `CTRL + ALT + L` or selecting "View -> Solution Explorer" from the menu.
 
 ### Step 4: Run the demo
- - **Compile the demo code:**<br>
+
+- **Compile the demo code:**<br>
    Press `F7` or select "Build -> Build Solution" from the menu
- 
- - **Run the demo code in the simulator:**<br>
+
+- **Run the demo code in the simulator:**<br>
    Press `CTRL + F5` or select "Debug -> Start Debugging and Break" from the menu
- 
- - **Place breakpoints:**<br>
+
+- **Place breakpoints:**<br>
    Left-Click on the lightgrey area left of the code to place or remove a breakpoint. Select lines with the comment "easy breakpoint".
-   
- - **View variable values:**<br>
+
+- **View variable values:**<br>
    When the code is paused, hover over any variable to display its value. Alternately you can "Right-Click -> Watch" to display the value in the "watch window".
- 
- - **Run Code:**<br>
+
+- **Run Code:**<br>
    Press `F5` to run to the next breakpoint or `F10` to execute one step.
- 
+
 ### Step 5: Going further
- - **Changing the target device:**<br>
+
+- **Changing the target device:**<br>
    Press `ALT + F7` and select "Device -> Change device..." to select your desired MCU.
- 
- - **Program a real device:**<br>
+
+- **Program a real device:**<br>
    Connect your programmer, press `ALT + F7` and select "Tool". Choose your tool, your programming interface and wire up your MCU. Press `CTRL + ALT + F7` to flash the code to the MCU. Non-official programmers are not supported by Atmel Studio.
 
 <br>
@@ -133,11 +142,13 @@ This section is written especially for everyone who is **not familiar** with the
 ## Documentation
 
 ### API
+
 To keep the documentation up-to-date with the least hassle, all configuration options, functions and their arguments are explained in a comment right in front of the declaration. See `fifofast.h` for more information. This section will be updated as soon as this project hits version 1.0.0.
 
 Below you find information about the unusual functions/ macros in this implementation.
 
 #### `_fff_peek()`
+
 The macro `_fff_peek()` allows the user to access any element of the fifo _as if_ it was an array. The first element of the fifo can be accessed with `_fff_peek(fifo, 0)`,  the following elements with an incremented index. See the illustration below:
 
 ```
@@ -161,9 +172,11 @@ _fff_peek(fifo, 3) ─────────────┘
 Thus `_fff_peek()` is especially useful for any algorithm that needs to modify present data with minimum overhead. This macro is only marginally slower than a regular array access and significantly faster than copying data to a temporary buffer
 
 #### `_fff_rebase()`
+
 If you receive strings through a serial interface you may want to use a fifo to store them temporally. Once completely received, you may want to use any of the build-in string functions on the stored data. This is not always directly possible. Consider the following case:
 
 A fifo has received multiple chars, which might be stored in the internal array as shown below:
+
 ```
 array within fifo:
 ┌───┬───┬───┬───┬───┬───┬───┬───┐
@@ -191,13 +204,15 @@ char* first_char = &_fff_peek(fifo, 0);
 <br>
 
 ### Configuration
-fifofast is designed to work out-of-the-box the majority of all use cases. To increase flexibility, but retain the performance for simple applications, you can set configuration options\* in `fifofast.h` in the section _User Config_. 
+
+fifofast is designed to work out-of-the-box the majority of all use cases. To increase flexibility, but retain the performance for simple applications, you can set configuration options\* in `fifofast.h` in the section _User Config_.
 
 <sub>*As of 0.7.0 there is only one configuration option, but this is the place where other options would go.</sub>
 
 <br>
 
 ### Pointable Fifos
+
 Since release 0.6.0 you can create special fifos which can be referenced by a pointer. They are created very similar to normal fifos, but they have a `_p` as a suffix:
 
 ```c
@@ -239,29 +254,38 @@ Type conversions are often considered to be an _evil_ feature of C, as it hides 
 <br>
 
 ### FIFO Arrays
+
 For some applications you may need multiple identical fifos which can be selected with an index.
 
 To create a fifo array, declare its structure first:
+
 ```c
 // declare an array (suffix _a) of fifos with 16 elements each.
 _fff_declare_a(uint8_t, fifo_array, 16, 5);
 ```
+
 Next initialize it and specify the amount of fifos you need:
+
 ```c
 // initialize an array (suffix _a) of 5 fifos.
 _fff_init_a(fifo_array, 5);
 ```
+
 Now you can access each fifo like this:
+
 ```c
 // write to the fifo at index 'fifo_nr' the value 'data'
 _fff_write(fifo_array[fifo_nr], data);
 ```
+
 <br>
 
 ### Aligned Data
+
 Because **fifofast** supports any data type, it may also be used to store frames for a serial data transmission. It is often useful to access the data not only in binary (`raw`) format, but also as a struct (`header`):
+
 ```c
-typedef struct  
+typedef struct
 {
     uint16_t control;
     uint8_t length;
@@ -275,10 +299,12 @@ typedef union __attribute__((aligned(2), packed))
     header_t header;
 } frame_u;
 ```
+
 In this case the header variable `control` is 2 bytes large and must be stored aligned
 on most architectures. The union however is treated by default as a `uint8_t` array, so no alignment is enforced. To do this manually, GCC supports the [`__attribute__((aligned(n)))`][doc-gcc-alignment]. If a struct or union is declared like this, it will be correctly stored in the fifo.
 
 To align any non-typedef'd data, you can declare a fifo like this:
+
 ```c
 _fff_declare(uint8_t __attribute__((aligned(4))), fifo_uint8, 4);
 ```
@@ -286,10 +312,11 @@ _fff_declare(uint8_t __attribute__((aligned(4))), fifo_uint8, 4);
 <br>
 
 ## Under the Hood
+
 To use **fifofast** you don't need to know its inner workings. This chapter is for those who seek to understand and learn.
 
-
 ### The Typical Implementation
+
 To get the best performance most fifos are based on an array for data storage. New elements are always placed at the next free index. When the fifo is read, the element of the earliest written index is returned. Example:
 
 ```
@@ -328,6 +355,7 @@ To detect this overflow the straight forward approach is to use `if(index > arra
 <br>
 
 ### 2ⁿ Ring Buffer
+
 If the array has a length of 2ⁿ elements, this `if` can be replaced with a faster logic instruction.
 
 ```c
@@ -354,6 +382,7 @@ As you can see, the logic operation works exactly as we want! Of course you don'
 <br>
 
 ### Generic Data
+
 Support for generic data types is not a part of C so **fifofast** has to use a creative work-around with macros. The key are the `_fff_declare(...)` macros:
 
 ```c
@@ -386,48 +415,52 @@ There is no CONTRIBUTING.md yet, sorry. Contributions will inherit the [license]
 <br>
 
 ## About
+
 ### Status
+
 **This project is currently classified as <a href="https://github.com/nqtronix/git-template/blob/master/badges.md#project-status"><img src="https://img.shields.io/badge/status-active-brightgreen.svg" alt="status: active"></a> :**<br>
 _The developers are working on new features, optimisations, documentation or another part of the project. The code will be kept in working condition by updating dependencies, fixing bugs and solving issues with a high priority._
 
 The first version of this fifo was created about a year ago. Since then I've used the macros successfully for multiple projects and different MCU architectures (AVR8, SAMG and SAML). fifofast is activly used for upcoming projects and will receive additional features whenever I need them.
 
 ### Known Issues
- - **Non-Atomic Glitches:**<br>
+
+- **Non-Atomic Glitches:**<br>
    Accessing the same fifo from normal _and_ ISR code can cause glitches with some function combinations. To prevent this, put the normal code in an [atomic block][doc-gcc-atomic] if the fifo is also accessed in an ISR.
- 
+
 ### Planned Features
 
 - none (for now)
 
 ### Changelog
+
 This project uses [**Semantic Versioning 2.0.0**][semver.org]. During initial development (0.x.x versions) any _major_ increase is substituted with a _minor_ increase (0.1.0->0.2.0 instead of 0.1.0->1.0.0).
 
 The message of each commit contains detailed information about the changes made. The list below is a summary about all significant improvements.
 
- - **0.8.0  (latest)**
-	 - implemented `_fff_rebase()` to handle strings better
- - **0.7.0**
-   - improved usage of struct member 'level'
-     - 'level' contains now real value, even if fifo is full
-     - demo-code compiles with 25% less flash usage
-     - less if-statements required, performance therefore increased
- - **0.6.0**
-   - implemented pointable fifos, including tests
- - **0.5.0**
-   - testing now automated with the brand new [unittrace][git-repo-unittrace].
-   - _finally_ polished up this readme :tada:
- - **0.4.0**
-   - array with several fifos now possible
-   - aligned data example provided
- - **0.3.0**
-   - complete _and successful_ test of all macros (this time for real)
- - **0.2.0**
-   - ~~complete~~ test of all macros
-   - changed fifo struct to improve readability
-   - MIT License added to git
- - **0.1.0**
-   - initial commit
+- **0.8.0  (latest)**
+  - implemented `_fff_rebase()` to handle strings better
+- **0.7.0**
+  - improved usage of struct member 'level'
+    - 'level' contains now real value, even if fifo is full
+    - demo-code compiles with 25% less flash usage
+    - less if-statements required, performance therefore increased
+- **0.6.0**
+  - implemented pointable fifos, including tests
+- **0.5.0**
+  - testing now automated with the brand new [unittrace][git-repo-unittrace].
+  - _finally_ polished up this readme :tada:
+- **0.4.0**
+  - array with several fifos now possible
+  - aligned data example provided
+- **0.3.0**
+  - complete _and successful_ test of all macros (this time for real)
+- **0.2.0**
+  - ~~complete~~ test of all macros
+  - changed fifo struct to improve readability
+  - MIT License added to git
+- **0.1.0**
+  - initial commit
 
 ### Contact
 
@@ -435,36 +468,37 @@ If you haven't done so already, please check out [Get Help](#get-help) for the f
 
 <br>
 
-
 ## Credits
 
 ### Projects Used
 
- - [**git-template**][git-repo-git-template] - _A simple and clean git repository template._<br>
+- [**git-template**][git-repo-git-template] - _A simple and clean git repository template._<br>
 
- - [**unittrace**][git-repo-unittrace] - _A simple testing and debugging tool for MCUs inspired by MinUnit_<br>
+- [**unittrace**][git-repo-unittrace] - _A simple testing and debugging tool for MCUs inspired by MinUnit_<br>
 Specifically written for this project, because testing became to annoying.
 
 <br>
 
 ### Related Projects
 
- - none (yet)
- 
+- none (yet)
+
 Want yours to be listed here, too? Create a merge request or [**get in touch**](#get-help).
 
 <br>
 
 ### Additional Resources
- - [**2ⁿ circular buffer explanation (German)**][article-2n-buffer] or [English (with google translate)][article-2n-buffer-eng]
- 
- - [**GCC: Atomically and Non-Atomically Executed Code Blocks**][doc-gcc-atomic]
- 
- - [**GCC: Specifying Attributes of Variables**][doc-gcc-alignment]
+
+- [**2ⁿ circular buffer explanation (German)**][article-2n-buffer] or [English (with google translate)][article-2n-buffer-eng]
+
+- [**GCC: Atomically and Non-Atomically Executed Code Blocks**][doc-gcc-atomic]
+
+- [**GCC: Specifying Attributes of Variables**][doc-gcc-alignment]
 
 <br>
 
 ## License
+
 This project is proudly licensed under the [MIT license][git-license].
 
 The MIT license was chosen to give you the freedom to use this project in any way you want, while protecting all contributors from legal claims. Good code works, great code works for everyone. If this code has become a part of one of your projects, a link back to us would be highly appreciated. Thanks!
@@ -473,7 +507,6 @@ The MIT license was chosen to give you the freedom to use this project in any wa
 
 [semver.org]:https://semver.org/
 
-[git-readme]:README.md
 [git-license]:LICENSE.md
 [git-profile]:https://github.com/nqtronix
 [git-issues]:https://github.com/nqtronix/fifofast/issues

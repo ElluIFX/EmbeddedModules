@@ -37,24 +37,24 @@ SPDX-License-Identifier: MIT
 #include <stdint.h>
 
 uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
-  uint16_t rgb;
+    uint16_t rgb;
 
-  rgb = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3);
-  rgb = (((rgb) << 8) & 0xFF00) | (((rgb) >> 8) & 0xFF);
+    rgb = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3);
+    rgb = (((rgb) << 8) & 0xFF00) | (((rgb) >> 8) & 0xFF);
 
-  return rgb;
+    return rgb;
 }
 
-rgb_t rgb565_to_rgb888(uint16_t *input) {
-  rgb_t rgb;
+rgb_t rgb565_to_rgb888(uint16_t* input) {
+    rgb_t rgb;
 
-  uint8_t r5 = (*input & 0xf800) >> 8;  // 1111100000000000
-  uint8_t g6 = (*input & 0x07e0) >> 3;  // 0000011111100000
-  uint8_t b5 = (*input & 0x001f) << 3;  // 0000000000011111
+    uint8_t r5 = (*input & 0xf800) >> 8;  // 1111100000000000
+    uint8_t g6 = (*input & 0x07e0) >> 3;  // 0000011111100000
+    uint8_t b5 = (*input & 0x001f) << 3;  // 0000000000011111
 
-  rgb.r = (r5 * 527 + 23) >> 6;
-  rgb.g = (g6 * 259 + 33) >> 6;
-  rgb.b = (b5 * 527 + 23) >> 6;
+    rgb.r = (r5 * 527 + 23) >> 6;
+    rgb.g = (g6 * 259 + 33) >> 6;
+    rgb.b = (b5 * 527 + 23) >> 6;
 
-  return rgb;
+    return rgb;
 }

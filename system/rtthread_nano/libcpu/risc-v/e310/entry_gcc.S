@@ -86,13 +86,13 @@ trap_entry:
 
 spurious_interrupt:
     lw x1,   1 * 4(sp)
-    
+
     // Remain in M-mode after mret
     li t0, 0x00001800
     csrs mstatus, t0
     lw t0,   2 * 4(sp)
-    csrs mstatus, t0 
-    
+    csrs mstatus, t0
+
     lw x4,   4 * 4(sp)
     lw x5,   5 * 4(sp)
     lw x6,   6 * 4(sp)

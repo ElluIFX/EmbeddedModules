@@ -128,7 +128,6 @@ Our library should fulfill the following goals:
 * Library should be compact and have minimal dependencies
 * Library should not include C++ code
 
-
 ## Supported devices ##
 
 This library was developed/tested on the following boards:
@@ -143,4 +142,4 @@ The library is meant to work in other CPU architectures where a C compiler is av
 ## Contact me ##
 
 * Feel free to write for any inquiry: ruben at geekfactory.mx
-* Check our website: https://www.geekfactory.mx
+* Check our website: <https://www.geekfactory.mx>

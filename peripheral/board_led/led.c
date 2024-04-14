@@ -15,54 +15,55 @@
 
 #if defined(LED_R_Pin) && defined(LED_G_Pin) && defined(LED_B_Pin)
 void LED(uint8_t R, uint8_t G, uint8_t B) {
-  if (R < IGNORE)
-    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, LED_STATE(R));
-  else if (R == TOGGLE)
-    HAL_GPIO_TogglePin(LED_R_GPIO_Port, LED_R_Pin);
-  if (G < IGNORE)
-    HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, LED_STATE(G));
-  else if (G == TOGGLE)
-    HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
-  if (B < IGNORE)
-    HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, LED_STATE(B));
-  else if (B == TOGGLE)
-    HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
+    if (R < IGNORE)
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, LED_STATE(R));
+    else if (R == TOGGLE)
+        HAL_GPIO_TogglePin(LED_R_GPIO_Port, LED_R_Pin);
+    if (G < IGNORE)
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, LED_STATE(G));
+    else if (G == TOGGLE)
+        HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
+    if (B < IGNORE)
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, LED_STATE(B));
+    else if (B == TOGGLE)
+        HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
 }
 #elif defined(LED_Pin)
 void LED(uint8_t act) {
-  if (act < IGNORE)
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_STATE(act));
-  else if (act == TOGGLE)
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    if (act < IGNORE)
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, LED_STATE(act));
+    else if (act == TOGGLE)
+        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 }
 
 #endif
 
 #else
 #include "tim.h"
+
 void LED(float R, float G, float B) {
-  static uint8_t inited = 0;
-  if (R >= 0)
-    __HAL_TIM_SET_COMPARE(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL,
-                          R * LED_CFG_R_PULSE / 255.0f);
-  if (G >= 0)
-    __HAL_TIM_SET_COMPARE(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL,
-                          G * LED_CFG_G_PULSE / 255.0f);
-  if (B >= 0)
-    __HAL_TIM_SET_COMPARE(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL,
-                          B * LED_CFG_B_PULSE / 255.0f);
-  if (!inited) {
+    static uint8_t inited = 0;
+    if (R >= 0)
+        __HAL_TIM_SET_COMPARE(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL,
+                              R * LED_CFG_R_PULSE / 255.0f);
+    if (G >= 0)
+        __HAL_TIM_SET_COMPARE(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL,
+                              G * LED_CFG_G_PULSE / 255.0f);
+    if (B >= 0)
+        __HAL_TIM_SET_COMPARE(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL,
+                              B * LED_CFG_B_PULSE / 255.0f);
+    if (!inited) {
 #if !LED_CFG_PWMN_OUTPUT
-    HAL_TIM_PWM_Start(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL);
-    HAL_TIM_PWM_Start(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL);
-    HAL_TIM_PWM_Start(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL);
+        HAL_TIM_PWM_Start(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL);
+        HAL_TIM_PWM_Start(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL);
+        HAL_TIM_PWM_Start(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL);
 #else
-    HAL_TIMEx_PWMN_Start(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL);
-    HAL_TIMEx_PWMN_Start(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL);
-    HAL_TIMEx_PWMN_Start(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL);
+        HAL_TIMEx_PWMN_Start(&LED_CFG_R_HTIM, LED_CFG_R_CHANNEL);
+        HAL_TIMEx_PWMN_Start(&LED_CFG_G_HTIM, LED_CFG_G_CHANNEL);
+        HAL_TIMEx_PWMN_Start(&LED_CFG_B_HTIM, LED_CFG_B_CHANNEL);
 #endif
-    inited = 1;
-  }
+        inited = 1;
+    }
 }
 
 #endif  // !_PWM_RGB_LED

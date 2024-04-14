@@ -15,19 +15,19 @@ extern "C" {
 #include <string.h>
 
 typedef struct {
-  const char *name;
-  const void *data;
-  uint32_t data_size;
-  void *_iter_key;  // for mf_iter()
+    const char* name;
+    const void* data;
+    uint32_t data_size;
+    void* _iter_key;  // for mf_iter()
 } mf_keyinfo_t;
 
 typedef enum {
-  MF_OK = 0,          // 操作成功
-  MF_ERR = -1,        // 未知错误
-  MF_ERR_FULL = -2,   // 数据库已满
-  MF_ERR_NULL = -3,   // 键值不存在
-  MF_ERR_EXIST = -4,  // 键值已存在
-  MF_ERR_SIZE = -5,   // 数据大小不匹配
+    MF_OK = 0,          // 操作成功
+    MF_ERR = -1,        // 未知错误
+    MF_ERR_FULL = -2,   // 数据库已满
+    MF_ERR_NULL = -3,   // 键值不存在
+    MF_ERR_EXIST = -4,  // 键值已存在
+    MF_ERR_SIZE = -5,   // 数据大小不匹配
 } mf_status_t;
 
 /**
@@ -66,7 +66,7 @@ size_t mf_len(void);
  * @note   如果键值已存在，则抛出MF_ERR_EXIST错误
  * @note   如果数据库已满，则抛出MF_ERR_FULL错误
  */
-mf_status_t mf_add_key(const char *name, const void *data, size_t size);
+mf_status_t mf_add_key(const char* name, const void* data, size_t size);
 
 /**
  * @brief 删除已有键值
@@ -74,7 +74,7 @@ mf_status_t mf_add_key(const char *name, const void *data, size_t size);
  * @retval 操作结果
  * @note   如果键值不存在，则抛出MF_ERR_NULL错误
  */
-mf_status_t mf_del_key(const char *name);
+mf_status_t mf_del_key(const char* name);
 
 /**
  * @brief 修改已有键值的数据
@@ -85,7 +85,7 @@ mf_status_t mf_del_key(const char *name);
  * @note   如果键值不存在，则抛出MF_ERR_NULL错误
  * @note   如果数据大小与当前键值不匹配，则抛出MF_ERR_SIZE错误
  */
-mf_status_t mf_modify_key(const char *name, const void *data, size_t size);
+mf_status_t mf_modify_key(const char* name, const void* data, size_t size);
 
 /**
  * @brief 设置键值数据
@@ -95,14 +95,14 @@ mf_status_t mf_modify_key(const char *name, const void *data, size_t size);
  * @param  size 数据大小
  * @retval 操作结果
  */
-mf_status_t mf_set_key(const char *name, const void *data, size_t size);
+mf_status_t mf_set_key(const char* name, const void* data, size_t size);
 
 /**
  * @brief 检查键值是否存在
  * @param  name 键值名称
  * @retval 是否存在
  */
-bool mf_has_key(const char *name);
+bool mf_has_key(const char* name);
 
 /**
  * @brief 搜索键值
@@ -110,7 +110,7 @@ bool mf_has_key(const char *name);
  * @retval 键值信息
  * @note   如果键值不存在, 返回name字段为NULL
  */
-mf_keyinfo_t mf_search_key(const char *name);
+mf_keyinfo_t mf_search_key(const char* name);
 
 /**
  * @brief 获取键值数据
@@ -119,28 +119,28 @@ mf_keyinfo_t mf_search_key(const char *name);
  * @param  size 缓冲区大小
  * @retval 操作结果
  */
-mf_status_t mf_get_key(const char *name, void *data, size_t size);
+mf_status_t mf_get_key(const char* name, void* data, size_t size);
 
 /**
  * @brief 获取键值对应的数据指针
  * @param  name 键值名称
  * @retval 键值数据指针
  */
-const void *mf_get_key_ptr(const char *name);
+const void* mf_get_key_ptr(const char* name);
 
 /**
  * @brief 获取键值数据大小
  * @param  name 键值名称
  * @retval 数据大小
  */
-size_t mf_get_key_size(const char *name);
+size_t mf_get_key_size(const char* name);
 
 /**
  * @brief 循环遍历数据库
  * @param[out]  key 键值信息指针(必须初始化为{0})
  * @retval 是否可以继续遍历
  */
-bool mf_iter(mf_keyinfo_t *key);
+bool mf_iter(mf_keyinfo_t* key);
 
 #ifdef __cplusplus
 }
