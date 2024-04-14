@@ -193,7 +193,7 @@
 python tool.py
 ```
 
-```shell
+```text
 usage: tool.py [-m] [-n] [-g] [-u] [-k KCONFIG] [-c CONFIG] [-o OUTPUT_DIR]
 
 optional arguments:
