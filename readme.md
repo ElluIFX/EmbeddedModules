@@ -11,7 +11,7 @@
 > 标*的为自己写的模块，其他修改自开源库，原repo已列出(标x为非开源库)
 
 <details open>
-  <summary>根目录文件</summary>
+  <summary>根目录文件 /</summary>
 
 | 根目录文件 | 功能 |
 |-|-|
@@ -23,7 +23,7 @@
 </details>
 
 <details>
-  <summary>算法模块</summary>
+  <summary>算法模块 /algorithm</summary>
 
 | [Algorithm](./algorithm) | 算法 | repo | 备注 |
 |-|-|:-:|-|
@@ -36,7 +36,7 @@
 </details>
 
 <details>
-  <summary>通信模块</summary>
+  <summary>通信模块 /communication</summary>
 
 | [Communication](./communication) | 通信 | repo | 备注 |
 |-|-|:-:|-|
@@ -50,7 +50,7 @@
 </details>
 
 <details>
-  <summary>数据结构模块</summary>
+  <summary>数据结构模块 /datastruct</summary>
 
 | [DataStruct](./datastruct) | 数据结构 | repo | 备注 |
 |-|-|:-:|-|
@@ -75,7 +75,7 @@
 </details>
 
 <details>
-  <summary>调试模块</summary>
+  <summary>调试模块 /debug</summary>
 
 | [Debug](./debug) | 调试 | repo | 备注 |
 |-|-|:-:|-|
@@ -88,7 +88,7 @@
 </details>
 
 <details>
-  <summary>驱动模块</summary>
+  <summary>驱动模块 /driver</summary>
 
 | [Driver](./driver) | 驱动 | repo | 备注 |
 |-|-|:-:|-|
@@ -107,7 +107,7 @@
 </details>
 
 <details>
-  <summary>图形模块</summary>
+  <summary>图形模块 /graphics</summary>
 
 | [Graphics](./graphics) | 图形 | repo | 备注 |
 |-|-|:-:|-|
@@ -123,7 +123,7 @@
 </details>
 
 <details>
-  <summary>神经网络模块</summary>
+  <summary>神经网络模块 /nn</summary>
 
 | [NN](./nn) | 神经网络 | repo | 备注 |
 |-|-|:-:|-|
@@ -132,7 +132,7 @@
 </details>
 
 <details>
-  <summary>外设模块</summary>
+  <summary>外设模块 /peripheral</summary>
 
 | [Peripheral](./peripheral) | 外设 | repo | 备注 |
 |-|-|:-:|-|
@@ -175,7 +175,7 @@
 </details>
 
 <details>
-  <summary>工具模块</summary>
+  <summary>工具模块 /utility</summary>
 
 | [Utility](./utility) | 工具 | repo | 备注 |
 |-|-|:-:|-|
