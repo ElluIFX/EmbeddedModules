@@ -13,6 +13,9 @@
 /* 备份FLASH地址，注释则不使用 */
 #define MF_FLASH_BACKUP_ADDR (0x0801F000 + MF_FLASH_BLOCK_SIZE)
 
+/* FLASH空数据填充值 */
+#define MF_FLASH_FILL 0xFF
+
 /* Flash读写函数 */
 
 __attribute__((unused)) static void mf_erase(uint32_t addr) {

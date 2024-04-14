@@ -13,6 +13,9 @@
 /* 备份FLASH地址，注释则不使用 */
 #define MF_FLASH_BACKUP_ADDR (0)
 
+/* FLASH空数据填充值 */
+#define MF_FLASH_FILL 0xFF
+
 /* Flash读写函数 */
 
 /* 从addr开始，擦除长度为MF_FLASH_BLOCK_SIZE的flash */

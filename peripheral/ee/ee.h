@@ -69,7 +69,7 @@ bool EE_Read(uint8_t PageOffset, uint8_t *Data, uint32_t Size);
  * @brief Write data to a page
  * @param PageOffset Page offset (reverse order, 0 is Last page)
  * @param Data Data buffer
- * @param Size Data size
+ * @param Size Data size (should be multiple of 4 (32bit word))
  * @param Erase Erase page before writing (can be false if EE_Erase is called
  * manually)
  * @return true if successful

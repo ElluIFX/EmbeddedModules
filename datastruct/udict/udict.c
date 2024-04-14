@@ -19,8 +19,8 @@
 
 struct udict_node {
   UT_hash_handle hh;  // hashable
-  bool is_ptr;
-  mod_size_t size;
+  mod_size_t is_ptr : 1;
+  mod_size_t size : sizeof(mod_size_t) * 8 - 1;
   const char* key;
   uint8_t value[];
 };
@@ -29,9 +29,9 @@ typedef struct udict_node udict_node_t;
 
 struct udict {
   udict_node_t* nodes;
-  mod_size_t size;
+  mod_size_t dyn : 1;
+  mod_size_t size : sizeof(mod_size_t) * 8 - 1;
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
-  bool dyn;
 };
 
 typedef struct udict udict_t;
@@ -147,7 +147,7 @@ void udict_free(UDICT dict) {
 
 mod_size_t udict_len(UDICT dict) { return dict->size; }
 
-bool udict_has_key(UDICT dict, const char* key) {
+bool udict_has(UDICT dict, const char* key) {
   return udict_get(dict, key) != NULL;
 }
 

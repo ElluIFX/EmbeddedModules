@@ -9,8 +9,14 @@
 #define LOG_MODULE "xve"
 #include "log.h"
 
-#define CHECK_ARG_LEN(n) \
-  if (xv_array_length(args) != n) return xv_new_error("Invalid argument")
+static char err_buf[48];
+
+#define CHECK_ARG_LEN(n)                                             \
+  if (xv_array_length(args) != n) {                                  \
+    sprintf(err_buf, "Invalid argument: expects %d but %d given", n, \
+            xv_array_length(args));                                  \
+    return xv_new_error(err_buf);                                    \
+  }
 
 static struct xv xve_abs(struct xv this, struct xv args, void *udata) {
   CHECK_ARG_LEN(1);
@@ -95,15 +101,13 @@ static struct xv xve_round(struct xv this, struct xv args, void *udata) {
 static struct xv xve_floor(struct xv this, struct xv args, void *udata) {
   CHECK_ARG_LEN(1);
   double x = xv_double(xv_array_at(args, 0));
-
-  return xv_new_double(floor(x));
+  return xv_new_int64(floor(x));
 }
 
 static struct xv xve_ceil(struct xv this, struct xv args, void *udata) {
   CHECK_ARG_LEN(1);
   double x = xv_double(xv_array_at(args, 0));
-
-  return xv_new_double(ceil(x));
+  return xv_new_int64(ceil(x));
 }
 
 static struct xv xve_rand(struct xv this, struct xv args, void *udata) {
@@ -232,6 +236,8 @@ static struct xv xve_get_ref(struct xv this, struct xv ident, void *udata) {
 
 static void xve_on_cmd(EmbeddedCli *cli, CliCommand *command) {
   char *str = (char *)command->name;
+  str[strlen(str)] = ' ';  // \0 -> ' '
+
   bool ti = false;
   if (strcmpn(str, "exit", 4) || strcmpn(str, "quit", 4)) {
     embeddedCliExitSubInterpreter(cli);
@@ -239,21 +245,20 @@ static void xve_on_cmd(EmbeddedCli *cli, CliCommand *command) {
   } else if (strcmpn(str, "reset", 5)) {
     xv_cleanup();
     udict_clear((UDICT)env.udata);
+    PRINTLN("Xv: Environment cleared");
     return;
   } else if (strcmpn(str, "del ", 4)) {
     char *varname = str + 4;
     while (*varname == ' ') varname++;
     if (*varname == 0) return;
     UDICT dict = (UDICT)env.udata;
-    if (!udict_has_key(dict, varname)) {
+    if (!udict_has(dict, varname)) {
       PRINTLN("Xv: Variable '%s' not found", varname);
       return;
     }
     udict_del(dict, varname);
     return;
   }
-
-  str[strlen(str)] = ' ';  // \0 -> ' '
 
   if (strcmpn(str, "%timeit ", 8)) {
     ti = true;

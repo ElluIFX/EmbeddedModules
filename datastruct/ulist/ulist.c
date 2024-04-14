@@ -179,7 +179,6 @@ bool ulist_init(ULIST list, mod_size_t isize, mod_size_t init_size, uint8_t cfg,
   list->isize = isize;
   list->cfg = cfg;
   list->elfree = elfree;
-  list->iter = -1;
   list->dyn = false;
   if (init_size > 0) {
     if (!ulist_expend(list, init_size)) {
@@ -261,7 +260,6 @@ void* ulist_insert_multi(ULIST list, mod_offset_t index, mod_size_t num) {
     _ulist_memset(src, ULIST_DIRTY_REGION_FILL_DATA, ULIST_BSIZE(num));
   }
   list->num += num;
-  list->iter = -1;
   ULIST_UNLOCK_RET((void*)src);
 }
 
@@ -324,7 +322,6 @@ bool ulist_delete_multi(ULIST list, mod_offset_t index, mod_size_t num) {
     list->num -= num;
   }
   ulist_shrink(list, list->num);
-  list->iter = -1;
   ULIST_UNLOCK_RET(true);
 }
 
@@ -516,38 +513,8 @@ void ulist_clear(ULIST list) {
   }
   ulist_shrink(list, 0);
   list->num = 0;
-  list->iter = -1;
   ULIST_UNLOCK();
 }
-
-bool ulist_iter(ULIST list, void** ptrptr, mod_offset_t start, mod_offset_t end,
-                mod_offset_t step) {
-  if (step == 0) return false;
-  ULIST_LOCK();
-  mod_offset_t start_n = convert_pylike_offset(list, start);
-  mod_offset_t end_n = convert_pylike_offset(list, end);
-  if (start_n == -1 || end_n == -1) ULIST_UNLOCK_RET(false);
-  if (step < 0) {  // reverse
-    if (start == SLICE_END) start_n = list->num - 1;
-    if (end == SLICE_START) end_n = -1;
-  }
-  if (list->iter < 0) {
-    list->iter = start_n;
-  } else {
-    list->iter += step;
-  }
-  if ((step > 0 && list->iter >= end_n) || (step < 0 && list->iter <= end_n) ||
-      list->iter >= list->num || list->iter < 0) {
-    list->iter = -1;
-    ULIST_UNLOCK_RET(false);
-  }
-  *ptrptr = (void*)(ULIST_PTR(list->iter));
-  ULIST_UNLOCK_RET(true);
-}
-
-mod_offset_t ulist_iter_index(ULIST list) { return list->iter; }
-
-void ulist_iter_stop(ULIST list) { list->iter = -1; }
 
 ULIST_ITER ulist_new_iterator(ULIST list, mod_offset_t start, mod_offset_t end,
                               mod_offset_t step) {

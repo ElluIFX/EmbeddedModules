@@ -25,9 +25,8 @@ typedef struct {
   mod_size_t num;          // 列表内元素个数
   mod_size_t cap;          // 缓冲区容量(元素个数)
   mod_size_t isize;        // 元素大小(字节)
-  mod_offset_t iter;       // 迭代器位置(<0:未初始化)
   uint8_t cfg;             // 配置
-  bool dyn;                // 是否动态分配
+  uint8_t dyn;             // 是否动态分配
   void (*elfree)(void*);   // 元素释放函数
   MOD_MUTEX_HANDLE mutex;  // 互斥锁
 } ulist_t;
@@ -330,36 +329,6 @@ extern bool ulist_swap(ULIST list, mod_offset_t index1, mod_offset_t index2);
  */
 extern bool ulist_sort(ULIST list, int (*cmp)(const void*, const void*),
                        mod_offset_t start, mod_offset_t end);
-
-/**
- * @brief 内部迭代列表
- * @param  list     列表结构体
- * @param  ptrptr   将要指向当前元素指针的指针
- * @param  start    迭代起始位置(`Python-like`)
- * @param  end      迭代结束位置(`Python-like`, 不包括)
- * @param  step     迭代步长
- * @retval          是否继续迭代
- * @note    返回false后的下一次iter将自动重置迭代器, 从头开始迭代
- * @warning 该函数线程不安全
- * @warning 在迭代过程中增删元素会重置迭代器为0
- */
-extern bool ulist_iter(ULIST list, void** ptrptr, mod_offset_t start,
-                       mod_offset_t end, mod_offset_t step);
-
-/**
- * @brief 获取内部迭代器当前元素位置
- * @param  list    列表结构体
- * @retval         返回元素位置
- * @note 返回-1说明迭代结束或迭代器未曾迭代过
- */
-extern mod_offset_t ulist_iter_index(ULIST list);
-
-/**
- * @brief 提前停止内部迭代
- * @param  list     列表结构体
- * @warning 该函数线程不安全
- */
-extern void ulist_iter_stop(ULIST list);
 
 /**
  * @brief 创建列表迭代器

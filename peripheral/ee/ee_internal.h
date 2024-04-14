@@ -106,9 +106,9 @@
 
 #ifndef EE_SIZE
 #if (EE_ERASE == EE_ERASE_PAGE_NUMBER) || (EE_ERASE == EE_ERASE_PAGE_ADDRESS)
-#define EE_SIZE (FLASH_PAGE_SIZE)
+#define EE_SIZE ((uint32_t)(FLASH_PAGE_SIZE))
 #elif (EE_ERASE == EE_ERASE_SECTOR_NUMBER)
-#define EE_SIZE (FLASH_SECTOR_SIZE)
+#define EE_SIZE ((uint32_t)(FLASH_SECTOR_SIZE))
 #endif
 #endif
 
@@ -118,11 +118,13 @@
 #define EE_BANK_SELECT FLASH_BANK_1
 #endif
 
+#define EE_FLASH_SIZE ((uint32_t)(FLASH_SIZE))
+
 #ifndef EE_PAGE_NUMBER
 #if (EE_BANK_SELECT == FLASH_BANK_2)
-#define EE_PAGE_NUMBER (FLASH_SIZE / EE_SIZE / 2)
+#define EE_PAGE_NUMBER (EE_FLASH_SIZE / EE_SIZE / 2)
 #else
-#define EE_PAGE_NUMBER (FLASH_SIZE / EE_SIZE)
+#define EE_PAGE_NUMBER (EE_FLASH_SIZE / EE_SIZE)
 #endif
 #endif
 
@@ -131,12 +133,12 @@
 #endif
 
 #ifndef EE_ADDRESS
-#if (EE_BANK_SELECT != FLASH_BANK_2)
+#if (EE_BANK_SELECT == FLASH_BANK_2)
 #define EE_ADDRESS(PageOffset) \
-  (FLASH_BASE + EE_SIZE * (EE_LAST_PAGE_SECTOR - PageOffset))
+  (FLASH_BASE + EE_SIZE * ((EE_FLASH_SIZE / EE_SIZE) - 1 - PageOffset))
 #else
 #define EE_ADDRESS(PageOffset) \
-  (FLASH_BASE + EE_SIZE * ((EE_LAST_PAGE_SECTOR - PageOffset) * 2 + 1))
+  (FLASH_BASE + EE_SIZE * (EE_LAST_PAGE_SECTOR - PageOffset))
 #endif
 #endif
 

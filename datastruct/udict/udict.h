@@ -60,7 +60,7 @@ extern mod_size_t udict_len(UDICT dict);
  * @param  key      键
  * @retval true     包含
  */
-extern bool udict_has_key(UDICT dict, const char* key);
+extern bool udict_has(UDICT dict, const char* key);
 
 /**
  * @brief 获取字典中的值
@@ -79,7 +79,7 @@ extern void* udict_get(UDICT dict, const char* key);
 extern const char* udict_get_reverse(UDICT dict, void* value);
 
 /**
- * @brief 设置字典中的值
+ * @brief 设置字典中的值为指定的指针
  * @param  dict     字典
  * @param  key      键
  * @param  value    值
@@ -116,7 +116,7 @@ extern void* udict_set_alloc(UDICT dict, const char* key, size_t size);
 extern bool udict_del(UDICT dict, const char* key);
 
 /**
- * @brief 弹出字典中的项目(动态分配内存的项目需要手动释放)
+ * @brief 弹出字典中的项目(非指针的项目需要手动释放)
  * @param  dict         字典
  * @param  key          键
  * @retval value        值，如果不存在则为NULL
