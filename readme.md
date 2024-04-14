@@ -191,7 +191,7 @@
 
 ```bash
 Ellu@ELLU  /home/ellu/git/EmbeddedModules   master ≣ +0 ~0 -0
-❯ python3 ./tool.py
+❯ python ./tool.py
 
 usage: tool.py [-m] [-n] [-g] [-u] [-k KCONFIG] [-c CONFIG] [-o OUTPUT_DIR]
 
