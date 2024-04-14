@@ -18,7 +18,7 @@
 | [.clang-format](./.clang-format) | clang代码格式化配置文件 |
 | [modules.h](./modules.h) | 模块统一头文件 |
 | [tool.py](./tool.py) | 模块配置工具 |
-| [~modules_conf.template.h~](./modules_conf.template.h (340606a)) | ~模块统一配置文件模板~ ***(deprecated)*** |
+| [~~modules_conf.template.h~~](https://github.com/ElluIFX/EmbeddedModules/blob/340606ac30459da7f3d82fb1cbe5f7f1ab99ee8e/modules_conf.template.h) | ~模块统一配置文件模板~ ***(deprecated)*** |
 
 </details>
 
