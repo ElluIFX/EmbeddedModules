@@ -187,19 +187,20 @@
 
 </details>
 
-## 配置工具 `tool.py`
+## 配置工具 [`tool.py`](./tool.py)
 
 ```shell
-python tool.py -h
+python tool.py
 ```
 
 ```shell
-usage: tool.py [-m] [-n] [-g] [-k KCONFIG] [-c CONFIG] [-o OUTPUT_DIR]
+usage: tool.py [-m] [-n] [-g] [-u] [-k KCONFIG] [-c CONFIG] [-o OUTPUT_DIR]
 
 optional arguments:
   -m, --menuconfig      Run menuconfig
   -n, --newmodule       Create a new module
   -g, --generate        Generate header file without menuconfig
+  -u, --update          Pull the latest version of the tool from github
   -k KCONFIG, --kconfig KCONFIG
                         Specify the kconfig file, default is Kconfig
   -c CONFIG, --config CONFIG
