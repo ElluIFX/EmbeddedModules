@@ -8,7 +8,7 @@
 ## 模块仓库文件结构
 
 > [!NOTE]
-> 标*的为自己写的模块，其他修改自开源库，原repo已列出
+> 标*的为自己写的模块，其他修改自开源库，原repo已列出(标x为非开源库)
 
 <details open>
   <summary>根目录文件</summary>
@@ -137,7 +137,7 @@
 | [i2c_salve](./peripheral/i2c_slave) | LL库I2C从机 |*| |
 | [ll_i2c](./peripheral/ll_i2c) | LL库I2C | * | 包含中断/轮询 |
 | [sw_i2c](./peripheral/sw_i2c) | 软件I2C | [link](https://github.com/liyanboy74/soft-i2c) | |
-| [sw_spi](./peripheral/sw_spi) | 软件SPI |N/A| |
+| [sw_spi](./peripheral/sw_spi) | 软件SPI | x | |
 | [uni_io](./peripheral/uni_io) | 数据通信功能包 |*| |
 
 </details>
