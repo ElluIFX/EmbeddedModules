@@ -148,7 +148,7 @@
 </details>
 
 <details>
-  <summary>存储模块</summary>
+  <summary>存储模块 /storage</summary>
 
 | [Storage](./storage) | 存储 | repo | 备注 |
 |-|-|:-:|-|
@@ -159,7 +159,7 @@
 </details>
 
 <details>
-  <summary>系统模块</summary>
+  <summary>系统模块 /system</summary>
 
 | [System](./system) | 系统 | repo | 备注 |
 |-|-|:-:|-|
