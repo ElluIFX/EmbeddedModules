@@ -129,6 +129,11 @@
 |-|-|:-:|-|
 | [genann](./nn/genann) | 简单前馈神经网络 | [link](https://github.com/codeplea/genann) | |
 
+</details>
+
+<details>
+  <summary>外设模块</summary>
+
 | [Peripheral](./peripheral) | 外设 | repo | 备注 |
 |-|-|:-:|-|
 | [board_i2c](./peripheral/board_i2c) | 板级I2C包装层 |*| |
