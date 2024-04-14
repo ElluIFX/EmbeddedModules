@@ -189,7 +189,7 @@
 
 ## 配置工具 [`tool.py`](./tool.py)
 
-```bash
+```shell
 Ellu@ELLU  /home/ellu/git/EmbeddedModules   master ≣ +0 ~0 -0
 ❯ python ./tool.py
 
