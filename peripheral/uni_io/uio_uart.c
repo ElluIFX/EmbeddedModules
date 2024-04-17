@@ -199,9 +199,21 @@ static int uart_block_tx_fn(int ch, lwprintf_t* lwobj) {
     if (ch == '\0')
         return 0;
     UART_HandleTypeDef* huart = (UART_HandleTypeDef*)lwobj->arg;
+#if UIO_CFG_UART_TX_TIMEOUT > 0
+    m_time_t _start_time = m_time_ms();
+    while (HUART_BUSY) {
+        m_delay_ms(1);
+        if (m_time_ms() - _start_time > UIO_CFG_UART_TX_TIMEOUT)
+            return -1;
+    }
+#elif UIO_CFG_UART_TX_TIMEOUT < 0
+    if (HUART_BUSY)
+        return -1;
+#else
     while (HUART_BUSY) {
         __NOP();
     }
+#endif
     if (huart) {
         HAL_UART_Transmit(huart, (uint8_t*)&ch, 1, 0xFFFF);
         return ch;
@@ -275,7 +287,7 @@ int uart_write(UART_HandleTypeDef* huart, const uint8_t* data, size_t len) {
 #if UIO_CFG_UART_TX_TIMEOUT > 0
     m_time_t _start_time = m_time_ms();
     while (HUART_BUSY) {
-        // m_delay_ms(1);
+        m_delay_ms(1);
         if (m_time_ms() - _start_time > UIO_CFG_UART_TX_TIMEOUT)
             return -1;
     }

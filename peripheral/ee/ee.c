@@ -96,7 +96,7 @@ bool EE_Write(uint8_t PageOffset, uint8_t* Data, uint32_t Size, bool Erase) {
             return false;
         }
     }
-    uint32_t address = EE_ADDRESS(PageOffset);
+    uint32_t Address = EE_ADDRESS(PageOffset);
     do {
 #if EE_CACHE_ENABLE
         SCB_InvalidateICache();
@@ -107,39 +107,37 @@ bool EE_Write(uint8_t PageOffset, uint8_t* Data, uint32_t Size, bool Erase) {
         for (uint32_t i = 0; i < Size; i += 2) {
             uint64_t halfWord;
             memcpy((uint8_t*)&halfWord, Data, 2);
-            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, address,
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, Address + i,
                                   halfWord) != HAL_OK) {
                 answer = false;
                 break;
             }
-            address += 2;
             Data += 2;
         }
 #elif (defined FLASH_TYPEPROGRAM_WORD)
         for (uint32_t i = 0; i < Size; i += 4) {
-            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, address,
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, Address + i,
                                   *(uint32_t*)Data) != HAL_OK) {
                 answer = false;
                 break;
             }
-            address += 4;
             Data += 4;
         }
 #elif (defined FLASH_TYPEPROGRAM_DOUBLEWORD)
         for (uint32_t i = 0; i < Size; i += 8) {
             uint64_t doubleWord;
             memcpy((uint8_t*)&doubleWord, Data, 8);
-            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address,
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, Address,
                                   doubleWord) != HAL_OK) {
                 answer = false;
                 break;
             }
-            address += 8;
+            Address += 8;
             Data += 8;
         }
         if (answer && Size & 0x01 == 1) {  // last word
             uint64_t doubleWord = 0xffffffff00000000uL | *(uint32_t*)Data;
-            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address,
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, Address,
                                   doubleWord) != HAL_OK) {
                 answer = false;
                 break;
@@ -147,28 +145,22 @@ bool EE_Write(uint8_t PageOffset, uint8_t* Data, uint32_t Size, bool Erase) {
         }
 #elif (defined FLASH_TYPEPROGRAM_QUADWORD)
         for (uint32_t i = 0; i < Size; i += 16) {
-            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_QUADWORD, address,
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_QUADWORD, Address + i,
                                   (uint64_t)(uint32_t)Data) != HAL_OK) {
                 answer = false;
                 break;
             }
-            address += 16;
             Data += 16;
         }
 #elif (defined FLASH_TYPEPROGRAM_FLASHWORD)
-#if defined FLASH_BANK_2
-#define FLASH_WORD_SIZE 32
-#else
-#define FLASH_WORD_SIZE 16
-#endif
-        for (uint32_t i = 0; i < Size; i += FLASH_WORD_SIZE) {
-            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, address,
+        for (uint32_t i = 0; i < Size;
+             i += FLASH_NB_32BITWORD_IN_FLASHWORD * 4) {
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, Address + i,
                                   (uint64_t)(uint32_t)Data) != HAL_OK) {
                 answer = false;
                 break;
             }
-            address += FLASH_WORD_SIZE;
-            Data += FLASH_WORD_SIZE;
+            Data += FLASH_NB_32BITWORD_IN_FLASHWORD * 4;
         }
 #endif
 

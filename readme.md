@@ -42,7 +42,7 @@
 |-|-|:-:|-|
 | [CherryUSB](./communication/cherryusb) | Cherry USB | [link](https://github.com/cherry-embedded/CherryUSB) | |
 | [lwpkt](./communication/lwpkt) | 轻量级数据包 | [link](https://github.com/MaJerle/lwpkt) | |
-| [minmea](./utility/minmea) | GPS NMEA解析器 | [link](https://github.com/ata4/minema) | |
+| [minmea](./communication/minmea) | GPS NMEA解析器 | [link](https://github.com/ata4/minema) | |
 | [modbus](./communication/modbus) | Modbus协议 | [link](https://github.com/wql7013/ModBus) | |
 | [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 | [link](https://github.com/MightyPork/TinyFrame) | |
 | [xymodem](./communication/xymodem) | X/YMODEM协议 | [link](https://github.com/LONGZR007/IAP-STM32) | |
@@ -93,16 +93,16 @@
 | [Driver](./driver) | 驱动 | repo | 备注 |
 |-|-|:-:|-|
 | [bq25890](./driver/bq25890) | BQ2589x充电芯片 | [link](https://github.com/SumantKhalate/BQ25895) | |
-| [ee24](./peripheral/ee24) | 24xx EEPROM库 | [link](https://github.com/nimaltd/ee24) | |
-| [key](./peripheral/key) | 通用按键驱动 |*| 支持多种事件 |
-| [motor](./peripheral/motor) | 直流电机闭环驱动 | * | |
+| [ee24](./driver/ee24) | 24xx EEPROM库 | [link](https://github.com/nimaltd/ee24) | |
+| [key](./driver/key) | 通用按键驱动 |*| 支持多种事件 |
+| [motor](./driver/motor) | 直流电机闭环驱动 | * | |
 | [paj7620u2](./driver/paj7620u2) | PAJ7620U2手势识别 | * | |
 | [sc7a20](./driver/sc7a20) | SC7A20加速度计 |*| |
 | [sh2](./driver/sh2) | SH2 Sensorhub协议 | [link](https://github.com/ceva-dsp/sh2) | |
-| [spif](./peripheral/spif) | SPI Flash通用驱动 | [link](https://github.com/nimaltd/spif) | |
-| [stepper](./peripheral/stepper) | 步进电机驱动 |*| |
+| [spif](./driver/spif) | SPI Flash通用驱动 | [link](https://github.com/nimaltd/spif) | |
+| [stepper](./driver/stepper) | 步进电机驱动 |*| |
 | [vl53l0x](./driver/vl53l0x) | VL53L0X激光测距 | [link](https://github.com/anisyanka/vl53l0x) | 非官方库 |
-| [ws2812_spi](./peripheral/ws2812_spi) | WS2812灯带DMA-SPI驱动 |*| |
+| [ws2812_spi](./driver/ws2812_spi) | WS2812灯带DMA-SPI驱动 |*| |
 
 </details>
 
