@@ -28,7 +28,7 @@ static ulist_t cortnlist = {.data = NULL,
                             .num = 0,
                             .elfree = NULL,
                             .isize = sizeof(scheduler_cortn_t),
-                            .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
+                            .opt = ULIST_OPT_CLEAR_DIRTY_REGION};
 
 static ulist_t mutexlist = {
     .data = NULL,
@@ -36,7 +36,7 @@ static ulist_t mutexlist = {
     .num = 0,
     .elfree = NULL,
     .isize = sizeof(sch_cortneduler_mutex_t),
-    .cfg = ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND};
+    .opt = ULIST_OPT_CLEAR_DIRTY_REGION | ULIST_OPT_NO_ALLOC_EXTEND};
 
 static __cortn_handle_t* cortn_handle_now = NULL;
 
@@ -106,8 +106,8 @@ uint8_t sch_cortn_run(const char* name, cortn_func_t func, void* args) {
     };
     ID_NAME_SET(cortn.name, name);
     if (!ulist_init(&cortn.hd.dataList, sizeof(__cortn_data_t), 1,
-                    ULIST_CFG_CLEAR_DIRTY_REGION | ULIST_CFG_NO_ALLOC_EXTEND |
-                        ULIST_CFG_NO_SHRINK,
+                    ULIST_OPT_CLEAR_DIRTY_REGION | ULIST_OPT_NO_ALLOC_EXTEND |
+                        ULIST_OPT_NO_SHRINK,
                     NULL)) {
         return 0;
     }

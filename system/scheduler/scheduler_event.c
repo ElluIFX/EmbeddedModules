@@ -32,7 +32,7 @@ static ulist_t eventlist = {.data = NULL,
                             .num = 0,
                             .elfree = NULL,
                             .isize = sizeof(scheduler_event_t),
-                            .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
+                            .opt = ULIST_OPT_CLEAR_DIRTY_REGION};
 
 static ulist_t triggered_eventlist = {
     .data = NULL,
@@ -40,7 +40,7 @@ static ulist_t triggered_eventlist = {
     .num = 0,
     .elfree = NULL,
     .isize = sizeof(scheduler_triggered_event_t),
-    .cfg = ULIST_CFG_NO_SHRINK};
+    .opt = ULIST_OPT_NO_SHRINK};
 
 _INLINE void event_runner(void) {
     static uint64_t last_event_us = 0;

@@ -85,32 +85,7 @@ mf_status_t mf_del_key(const char* name);
  * @note   如果键值不存在，则抛出MF_ERR_NULL错误
  * @note   如果数据大小与当前键值不匹配，则抛出MF_ERR_SIZE错误
  */
-mf_status_t mf_modify_key(const char* name, const void* data, size_t size);
-
-/**
- * @brief 设置键值数据
- * @note  如果键值不存在则添加, 否则修改, 数据大小不匹配则重新分配
- * @param  name 键值名称
- * @param  data 键值数据指针
- * @param  size 数据大小
- * @retval 操作结果
- */
-mf_status_t mf_set_key(const char* name, const void* data, size_t size);
-
-/**
- * @brief 检查键值是否存在
- * @param  name 键值名称
- * @retval 是否存在
- */
-bool mf_has_key(const char* name);
-
-/**
- * @brief 搜索键值
- * @param  name 键值名称
- * @retval 键值信息
- * @note   如果键值不存在, 返回name字段为NULL
- */
-mf_keyinfo_t mf_search_key(const char* name);
+mf_status_t mf_mod_key(const char* name, const void* data, size_t size);
 
 /**
  * @brief 获取键值数据
@@ -120,6 +95,41 @@ mf_keyinfo_t mf_search_key(const char* name);
  * @retval 操作结果
  */
 mf_status_t mf_get_key(const char* name, void* data, size_t size);
+
+/**
+ * @brief 自动设置键值数据
+ * @note  如果键值不存在则添加, 否则修改, 数据大小不匹配则重新分配
+ * @param  name 键值名称
+ * @param  data 键值数据指针
+ * @param  size 数据大小
+ * @retval 操作结果
+ */
+mf_status_t mf_set_key(const char* name, const void* data, size_t size);
+
+/**
+ * @brief 从数据库同步键值数据
+ * @note  如果键值不存在或大小不匹配则设置当前值, 存在则同步数据到当前值
+ * @param  name 键值名称
+ * @param  data 键值数据指针
+ * @param  size 数据大小
+ * @retval 操作结果
+ */
+mf_status_t mf_sync_key(const char* name, void* data, size_t size);
+
+/**
+ * @brief 检查键值是否存在
+ * @param  name 键值名称
+ * @retval 是否存在
+ */
+bool mf_has_key(const char* name);
+
+/**
+ * @brief 搜索键值信息
+ * @param  name 键值名称
+ * @retval 键值信息
+ * @note   如果键值不存在, 返回name字段为NULL
+ */
+mf_keyinfo_t mf_search_key(const char* name);
 
 /**
  * @brief 获取键值对应的数据指针

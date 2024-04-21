@@ -8,8 +8,8 @@
  * THINK DIFFERENTLY
  */
 
-#ifndef __ULIST_H__
-#define __ULIST_H__
+#ifndef __ULIST__
+#define __ULIST__
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,8 +25,8 @@ typedef struct {
     mod_size_t num;          // 列表内元素个数
     mod_size_t cap;          // 缓冲区容量(元素个数)
     mod_size_t isize;        // 元素大小(字节)
-    uint8_t cfg;             // 配置
-    uint8_t dyn;             // 是否动态分配
+    mod_size_t opt : 15;     // 配置
+    mod_size_t dyn : 1;      // 是否动态分配
     void (*elfree)(void*);   // 元素释放函数
     MOD_MUTEX_HANDLE mutex;  // 互斥锁
 } ulist_t;
@@ -47,40 +47,40 @@ typedef ulist_iter_t* ULIST_ITER;
 #define ULIST_DISABLE_ALL_LOG 0            // 禁用所有日志
 #define ULIST_MAX_EXTEND_SIZE 128          // 最大扩展大小(元素个数)
 
-#define ULIST_CFG_CLEAR_DIRTY_REGION 0x01  // 用memset填充申请/释放的内存区域
-#define ULIST_CFG_NO_ALLOC_EXTEND 0x02  // 严格按照需要的大小分配内存
-#define ULIST_CFG_NO_SHRINK 0x04  // 不自动缩小内存(但元素个数为0时仍会释放内存)
-#define ULIST_CFG_NO_AUTO_FREE 0x08        // 元素个数为0时不释放内存
-#define ULIST_CFG_IGNORE_SLICE_ERROR 0x10  // 忽略切片越界错误
-#define ULIST_CFG_NO_ERROR_LOG 0x20        // 出错时不打印日志
-#define ULIST_CFG_NO_MUTEX 0x40            // 不使用互斥锁
+#define ULIST_OPT_CLEAR_DIRTY_REGION 0x01  // 用memset填充申请/释放的内存区域
+#define ULIST_OPT_NO_ALLOC_EXTEND 0x02  // 严格按照需要的大小分配内存
+#define ULIST_OPT_NO_SHRINK 0x04  // 不自动缩小内存(但元素个数为0时仍会释放内存)
+#define ULIST_OPT_NO_AUTO_FREE 0x08        // 元素个数为0时不释放内存
+#define ULIST_OPT_IGNORE_SLICE_ERROR 0x10  // 忽略切片越界错误
+#define ULIST_OPT_NO_ERROR_LOG 0x20        // 出错时不打印日志
+#define ULIST_OPT_NO_MUTEX 0x40            // 不使用互斥锁
 
 /**
  * @brief 初始化一个已创建的列表
  * @param  list         列表结构体
  * @param  isize        列表元素大小(使用sizeof计算)
  * @param  init_size    列表初始大小
- * @param  cfg          配置
+ * @param  opt          配置(默认配置为0)
  * @param  elfree       元素释放函数,当数组元素需要额外的释放操作时使用,可为NULL
  * @retval              是否初始化成功
  * @note 需手动调用ulist_clear释放列表
  * @note 对于静态分配的ulist_t, 可手动设置isize代替本函数
  */
 extern bool ulist_init(ULIST list, mod_size_t isize, mod_size_t init_size,
-                       uint8_t cfg, void (*elfree)(void* item));
+                       uint8_t opt, void (*elfree)(void* item));
 
 /**
  * @brief 创建列表并初始化
  * @param  list         列表结构体
  * @param  isize        列表元素大小(使用sizeof计算)
  * @param  init_size    列表初始大小
- * @param  cfg          配置
- * @param  elfree       元素释放函数,当数组元素需要额外的释放操作时使用,可为NULL
+ * @param  opt          配置(默认配置为0)
+ * @param  elfree       元素释放函数,当结构体元素需要额外的释放操作时使用,可为NULL
  * @retval              返回列表结构体
  * @note 需手动调用ulist_free释放列表
  * @note 返回NULL说明内存操作失败
  */
-extern ULIST ulist_new(mod_size_t isize, mod_size_t init_size, uint8_t cfg,
+extern ULIST ulist_new(mod_size_t isize, mod_size_t init_size, uint8_t opt,
                        void (*elfree)(void* item));
 
 /**
@@ -409,7 +409,7 @@ extern void ulist_free(ULIST list);
  * @param  list            列表结构体
  * @param  force_auto_free 个数为0时是否强制释放内存(无视配置)
  * @note
- * 这是为启用了`ULIST_CFG_NO_SHRINK`或`ULIST_CFG_NO_AUTO_FREE`的列表提供的手动缩减函数
+ * 这是为启用了`ULIST_OPT_NO_SHRINK`或`ULIST_OPT_NO_AUTO_FREE`的列表提供的手动缩减函数
  */
 extern void ulist_mem_shrink(ULIST list, uint8_t force_auto_free);
 
@@ -513,4 +513,4 @@ extern void* __ulist_foreach_init_ptr(ULIST list, mod_offset_t index,
 #ifdef __cplusplus
 }
 #endif
-#endif  // __ULIST_H__
+#endif /* __ULIST__ */

@@ -26,7 +26,7 @@ static ulist_t tasklist = {.data = NULL,
                            .num = 0,
                            .elfree = NULL,
                            .isize = sizeof(scheduler_task_t),
-                           .cfg = ULIST_CFG_CLEAR_DIRTY_REGION};
+                           .opt = ULIST_OPT_CLEAR_DIRTY_REGION};
 
 static scheduler_task_t* pending_task = NULL;
 

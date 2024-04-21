@@ -28,14 +28,14 @@
 #define LIST_LOG(...) ((void)0)
 #else
 #define LIST_LOG(...)                            \
-    if (!(list->cfg & ULIST_CFG_NO_ERROR_LOG)) { \
+    if (!(list->opt & ULIST_OPT_NO_ERROR_LOG)) { \
         LOG_ERROR(__VA_ARGS__);                  \
     }
 #endif
 
 #define ULIST_LOCK()                                     \
     {                                                    \
-        if (!(list->cfg & ULIST_CFG_NO_MUTEX)) {         \
+        if (!(list->opt & ULIST_OPT_NO_MUTEX)) {         \
             if (!list->mutex)                            \
                 list->mutex = MOD_MUTEX_CREATE("ulist"); \
             MOD_MUTEX_ACQUIRE(list->mutex);              \
@@ -43,7 +43,7 @@
     }
 #define ULIST_UNLOCK()                           \
     {                                            \
-        if (!(list->cfg & ULIST_CFG_NO_MUTEX)) { \
+        if (!(list->opt & ULIST_OPT_NO_MUTEX)) { \
             MOD_MUTEX_RELEASE(list->mutex);      \
         }                                        \
     }
@@ -74,18 +74,18 @@ static inline mod_offset_t convert_pylike_offset(ULIST list,
     if (index < 0) {
         index += list->num;
         if (index < 0) {
-            if (list->cfg & ULIST_CFG_IGNORE_SLICE_ERROR) {
+            if (list->opt & ULIST_OPT_IGNORE_SLICE_ERROR) {
                 return 0;
             }
-            LIST_LOG("ulist: index out of range: %d", index);
+            LIST_LOG("index out of range: %d", index);
             return -1;
         }
     }
     if (index >= list->num) {
-        if (list->cfg & ULIST_CFG_IGNORE_SLICE_ERROR) {
+        if (list->opt & ULIST_OPT_IGNORE_SLICE_ERROR) {
             return list->num - 1;
         }
-        LIST_LOG("ulist: index out of range: %d", index);
+        LIST_LOG("index out of range: %d", index);
         return -1;
     }
     return index;
@@ -110,30 +110,30 @@ static mod_size_t calc_req_size(mod_size_t req_num) {
  */
 static bool ulist_expend(ULIST list, mod_size_t req_num) {
     if (list->data == NULL || list->cap == 0) {  // list is empty
-        if (!(list->cfg & ULIST_CFG_NO_ALLOC_EXTEND)) {
+        if (!(list->opt & ULIST_OPT_NO_ALLOC_EXTEND)) {
             req_num = calc_req_size(req_num);
         }
         list->data = _ulist_malloc(ULIST_BSIZE(req_num));
         if (list->data == NULL) {
-            LIST_LOG("ulist: malloc failed");
+            LIST_LOG("malloc failed");
             return false;
         }
-        if (list->cfg & ULIST_CFG_CLEAR_DIRTY_REGION) {
+        if (list->opt & ULIST_OPT_CLEAR_DIRTY_REGION) {
             _ulist_memset(list->data, ULIST_DIRTY_REGION_FILL_DATA,
                           ULIST_BSIZE(req_num));
         }
         list->cap = req_num;
     } else if (req_num > list->cap) {  // list is full
-        if (!(list->cfg & ULIST_CFG_NO_ALLOC_EXTEND)) {
+        if (!(list->opt & ULIST_OPT_NO_ALLOC_EXTEND)) {
             req_num = calc_req_size(req_num);
         }
         void* new_data = _ulist_realloc(list->data, ULIST_BSIZE(req_num));
         if (new_data == NULL) {
-            LIST_LOG("ulist: realloc failed");
+            LIST_LOG("realloc failed");
             return false;
         }
         list->data = new_data;
-        if (list->cfg & ULIST_CFG_CLEAR_DIRTY_REGION) {
+        if (list->opt & ULIST_OPT_CLEAR_DIRTY_REGION) {
             _ulist_memset(ULIST_PTR(list->cap), ULIST_DIRTY_REGION_FILL_DATA,
                           ULIST_BSIZE(req_num - list->cap));
         }
@@ -148,7 +148,7 @@ static bool ulist_expend(ULIST list, mod_size_t req_num) {
  */
 static void ulist_shrink(ULIST list, mod_size_t req_num) {
     if (req_num == 0) {  // free all
-        if (list->cfg & ULIST_CFG_NO_AUTO_FREE) {
+        if (list->opt & ULIST_OPT_NO_AUTO_FREE) {
             goto check_dirty_region;
         }
         _ulist_free(list->data);
@@ -157,10 +157,10 @@ static void ulist_shrink(ULIST list, mod_size_t req_num) {
         list->cap = 0;
         return;
     }
-    if (list->cfg & ULIST_CFG_NO_SHRINK) {
+    if (list->opt & ULIST_OPT_NO_SHRINK) {
         goto check_dirty_region;
     }
-    if (!(list->cfg & ULIST_CFG_NO_ALLOC_EXTEND)) {
+    if (!(list->opt & ULIST_OPT_NO_ALLOC_EXTEND)) {
         req_num = calc_req_size(req_num);
     }
     if (req_num < list->cap) {  // shrink
@@ -171,19 +171,19 @@ static void ulist_shrink(ULIST list, mod_size_t req_num) {
         }
     }
 check_dirty_region:
-    if ((list->cfg & ULIST_CFG_CLEAR_DIRTY_REGION) && list->cap > req_num) {
+    if ((list->opt & ULIST_OPT_CLEAR_DIRTY_REGION) && list->cap > req_num) {
         _ulist_memset(ULIST_PTR(req_num), ULIST_DIRTY_REGION_FILL_DATA,
                       ULIST_BSIZE(list->cap - req_num));
     }
 }
 
-bool ulist_init(ULIST list, mod_size_t isize, mod_size_t init_size, uint8_t cfg,
+bool ulist_init(ULIST list, mod_size_t isize, mod_size_t init_size, uint8_t opt,
                 void (*elfree)(void* item)) {
     list->data = NULL;
     list->cap = 0;
     list->num = 0;
     list->isize = isize;
-    list->cfg = cfg;
+    list->opt = opt;
     list->elfree = elfree;
     list->dyn = false;
     if (init_size > 0) {
@@ -194,20 +194,20 @@ bool ulist_init(ULIST list, mod_size_t isize, mod_size_t init_size, uint8_t cfg,
         }
         list->num = init_size;
     }
-    if (!(list->cfg & ULIST_CFG_NO_MUTEX))
+    if (!(list->opt & ULIST_OPT_NO_MUTEX))
         list->mutex = MOD_MUTEX_CREATE("ulist");
     else
         list->mutex = NULL;
     return true;
 }
 
-ULIST ulist_new(mod_size_t isize, mod_size_t init_size, uint8_t cfg,
+ULIST ulist_new(mod_size_t isize, mod_size_t init_size, uint8_t opt,
                 void (*elfree)(void* item)) {
     ULIST list = (ULIST)_ulist_malloc(sizeof(ulist_t));
     if (list == NULL) {
         return NULL;
     }
-    if (!ulist_init(list, isize, init_size, cfg, elfree)) {
+    if (!ulist_init(list, isize, init_size, opt, elfree)) {
         _ulist_free(list);
         return NULL;
     }
@@ -274,7 +274,7 @@ void* ulist_insert_multi(ULIST list, mod_offset_t index, mod_size_t num) {
     mod_size_t move_size = ULIST_BSIZE(list->num - i);
     uint8_t* dst = ULIST_PTR(i + num);
     _ulist_memmove(dst, src, move_size);
-    if (list->cfg & ULIST_CFG_CLEAR_DIRTY_REGION) {
+    if (list->opt & ULIST_OPT_CLEAR_DIRTY_REGION) {
         _ulist_memset(src, ULIST_DIRTY_REGION_FILL_DATA, ULIST_BSIZE(num));
     }
     list->num += num;
@@ -411,7 +411,7 @@ ULIST ulist_slice_to_newlist(ULIST list, mod_offset_t start, mod_offset_t end) {
         ULIST_UNLOCK_RET(NULL);
     mod_size_t num = end - start;
     uint8_t* src = ULIST_PTR(start);
-    ULIST new_list = ulist_new(list->isize, num, list->cfg, list->elfree);
+    ULIST new_list = ulist_new(list->isize, num, list->opt, list->elfree);
     if (new_list == NULL)
         ULIST_UNLOCK_RET(NULL);
     _ulist_memcpy(new_list->data, src, ULIST_BSIZE(num));
@@ -542,13 +542,13 @@ void* ulist_search_matched(ULIST list, const void* key,
 
 void ulist_mem_shrink(ULIST list, uint8_t force_auto_free) {
     ULIST_LOCK();
-    uint8_t cfg = list->cfg;
+    uint8_t opt = list->opt;
     if (force_auto_free) {
-        list->cfg &= ~ULIST_CFG_NO_AUTO_FREE;
+        list->opt &= ~ULIST_OPT_NO_AUTO_FREE;
     }
-    list->cfg &= ~ULIST_CFG_NO_SHRINK;
+    list->opt &= ~ULIST_OPT_NO_SHRINK;
     ulist_shrink(list, list->num);
-    list->cfg = cfg;
+    list->opt = opt;
     ULIST_UNLOCK();
 }
 
@@ -601,6 +601,7 @@ void* ulist_iterator_next(ULIST_ITER iter) {
     if ((iter->step > 0 && iter->now >= iter->end) ||
         (iter->step < 0 && iter->now <= iter->end) ||
         iter->now >= iter->target->num || iter->now < 0) {
+        iter->now = -1;
         return NULL;
     }
     return (void*)((uint8_t*)iter->target->data +
@@ -609,13 +610,14 @@ void* ulist_iterator_next(ULIST_ITER iter) {
 
 void* ulist_iterator_prev(ULIST_ITER iter) {
     if (iter->now == -1) {
-        return NULL;
+        iter->now = iter->end;
     } else {
         iter->now -= iter->step;
     }
-    if ((iter->step > 0 && iter->now >= iter->end) ||
-        (iter->step < 0 && iter->now <= iter->end) ||
+    if ((iter->step > 0 && iter->now <= iter->start) ||
+        (iter->step < 0 && iter->now >= iter->start) ||
         iter->now >= iter->target->num || iter->now < 0) {
+        iter->now = -1;
         return NULL;
     }
     return (void*)((uint8_t*)iter->target->data +

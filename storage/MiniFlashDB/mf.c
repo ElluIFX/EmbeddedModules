@@ -72,7 +72,7 @@ static bool block_err(mf_flash_t* block) {
            block->key.data_size > MF_FLASH_BLOCK_SIZE || sumcheck != 0xFF;
 }
 
-void mf_init() {
+void mf_init(void) {
     info_main = (mf_flash_t*)MF_FLASH_MAIN_ADDR;
 #ifdef MF_FLASH_BACKUP_ADDR
     info_backup = (mf_flash_t*)MF_FLASH_BACKUP_ADDR;
@@ -103,7 +103,7 @@ void mf_init() {
     memcpy(mf_temp, info_main, MF_FLASH_BLOCK_SIZE);
 }
 
-void mf_save() {
+void mf_save(void) {
 #ifdef MF_FLASH_BACKUP_ADDR
     mf_erase((uint32_t)(info_backup));
     mf_write((uint32_t)info_backup, info_main);
@@ -113,11 +113,11 @@ void mf_save() {
     mf_write((uint32_t)info_main, mf_temp);
 }
 
-void mf_load() {
+void mf_load(void) {
     memcpy(mf_temp, info_main, MF_FLASH_BLOCK_SIZE);
 }
 
-void mf_purge() {
+void mf_purge(void) {
     init_temp();
     init_block(info_main);
 #ifdef MF_FLASH_BACKUP_ADDR
@@ -129,8 +129,8 @@ static const char* get_key_name(mf_key_t* key) {
     return (char*)((uint8_t*)key + sizeof(mf_key_t));
 }
 
-static const void* get_key_ptr(mf_key_t* key) {
-    return (const void*)((uint8_t*)key + sizeof(mf_key_t) + key->name_size);
+static void* get_key_ptr(mf_key_t* key) {
+    return (void*)((uint8_t*)key + sizeof(mf_key_t) + key->name_size);
 }
 
 static size_t get_key_size(mf_key_t* key) {
@@ -266,7 +266,7 @@ mf_status_t mf_del_key(const char* name) {
     return MF_OK;
 }
 
-mf_status_t mf_modify_key(const char* name, const void* data, size_t size) {
+mf_status_t mf_mod_key(const char* name, const void* data, size_t size) {
     mf_key_t* key = find_key(name);
     if (key == NULL) {
         return MF_ERR_NULL;
@@ -275,8 +275,21 @@ mf_status_t mf_modify_key(const char* name, const void* data, size_t size) {
         return MF_ERR_SIZE;
     }
 
-    memcpy((void*)get_key_ptr(key), data, size);
+    memcpy(get_key_ptr(key), data, size);
 
+    return MF_OK;
+}
+
+mf_status_t mf_get_key(const char* name, void* data, size_t size) {
+    mf_key_t* key = find_key(name);
+    if (key == NULL) {
+        return MF_ERR_NULL;
+    }
+    if (key->data_size > size) {
+        return MF_ERR_SIZE;
+    }
+
+    memcpy(data, get_key_ptr(key), size);
     return MF_OK;
 }
 
@@ -295,7 +308,19 @@ mf_status_t mf_set_key(const char* name, const void* data, size_t size) {
         return mf_add_key(name, data, size);
     }
 
-    memcpy((void*)get_key_ptr(key), data, size);
+    memcpy(get_key_ptr(key), data, size);
+
+    return MF_OK;
+}
+
+mf_status_t mf_sync_key(const char* name, void* data, size_t size) {
+    mf_key_t* key = find_key(name);
+
+    if (key == NULL || key->data_size != size) {
+        return mf_set_key(name, data, size);
+    }
+
+    memcpy(data, get_key_ptr(key), size);
 
     return MF_OK;
 }
@@ -312,19 +337,6 @@ mf_keyinfo_t mf_search_key(const char* name) {
     return (mf_keyinfo_t){.name = get_key_name(key),
                           .data = get_key_ptr(key),
                           .data_size = key->data_size};
-}
-
-mf_status_t mf_get_key(const char* name, void* data, size_t size) {
-    mf_key_t* key = find_key(name);
-    if (key == NULL) {
-        return MF_ERR_NULL;
-    }
-    if (key->data_size > size) {
-        return MF_ERR_SIZE;
-    }
-
-    memcpy(data, get_key_ptr(key), size);
-    return MF_OK;
 }
 
 const void* mf_get_key_ptr(const char* name) {

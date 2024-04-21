@@ -120,9 +120,9 @@ extern void uart_fifo_tx_deinit(UART_HandleTypeDef* huart);
  * @brief 串口DMA接收初始化
  * @param  huart            目标串口
  * @param  buf              接收缓冲区(NULL则尝试动态分配)
- * @param  buf_size          缓冲区大小
+ * @param  buf_size         缓冲区大小
  * @param  rxCallback       接收完成回调函数(NULL则需要手动使用LFBB句柄获取数据)
- * @param  cbkInIRQ         回调函数是否在中断中执行(极不推荐)
+ * @param  cbkInIRQ         回调函数是否在中断中执行
  * @retval LFBB_Inst_Type*  LFBB句柄, NULL:失败
  */
 extern LFBB_Inst_Type* uart_dma_rx_init(

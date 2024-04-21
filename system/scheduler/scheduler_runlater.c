@@ -23,7 +23,7 @@ static ulist_t clist = {.data = NULL,
                         .num = 0,
                         .elfree = NULL,
                         .isize = sizeof(scheduler_runlater_t),
-                        .cfg = ULIST_CFG_NO_SHRINK};
+                        .opt = ULIST_OPT_NO_SHRINK};
 
 _INLINE uint64_t runlater_runner(void) {
     static uint64_t last_active_us = 0;
