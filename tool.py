@@ -223,12 +223,6 @@ source "&&&TYPE&&&/&&&FILE_NAME&&&/Kconfig"
 endif
 """
 
-AVAILABLE_TYPES = []
-
-HEADER_FILE = "modules_config.h"
-KCONF_FILE = "Kconfig"
-CONFIG_FILE = ".config"
-
 
 def pull_latest():
     addr = "https://github.com/ElluIFX/EmbeddedModules"
@@ -240,7 +234,7 @@ def pull_latest():
     log("success", "pull success")
 
 
-def module_wizard():
+def module_wizard(available_types):
     try:
         from rich.console import Console
         from rich.prompt import Confirm, Prompt
@@ -258,7 +252,7 @@ def module_wizard():
 
     module_type = Prompt.ask(
         "[yellow]Please select module type",
-        choices=AVAILABLE_TYPES,
+        choices=available_types,
     )
 
     module_name = Prompt.ask("[yellow]Please input module name")
@@ -672,6 +666,9 @@ if __name__ == "__main__":
     EXT_FILES = [".clang-format", "modules.h", "readme.md"]
     SKIP_MODULES = []
     PROJECT_DIR = args.project_dir
+    HEADER_FILE = "modules_config.h"
+    KCONF_FILE = "Kconfig"
+    CONFIG_FILE = ".config"
     if PROJECT_DIR:
         PROJECT_DIR = os.path.abspath(PROJECT_DIR)
         MODULE_DIR = os.path.join(PROJECT_DIR, args.module_dirname)
@@ -681,16 +678,14 @@ if __name__ == "__main__":
 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    AVAILABLE_TYPES = list_module_types()
-
     if args.update:
         pull_latest()
 
     if args.newmodule:
-        module_wizard()
+        module_wizard(list_module_types())
 
     if args.menuconfig:
-        check_working_dir(PROJECT_DIR, MODULE_DIR)
+        check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=True)
         prepare_config_file(CONFIG_FILE, MODULE_DIR)
         menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR)
         if not args.nosync:
