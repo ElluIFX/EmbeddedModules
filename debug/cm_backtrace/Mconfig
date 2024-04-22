@@ -1,0 +1,11 @@
+if not config.CMB_ADD_HANDLER:
+    ignores += "fault_handler"
+else:
+    _ignores = ["gcc", "iar", "keil"]
+    if config.MOD_CFG_COMPILER_AC6 or config.MOD_CFG_COMPILER_AC5:
+        _ignores.remove("keil")
+    elif config.MOD_CFG_COMPILER_IAR:
+        _ignores.remove("iar")
+    elif config.MOD_CFG_COMPILER_GCC:
+        _ignores.remove("gcc")
+    ignores += _ignores

@@ -55,15 +55,13 @@ def log(level, text):
     print(LEVEL_COLORS[level] + LEVEL_NAME[level] + ": " + text + RESET_COLOR)
 
 
-try:
-    import pip
-except ImportError:
-    log("error", "pip not found, please install pip for your python environment")
-    exit(1)
-
-
 def install_package(package):
     log("info", f"pip install {package} ...")
+    try:
+        import pip
+    except ImportError:
+        log("error", "pip not found, please install pip for your python environment")
+        exit(1)
     output = ""
     with tempfile.TemporaryFile(mode="w+") as tempf:
         sys.stdout = tempf
@@ -508,6 +506,40 @@ def read_enabled_modules(config_file: str) -> list[str]:
     return enabled_modules
 
 
+class CfgGetter:
+    def __init__(self, config_file: str, default=False):
+        self.default = default
+        self.cfg = {}
+        with open(config_file, "r") as file:
+            for line in file.readlines():
+                if line.startswith("#") or not line.startswith("CONFIG_"):
+                    continue
+                key, value = line.strip().split("=")
+                key = key.replace("CONFIG_", "")
+                if value == "y":
+                    self.cfg[key] = True
+                else:
+                    try:
+                        self.cfg[key] = eval(value)
+                    except Exception:
+                        self.cfg[key] = value
+
+    def __getattr__(self, name):
+        return self.cfg.get(name, self.default)
+
+
+class IgnoreProxy:
+    def __init__(self):
+        self.ignores = []
+
+    def __add__(self, name):
+        if isinstance(name, str):
+            self.ignores.append(name)
+        elif isinstance(name, list):
+            self.ignores.extend(name)
+        return self
+
+
 def sync_module_files(
     config_file: str,
     output_dir: str,
@@ -522,6 +554,7 @@ def sync_module_files(
     purge_modules(output_dir, skip_modules)
     log("info", "copying module files...")
     modules = list_modules()
+    cfg = CfgGetter(config_file_path)
     for module in modules:
         if module.name.lower() in enabled:
             if module.name in skip_modules:
@@ -529,13 +562,51 @@ def sync_module_files(
                 continue
             if not os.path.exists(os.path.join(output_dir, module.type)):
                 os.makedirs(os.path.join(output_dir, module.type))
+            module_path = os.path.join(output_dir, module.path)
+            ignores = [
+                "Kconfig",
+                "Mconfig",
+                "*.gitignore",
+                ".git",
+                ".*",
+                "*.md",
+                "LICENSE",
+            ]
+            if os.path.exists(os.path.join(module.path, "Mconfig")):
+                with open(os.path.join(module.path, "Mconfig"), "r") as f:
+                    cmd = f.read().strip()
+                proxy = IgnoreProxy()
+                err = False
+
+                def error(msg):
+                    nonlocal err
+                    err = True
+                    log("error", f"({module.name}) {msg}")
+
+                exec(
+                    cmd,
+                    {
+                        k: v
+                        for k, v in globals().items()
+                        if k.startswith("__") and k.endswith("__")
+                    },
+                    {
+                        "config": cfg,
+                        "ignores": proxy,
+                        "debug": lambda x: log("debug", f"({module.name}) {x}"),
+                        "warning": lambda x: log("warning", f"({module.name}) {x}"),
+                        "error": error,
+                    },
+                )
+                if err:
+                    log("error", "Mconfig error, sync failed")
+                    return
+                ignores.extend(proxy.ignores)
             shutil.copytree(
                 module.path,
-                os.path.join(output_dir, module.path),
+                module_path,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns(
-                    "Kconfig", "Mconfig", "*.gitignore", ".git", ".*", "*.md", "LICENSE"
-                ),
+                ignore=shutil.ignore_patterns(*ignores),
             )
             log("debug", f"module {module.name} copied")
     for ext_file in ext_files:

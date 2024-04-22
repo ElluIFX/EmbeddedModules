@@ -26,8 +26,8 @@
  * Created on: 2016-12-15
  */
 
-#ifndef _CMB_CFG_H_
-#define _CMB_CFG_H_
+#ifndef __CMB_CFG__
+#define __CMB_CFG__
 
 #include "uni_io.h"
 
@@ -102,4 +102,4 @@ CMB_OS_PLATFORM_FREERTOS or CMB_OS_PLATFORM_RTX5 or CMB_OS_PLATFORM_KLITE */
 
 #endif
 
-#endif /* _CMB_CFG_H_ */
+#endif /* __CMB_CFG__ */

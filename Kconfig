@@ -1,6 +1,42 @@
 mainmenu "Ellu's Modules"
 
 
+menu "Enviroment Configuration"
+    choice
+        prompt "Compiler"
+        help
+            Select the compiler you are using.
+        default MOD_CFG_COMPILER_AC6
+
+        config MOD_CFG_COMPILER_AC6
+            bool "AC6"
+        config MOD_CFG_COMPILER_AC5
+            bool "AC5"
+        config MOD_CFG_COMPILER_GCC
+            bool "GCC"
+        config MOD_CFG_COMPILER_IAR
+            bool "IAR"
+    endchoice
+
+    choice
+        prompt "CPU"
+        help
+            Select the cpu you are using.
+        default MOD_CFG_CPU_CM4
+
+        config MOD_CFG_CPU_CM0
+            bool "Cortex-M0"
+        config MOD_CFG_CPU_CM3
+            bool "Cortex-M3"
+        config MOD_CFG_CPU_CM4
+            bool "Cortex-M4"
+        config MOD_CFG_CPU_CM7
+            bool "Cortex-M7"
+        config MOD_CFG_CPU_CM33
+            bool "Cortex-M33"
+    endchoice
+endmenu
+
 menu "Global Configuration"
 
     choice
@@ -106,6 +142,7 @@ menu "Global Configuration"
         default n
 
 endmenu
+
 
 # Sub-Modules
 source "*/Kconfig"

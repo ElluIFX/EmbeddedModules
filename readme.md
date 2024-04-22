@@ -198,6 +198,36 @@
 - `Kconfig` - Kconfig配置文件, 用于配置代码的宏定义, 开关和设置各种功能, 遵循Linux内核的Kconfig规范
 - `Mconfig` - `TODO` 基于Kconfig的配置, 描述生成项目的模块文件夹时所需复制的模块文件, 如不存在则复制完整文件夹
 
+<details>
+  <summary>Mconfig 语法</summary>
+
+  Mconfig文件实际上是一个python脚本, 继承完整的`tool.py`运行环境
+
+  其中有两个特殊变量:
+
+- `config` - 从Kconfig配置结果中解析的配置项目
+- `ignores` - 复制该模块的文件时忽略的项目, 使用glob匹配
+
+  和三个特殊函数:
+
+- `debug(msg: str)` - 输出调试信息
+- `warning(msg: str)` - 输出警告信息
+- `error(msg: str)` - 输出错误信息并退出
+
+  下面是一个简单的例子:
+
+  ```python
+  if config.DISABLE_MODULE_A:
+      ignores += "module_a.*"
+  if config.DISABLE_SUB_MODULES:
+      if "B" in config.SUB_MODULES:
+          ignores += ["module_b1.*", "module_b2.*"]
+      ignores += "module_c*.*"
+  ignores += "test_*_module.*"
+  ```
+
+</details>
+
 ## 配置工具 [`tool.py`](./tool.py)
 
 ```shell
@@ -251,7 +281,7 @@ optional arguments:
 
 - [x] 用kconfig替代modules_conf.template.h
 - [x] 配置工具自动复制模块文件夹
-- [ ] 允许配置Mconfig来指定添加项目
+- [x] 允许配置Mconfig来指定添加项目
 - [ ] 为所有自己写的模块编写README
 
 ## LICENSE

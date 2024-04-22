@@ -62,6 +62,9 @@ choice
         bool "ARM Cortex-M33"
 endchoice
 
+config CMB_ADD_HANDLER
+    bool "Add Handler Wrapper .S File"
+    default y
 
 config CMB_USING_DUMP_STACK_INFO
     bool "Dump Stack Info"
