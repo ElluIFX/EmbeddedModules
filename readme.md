@@ -201,30 +201,27 @@
 <details>
   <summary>Mconfig 语法</summary>
 
-  Mconfig文件实际上是一个python脚本, 继承完整的`tool.py`运行环境
+Mconfig文件实际上是一个python脚本, 继承完整的`tool.py`运行环境
 
-  其中有两个特殊变量:
+其中有两个特殊变量和三个特殊函数:
 
 - `config` - 从Kconfig配置结果中解析的配置项目
 - `ignores` - 复制该模块的文件时忽略的项目, 使用glob匹配
-
-  和三个特殊函数:
-
 - `debug(msg: str)` - 输出调试信息
 - `warning(msg: str)` - 输出警告信息
 - `error(msg: str)` - 输出错误信息并退出
 
-  下面是一个简单的例子:
+下面是一个简单的例子:
 
-  ```python
-  if config.DISABLE_MODULE_A:
-      ignores += "module_a.*"
-  if config.DISABLE_SUB_MODULES:
-      if "B" in config.SUB_MODULES:
-          ignores += ["module_b1.*", "module_b2.*"]
-      ignores += "module_c*.*"
-  ignores += "test_*_module.*"
-  ```
+```python
+if config.DISABLE_MODULE_A:
+    ignores += "module_a.*"
+if config.DISABLE_SUB_MODULES:
+    if "B" in config.SUB_MODULES:
+        ignores += ["module_b1.*", "module_b2.*"]
+    ignores += "module_c*.*"
+ignores += "test_*_module.*"
+```
 
 </details>
 
