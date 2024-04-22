@@ -10,7 +10,7 @@
 ## 模块仓库文件结构
 
 > [!NOTE]
-> 标*的为自己写的模块，其他修改自开源库，原repo已列出(标x为非开源库)
+> 标 `*` 的为自己写的模块，其他修改自开源库，原repo已列出(标 `x` 为非开源库)
 
 <details open>
   <summary>根目录文件 /</summary>
@@ -115,7 +115,7 @@
 | [hagl](./graphics/hagl) | HAL图形库 | [link](https://github.com/tuupola/hagl) | |
 | [lvgl](./graphics/lvgl) | LittlevGL图形库 | [link](https://github.com/lvgl/lvgl) | |
 | [lvgl_gaussian_blur](./graphics/lvgl_gaussian_blur) | LVGL高斯模糊效果 | [link](https://gitee.com/MIHI1/lvgl_gaussian_blur) | cpp->c |
-| [lvgl-pm](./graphics/lvgl-pm) | LVGL页面管理器 | [link](https://github.com/LanFly/lvgl-pm) | |
+| [lvgl_pm](./graphics/lvgl_pm) | LVGL页面管理器 | [link](https://github.com/LanFly/lvgl-pm) | |
 | [u8g2](./graphics/u8g2) | U8g2图形库 | [link](https://github.com/olikraus/u8g2) | |
 | [ugui](./graphics/ugui) | uGUI图形库 | [link](https://github.com/achimdoebler/UGUI) | |
 | [virtual_lcd](./graphics/virtual_lcd) | 虚拟LCD |*| 包含上位机 |
