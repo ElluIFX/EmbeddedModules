@@ -1,9 +1,9 @@
 mainmenu "Ellu's Modules"
 
+menu "Global Configuration"
 
-menu "Enviroment Configuration"
     choice
-        prompt "Compiler"
+        prompt "Target Compiler"
         help
             Select the compiler you are using.
         default MOD_CFG_COMPILER_AC6
@@ -19,7 +19,7 @@ menu "Enviroment Configuration"
     endchoice
 
     choice
-        prompt "CPU"
+        prompt "Target CPU"
         help
             Select the cpu you are using.
         default MOD_CFG_CPU_CM4
@@ -35,9 +35,6 @@ menu "Enviroment Configuration"
         config MOD_CFG_CPU_CM33
             bool "Cortex-M33"
     endchoice
-endmenu
-
-menu "Global Configuration"
 
     choice
         prompt "Enable RTOS Support"

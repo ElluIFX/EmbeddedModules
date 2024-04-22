@@ -214,7 +214,8 @@ README_TEMP = """# Module: &&&MODULE_NAME&&&
 
 """
 
-KCONFIG_TEMP1 = """menuconfig MOD_ENABLE_&&&MODULE_NAME_UPPER&&&
+KCONFIG_TEMP1 = """
+menuconfig MOD_ENABLE_&&&MODULE_NAME_UPPER&&&
     bool "&&&MODULE_NAME&&& (&&&BREIF&&&)"
     default n
 """
@@ -449,7 +450,7 @@ def menuconfig(kconfig_file, config_file, header_file, output_dir):
 
 def check_working_dir(project_dir: str, module_dir: str, auto_create: bool = True):
     if not project_dir:
-        log("error", "PROJECT_DIR not provided")
+        log("error", "PROJECT_DIR not provided, use -p to specify project directory")
         exit(1)
     if not os.path.isdir(project_dir):
         log("error", f"PROJECT_DIR {project_dir} is not a directory")
@@ -669,6 +670,7 @@ if __name__ == "__main__":
     HEADER_FILE = "modules_config.h"
     KCONF_FILE = "Kconfig"
     CONFIG_FILE = ".config"
+    MODULE_DIR = None
     if PROJECT_DIR:
         PROJECT_DIR = os.path.abspath(PROJECT_DIR)
         MODULE_DIR = os.path.join(PROJECT_DIR, args.module_dirname)
