@@ -1,6 +1,5 @@
 
 #include "i2c_slave.h"
-#if __has_include("i2c.h")
 #include "i2c.h"
 
 __weak void slave_i2c_transmit_begin_handler(I2C_TypeDef* I2Cx) {}
@@ -157,5 +156,3 @@ void slave_i2c_event_irq(I2C_TypeDef* I2Cx) {
         slave_i2c_error_irq(I2Cx);
     }
 }
-
-#endif /* __has_include("i2c.h") */

@@ -1,5 +1,3 @@
-menu "LL I2C Library Configuration"
-
 config LL_IIC_CFG_CONVERT_7BIT_ADDR
     bool "Convert 7-bit address to 8-bit address"
     default y
@@ -29,5 +27,3 @@ config LL_I2C_CFG_SEM_TIMEOUT_MS
     help
       Timeout for waiting interrupt sync semaphore.
       for both waiting other task release the interrupt and waiting I2C communication complete.
-
-endmenu

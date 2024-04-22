@@ -15,7 +15,6 @@ extern "C" {
 #include "modules.h"
 #include "pid.h"
 
-#if __has_include("tim.h")
 #include "tim.h"
 
 /****************** 常量定义 ******************/
@@ -157,7 +156,6 @@ extern void Motor_Run(motor_t* motor);
 void Two_Wheel_Speed_Calc(float V, float angular_velocity,
                           float* target_rpm_left, float* target_rpm_right);
 
-#endif  // has_include("tim.h")
 
 #ifdef __cplusplus
 }

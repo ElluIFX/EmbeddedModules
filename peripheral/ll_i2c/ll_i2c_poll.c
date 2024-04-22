@@ -10,7 +10,7 @@
 
 #include "ll_i2c.h"
 
-#if !LL_IIC_CFG_USE_IT && __has_include("i2c.h")
+#if !LL_IIC_CFG_USE_IT
 
 #include "i2c.h"
 #define LOG_MODULE "ll-i2c"

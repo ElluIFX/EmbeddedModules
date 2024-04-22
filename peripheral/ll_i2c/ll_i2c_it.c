@@ -12,7 +12,7 @@
 
 #include "ll_i2c.h"
 
-#if LL_IIC_CFG_USE_IT && __has_include("i2c.h")
+#if LL_IIC_CFG_USE_IT
 
 #include "i2c.h"
 #define LOG_MODULE "ll-i2c"
@@ -475,4 +475,4 @@ int ll_i2c_error_irq(I2C_TypeDef* i2c) {
 
 void ll_i2c_combine_irq(I2C_TypeDef* i2c) {}
 
-#endif /* LL_IIC_CFG_USE_IT && __has_include("i2c.h") */
+#endif /* LL_IIC_CFG_USE_IT */

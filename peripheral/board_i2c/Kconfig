@@ -1,5 +1,3 @@
-menu "Board I2C Configuration"
-
 choice
     prompt "I2C Bus Driver"
     config BOARD_I2C_CFG_USE_NONE
@@ -38,4 +36,3 @@ if BOARD_I2C_CFG_USE_HAL_I2C
         string "HAL I2C Instance"
         default "hi2c1"
 endif
-endmenu

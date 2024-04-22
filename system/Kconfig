@@ -1,5 +1,42 @@
 menu "System Modules"
 
-source "system/**/Kconfig"
+menuconfig MOD_ENABLE_DALLOC
+    bool "Dalloc (Dynamic Memory Allocator)"
+    default n
+
+menuconfig MOD_ENABLE_HEAP4
+    bool "Heap4 (Separated from FreeRTOS)"
+    default n
+
+menuconfig MOD_ENABLE_KLITE
+    bool "KLite (Kernel Lite RTOS)"
+    default n
+if MOD_ENABLE_KLITE
+source "system/klite/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_LWMEM
+    bool "LwMem (Lightweight Memory Manager)"
+    default n
+
+menuconfig MOD_ENABLE_RTTHREAD_NANO
+    bool "RT-Thread Nano"
+    default n
+
+menuconfig MOD_ENABLE_S_TASK
+    bool "S-Task (Simple Coroutine Framework)"
+    default n
+
+menuconfig MOD_ENABLE_SCHEDULER
+    bool "Scheduler (Task Scheduler)"
+    default n
+    select MOD_ENABLE_ULIST
+if MOD_ENABLE_SCHEDULER
+source "system/scheduler/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_SCHEDULER_LITE
+    bool "Scheduler Lite"
+    default n
 
 endmenu

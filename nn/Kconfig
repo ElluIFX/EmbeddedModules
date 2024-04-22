@@ -1,0 +1,7 @@
+menu "NN Modules"
+
+menuconfig MOD_ENABLE_GENANN
+    bool "Genann (Simple Neural Network Library)"
+    default n
+
+endmenu

@@ -10,8 +10,6 @@
 
 #include "ll_i2c.h"
 
-#if __has_include("i2c.h")
-
 #include "i2c.h"
 
 #define LOG_MODULE "ll-i2c"
@@ -112,5 +110,3 @@ void ll_i2c_dump(I2C_TypeDef* i2c, uint8_t addr, uint8_t start, uint8_t stop) {
     }
     PRINTLN(T_FMT(T_YELLOW) "> Dump Reg End");
 }
-
-#endif /* __has_include("i2c.h") */

@@ -42,7 +42,6 @@ extern "C" {
 
 #include <stdbool.h>
 #include <string.h>
-#if __has_include("spi.h")
 #include "modules.h"
 #include "spi.h"
 
@@ -169,7 +168,6 @@ bool SPIF_ReadSector(SPIF_HandleTypeDef* Handle, uint32_t SectorNumber,
 bool SPIF_ReadBlock(SPIF_HandleTypeDef* Handle, uint32_t BlockNumber,
                     uint8_t* Data, uint32_t Size, uint32_t Offset);
 
-#endif  // spi.h
 
 #ifdef __cplusplus
 }

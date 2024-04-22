@@ -1,0 +1,47 @@
+menu "Driver Modules"
+
+menuconfig MOD_ENABLE_BQ25890
+    bool "BQ25890 (Charger Controller)"
+    default n
+
+menuconfig MOD_ENABLE_EE24
+    bool "EE24 (EE24 EEPROM)"
+    default n
+
+menuconfig MOD_ENABLE_KEY
+    bool "Key (Universal Key)"
+    default n
+
+menuconfig MOD_ENABLE_MOTOR
+    bool "Motor (Closed-loop Motor)"
+    default n
+
+menuconfig MOD_ENABLE_PAJ7620U2
+    bool "PAJ7620U2 (Gesture Recognition)"
+    default n
+
+menuconfig MOD_ENABLE_SC7A20
+    bool "SC7A20 (Accelerometer)"
+    default n
+
+menuconfig MOD_ENABLE_SH2
+    bool "SH2 (SH2 Sensorhub Protocol)"
+    default n
+
+menuconfig MOD_ENABLE_SPIF
+    bool "SPIF (SPI Flash)"
+    default n
+
+menuconfig MOD_ENABLE_STEPPER
+    bool "Stepper (Stepper Motor)"
+    default n
+
+menuconfig MOD_ENABLE_VL53L0X
+    bool "VL53L0X (Time-of-Flight Distance Sensor)"
+    default n
+
+menuconfig MOD_ENABLE_WS2812_SPI
+    bool "WS2812 (RGB LED DMA-SPI Driver)"
+    default n
+
+endmenu

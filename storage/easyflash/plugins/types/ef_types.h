@@ -26,8 +26,8 @@
  * functions. Created on: 2015-12-16
  */
 
-#ifndef EF_TYPES_H_
-#define EF_TYPES_H_
+#ifndef __EF_TYPES__
+#define __EF_TYPES__
 
 #include <easyflash.h>
 #include <stdbool.h>
@@ -82,4 +82,4 @@ EfErrCode ef_set_struct(const char* key, void* value, ef_types_set_cb set_cb);
 }
 #endif
 
-#endif /* EF_TYPES_H_ */
+#endif /* __EF_TYPES__ */

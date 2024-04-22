@@ -12,7 +12,6 @@
 
 #include "macro.h"
 
-#if __has_include("tim.h")
 
 void Motor_Setup(motor_t* motor) {
     motor->mode = MOTOR_MODE_BRAKE;
@@ -135,5 +134,3 @@ void Two_Wheel_Speed_Calc(float V, float angular_velocity,
     *target_rpm_left = omega_left * 60;
     *target_rpm_right = omega_right * 60;
 }
-
-#endif  // __has_include("tim.h")

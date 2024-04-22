@@ -1,5 +1,3 @@
-menu "EasyFlash Configuration"
-
 config EF_BIG_ENDIAN
     bool "Big Endian"
     default n
@@ -84,5 +82,3 @@ config EF_DEBUG_ENABLE
       Print debug information
 
 endif
-
-endmenu

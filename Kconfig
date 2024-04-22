@@ -16,6 +16,7 @@ menu "Global Configuration"
             bool "RT-Thread"
         config MOD_CFG_USE_OS_KLITE
             bool "KLite RTOS"
+            select MOD_ENABLE_KLITE
     endchoice
 
     choice
@@ -28,6 +29,7 @@ menu "Global Configuration"
             bool "ST HAL Library"
         config MOD_CFG_TIME_MATHOD_PERF_COUNTER
             bool "PerfCounter Library"
+            select MOD_ENABLE_PERF_COUNTER
         config MOD_CFG_TIME_MATHOD_KLITE
             bool "KLite RTOS"
             depends on MOD_CFG_USE_OS_KLITE
@@ -46,8 +48,10 @@ menu "Global Configuration"
             bool "Standard Library (stdlib.h)"
         config MOD_CFG_HEAP_MATHOD_LWMEM
             bool "LwMEM Memory Manager"
+            select MOD_ENABLE_LWMEM
         config MOD_CFG_HEAP_MATHOD_HEAP4
             bool "Heap4 Memory Manager (modified from FreeRTOS)"
+            select MOD_ENABLE_HEAP4
         config MOD_CFG_HEAP_MATHOD_KLITE
             bool "KLite RTOS Memory Manager"
             depends on MOD_CFG_USE_OS_KLITE

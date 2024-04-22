@@ -1,4 +1,4 @@
-menuconfig LOG_CFG_ENABLE
+config LOG_CFG_ENABLE
 bool "Enable Log Output"
 default y
 help

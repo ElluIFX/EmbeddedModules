@@ -1,5 +1,30 @@
 menu "Communication Modules"
 
-source "communication/**/Kconfig"
+menuconfig MOD_ENABLE_CHERRYUSB
+bool "CherryUSB"
+default n
+
+menuconfig MOD_ENABLE_LWPKT
+bool "LWPkt (Lightweight Packet)"
+default n
+
+menuconfig MOD_ENABLE_MINMEA
+bool "MinMEA (Minimal NMEA Parser)"
+default n
+
+menuconfig MOD_ENABLE_MODBUS
+bool "Modbus"
+default n
+
+menuconfig MOD_ENABLE_TINYFRAME
+bool "TinyFrame"
+default n
+if MOD_ENABLE_TINYFRAME
+source "communication/TinyFrame/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_XYMODEM
+bool "XYModem (File Transfer Protocol)"
+default n
 
 endmenu

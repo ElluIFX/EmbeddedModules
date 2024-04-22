@@ -38,7 +38,6 @@ extern "C" {
 
 #include <stdbool.h>
 
-#if __has_include("i2c.h")
 #include "i2c.h"
 #include "modules.h"
 
@@ -99,7 +98,6 @@ bool EE24_Read(EE24_HandleTypeDef* Handle, uint32_t Address, uint8_t* Data,
 bool EE24_Write(EE24_HandleTypeDef* Handle, uint32_t Address, uint8_t* Data,
                 size_t Len, uint32_t Timeout);
 
-#endif  // i2c.h
 
 #ifdef __cplusplus
 }

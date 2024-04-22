@@ -1,4 +1,6 @@
-# 嵌入式STM32软件模块集
+# [Ellu's Embedded Modules](https://github.com/ElluIFX/EmbeddedModules)
+
+嵌入式STM32软件模块集
 
 采用统一上层头文件来统一动态内存/时间/延时函数，并实现可视化参数配置
 
@@ -31,7 +33,6 @@
 | [libcrc](./algorithm/libcrc) | CRC计算库 | [link](https://github.com/whik/crc-lib-c) | |
 | [pid](./algorithm/pid) | 通用PID控制器 |*| |
 | [quaternion](./algorithm/quaternion) | 四元数和IMU姿态估计 | [link](https://github.com/rbv188/IMU-algorithm) | 未测试 |
-| [tiny_regex](./algorithm/tiny_regex)|  简易正则解析器 | [link](https://github.com/zeta-zero/tiny-regex-c) | 无捕获组 |
 
 </details>
 
@@ -187,47 +188,71 @@
 | [term_table](./utility/term_table) | 动态终端表格工具 |*| 仅debug使用 |
 | [TimeLib](./utility/TimeLib) | UNIX时间库 | [link](https://github.com/geekfactory/TimeLib) | |
 | [xv](./utility/xv) | 类JavaScript的字符串解析器 | [link](https://github.com/tidwall/xv) | |
+| [tiny_regex](./utility/tiny_regex)|  简易正则解析器 | [link](https://github.com/zeta-zero/tiny-regex-c) | 无捕获组 |
 | [incbin.h](./utility/incbin) | 二进制文件嵌入 | [link](https://github.com/graphitemaster/incbin) | |
 | [macro.h](./utility/macro.h) | 通用宏 |*| |
 
 </details>
 
+## 配置文件
+
+- `Kconfig` - Kconfig配置文件, 用于配置代码的宏定义, 开关和设置各种功能, 遵循Linux内核的Kconfig规范
+- `Mconfig` - `TODO` 基于Kconfig的配置, 描述生成项目的模块文件夹时所需复制的模块文件, 如不存在则复制完整文件夹
+
 ## 配置工具 [`tool.py`](./tool.py)
 
 ```shell
 Ellu@ELLU  /home/ellu/git/EmbeddedModules   master ≣ +0 ~0 -0
-❯ python ./tool.py
+❯ python ./tool.py --help
 
-usage: tool.py [-m] [-n] [-g] [-u] [-k KCONFIG] [-c CONFIG] [-o OUTPUT_DIR]
+usage: tool.py [-p PROJECT_DIR] [-m] [-s] [-n] [-u] [-d MODULE_DIRNAME] [--debug]
 
 optional arguments:
+  -h, --help            show this help message and exit
+  -p PROJECT_DIR, --project-dir PROJECT_DIR
+                        Specify the directory for working project
   -m, --menuconfig      Run menuconfig
+  -s, --sync            Sync latest module files without menuconfig
+  -ns, --nosync         Skip syncing latest module files after menuconfig
   -n, --newmodule       Create a new module
-  -g, --generate        Generate header file without menuconfig
-  -u, --update          Pull the latest version of the tool from github
-  -k KCONFIG, --kconfig KCONFIG
-                        Specify the kconfig file, default is Kconfig
-  -c CONFIG, --config CONFIG
-                        Specify the menuconfig output file, default is .config
-  -o OUTPUT_DIR, --output_dir OUTPUT_DIR
-                        Specify the directory for the output files, or use MOD_OUTPUT_DIR env variable
+  -u, --update          Pull the latest version of this toolset from github
+  -d MODULE_DIRNAME, --module-dirname MODULE_DIRNAME
+                        Specify the directory name for generated modules, default is 'Modules'
+  --debug               Enable debug output
 ```
 
-使用Kconfig可视化配置并生成头文件:
+- **使用Kconfig可视化配置并生成项目模块文件夹**
 
-```shell
-python tool.py -m
-```
+  ```shell
+  python tool.py -p /path/to/project -m
+  ```
 
-创建新模块:
+- **同步最新模块文件**
 
-```shell
-python tool.py -n
-```
+  ```shell
+  python tool.py -p /path/to/project -u -s
+  ```
+
+- **在仓库中创建新模块**
+
+  ```shell
+  python tool.py -n
+  ```
+
+- **冻结生成文件夹中的某个模块** (如针对项目修改了模块源码时)
+
+  在生成文件夹 (如`Modules`) 的根目录创建一个`.Mfreeze`文件, 写入要冻结的模块文件夹名, 每行一个
+
+- **有效的环境变量**
+
+  - `MOD_PROJECT_DIR` - 指定项目目录 (命令参数优先)
+  - `MOD_MODULE_DIRNAME` - 指定生成模块文件夹的目录名 (命令参数优先)
 
 ## TODO
 
 - [x] 用kconfig替代modules_conf.template.h
+- [x] 配置工具自动复制模块文件夹
+- [ ] 允许配置Mconfig来指定添加项目
 - [ ] 为所有自己写的模块编写README
 
 ## LICENSE

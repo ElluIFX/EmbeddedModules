@@ -10,7 +10,6 @@
 
 #include "stepper.h"
 
-#if __has_include("tim.h")
 #define LOG_MODULE "stepper"
 #include "log.h"
 #include "math.h"
@@ -195,5 +194,3 @@ double Stepper_Get_Angle(step_ctrl_t* step) {
                       (double)__HAL_TIM_GET_AUTORELOAD(step->timSlave);
     return (step->angleTarget - step->angle) * progress + step->angle;
 }
-
-#endif  // __has_include("tim.h")

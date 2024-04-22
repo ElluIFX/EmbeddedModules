@@ -15,7 +15,6 @@ extern "C" {
 #endif
 #include <modules.h>
 
-#if __has_include("tim.h")
 #include "tim.h"
 
 /****************** 常量定义 ******************/
@@ -72,7 +71,6 @@ extern void Stepper_Set_Angle(step_ctrl_t* step, double angle);
 extern double Stepper_Get_Angle(step_ctrl_t* step);
 extern void Stepper_Stop(step_ctrl_t* step);
 
-#endif
 
 #ifdef __cplusplus
 }

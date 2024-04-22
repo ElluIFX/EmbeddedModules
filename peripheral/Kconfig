@@ -1,5 +1,48 @@
-menu "Peripherals Modules"
+menu "Peripheral Modules"
 
-source "peripheral/**/Kconfig"
+menuconfig MOD_ENABLE_BOARD_I2C
+    bool "(On)Board I2C"
+    default n
+if MOD_ENABLE_BOARD_I2C
+source "peripheral/board_i2c/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_BOARD_LED
+    bool "(On)Board LED"
+    default n
+if MOD_ENABLE_BOARD_LED
+source "peripheral/board_led/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_EE
+    bool "EE (EEPROM Emulation with Internal Flash)"
+    default n
+
+menuconfig MOD_ENABLE_I2C_SLAVE
+    bool "I2C Slave (LL Library Only)"
+    default n
+
+menuconfig MOD_ENABLE_LL_I2C
+    bool "LL I2C Library (Poll/Interrupt)"
+    default n
+if MOD_ENABLE_LL_I2C
+source "peripheral/ll_i2c/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_SW_I2C
+    bool "Software I2C (Bit-Bang)"
+    default n
+
+menuconfig MOD_ENABLE_SW_SPI
+    bool "Software SPI (Bit-Bang)"
+    default n
+
+menuconfig MOD_ENABLE_UNI_IO
+    bool "Uni-IO (Unified I/O Interface)"
+    default y
+if MOD_ENABLE_UNI_IO
+source "peripheral/uni_io/Kconfig"
+endif
+
 
 endmenu

@@ -1,5 +1,3 @@
-menu "Scheduler Configuration"
-
 config SCH_CFG_ENABLE_TASK
     bool "Enable task Support"
     default y
@@ -103,4 +101,3 @@ config SCH_CFG_ENABLE_TERMINAL
     default y
     help
       Enable the terminal support in the scheduler. (Depends on embedded-cli module)
-endmenu

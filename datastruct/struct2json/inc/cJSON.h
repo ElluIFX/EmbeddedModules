@@ -20,8 +20,8 @@
   THE SOFTWARE.
 */
 
-#ifndef cJSON__h
-#define cJSON__h
+#ifndef __C_JSON__
+#define __C_JSON__
 
 #include <stddef.h>
 
@@ -188,4 +188,4 @@ extern void cJSON_Minify(char* json);
 }
 #endif
 
-#endif
+#endif /* __C_JSON__ */

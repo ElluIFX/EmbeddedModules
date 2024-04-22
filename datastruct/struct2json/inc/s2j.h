@@ -26,8 +26,8 @@
  * functions. Created on: 2015-10-14
  */
 
-#ifndef __S2J_H__
-#define __S2J_H__
+#ifndef __S2J__
+#define __S2J__
 
 #include <cJSON.h>
 #include <string.h>
@@ -90,4 +90,4 @@ void s2j_init(S2jHook* hook);
 }
 #endif
 
-#endif /* __S2J_H__ */
+#endif /* __S2J__ */

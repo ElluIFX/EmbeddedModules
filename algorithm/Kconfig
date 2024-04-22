@@ -1,0 +1,19 @@
+menu "Algorithm Modules"
+
+menuconfig MOD_ENABLE_CMSIS_DSP
+bool "CMSIS-DSP (Source code from ARM)"
+default n
+
+menuconfig MOD_ENABLE_LIBCRC
+bool "LibCRC (CRC Checksum Library)"
+default n
+
+menuconfig MOD_ENABLE_PID
+bool "PID (Closed-Loop Control)"
+default n
+
+menuconfig MOD_ENABLE_QUATERNION
+bool "Quaternion (Pose Estimation)"
+default n
+
+endmenu

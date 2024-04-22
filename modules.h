@@ -88,14 +88,14 @@ typedef int64_t m_time_t;
 #define m_tick_clk ((uint64_t)SystemCoreClock)
 #elif MOD_CFG_TIME_MATHOD_KLITE
 #include "klite.h"
-typedef uint64_t m_time_t;
-#define m_time_t_max (UINT64_MAX)
+typedef kl_tick_t m_time_t;
+#define m_time_t_max (KL_WAIT_FOREVER)
 #define init_module_timebase() ((void)0)
-#define m_time_ms() (kernel_ticks_to_ms(kernel_tick_count64()))
-#define m_time_us() (kernel_ticks_to_us(kernel_tick_count64()))
+#define m_time_ms() (kl_ticks_to_ms(kl_tick_t()))
+#define m_time_us() (kl_ticks_to_us(kl_tick_t()))
 #define m_time_ns() (m_time_us() * 1000)
 #define m_time_s() (m_time_ms() / 1000)
-#define m_tick() (kernel_tick_count64())
+#define m_tick() (kl_tick_t())
 #define m_tick_clk (KLITE_CFG_FREQ)
 #else
 #error "MOD_CFG_TIME_MATHOD invalid"
@@ -123,7 +123,7 @@ typedef uint64_t m_time_t;
 #elif MOD_CFG_DELAY_MATHOD_RTT  // rtthread
 #include "rtthread.h"           // period = 1ms
 #define m_delay_us(x) \
-  rt_thread_delay((rt_tick_t)(x) / (1000000UL / RT_TICK_PER_SECOND))
+    rt_thread_delay((rt_tick_t)(x) / (1000000UL / RT_TICK_PER_SECOND))
 #define m_delay_ms(x) rt_thread_delay(rt_tick_from_millisecond(x))
 #define m_delay_s(x) rt_thread_delay((rt_tick_t)(x) * RT_TICK_PER_SECOND)
 #else
@@ -145,11 +145,11 @@ typedef uint64_t m_time_t;
 #define m_realloc(ptr, size) pvPortRealloc((ptr), size)
 #elif MOD_CFG_HEAP_MATHOD_LWMEM  // lwmem
 #include "lwmem.h"
-#define init_module_heap(ptr, size)                              \
-  do {                                                           \
-    static lwmem_region_t _regions[] = {{ptr, size}, {NULL, 0}}; \
-    lwmem_assignmem(_regions)                                    \
-  } while (0)
+#define init_module_heap(ptr, size)                                  \
+    do {                                                             \
+        static lwmem_region_t _regions[] = {{ptr, size}, {NULL, 0}}; \
+        lwmem_assignmem(_regions)                                    \
+    } while (0)
 #define m_alloc(size) lwmem_malloc(size)
 #define m_free(ptr) lwmem_free(ptr)
 #define m_realloc(ptr, size) lwmem_realloc(ptr, size)
@@ -178,13 +178,13 @@ typedef uint64_t m_time_t;
 #error "MODCFG__HEAP_MATHOD invalid"
 #endif
 
-static inline void *m_calloc(size_t nmemb, size_t size) {
-  void *mem = m_alloc(nmemb * size);
-  if (mem) {
-    void *memset(void *s, int c, size_t n);
-    memset(mem, 0, nmemb * size);
-  }
-  return mem;
+static inline void* m_calloc(size_t nmemb, size_t size) {
+    void* mem = m_alloc(nmemb * size);
+    if (mem) {
+        void* memset(void* s, int c, size_t n);
+        memset(mem, 0, nmemb * size);
+    }
+    return mem;
 }
 
 #if MOD_CFG_USE_OS_NONE  // none
@@ -208,7 +208,7 @@ static inline void *m_calloc(size_t nmemb, size_t size) {
 #define MOD_MUTEX_CREATE(name) kl_mutex_create()
 #define MOD_MUTEX_ACQUIRE(mutex) kl_mutex_lock(mutex, KL_WAIT_FOREVER)
 #define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
-  kl_mutex_lock(mutex, kl_ms_to_ticks(ms))
+    kl_mutex_lock(mutex, kl_ms_to_ticks(ms))
 #define MOD_MUTEX_RELEASE(mutex) kl_mutex_unlock(mutex)
 #define MOD_MUTEX_DELETE(mutex) kl_mutex_delete(mutex)
 
@@ -225,7 +225,7 @@ static inline void *m_calloc(size_t nmemb, size_t size) {
 #define MOD_MUTEX_CREATE(name) xSemaphoreCreateMutex()
 #define MOD_MUTEX_ACQUIRE(mutex) xSemaphoreTake(mutex, portMAX_DELAY)
 #define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
-  xSemaphoreTake(mutex, pdMS_TO_TICKS(ms))
+    xSemaphoreTake(mutex, pdMS_TO_TICKS(ms))
 #define MOD_MUTEX_RELEASE(mutex) xSemaphoreGive(mutex)
 #define MOD_MUTEX_DELETE(mutex) vSemaphoreDelete(mutex)
 
@@ -242,7 +242,7 @@ static inline void *m_calloc(size_t nmemb, size_t size) {
 #define MOD_MUTEX_CREATE(name) rt_mutex_create(name, RT_IPC_FLAG_PRIO)
 #define MOD_MUTEX_ACQUIRE(mutex) rt_mutex_take(mutex, RT_WAITING_FOREVER)
 #define MOD_MUTEX_TRY_ACQUIRE(mutex, ms) \
-  rt_mutex_take(mutex, rt_tick_from_millisecond(ms))
+    rt_mutex_take(mutex, rt_tick_from_millisecond(ms))
 #define MOD_MUTEX_RELEASE(mutex) rt_mutex_release(mutex)
 #define MOD_MUTEX_DELETE(mutex) rt_mutex_delete(mutex)
 
@@ -268,7 +268,7 @@ typedef atomic_int_fast32_t mod_atomic_offset_t;
 #define MOD_ATOMIC_INIT(var, val) atomic_init(&(var), (val))
 #define MOD_ATOMIC_LOAD(var, type) atomic_load_explicit(&(var), (type))
 #define MOD_ATOMIC_STORE(var, val, type) \
-  atomic_store_explicit(&(var), (val), (type))
+    atomic_store_explicit(&(var), (val), (type))
 #define MOD_ATOMIC_ORDER_ACQUIRE __ATOMIC_ACQUIRE
 #define MOD_ATOMIC_ORDER_RELEASE __ATOMIC_RELEASE
 #define MOD_ATOMIC_ORDER_RELAXED __ATOMIC_RELAXED

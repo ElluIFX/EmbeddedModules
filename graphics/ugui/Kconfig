@@ -1,5 +1,3 @@
-menu "µGUI configuration"
-
 choice
     prompt "Color Format"
     default UGUI_CFG_USE_COLOR_RGB565
@@ -81,6 +79,4 @@ menu "Enable/Disable Fonts"
     config UGUI_CFG_USE_FONT_32X53
         bool "32x53"
         default n
-endmenu
-
 endmenu

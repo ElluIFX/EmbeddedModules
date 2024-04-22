@@ -1,5 +1,52 @@
 menu "Utility Modules"
 
-source "utility/**/Kconfig"
+menuconfig MOD_ENABLE_COT_MENU
+    bool "CotMenu"
+    default n
+
+menuconfig MOD_ENABLE_EMBEDDED_CLI
+    bool "Embedded CLI (Command Line Interface)"
+    default n
+
+menuconfig MOD_ENABLE_INCBIN
+    bool "IncBin (Binary File Inclusion)"
+    default n
+
+menuconfig MOD_ENABLE_LWPRINTF
+    bool "LwPrintf (Lightweight Printf Implementation)"
+    default y
+if MOD_ENABLE_LWPRINTF
+source "utility/lwprintf/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_MACRO
+    bool "Macro (Macro Utilities)"
+    default y
+
+menuconfig MOD_ENABLE_PERF_COUNTER
+    bool "PerfCounter (Performance Counter)"
+    default y
+
+menuconfig MOD_ENABLE_RYU
+    bool "Ryu (Fast Float-to-String Conversion)"
+    default n
+
+menuconfig MOD_ENABLE_TERM_TABLE
+    bool "TermTable (Terminal Table Printer)"
+    default n
+
+menuconfig MOD_ENABLE_TIMELIB
+    bool "TimeLib (UNIX Time Library)"
+    default n
+
+menuconfig MOD_ENABLE_TINY_REGEX
+    bool "TinyRegex (Tiny Regular Expression Engine)"
+    default n
+
+menuconfig MOD_ENABLE_XV
+    bool "XV (JavaScript-like Parser)"
+    default n
+    select MOD_ENABLE_RYU
+    select MOD_ENABLE_JSON
 
 endmenu

@@ -1,5 +1,19 @@
 menu "Storage Modules"
 
-source "storage/**/Kconfig"
+menuconfig MOD_ENABLE_EASYFLASH
+    bool "EasyFlash (Universal Flash Storage)"
+    default n
+    select MOD_ENABLE_STRUCT2JSON
+if MOD_ENABLE_EASYFLASH
+source "storage/easyflash/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_LITTLEFS
+    bool "LittleFS (Little Filesystem)"
+    default n
+
+menuconfig MOD_ENABLE_MINIFLASHDB
+    bool "MiniFlashDB (Internal Flash Database)"
+    default n
 
 endmenu

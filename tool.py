@@ -5,8 +5,8 @@ import re
 import shutil
 import sys
 import tempfile
-
-import pip
+from dataclasses import dataclass
+from functools import lru_cache
 
 C1 = "\033[34m"
 C2 = "\033[32m"
@@ -29,7 +29,12 @@ if __name__ == "__main__":
     print(LOGO)
 
 
+log_debug = False
+
+
 def log(level, text):
+    if level == "debug" and not log_debug:
+        return
     # Log level colors
     LEVEL_COLORS = {
         "error": "\033[31m",
@@ -48,6 +53,13 @@ def log(level, text):
         "debug": "DEBUG",
     }
     print(LEVEL_COLORS[level] + LEVEL_NAME[level] + ": " + text + RESET_COLOR)
+
+
+try:
+    import pip
+except ImportError:
+    log("error", "pip not found, please install pip for your python environment")
+    exit(1)
 
 
 def install_package(package):
@@ -81,6 +93,51 @@ except ImportError:
     install_package("kconfiglib")
     from kconfiglib import Kconfig
     from menuconfig import menuconfig as Kmenuconfig
+
+
+@dataclass
+class Module:
+    name: str
+    type: str
+    path: str
+    Mconfig: bool
+    Kconfig: bool
+
+
+@lru_cache()
+def list_module_types() -> list[str]:
+    module_types = [
+        d
+        for d in os.listdir(".")
+        if (os.path.isdir(d) and not d.startswith("_") and not d.startswith("."))
+    ]
+    module_types.sort()
+    return module_types
+
+
+@lru_cache()
+def list_modules() -> list[Module]:
+    # list 1st level dirs
+    modules = []
+    module_types = list_module_types()
+    for module_type in module_types:
+        module_dirs = [
+            d
+            for d in os.listdir(module_type)
+            if (
+                os.path.isdir(f"{module_type}/{d}")
+                and not d.startswith("_")
+                and not d.startswith(".")
+            )
+        ]
+        module_dirs.sort()
+        for module_dir in module_dirs:
+            full_path = f"{module_type}/{module_dir}"
+            Mconfig = os.path.exists(os.path.join(full_path, "Mconfig"))
+            Kconfig = os.path.exists(os.path.join(full_path, "Kconfig"))
+            modules.append(Module(module_dir, module_type, full_path, Mconfig, Kconfig))
+    return modules
+
 
 C_FILE_TEMP = """/**
  * @file &&&FILE_NAME&&&.c
@@ -149,7 +206,7 @@ extern "C" {
 
 README_TEMP = """# Module: &&&MODULE_NAME&&&
 
-&&&MODULE_BRIEF&&&
+&&&BREIF&&&
 
 ## 1. Introduction
 
@@ -159,25 +216,30 @@ README_TEMP = """# Module: &&&MODULE_NAME&&&
 
 """
 
-KCONFIG_TEMP = """menu "&&&MODULE_NAME&&& Configuration"
-
-endmenu
+KCONFIG_TEMP1 = """menuconfig MOD_ENABLE_&&&MODULE_NAME_UPPER&&&
+    bool "&&&MODULE_NAME&&& (&&&BREIF&&&)"
+    default n
+"""
+KCONFIG_TEMP2 = """if MOD_ENABLE_&&&MODULE_NAME_UPPER&&&
+source "&&&TYPE&&&/&&&FILE_NAME&&&/Kconfig"
+endif
 """
 
-AVAILABLE_TYPES = [
-    "algorithm",
-    "datastruct",
-    "communication",
-    "debug",
-    "driver",
-    "graphics",
-    "nn",
-    "peripheral",
-    "storage",
-    "system",
-    "unittest",
-    "utility",
-]
+AVAILABLE_TYPES = []
+
+HEADER_FILE = "modules_config.h"
+KCONF_FILE = "Kconfig"
+CONFIG_FILE = ".config"
+
+
+def pull_latest():
+    addr = "https://github.com/ElluIFX/EmbeddedModules"
+    log("info", f"pulling latest version from {addr}")
+    ret = os.system(f"git pull {addr} --quiet")
+    if ret != 0:
+        log("error", "pull failed, check your git and network connection")
+        exit(1)
+    log("success", "pull success")
 
 
 def module_wizard():
@@ -242,13 +304,7 @@ def module_wizard():
     module_path = os.path.join(module_root, module_type, module_file_name)
     if os.path.exists(module_path):
         con.print(f"[red]Module dir already exists: [yellow]{module_path}")
-        conf_del = Confirm.ask(
-            "[red]Purge existing module? [yellow](DANGER) ", default=False
-        )
-        if not conf_del:
-            con.print("[red]Abort.")
-            sys.exit(0)
-        shutil.rmtree(module_path)
+        exit(1)
     os.makedirs(module_path)
 
     # Create module files
@@ -281,24 +337,45 @@ def module_wizard():
     if create_readme_conf:
         readme_file_path = os.path.join(module_path, "README.md")
         readme_content = README_TEMP.replace("&&&MODULE_NAME&&&", module_name).replace(
-            "&&&MODULE_BRIEF&&&", module_brief
+            "&&&BREIF&&&", module_brief
         )
         with open(readme_file_path, "w", encoding="utf-8") as f:
             f.write(readme_content)
 
+    temp_list = [m.name for m in list_modules() if m.type == module_type]
+    temp_list.sort()
+    idx = temp_list.index(module_file_name)
+    module_path_up = os.path.join(module_root, module_type)
+    kconfig_content = (
+        KCONFIG_TEMP1.replace("&&&MODULE_NAME_UPPER&&&", module_file_name.upper())
+        .replace("&&&MODULE_NAME&&&", module_file_name)
+        .replace("&&&BREIF&&&", module_brief)
+    )
     if create_kconfig_conf:
-        kconfig_file_path = os.path.join(module_path, "Kconfig")
-        kconfig_content = KCONFIG_TEMP.replace("&&&MODULE_NAME&&&", module_name)
-        with open(kconfig_file_path, "w", encoding="utf-8") as f:
-            f.write(kconfig_content)
+        kconfig_content += (
+            KCONFIG_TEMP2.replace("&&&TYPE&&&", module_type)
+            .replace("&&&FILE_NAME&&&", module_file_name)
+            .replace("&&&MODULE_NAME_UPPER&&&", module_file_name.upper())
+        )
+    with open(os.path.join(module_path_up, "Kconfig"), "r", encoding="utf-8") as f:
+        old_content = f.read().splitlines()
+    if idx == len(temp_list) - 1:
+        new_content = old_content[:-2] + [kconfig_content] + old_content[-2:]
+    else:
+        next_module = temp_list[idx + 1].upper()
+        next_idx = old_content.index(f"menuconfig MOD_ENABLE_{next_module}")
+        new_content = (
+            old_content[:next_idx] + [kconfig_content] + old_content[next_idx:]
+        )
+    with open(os.path.join(module_path_up, "Kconfig"), "w", encoding="utf-8") as f:
+        f.write("\n".join(new_content))
+    if create_kconfig_conf:
+        with open(os.path.join(module_path, "Kconfig"), "w", encoding="utf-8") as f:
+            f.write("")
 
     con.print("[green]Module created.")
     con.print(f"[green]C file at: [yellow]{c_file_path}")
     con.print(f"[green]H file at: [yellow]{h_file_path}")
-    if create_readme_conf:
-        con.print(f"[green]README file at: [yellow]{readme_file_path}")
-    if create_kconfig_conf:
-        con.print(f"[green]Kconfig file at: [yellow]{kconfig_file_path}")
 
 
 def generate_config_file(conf_name, kconfig_file, config_file, header_out):
@@ -378,20 +455,119 @@ def menuconfig(kconfig_file, config_file, header_file, output_dir):
     log("success", "menuconfig success")
 
 
-def pull_latest():
-    addr = "https://github.com/ElluIFX/EmbeddedModules"
-    log("info", f"pulling latest version from {addr}")
-    ret = os.system(f"git pull {addr} --quiet")
-    if ret != 0:
-        log("error", "pull failed, check your network connection")
+def check_working_dir(project_dir: str, module_dir: str, auto_create: bool = True):
+    if not project_dir:
+        log("error", "PROJECT_DIR not provided")
         exit(1)
-    log("success", "pull success")
+    if not os.path.isdir(project_dir):
+        log("error", f"PROJECT_DIR {project_dir} is not a directory")
+        exit(1)
+    log("info", f"project directory: {project_dir}")
+    if not os.path.exists(module_dir) and auto_create:
+        os.makedirs(module_dir)
+    if not os.path.isdir(module_dir):
+        log("error", f"MODULE_DIR {module_dir} is not a directory")
+        exit(1)
+
+
+def purge_modules(module_dir: str, skip_modules: list[str] = []):
+    module_types = list_module_types()
+    modules = [m.name for m in list_modules()]
+    for dt in os.listdir(module_dir):
+        if dt not in module_types or not os.path.isdir(dt):
+            continue
+        mdir = os.path.join(module_dir, dt)
+        for d in os.listdir(mdir):
+            if d not in modules:
+                continue
+            full_path = os.path.join(mdir, d)
+            if d in skip_modules:
+                log("debug", f"skip remove {d}")
+                continue
+            log("debug", f"removing {d}")
+            if os.path.isdir(full_path):
+                try:
+                    shutil.rmtree(full_path)
+                except Exception as e:
+                    log("error", f"failed to remove {full_path}: {e}")
+                    exit(1)
+        try:  # remove empty type dir
+            os.rmdir(mdir)
+        except Exception:
+            pass
+
+
+def read_enabled_modules(config_file: str) -> list[str]:
+    enabled_modules = []
+    with open(config_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("CONFIG_MOD_ENABLE_") and line.endswith("=y"):
+                line = line.replace("CONFIG_MOD_ENABLE_", "").replace("=y", "")
+                enabled_modules.append(line.lower())
+    return enabled_modules
+
+
+def sync_module_files(
+    config_file: str,
+    output_dir: str,
+    ext_files: list[str] = [],
+    skip_modules: list[str] = [],
+):
+    config_file_path = os.path.join(output_dir, config_file)
+    enabled = read_enabled_modules(config_file_path)
+    log("debug", f"enabled modules: {enabled}")
+    log("debug", f"skip modules: {skip_modules}")
+    log("info", "purging old modules...")
+    purge_modules(output_dir, skip_modules)
+    log("info", "copying module files...")
+    modules = list_modules()
+    for module in modules:
+        if module.name.lower() in enabled:
+            if module.name in skip_modules:
+                log("debug", f"skip copy {module.name}")
+                continue
+            if not os.path.exists(os.path.join(output_dir, module.type)):
+                os.makedirs(os.path.join(output_dir, module.type))
+            shutil.copytree(
+                module.path,
+                os.path.join(output_dir, module.path),
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns(
+                    "Kconfig", "Mconfig", "*.gitignore", ".git", ".*", "*.md", "LICENSE"
+                ),
+            )
+            log("debug", f"module {module.name} copied")
+    for ext_file in ext_files:
+        if os.path.exists(os.path.join(output_dir, ext_file)):
+            os.remove(os.path.join(output_dir, ext_file))
+        shutil.copyfile(ext_file, os.path.join(output_dir, ext_file))
+    log("success", "module files sync success")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-p",
+        "--project-dir",
+        type=str,
+        default=os.getenv("MOD_PROJECT_DIR", None),
+        help="Specify the directory for working project",
+    )
     parser.add_argument(
         "-m", "--menuconfig", action="store_true", help="Run menuconfig"
+    )
+    parser.add_argument(
+        "-s",
+        "--sync",
+        action="store_true",
+        help="Sync latest module files without menuconfig",
+    )
+    parser.add_argument(
+        "-ns",
+        "--nosync",
+        action="store_true",
+        help="Skip syncing latest module files after menuconfig",
     )
     parser.add_argument(
         "-n",
@@ -400,56 +576,61 @@ if __name__ == "__main__":
         help="Create a new module",
     )
     parser.add_argument(
-        "-g",
-        "--generate",
-        action="store_true",
-        help="Generate header file without menuconfig",
-    )
-    parser.add_argument(
         "-u",
         "--update",
         action="store_true",
-        help="Pull the latest version of the tool from github",
+        help="Pull the latest version of this toolset from github",
     )
     parser.add_argument(
-        "-k",
-        "--kconfig",
-        default="Kconfig",
-        help="Specify the kconfig file, default is Kconfig",
-    )
-    parser.add_argument(
-        "-c",
-        "--config",
-        default=".config",
-        help="Specify the menuconfig output file, default is .config",
-    )
-    parser.add_argument(
-        "-o",
-        "--output_dir",
+        "-d",
+        "--module-dirname",
         type=str,
-        default=os.getenv("MOD_OUTPUT_DIR"),
-        help="Specify the directory for the output files, or use MOD_OUTPUT_DIR env variable",
+        default=os.getenv("MOD_MODULE_DIRNAME", "Modules"),
+        help="Specify the directory name for generated modules, default is 'Modules'",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug output",
     )
     args = parser.parse_args()
 
+    if args.debug:
+        log_debug = True
+
+    EXT_FILES = [".clang-format", "modules.h", "readme.md"]
+    SKIP_MODULES = []
+    PROJECT_DIR = args.project_dir
+    if PROJECT_DIR:
+        PROJECT_DIR = os.path.abspath(PROJECT_DIR)
+        MODULE_DIR = os.path.join(PROJECT_DIR, args.module_dirname)
+        if os.path.exists(os.path.join(MODULE_DIR, ".mfreeze")):
+            with open(os.path.join(MODULE_DIR, ".mfreeze"), "r") as f:
+                SKIP_MODULES = f.read().splitlines()
+
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-    HEADER_FILE = "modules_config.h"
+    AVAILABLE_TYPES = list_module_types()
 
-    if args.output_dir:
-        if not os.path.isdir(args.output_dir):
-            log("error", "output dir must be a existed directory")
-            exit(1)
-    if args.menuconfig:
-        prepare_config_file(args.config, args.output_dir)
-        menuconfig(args.kconfig, args.config, HEADER_FILE, args.output_dir)
-    elif args.generate:
-        prepare_config_file(args.config, args.output_dir)
-        makeconfig(args.kconfig, args.config, HEADER_FILE, args.output_dir)
-    elif args.newmodule:
-        module_wizard()
-    elif args.update:
+    if args.update:
         pull_latest()
-    else:
+
+    if args.newmodule:
+        module_wizard()
+
+    if args.menuconfig:
+        check_working_dir(PROJECT_DIR, MODULE_DIR)
+        prepare_config_file(CONFIG_FILE, MODULE_DIR)
+        menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR)
+        if not args.nosync:
+            sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
+    elif args.sync:
+        check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=False)
+        prepare_config_file(CONFIG_FILE, MODULE_DIR)
+        makeconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR)
+        sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
+
+    if not any([args.menuconfig, args.sync, args.newmodule, args.update]):
         parser.print_help()
+        log("warning", "no action specified, exit")
         exit(1)

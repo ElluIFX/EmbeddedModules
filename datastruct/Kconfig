@@ -1,0 +1,71 @@
+menu "DataStruct Modules"
+
+menuconfig MOD_ENABLE_BTREE
+bool "BTree (Binary Tree)"
+default n
+
+menuconfig MOD_ENABLE_CSTRING
+bool "CString (C-style string)"
+default n
+
+menuconfig MOD_ENABLE_CTL
+bool "CTL (Container Template Library)"
+default n
+
+menuconfig MOD_ENABLE_DLIST
+bool "DList (Doubly Linked List)"
+default n
+
+menuconfig MOD_ENABLE_FIFOFAST
+bool "FIFOFast (Fast FIFO Header File)"
+default n
+
+menuconfig MOD_ENABLE_HASHMAP
+bool "HashMap (Hash Map)"
+default n
+
+menuconfig MOD_ENABLE_JSON
+bool "JSON (Json Parser)"
+default n
+
+menuconfig MOD_ENABLE_LFBB
+bool "LFBB (Lock Free Bipartite Buffer)"
+default n
+
+menuconfig MOD_ENABLE_LFIFO
+bool "LFIFO (Lock Free FIFO)"
+default n
+
+menuconfig MOD_ENABLE_LINUX_LIST
+bool "LinuxList (Linux Style List)"
+default n
+
+menuconfig MOD_ENABLE_LWRB
+bool "LWRB (Lightweight Ring Buffer)"
+default n
+
+menuconfig MOD_ENABLE_PQUEUE
+bool "PQueue (Priority Queue)"
+default n
+
+menuconfig MOD_ENABLE_SDS
+bool "SDS (Simple Dynamic String)"
+default n
+
+menuconfig MOD_ENABLE_STRUCT2JSON
+bool "Struct2Json (Struct to Json)"
+default n
+
+menuconfig MOD_ENABLE_UDICT
+bool "UDict (Universal Dictionary)"
+default n
+select MOD_ENABLE_UTHASH
+
+menuconfig MOD_ENABLE_ULIST
+bool "UList (Universal Mem Continuous List)"
+
+menuconfig MOD_ENABLE_UTHASH
+bool "UTHash (Hash Table)"
+default n
+
+endmenu

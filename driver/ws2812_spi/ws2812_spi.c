@@ -10,7 +10,6 @@
 
 #include "ws2812_spi.h"
 
-#if __has_include("spi.h")
 #define LOG_MODULE "ws2812"
 #include "log.h"
 #include "spi.h"
@@ -200,5 +199,3 @@ uint32_t hsv2rgb(float h, uint8_t s, uint8_t v) {
 
     return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 }
-
-#endif  // __has_include("spi.h")

@@ -1,14 +1,44 @@
 menu "Graphics Modules"
 
-config _ENABLE_LVGL_KCONFIG
-    bool "Enable LVGL Kconfig"
+menuconfig MOD_ENABLE_EASY_UI
+    bool "EasyUI (Single Color UI Framework)"
     default n
-    help
-      Enable LittlevGL Kconfig support.
-if _ENABLE_LVGL_KCONFIG
+
+menuconfig MOD_ENABLE_HAGL
+    bool "HAGL (HAL Graphics Layer)"
+    default n
+
+menuconfig MOD_ENABLE_LVGL
+    bool "LVGL (Embedded Graphics Library)"
+    default n
+if MOD_ENABLE_LVGL
     source "graphics/lvgl/Kconfig"
+
+    menuconfig MOD_ENABLE_LVGL_GAUSSIAN_BLUR
+        bool "LVGL Gaussian Blur"
+        default n
+        depends on MOD_ENABLE_LVGL
+
+    menuconfig MOD_ENABLE_LVGL_PM
+        bool "LVGL Page Manager"
+        default n
+        depends on MOD_ENABLE_LVGL
+
 endif
 
-source "graphics/ugui/Kconfig"
+menuconfig MOD_ENABLE_U8G2
+    bool "U8G2 (Monochrome Display Library)"
+    default n
+
+menuconfig MOD_ENABLE_UGUI
+    bool "UGUI (Universal Graphic Library)"
+    default n
+if MOD_ENABLE_UGUI
+    source "graphics/ugui/Kconfig"
+endif
+
+menuconfig MOD_ENABLE_VIRTUAL_LCD
+    bool "Virtual LCD (For Simulation)"
+    default n
 
 endmenu

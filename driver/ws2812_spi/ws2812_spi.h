@@ -7,14 +7,13 @@
  * THINK DIFFERENTLY
  */
 
-#ifndef __WS2812_SPI_H__
-#define __WS2812_SPI_H__
+#ifndef __WS2812_SPI__
+#define __WS2812_SPI__
 #ifdef __cplusplus
 extern "C" {
 #endif
 #include "modules.h"
 
-#if __has_include("spi.h")
 #include "spi.h"
 
 typedef struct {
@@ -104,5 +103,4 @@ extern uint32_t hsv2rgb(float h, uint8_t s, uint8_t v);
 #ifdef __cplusplus
 }
 #endif
-#endif  // __has_include("spi.h")
-#endif  // __WS2812_SPI_H__
+#endif /* __WS2812_SPI__ */
