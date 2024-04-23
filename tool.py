@@ -94,6 +94,14 @@ except ImportError:
     from kconfiglib import Kconfig
     from menuconfig import menuconfig as Kmenuconfig
 
+try:
+    from guiconfig import menuconfig as Kguiconfig
+
+    GUI_AVAILABLE = True
+except ImportError:
+    GUI_AVAILABLE = False
+    log("warning", "guiconfig not available, tkinter not found")
+
 
 @dataclass
 class Module:
@@ -453,10 +461,13 @@ def makeconfig(kconfig_file, config_file, header_file, output_dir):
     log("success", "config file make success")
 
 
-def menuconfig(kconfig_file, config_file, header_file, output_dir):
+def menuconfig(kconfig_file, config_file, header_file, output_dir, gui=False):
     log("info", "loading menuconfig")
     try:
-        Kmenuconfig(Kconfig(kconfig_file))
+        if gui:
+            Kguiconfig(Kconfig(kconfig_file))
+        else:
+            Kmenuconfig(Kconfig(kconfig_file))
     except Exception as e:
         log("error", f"run menuconfig failed, see error and output below:\n{e}")
         exit(1)
@@ -641,7 +652,7 @@ def sync_module_files(
     readme = readme.replace("&&&MODULE_LIST&&&", liststring.strip())
     with open(os.path.join(output_dir, "README.md"), "w") as f:
         f.write(readme)
-    log("success", "module files sync success")
+    log("success", "module files synced")
 
 
 if __name__ == "__main__":
@@ -654,8 +665,15 @@ if __name__ == "__main__":
         help="Specify the directory for working project",
     )
     parser.add_argument(
-        "-m", "--menuconfig", action="store_true", help="Run menuconfig"
+        "-m", "--menuconfig", action="store_true", help="Run menuconfig in project dir"
     )
+    if GUI_AVAILABLE:
+        parser.add_argument(
+            "-g",
+            "--guiconfig",
+            action="store_true",
+            help="Run menuconfig with GUI",
+        )
     parser.add_argument(
         "-s",
         "--sync",
@@ -704,6 +722,7 @@ if __name__ == "__main__":
     KCONF_FILE = "Kconfig"
     CONFIG_FILE = ".config"
     MODULE_DIR = None
+    GUI_CONFIG = GUI_AVAILABLE and args.guiconfig
     if PROJECT_DIR:
         PROJECT_DIR = os.path.abspath(PROJECT_DIR)
         if os.path.samefile(PROJECT_DIR, os.path.dirname(os.path.abspath(__file__))):
@@ -722,10 +741,10 @@ if __name__ == "__main__":
     if args.newmodule:
         module_wizard(list_module_types())
 
-    if args.menuconfig:
+    if args.menuconfig or GUI_CONFIG:
         check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=True)
         prepare_config_file(CONFIG_FILE, MODULE_DIR)
-        menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR)
+        menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR, GUI_CONFIG)
         if not args.nosync:
             sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
         log("success", "menuconfig success")
@@ -733,7 +752,7 @@ if __name__ == "__main__":
         check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=False)
         sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
 
-    if not any([args.menuconfig, args.sync, args.newmodule, args.update]):
+    if not any([args.menuconfig, args.sync, args.newmodule, args.update, GUI_CONFIG]):
         parser.print_help()
         log("warning", "no action specified, exit")
         exit(1)
