@@ -46,13 +46,15 @@ def log(level, text):
     RESET_COLOR = "\033[0m"
     # Log level name
     LEVEL_NAME = {
-        "error": "ERROR",
-        "success": "SUCCESS",
-        "warning": "WARNING",
-        "info": "INFO",
-        "debug": "DEBUG",
+        "error": "[ERROR]  ",
+        "success": "[SUCCESS]",
+        "warning": "[WARNING]",
+        "info": "[INFO]   ",
+        "debug": "[DEBUG]  ",
     }
-    print(LEVEL_COLORS[level] + LEVEL_NAME[level] + ": " + text + RESET_COLOR)
+    print(
+        f"{LEVEL_COLORS[level]}[{datetime.datetime.now().strftime('%H:%M:%S')}] {LEVEL_NAME[level]}{RESET_COLOR} {text}"
+    )
 
 
 def install_package(package):
@@ -726,6 +728,7 @@ if __name__ == "__main__":
         menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR)
         if not args.nosync:
             sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
+        log("success", "menuconfig success")
     elif args.sync:
         check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=False)
         sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
