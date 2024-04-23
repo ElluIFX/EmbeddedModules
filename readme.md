@@ -195,7 +195,7 @@
 
 ## 配置文件
 
-- `Kconfig` - Kconfig配置文件, 用于配置代码的宏定义, 开关和设置各种功能, 遵循Linux内核的Kconfig规范
+- `Kconfig` - Kconfig配置文件, 用于配置代码的宏定义, 开关和设置各种功能, 遵循Linux内核的[Kconfig规范](https://github.com/torvalds/linux/blob/master/Documentation/kbuild/kconfig-language.rst)
 - `Mconfig` - 基于Kconfig的配置, 描述生成项目的模块文件夹时所需复制的模块文件, 如不存在则复制完整文件夹
 
 <details>

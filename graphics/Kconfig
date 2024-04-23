@@ -17,12 +17,10 @@ if MOD_ENABLE_LVGL
     menuconfig MOD_ENABLE_LVGL_GAUSSIAN_BLUR
         bool "LVGL Gaussian Blur"
         default n
-        depends on MOD_ENABLE_LVGL
 
     menuconfig MOD_ENABLE_LVGL_PM
         bool "LVGL Page Manager"
         default n
-        depends on MOD_ENABLE_LVGL
 
 endif
 
@@ -39,6 +37,7 @@ endif
 
 menuconfig MOD_ENABLE_VIRTUAL_LCD
     bool "Virtual LCD (For Simulation)"
+    select MOD_ENABLE_UNI_IO
     default n
 
 endmenu

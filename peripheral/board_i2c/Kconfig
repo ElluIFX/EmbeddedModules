@@ -4,9 +4,11 @@ choice
         bool "None"
 
     config BOARD_I2C_CFG_USE_SW_IIC
+        select MOD_ENABLE_SW_I2C
         bool "Software I2C"
 
     config BOARD_I2C_CFG_USE_LL_I2C
+        select MOD_ENABLE_LL_I2C
         bool "LL Library I2C"
 
     config BOARD_I2C_CFG_USE_HAL_I2C

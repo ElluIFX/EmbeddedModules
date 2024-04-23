@@ -12,7 +12,6 @@
 
 #define LOG_MODULE "vlcd"
 #include "log.h"
-#include "ulist.h"
 #include "uni_io.h"
 
 // Private Defines --------------------------

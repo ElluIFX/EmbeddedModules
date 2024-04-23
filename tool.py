@@ -480,33 +480,6 @@ def check_working_dir(project_dir: str, module_dir: str, auto_create: bool = Tru
         exit(1)
 
 
-def purge_modules(module_dir: str, skip_modules: list[str] = []):
-    module_types = list_module_types()
-    modules = [m.name for m in list_modules()]
-    for dt in os.listdir(module_dir):
-        if dt not in module_types or not os.path.isdir(dt):
-            continue
-        mdir = os.path.join(module_dir, dt)
-        for d in os.listdir(mdir):
-            if d not in modules:
-                continue
-            full_path = os.path.join(mdir, d)
-            if d in skip_modules:
-                log("debug", f"skip remove {d}")
-                continue
-            log("debug", f"removing {d}")
-            if os.path.isdir(full_path):
-                try:
-                    shutil.rmtree(full_path)
-                except Exception as e:
-                    log("error", f"failed to remove {full_path}: {e}")
-                    exit(1)
-        try:  # remove empty type dir
-            os.rmdir(mdir)
-        except Exception:
-            pass
-
-
 def read_enabled_modules(config_file: str) -> list[str]:
     enabled_modules = []
     with open(config_file, "r") as f:
@@ -541,8 +514,8 @@ class CfgGetter:
 
 
 class IgnoreProxy:
-    def __init__(self):
-        self.ignores = []
+    def __init__(self, init_ignores: list[str] = []):
+        self.ignores = init_ignores.copy()
 
     def __add__(self, name):
         if isinstance(name, str):
@@ -550,6 +523,27 @@ class IgnoreProxy:
         elif isinstance(name, list):
             self.ignores.extend(name)
         return self
+
+
+def copy_file(src, dst):
+    if not os.path.exists(dst):
+        shutil.copy2(src, dst)
+        return
+    src_time = os.path.getmtime(src)
+    dst_time = os.path.getmtime(dst)
+    if src_time != dst_time:
+        shutil.copy2(src, dst)
+
+
+SYNC_IGNORES = [
+    "Kconfig",
+    "Mconfig",
+    "*.gitignore",
+    ".git",
+    ".*",
+    "*.md",
+    "LICENSE",
+]
 
 
 def sync_module_files(
@@ -562,10 +556,10 @@ def sync_module_files(
     enabled = read_enabled_modules(config_file_path)
     log("debug", f"enabled modules: {enabled}")
     log("debug", f"skip modules: {skip_modules}")
-    log("info", "purging old modules...")
-    purge_modules(output_dir, skip_modules)
-    log("info", "copying module files...")
+    log("info", "syncing module files...")
     modules = list_modules()
+    module_types = list_module_types()
+    module_names = [m.name for m in list_modules()]
     en_modules = []
     cfg = CfgGetter(config_file_path)
     for module in modules:
@@ -577,19 +571,10 @@ def sync_module_files(
             if not os.path.exists(os.path.join(output_dir, module.type)):
                 os.makedirs(os.path.join(output_dir, module.type))
             module_path = os.path.join(output_dir, module.path)
-            ignores = [
-                "Kconfig",
-                "Mconfig",
-                "*.gitignore",
-                ".git",
-                ".*",
-                "*.md",
-                "LICENSE",
-            ]
+            proxy = IgnoreProxy(SYNC_IGNORES)
             if os.path.exists(os.path.join(module.path, "Mconfig")):
                 with open(os.path.join(module.path, "Mconfig"), "r") as f:
                     cmd = f.read().strip()
-                proxy = IgnoreProxy()
                 err = False
 
                 def error(msg):
@@ -615,20 +600,35 @@ def sync_module_files(
                 if err:
                     log("error", "Mconfig error, sync failed")
                     return
-                ignores.extend(proxy.ignores)
             shutil.copytree(
                 module.path,
                 module_path,
+                copy_function=copy_file,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns(*ignores),
+                ignore=shutil.ignore_patterns(*proxy.ignores),
             )
             log("debug", f"module {module.name} copied")
+    for dt in os.listdir(output_dir):
+        if dt not in module_types or not os.path.isdir(dt):
+            continue
+        mdir = os.path.join(output_dir, dt)
+        for d in os.listdir(mdir):
+            if d not in module_names or d.lower() in enabled or d in skip_modules:
+                continue
+            full_path = os.path.join(mdir, d)
+            log("debug", f"removing {d}")
+            if os.path.isdir(full_path):
+                try:
+                    shutil.rmtree(full_path)
+                except Exception as e:
+                    log("warning", f"failed to remove {full_path}: {e}")
+                    exit(1)
+        try:  # remove empty type dir
+            os.rmdir(mdir)
+        except Exception:
+            pass
     for ext_file in ext_files:
-        if os.path.exists(os.path.join(output_dir, ext_file)):
-            os.remove(os.path.join(output_dir, ext_file))
-        shutil.copyfile(ext_file, os.path.join(output_dir, ext_file))
-    if os.path.exists(os.path.join(output_dir, "README.md")):
-        os.remove(os.path.join(output_dir, "README.md"))
+        copy_file(ext_file, os.path.join(output_dir, ext_file))
     readme = MOD_README_TEMP
     liststring = "\n".join(
         [
@@ -728,8 +728,6 @@ if __name__ == "__main__":
             sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
     elif args.sync:
         check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=False)
-        prepare_config_file(CONFIG_FILE, MODULE_DIR)
-        makeconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR)
         sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
 
     if not any([args.menuconfig, args.sync, args.newmodule, args.update]):

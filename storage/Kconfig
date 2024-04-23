@@ -15,5 +15,6 @@ menuconfig MOD_ENABLE_LITTLEFS
 menuconfig MOD_ENABLE_MINIFLASHDB
     bool "MiniFlashDB (Internal Flash Database)"
     default n
+    imply MOD_ENABLE_EE
 
 endmenu

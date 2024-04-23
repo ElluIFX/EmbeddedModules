@@ -1,5 +1,5 @@
-#ifndef _SCHEDULER_INTERNAL_H
-#define _SCHEDULER_INTERNAL_H
+#ifndef __SCHEDULER_INTERNAL__
+#define __SCHEDULER_INTERNAL__
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -138,4 +138,4 @@ extern void softint_cmd_func(EmbeddedCli* cli, char* args, void* context);
 #ifdef __cplusplus
 }
 #endif
-#endif  // _SCHEDULER_INTERNAL_H
+#endif /* __SCHEDULER_INTERNAL__ */

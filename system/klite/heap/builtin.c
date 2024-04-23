@@ -20,21 +20,17 @@
 // node avail size
 #define MEM_NODE_AVAIL(node) \
     (((kl_size_t)(MEM_NODE(node)->next) - (kl_size_t)(MEM_NODE(node))))
-// node used size
-#define MEM_NODE_USED(node) ((MEM_NODE(node)->used) & 0xFFFFFF)
-// set node used size
-#define MEM_NODE_USED_BUILD(used) (((used) & 0xFFFFFF) | MEM_NODE_MAGIC << 24)
 // check node is valid by checking magic value
 #define MEM_NODE_VALID(node) \
-    ((node) != NULL &&       \
-     (((MEM_NODE(node)->used) >> 24) & 0xFF) == MEM_NODE_MAGIC)
+    ((node) != NULL && (MEM_NODE(node)->magic) == MEM_NODE_MAGIC)
 
 struct heap_node {
 #if KLITE_CFG_HEAP_STORAGE_PREV_NODE
     struct heap_node* prev;
 #endif
     struct heap_node* next;
-    kl_size_t used;  // 8bit magic + 24bit used size
+    kl_size_t magic : 8;
+    kl_size_t used : sizeof(kl_size_t) * 8 - 8;
 #if KLITE_CFG_HEAP_TRACE_OWNER
     kl_thread_t owner;
 #endif
@@ -64,13 +60,15 @@ static inline void heap_node_init(kl_size_t start, kl_size_t end) {
     node = (heap_node_t)start;
     heap->head = node;
     heap->free = node;
-    node->used = MEM_NODE_USED_BUILD(sizeof(struct heap_node));
+    node->magic = MEM_NODE_MAGIC;
+    node->used = sizeof(struct heap_node);
 #if KLITE_CFG_HEAP_STORAGE_PREV_NODE
     node->prev = NULL;
 #endif
     node->next = (heap_node_t)(end - sizeof(struct heap_node));
     node = node->next;
-    node->used = MEM_NODE_USED_BUILD(sizeof(struct heap_node));
+    node->magic = MEM_NODE_MAGIC;
+    node->used = sizeof(struct heap_node);
 #if KLITE_CFG_HEAP_STORAGE_PREV_NODE
     node->prev = heap->head;
 #endif
@@ -82,7 +80,7 @@ static inline heap_node_t next_free_node(heap_node_t node) {
     kl_size_t free;
 
     for (; node->next != NULL; node = node->next) {
-        free = MEM_NODE_AVAIL(node) - MEM_NODE_USED(node);
+        free = MEM_NODE_AVAIL(node) - node->used;
         if (free > sizeof(struct heap_node)) {
             break;
         }
@@ -98,7 +96,7 @@ static inline heap_node_t alloc_node(kl_size_t need) {
     kl_size_t min_free = ~(kl_size_t)0;
 #endif
     for (temp = heap->free; temp->next != NULL; temp = temp->next) {
-        free = MEM_NODE_AVAIL(temp) - MEM_NODE_USED(temp);
+        free = MEM_NODE_AVAIL(temp) - temp->used;
 #if KLITE_CFG_HEAP_USE_BESTFIT
         if (free >= need && free < min_free) {
             node = temp;
@@ -114,9 +112,10 @@ static inline heap_node_t alloc_node(kl_size_t need) {
     if (NULL == node) {
         return NULL;
     }
-    new_node = (heap_node_t)((kl_size_t)node + MEM_NODE_USED(node));
+    new_node = (heap_node_t)((kl_size_t)node + node->used);
     new_node->next = node->next;
-    new_node->used = MEM_NODE_USED_BUILD(need);
+    new_node->used = need;
+    new_node->magic = MEM_NODE_MAGIC;
 #if KLITE_CFG_HEAP_STORAGE_PREV_NODE
     new_node->prev = node;
     node->next->prev = new_node;
@@ -168,14 +167,15 @@ static inline void free_node(heap_node_t node) {
     }
 #endif
     // heap info update
-    heap->avail += MEM_NODE_USED(node);
+    heap->avail += node->used;
     heap->free_count++;
-    node->used = 0;  // mark as invalid
+    node->used = 0;
+    node->magic = 0;  // mark as invalid
 #if KLITE_CFG_HEAP_TRACE_OWNER
     node->owner = NULL;
 #endif
 #if KLITE_CFG_HEAP_CLEAR_MEMORY_ON_FREE
-    memset(node, MEM_INIT_VALUE, MEM_NODE_USED(node));
+    memset(node, MEM_INIT_VALUE, node->used);
 #endif
 }
 
@@ -242,28 +242,28 @@ void* kl_heap_realloc(void* mem, kl_size_t size) {
     heap_mutex_lock();
     node = MEM_GET_NODE(mem);
     if (!MEM_NODE_VALID(node))
-        goto fin;                       // invalid node
-    if (need == MEM_NODE_USED(node)) {  // same size
+        goto fin;              // invalid node
+    if (need == node->used) {  // same size
         new_mem = mem;
         goto fin;
     }
     avail = MEM_NODE_AVAIL(node);
     if (avail >= need) {  // in-place realloc
         // heap info update
-        if (need > MEM_NODE_USED(node)) {
-            heap->avail -= need - MEM_NODE_USED(node);
+        if (need > node->used) {
+            heap->avail -= need - node->used;
             if (heap->avail < heap->minimum_avail) {
                 heap->minimum_avail = heap->avail;
             }
         } else {
-            heap->avail += MEM_NODE_USED(node) - need;
+            heap->avail += node->used - need;
 #if KLITE_CFG_HEAP_CLEAR_MEMORY_ON_FREE
             memset((void*)(((kl_size_t)node) + need), MEM_INIT_VALUE,
-                   MEM_NODE_USED(node) - need);
+                   node->used - need);
 #endif
         }
         // update node
-        node->used = MEM_NODE_USED_BUILD(need);
+        node->used = need;
         new_mem = mem;
 #if KLITE_CFG_HEAP_TRACE_OWNER  // update owner
         node->owner = kl_sched_tcb_now;
@@ -300,7 +300,7 @@ void kl_heap_stats(kl_heap_stats_t stats) {
     stats->smallest_free = ~(kl_size_t)0;
     stats->free_blocks = 0;
     for (node = heap->head; node->next != NULL; node = node->next) {
-        free = MEM_NODE_AVAIL(node) - MEM_NODE_USED(node);
+        free = MEM_NODE_AVAIL(node) - node->used;
         if (free > 0) {
             stats->free_blocks++;
             if (free > stats->largest_free) {
@@ -333,7 +333,7 @@ bool kl_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner, kl_size_t* addr,
     if (node->next != NULL && MEM_NODE_VALID(node)) {
         *owner = node->owner;
         *addr = (kl_size_t)(node + 1);
-        *used = MEM_NODE_USED(node);
+        *used = node->used;
         *avail = MEM_NODE_AVAIL(node);
         *iter_tmp = (void*)node->next;
         heap_mutex_unlock();

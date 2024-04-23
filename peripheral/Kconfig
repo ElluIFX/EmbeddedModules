@@ -40,6 +40,10 @@ menuconfig MOD_ENABLE_SW_SPI
 menuconfig MOD_ENABLE_UNI_IO
     bool "Uni-IO (Unified I/O Interface)"
     default y
+    select MOD_ENABLE_LFBB
+    select MOD_ENABLE_LFIFO
+    select MOD_ENABLE_ULIST
+    select MOD_ENABLE_LWPRINTF
 if MOD_ENABLE_UNI_IO
 source "peripheral/uni_io/Kconfig"
 endif

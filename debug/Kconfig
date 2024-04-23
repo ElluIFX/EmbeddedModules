@@ -13,6 +13,7 @@ default n
 
 menuconfig MOD_ENABLE_LOG
 bool "Log (Single Header Logger)"
+select MOD_ENABLE_UNI_IO
 default y
 if MOD_ENABLE_LOG
     source "debug/log/Kconfig"
