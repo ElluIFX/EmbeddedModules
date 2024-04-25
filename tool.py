@@ -505,10 +505,9 @@ def read_enabled_modules(config_file: str) -> List[str]:
     return enabled_modules
 
 
-class ConfigGetter:
+class ConfigGetter(object):
     def __init__(self, config_file: str, default=False):
-        self.default = default
-        self.cfg = {}
+        cfg = {}
         with open(config_file, "r") as file:
             for line in file.readlines():
                 if line.startswith("#") or not line.startswith("CONFIG_"):
@@ -516,18 +515,23 @@ class ConfigGetter:
                 key, value = line.strip().split("=")
                 key = key.replace("CONFIG_", "")
                 if value == "y":
-                    self.cfg[key] = True
+                    cfg[key] = True
                 else:
                     try:
-                        self.cfg[key] = eval(value)
+                        cfg[key] = eval(value)
                     except Exception:
-                        self.cfg[key] = value
+                        cfg[key] = value
+        super(ConfigGetter, self).__setattr__("cfg", cfg)
+        super(ConfigGetter, self).__setattr__("default", default)
 
     def __getattr__(self, name):
         return self.cfg.get(name, self.default)
 
     def get(self, name, default=None):
         return self.cfg.get(name, default if default is not None else self.default)
+
+    def __setattr__(self, name, value) -> None:
+        raise AttributeError("CONFIG is read-only in Mconfig")
 
 
 class IgnoreProxy:
@@ -580,25 +584,37 @@ def copy_module(module: Module, src_dir: str, dst_dir: str, cfg: ConfigGetter):
             err = True
             log("error", f"({module.name}) {msg}")
 
-        exec(
-            cmd,
-            {
-                k: v
-                for k, v in globals().items()
-                if k.startswith("__") and k.endswith("__")
-            },
-            {
-                "CONFIG": cfg,
-                "IGNORES": proxy,
-                "DST_PATH": module_path,
-                "SRC_PATH": os.path.join(src_dir, module.path),
-                "DEBUG": lambda x: log("debug", f"({module.name}) {x}"),
-                "WARNING": lambda x: log("warning", f"({module.name}) {x}"),
-                "ERROR": error,
-            },
-        )
+        try:
+            exec(
+                cmd,
+                {
+                    k: v
+                    for k, v in globals().items()
+                    if k.startswith("__") and k.endswith("__")
+                },
+                {
+                    "CONFIG": cfg,
+                    "IGNORES": proxy,
+                    "DST_PATH": module_path,
+                    "SRC_PATH": os.path.join(src_dir, module.path),
+                    "DEBUG": lambda x: log("debug", f"({module.name}) {x}"),
+                    "WARNING": lambda x: log("warning", f"({module.name}) {x}"),
+                    "ERROR": error,
+                },
+            )
+        except Exception as e:
+            try:
+                lineno = e.__traceback__.tb_next.tb_lineno
+            except Exception:
+                lineno = "?"
+            path = os.path.join(src_dir, module.path, "Mconfig").replace("\\", "/")
+            log(
+                "error",
+                f"({module.name}) Mconfig parsing error ({path}:{lineno}): {e}",
+            )
+            err = True
         if err:
-            log("error", "Mconfig error, sync failed")
+            log("error", "error occurred, stop syncing")
             exit(1)
     history = []
     shutil.copytree(
