@@ -463,7 +463,7 @@ def makeconfig(kconfig_file, config_file, header_file, output_dir):
 
 
 def menuconfig(kconfig_file, config_file, header_file, output_dir, gui=False):
-    log("info", "loading menuconfig")
+    log("info", "loading menuconfig" if not gui else "loading guiconfig")
     try:
         if gui:
             Kguiconfig(Kconfig(kconfig_file))
@@ -705,8 +705,8 @@ if __name__ == "__main__":
         "-p",
         "--project-dir",
         type=str,
-        default=os.getenv("MOD_PROJECT_DIR", None),
-        help="Specify the directory for working project",
+        default=os.getenv("MOD_PROJECT_DIR", "."),
+        help="Specify the directory for working project, default is current directory",
     )
     parser.add_argument(
         "-m", "--menuconfig", action="store_true", help="Run menuconfig in project dir"
@@ -761,21 +761,18 @@ if __name__ == "__main__":
 
     EXT_FILES = [".clang-format", "modules.h"]
     SKIP_MODULES = []
-    PROJECT_DIR = args.project_dir
     HEADER_FILE = "modules_config.h"
     KCONF_FILE = "Kconfig"
     CONFIG_FILE = ".config"
-    MODULE_DIR = None
     GUI_CONFIG = GUI_AVAILABLE and args.guiconfig
-    if PROJECT_DIR:
-        PROJECT_DIR = os.path.abspath(PROJECT_DIR)
-        if os.path.samefile(PROJECT_DIR, os.path.dirname(os.path.abspath(__file__))):
-            log("error", "PROJECT_DIR can't be the same as the tool directory")
-            exit(1)
-        MODULE_DIR = os.path.join(PROJECT_DIR, args.module_dirname)
-        if os.path.exists(os.path.join(MODULE_DIR, ".mfreeze")):
-            with open(os.path.join(MODULE_DIR, ".mfreeze"), "r") as f:
-                SKIP_MODULES = f.read().splitlines()
+    PROJECT_DIR = os.path.abspath(args.project_dir)
+    if os.path.samefile(PROJECT_DIR, os.path.dirname(os.path.abspath(__file__))):
+        log("error", "PROJECT_DIR can't be the same as the tool directory")
+        exit(1)
+    MODULE_DIR = os.path.join(PROJECT_DIR, args.module_dirname)
+    if os.path.exists(os.path.join(MODULE_DIR, ".mfreeze")):
+        with open(os.path.join(MODULE_DIR, ".mfreeze"), "r") as f:
+            SKIP_MODULES = f.read().splitlines()
 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 

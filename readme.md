@@ -240,8 +240,9 @@ usage: tool.py [-p PROJECT_DIR] [-m] [-s] [-n] [-u] [-d MODULE_DIRNAME] [--debug
 optional arguments:
   -h, --help            show this help message and exit
   -p PROJECT_DIR, --project-dir PROJECT_DIR
-                        Specify the directory for working project
-  -m, --menuconfig      Run menuconfig
+                        Specify the directory for working project, default is current directory
+  -m, --menuconfig      Run menuconfig in project dir
+  -g, --guiconfig       Run menuconfig with GUI
   -s, --sync            Sync latest module files without menuconfig
   -ns, --nosync         Skip syncing latest module files after menuconfig
   -n, --newmodule       Create a new module
@@ -251,13 +252,19 @@ optional arguments:
   --debug               Enable debug output
 ```
 
-- **使用Kconfig可视化配置并生成项目模块文件夹**
+- **在命令行中配置并更新项目模块文件夹**
 
   ```shell
   python tool.py -p /path/to/project -m
   ```
 
-- **同步最新模块文件**
+- **在GUI中配置并更新项目模块文件夹** (需要Python环境支持tkinter)
+
+  ```shell
+  python tool.py -p /path/to/project -g
+  ```
+
+- **使用已有配置从仓库同步最新模块文件**
 
   ```shell
   python tool.py -p /path/to/project -u -s
