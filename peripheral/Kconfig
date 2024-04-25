@@ -29,6 +29,13 @@ if MOD_ENABLE_LL_I2C
 source "peripheral/ll_i2c/Kconfig"
 endif
 
+menuconfig MOD_ENABLE_MR_LIBRARY
+    bool "MR-Library"
+    default n
+if MOD_ENABLE_MR_LIBRARY
+source "peripheral/mr_library/Kconfig"
+endif
+
 menuconfig MOD_ENABLE_SW_I2C
     bool "Software I2C (Bit-Bang)"
     default n

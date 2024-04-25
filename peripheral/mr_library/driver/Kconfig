@@ -1,0 +1,32 @@
+menu "Driver configure"
+
+choice
+    prompt "Board type"
+
+    config MR_BOARD_STM32F103
+        bool "STM32F103"
+
+    config MR_BOARD_STM32F407
+        bool "STM32F407"
+
+    config MR_BOARD_STM32F411
+        bool "STM32F411"
+
+    config MR_BOARD_STM32H7B0
+        bool "STM32H7B0"
+endchoice
+
+if MR_BOARD_STM32F103
+    source "peripheral/mr_library/driver/stm32f103/Kconfig"
+endif
+if MR_BOARD_STM32F407
+    source "peripheral/mr_library/driver/stm32f407/Kconfig"
+endif
+if MR_BOARD_STM32F411
+    source "peripheral/mr_library/driver/stm32f411/Kconfig"
+endif
+if MR_BOARD_STM32H7B0
+    source "peripheral/mr_library/driver/stm32h7b0/Kconfig"
+endif
+
+endmenu

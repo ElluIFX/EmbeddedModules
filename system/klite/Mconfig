@@ -1,18 +1,18 @@
 _ignores = ["*gcc.s", "*iar.s", "*keil.s"]
-if config.MOD_CFG_COMPILER_AC6 or config.MOD_CFG_COMPILER_AC5:
+if CONFIG.MOD_CFG_COMPILER_AC6 or CONFIG.MOD_CFG_COMPILER_AC5:
     _ignores.remove("*keil.s")
-elif config.MOD_CFG_COMPILER_IAR:
+elif CONFIG.MOD_CFG_COMPILER_IAR:
     _ignores.remove("*iar.s")
-elif config.MOD_CFG_COMPILER_GCC:
+elif CONFIG.MOD_CFG_COMPILER_GCC:
     _ignores.remove("*gcc.s")
-ignores += _ignores
+IGNORES += _ignores
 _ignores = ["cortex-m0", "cortex-m3", "cortex-m4-m7"]
-if config.MOD_CFG_CPU_CM0:
+if CONFIG.MOD_CFG_CPU_CM0:
     _ignores.remove("cortex-m0")
-elif config.MOD_CFG_CPU_CM3:
+elif CONFIG.MOD_CFG_CPU_CM3:
     _ignores.remove("cortex-m3")
-elif config.MOD_CFG_CPU_CM4 or config.MOD_CFG_CPU_CM7:
+elif CONFIG.MOD_CFG_CPU_CM4 or CONFIG.MOD_CFG_CPU_CM7:
     _ignores.remove("cortex-m4-m7")
 else:
-    error("unsupported CPU")
-ignores += _ignores
+    ERROR("unsupported CPU")
+IGNORES += _ignores

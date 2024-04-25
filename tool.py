@@ -7,7 +7,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import List
+from typing import List, Optional, Tuple
 
 C1 = "\033[34m"
 C2 = "\033[32m"
@@ -33,7 +33,7 @@ if __name__ == "__main__":
 log_debug = False
 
 
-def log(level, text):
+def log(level: str, text: str):
     if level == "debug" and not log_debug:
         return
     # Log level colors
@@ -505,7 +505,7 @@ def read_enabled_modules(config_file: str) -> List[str]:
     return enabled_modules
 
 
-class CfgGetter:
+class ConfigGetter:
     def __init__(self, config_file: str, default=False):
         self.default = default
         self.cfg = {}
@@ -526,6 +526,9 @@ class CfgGetter:
     def __getattr__(self, name):
         return self.cfg.get(name, self.default)
 
+    def get(self, name, default=None):
+        return self.cfg.get(name, default if default is not None else self.default)
+
 
 class IgnoreProxy:
     def __init__(self, init_ignores: List[str] = []):
@@ -539,7 +542,9 @@ class IgnoreProxy:
         return self
 
 
-def copy_file(src, dst):
+def copy_file(src, dst, history: Optional[List[Tuple[str, str]]] = None):
+    if history is not None:
+        history.append((src, dst))
     if not os.path.exists(dst):
         shutil.copy2(src, dst)
         return
@@ -560,6 +565,67 @@ SYNC_IGNORES = [
 ]
 
 
+def copy_module(module: Module, src_dir: str, dst_dir: str, cfg: ConfigGetter):
+    if not os.path.exists(os.path.join(dst_dir, module.type)):
+        os.makedirs(os.path.join(dst_dir, module.type))
+    module_path = os.path.join(dst_dir, module.path)
+    proxy = IgnoreProxy(SYNC_IGNORES)
+    if os.path.exists(os.path.join(src_dir, module.path, "Mconfig")):
+        with open(os.path.join(src_dir, module.path, "Mconfig"), "r") as f:
+            cmd = f.read().strip()
+        err = False
+
+        def error(msg):
+            nonlocal err
+            err = True
+            log("error", f"({module.name}) {msg}")
+
+        exec(
+            cmd,
+            {
+                k: v
+                for k, v in globals().items()
+                if k.startswith("__") and k.endswith("__")
+            },
+            {
+                "CONFIG": cfg,
+                "IGNORES": proxy,
+                "DST_PATH": module_path,
+                "SRC_PATH": os.path.join(src_dir, module.path),
+                "DEBUG": lambda x: log("debug", f"({module.name}) {x}"),
+                "WARNING": lambda x: log("warning", f"({module.name}) {x}"),
+                "ERROR": error,
+            },
+        )
+        if err:
+            log("error", "Mconfig error, sync failed")
+            exit(1)
+    history = []
+    shutil.copytree(
+        os.path.join(src_dir, module.path),
+        module_path,
+        copy_function=lambda src, dst: copy_file(src, dst, history),
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns(*proxy.ignores),
+    )
+    # walk output dir, delete files that not in history
+    for root, _, files in os.walk(module_path):
+        for file in files:
+            full_path = os.path.abspath(os.path.join(root, file))
+            for h in history:
+                if os.path.samefile(full_path, h[1]):
+                    break
+            else:
+                os.remove(full_path)
+                log("debug", f"removed not module file {full_path}")
+                try:
+                    os.rmdir(os.path.dirname(full_path))
+                    log("debug", f"removed empty dir {os.path.dirname(full_path)}")
+                except Exception:
+                    pass
+    log("debug", f"module {module.name} copied")
+
+
 def sync_module_files(
     config_file: str,
     output_dir: str,
@@ -575,53 +641,14 @@ def sync_module_files(
     module_types = list_module_types()
     module_names = [m.name for m in list_modules()]
     en_modules = []
-    cfg = CfgGetter(config_file_path)
+    cfg = ConfigGetter(config_file_path)
     for module in modules:
         if module.name.lower() in enabled:
             en_modules.append(module)
             if module.name in skip_modules:
                 log("debug", f"skip copy {module.name}")
                 continue
-            if not os.path.exists(os.path.join(output_dir, module.type)):
-                os.makedirs(os.path.join(output_dir, module.type))
-            module_path = os.path.join(output_dir, module.path)
-            proxy = IgnoreProxy(SYNC_IGNORES)
-            if os.path.exists(os.path.join(module.path, "Mconfig")):
-                with open(os.path.join(module.path, "Mconfig"), "r") as f:
-                    cmd = f.read().strip()
-                err = False
-
-                def error(msg):
-                    nonlocal err
-                    err = True
-                    log("error", f"({module.name}) {msg}")
-
-                exec(
-                    cmd,
-                    {
-                        k: v
-                        for k, v in globals().items()
-                        if k.startswith("__") and k.endswith("__")
-                    },
-                    {
-                        "config": cfg,
-                        "ignores": proxy,
-                        "debug": lambda x: log("debug", f"({module.name}) {x}"),
-                        "warning": lambda x: log("warning", f"({module.name}) {x}"),
-                        "error": error,
-                    },
-                )
-                if err:
-                    log("error", "Mconfig error, sync failed")
-                    return
-            shutil.copytree(
-                module.path,
-                module_path,
-                copy_function=copy_file,
-                dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns(*proxy.ignores),
-            )
-            log("debug", f"module {module.name} copied")
+            copy_module(module, ".", output_dir, cfg)
     for dt in os.listdir(output_dir):
         if dt not in module_types or not os.path.isdir(dt):
             continue

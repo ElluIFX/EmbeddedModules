@@ -1,0 +1,14 @@
+import os
+
+_ignores = []
+for f in os.listdir(os.path.join(SRC_PATH, "driver")):
+    if os.path.isdir(os.path.join(SRC_PATH, "driver", f)):
+        _ignores.append(f)
+for board in _ignores:
+    if CONFIG.get(f"MR_BOARD_{board.upper()}"):
+        _ignores.remove(board)
+        DEBUG(f"using board: {board}")
+        break
+else:
+    ERROR("unsupported board")
+IGNORES += _ignores

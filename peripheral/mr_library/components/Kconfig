@@ -1,0 +1,3 @@
+menu "Components configure"
+    source "peripheral/mr_library/components/**/Kconfig"
+endmenu
