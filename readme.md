@@ -26,7 +26,7 @@
 <details>
   <summary>算法模块 /algorithm</summary>
 
-| [Algorithm](./algorithm)             | 算法                |                     src repo                      | 备注     |
+| [Algorithm](./algorithm)             | 算法                |                        src                        | 备注     |
 | ------------------------------------ | ------------------- | :-----------------------------------------------: | -------- |
 | [cmsis_dsp](./algorithm/cmsis_dsp)   | CMSIS-DSP(Src)      | [link](https://github.com/ARM-software/CMSIS-DSP) | 源码形式 |
 | [libcrc](./algorithm/libcrc)         | CRC计算库           |     [link](https://github.com/whik/crc-lib-c)     |          |
@@ -38,7 +38,7 @@
 <details>
   <summary>通信模块 /communication</summary>
 
-| [Communication](./communication)       | 通信               |                       src repo                       | 备注 |
+| [Communication](./communication)       | 通信               |                         src                          | 备注 |
 | -------------------------------------- | ------------------ | :--------------------------------------------------: | ---- |
 | [CherryUSB](./communication/cherryusb) | Cherry USB         | [link](https://github.com/cherry-embedded/CherryUSB) |      |
 | [lwpkt](./communication/lwpkt)         | 轻量级数据包       |       [link](https://github.com/MaJerle/lwpkt)       |      |
@@ -52,7 +52,7 @@
 <details>
   <summary>数据结构模块 /datastruct</summary>
 
-| [DataStruct](./datastruct)              | 数据结构                |                    src repo                     | 备注         |
+| [DataStruct](./datastruct)              | 数据结构                |                       src                       | 备注         |
 | --------------------------------------- | ----------------------- | :---------------------------------------------: | ------------ |
 | [btree](./datastruct/btree)             | B树                     |   [link](https://github.com/tidwall/btree.c)    |              |
 | [cstring](./datastruct/cstring)         | C字符串                 |   [link](https://github.com/cloudwu/cstring)    |              |
@@ -77,7 +77,7 @@
 <details>
   <summary>调试模块 /debug</summary>
 
-| [Debug](./debug)                     | 调试                |                   src repo                    | 备注 |
+| [Debug](./debug)                     | 调试                |                      src                      | 备注 |
 | ------------------------------------ | ------------------- | :-------------------------------------------: | ---- |
 | [benchmark](./debug/benchmark)       | CoreMark基准测试    |   [link](https://github.com/eembc/coremark)   |      |
 | [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯   | [link](https://github.com/armink/CmBacktrace) |      |
@@ -90,7 +90,7 @@
 <details>
   <summary>驱动模块 /driver</summary>
 
-| [Driver](./driver)                | 驱动                  |                     src repo                     | 备注         |
+| [Driver](./driver)                | 驱动                  |                       src                        | 备注         |
 | --------------------------------- | --------------------- | :----------------------------------------------: | ------------ |
 | [bq25890](./driver/bq25890)       | BQ2589x充电芯片       | [link](https://github.com/SumantKhalate/BQ25895) |              |
 | [ee24](./driver/ee24)             | 24xx EEPROM库         |     [link](https://github.com/nimaltd/ee24)      |              |
@@ -109,7 +109,7 @@
 <details>
   <summary>图形模块 /graphics</summary>
 
-| [Graphics](./graphics)                              | 图形             |                      src repo                      | 备注       |
+| [Graphics](./graphics)                              | 图形             |                        src                         | 备注       |
 | --------------------------------------------------- | ---------------- | :------------------------------------------------: | ---------- |
 | [easy_ui](./graphics/easy_ui)                       | 单色屏UI库       |      [link](https://github.com/ErBWs/Easy-UI)      | 大幅魔改   |
 | [hagl](./graphics/hagl)                             | HAL图形库        |      [link](https://github.com/tuupola/hagl)       |            |
@@ -125,7 +125,7 @@
 <details>
   <summary>神经网络模块 /nn</summary>
 
-| [NN](./nn)            | 神经网络         |                  src repo                  | 备注 |
+| [NN](./nn)            | 神经网络         |                    src                     | 备注 |
 | --------------------- | ---------------- | :----------------------------------------: | ---- |
 | [genann](./nn/genann) | 简单前馈神经网络 | [link](https://github.com/codeplea/genann) |      |
 
@@ -134,7 +134,7 @@
 <details>
   <summary>外设模块 /peripheral</summary>
 
-| [Peripheral](./peripheral)            | 外设               |                    src repo                    | 备注          |
+| [Peripheral](./peripheral)            | 外设               |                      src                       | 备注          |
 | ------------------------------------- | ------------------ | :--------------------------------------------: | ------------- |
 | [board_i2c](./peripheral/board_i2c)   | 板级I2C包装层      |                       *                        |               |
 | [board_led](./peripheral/board_led)   | 板级LED包装层      |                       *                        |               |
@@ -151,7 +151,7 @@
 <details>
   <summary>存储模块 /storage</summary>
 
-| [Storage](./storage)                 | 存储              |                       src repo                       | 备注 |
+| [Storage](./storage)                 | 存储              |                         src                          | 备注 |
 | ------------------------------------ | ----------------- | :--------------------------------------------------: | ---- |
 | [easyflash](./storage/easyflash)     | 轻量级Flash数据库 |     [link](https://github.com/armink/EasyFlash)      |      |
 | [littlefs](./storage/littlefs)       | LittleFS          | [link](https://github.com/littlefs-project/littlefs) |      |
@@ -162,7 +162,7 @@
 <details>
   <summary>系统模块 /system</summary>
 
-| [System](./system)                        | 系统                   |                      src repo                      | 备注            |
+| [System](./system)                        | 系统                   |                        src                         | 备注            |
 | ----------------------------------------- | ---------------------- | :------------------------------------------------: | --------------- |
 | [dalloc](./system/dalloc)                 | 动态指针管理内存分配器 |  [link](https://github.com/SkyEng1neering/dalloc)  |                 |
 | [heap4](./system/heap4)                   | FreeRTOS堆4            |    [link](https://www.freertos.org/a00111.html)    |                 |
@@ -178,7 +178,7 @@
 <details>
   <summary>工具模块 /utility</summary>
 
-| [Utility](./utility)                   | 工具                       |                       src repo                        | 备注        |
+| [Utility](./utility)                   | 工具                       |                          src                          | 备注        |
 | -------------------------------------- | -------------------------- | :---------------------------------------------------: | ----------- |
 | [cot_menu](./utility/cot_menu)         | 轻量级菜单框架             |    [link](https://gitee.com/cot_package/cot_menu)     | 抽象菜单    |
 | [embedded_cli](./utility/embedded_cli) | 嵌入式命令行               |  [link](https://github.com/funbiscuit/embedded-cli)   | 魔改        |
