@@ -7,6 +7,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from functools import lru_cache
+from typing import List
 
 C1 = "\033[34m"
 C2 = "\033[32m"
@@ -113,7 +114,7 @@ class Module:
 
 
 @lru_cache()
-def list_module_types() -> list[str]:
+def list_module_types() -> List[str]:
     module_types = [
         d
         for d in os.listdir(".")
@@ -124,7 +125,7 @@ def list_module_types() -> list[str]:
 
 
 @lru_cache()
-def list_modules() -> list[Module]:
+def list_modules() -> List[Module]:
     # list 1st level dirs
     modules = []
     module_types = list_module_types()
@@ -493,7 +494,7 @@ def check_working_dir(project_dir: str, module_dir: str, auto_create: bool = Tru
         exit(1)
 
 
-def read_enabled_modules(config_file: str) -> list[str]:
+def read_enabled_modules(config_file: str) -> List[str]:
     enabled_modules = []
     with open(config_file, "r") as f:
         for line in f:
@@ -527,7 +528,7 @@ class CfgGetter:
 
 
 class IgnoreProxy:
-    def __init__(self, init_ignores: list[str] = []):
+    def __init__(self, init_ignores: List[str] = []):
         self.ignores = init_ignores.copy()
 
     def __add__(self, name):
@@ -562,8 +563,8 @@ SYNC_IGNORES = [
 def sync_module_files(
     config_file: str,
     output_dir: str,
-    ext_files: list[str] = [],
-    skip_modules: list[str] = [],
+    ext_files: List[str] = [],
+    skip_modules: List[str] = [],
 ):
     config_file_path = os.path.join(output_dir, config_file)
     enabled = read_enabled_modules(config_file_path)
