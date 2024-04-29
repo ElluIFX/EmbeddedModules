@@ -3,7 +3,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "macro.h"
 #include "modules.h"
 
 /**** ModBus 主/从机协议 ****

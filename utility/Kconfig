@@ -6,6 +6,7 @@ menuconfig MOD_ENABLE_COT_MENU
 
 menuconfig MOD_ENABLE_EMBEDDED_CLI
     bool "Embedded CLI (Command Line Interface)"
+    select MOD_ENABLE_UNI_IO
     default n
 
 menuconfig MOD_ENABLE_INCBIN
@@ -29,10 +30,13 @@ menuconfig MOD_ENABLE_PERF_COUNTER
 
 menuconfig MOD_ENABLE_RYU
     bool "Ryu (Fast Float-to-String Conversion)"
+    select MOD_ENABLE_LOG
     default n
 
 menuconfig MOD_ENABLE_TERM_TABLE
     bool "TermTable (Terminal Table Printer)"
+    select MOD_ENABLE_UNI_IO
+    select MOD_ENABLE_ULIST
     default n
 
 menuconfig MOD_ENABLE_TIMELIB

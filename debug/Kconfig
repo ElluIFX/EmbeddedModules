@@ -2,6 +2,7 @@ menu "Debug Modules"
 
 menuconfig MOD_ENABLE_CM_BACKTRACE
 bool "CmBacktrace (Call Stack Trace)"
+select MOD_ENABLE_UNI_IO
 default n
 if MOD_ENABLE_CM_BACKTRACE
     source "debug/cm_backtrace/Kconfig"
@@ -9,11 +10,14 @@ endif
 
 menuconfig MOD_ENABLE_COREMARK
 bool "Coremark (Benchmark)"
+select MOD_ENABLE_UNI_IO
+select MOD_ENABLE_PERF_COUNTER
 default n
 
 menuconfig MOD_ENABLE_LOG
 bool "Log (Single Header Logger)"
 select MOD_ENABLE_UNI_IO
+select MOD_ENABLE_MACRO
 default y
 if MOD_ENABLE_LOG
     source "debug/log/Kconfig"
@@ -21,6 +25,7 @@ endif
 
 menuconfig MOD_ENABLE_MINCTEST
 bool "Minctest (Minimal Unit Test Framework)"
+select MOD_ENABLE_LOG
 default n
 
 menuconfig MOD_ENABLE_RTT

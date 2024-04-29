@@ -103,6 +103,19 @@ except ImportError:
     GUI_AVAILABLE = False
     log("warning", "guiconfig not available, tkinter not found")
 
+try:
+    from rich.console import Console
+    from rich.prompt import Confirm, Prompt
+    from rich.table import Table
+except ImportError:
+    install_package("rich")
+    from rich.console import Console  # noqa: F401
+    from rich.prompt import Confirm, Prompt
+    from rich.table import Table
+module_root = os.path.dirname(os.path.abspath(__file__))
+
+con = Console()
+
 
 @dataclass
 class Module:
@@ -111,6 +124,11 @@ class Module:
     path: str
     Mconfig: bool
     Kconfig: bool
+
+    def __hash__(self):
+        return hash(
+            self.name + self.type + self.path + str(self.Mconfig) + str(self.Kconfig)
+        )
 
 
 @lru_cache()
@@ -264,19 +282,6 @@ def pull_latest():
 
 
 def module_wizard(available_types):
-    try:
-        from rich.console import Console
-        from rich.prompt import Confirm, Prompt
-        from rich.table import Table
-    except ImportError:
-        install_package("rich")
-        from rich.console import Console  # noqa: F401
-        from rich.prompt import Confirm, Prompt
-        from rich.table import Table
-    module_root = os.path.dirname(os.path.abspath(__file__))
-
-    con = Console()
-
     con.print(f"[blue]Module root: [green]{module_root}")
 
     module_type = Prompt.ask(
@@ -485,6 +490,9 @@ def check_working_dir(project_dir: str, module_dir: str, auto_create: bool = Tru
         exit(1)
     if not os.path.isdir(project_dir):
         log("error", f"PROJECT_DIR {project_dir} is not a directory")
+        exit(1)
+    if os.path.samefile(project_dir, os.path.dirname(os.path.abspath(__file__))):
+        log("error", "PROJECT_DIR can't be the same as the tool directory")
         exit(1)
     log("info", f"project directory: {project_dir}")
     if not os.path.exists(module_dir) and auto_create:
@@ -699,6 +707,61 @@ def sync_module_files(
     log("success", "module files synced")
 
 
+def analyze_module_deps():
+    log("info", "analyzing module dependencies")
+    modules = list_modules()
+    incs = dict()
+    for module in modules:
+        for _, _, files in os.walk(module.path):
+            for file in files:
+                if file.endswith(".h"):
+                    incs[file] = module
+    deps = {m: [] for m in modules}
+    for module in modules:
+        for root, _, files in os.walk(module.path):
+            for file in files:
+                if file.endswith(("c", "h", "cpp", "hpp")):
+                    with open(
+                        os.path.join(root, file), "r", encoding="utf-8", errors="ignore"
+                    ) as f:
+                        content = f.read()
+                    skip = False
+                    for line in content.splitlines():
+                        if line.startswith("/*"):
+                            skip = True
+                            continue
+                        if skip:
+                            if line.endswith("*/"):
+                                skip = False
+                            continue
+                        line = line.strip()
+                        if line.startswith("#include"):
+                            inc = (
+                                line.replace("#include", "")
+                                .replace('"', "")
+                                .replace("<", "")
+                                .replace(">", "")
+                                .strip()
+                            )
+                            if (
+                                inc in incs
+                                and incs[inc] != module
+                                and incs[inc] not in deps[module]
+                            ):
+                                deps[module].append(incs[inc])
+    log("info", "success, see below for dependencies:")
+    t = ""
+    for module, deplist in deps.items():
+        if not deplist:
+            continue
+        if module.type != t:
+            t = module.type
+            con.print(f"[yellow]{t}:[/yellow]")
+        con.print(
+            f"[yellow]|[/yellow] [blue]{module.name}[/blue] depends on: [green]{'[/green], [green]'.join([m.name for m in deplist])}"
+        )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -743,6 +806,12 @@ if __name__ == "__main__":
         help="Pull the latest version of this toolset from github",
     )
     parser.add_argument(
+        "-a",
+        "--analyze",
+        action="store_true",
+        help="Analyze module dependencies",
+    )
+    parser.add_argument(
         "-d",
         "--module-dirname",
         type=str,
@@ -760,19 +829,16 @@ if __name__ == "__main__":
         log_debug = True
 
     EXT_FILES = [".clang-format", "modules.h"]
-    SKIP_MODULES = []
     HEADER_FILE = "modules_config.h"
     KCONF_FILE = "Kconfig"
     CONFIG_FILE = ".config"
-    GUI_CONFIG = GUI_AVAILABLE and args.guiconfig
-    PROJECT_DIR = os.path.abspath(args.project_dir)
-    if os.path.samefile(PROJECT_DIR, os.path.dirname(os.path.abspath(__file__))):
-        log("error", "PROJECT_DIR can't be the same as the tool directory")
-        exit(1)
-    MODULE_DIR = os.path.join(PROJECT_DIR, args.module_dirname)
-    if os.path.exists(os.path.join(MODULE_DIR, ".mfreeze")):
-        with open(os.path.join(MODULE_DIR, ".mfreeze"), "r") as f:
-            SKIP_MODULES = f.read().splitlines()
+
+    skip_modules = []
+    project_dir = os.path.abspath(args.project_dir)
+    module_dir = os.path.join(project_dir, args.module_dirname)
+    if os.path.exists(os.path.join(module_dir, ".mfreeze")):
+        with open(os.path.join(module_dir, ".mfreeze"), "r") as f:
+            skip_modules = f.read().splitlines()
 
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -782,18 +848,30 @@ if __name__ == "__main__":
     if args.newmodule:
         module_wizard(list_module_types())
 
-    if args.menuconfig or GUI_CONFIG:
-        check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=True)
-        prepare_config_file(CONFIG_FILE, MODULE_DIR)
-        menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, MODULE_DIR, GUI_CONFIG)
+    guiconfig = GUI_AVAILABLE and args.guiconfig
+    if args.menuconfig or guiconfig:
+        check_working_dir(project_dir, module_dir, auto_create=True)
+        prepare_config_file(CONFIG_FILE, module_dir)
+        menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, module_dir, guiconfig)
         if not args.nosync:
-            sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
+            sync_module_files(CONFIG_FILE, module_dir, EXT_FILES, skip_modules)
         log("success", "menuconfig success")
     elif args.sync:
-        check_working_dir(PROJECT_DIR, MODULE_DIR, auto_create=False)
-        sync_module_files(CONFIG_FILE, MODULE_DIR, EXT_FILES, SKIP_MODULES)
+        check_working_dir(project_dir, module_dir, auto_create=False)
+        sync_module_files(CONFIG_FILE, module_dir, EXT_FILES, skip_modules)
+    elif args.analyze:
+        analyze_module_deps()
 
-    if not any([args.menuconfig, args.sync, args.newmodule, args.update, GUI_CONFIG]):
+    if not any(
+        [
+            args.menuconfig,
+            args.sync,
+            args.newmodule,
+            args.update,
+            guiconfig,
+            args.analyze,
+        ]
+    ):
         parser.print_help()
         log("warning", "no action specified, exit")
         exit(1)

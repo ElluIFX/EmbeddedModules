@@ -3,6 +3,7 @@ menu "Peripheral Modules"
 menuconfig MOD_ENABLE_BOARD_I2C
     bool "(On)Board I2C"
     default n
+    select MOD_ENABLE_LOG
 if MOD_ENABLE_BOARD_I2C
 source "peripheral/board_i2c/Kconfig"
 endif
@@ -24,6 +25,7 @@ menuconfig MOD_ENABLE_I2C_SLAVE
 
 menuconfig MOD_ENABLE_LL_I2C
     bool "LL I2C Library (Poll/Interrupt)"
+    select MOD_ENABLE_LOG
     default n
 if MOD_ENABLE_LL_I2C
 source "peripheral/ll_i2c/Kconfig"
@@ -38,6 +40,7 @@ endif
 
 menuconfig MOD_ENABLE_SW_I2C
     bool "Software I2C (Bit-Bang)"
+    select MOD_ENABLE_LOG
     default n
 
 menuconfig MOD_ENABLE_SW_SPI

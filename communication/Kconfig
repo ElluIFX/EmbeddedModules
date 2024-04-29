@@ -6,6 +6,7 @@ default n
 
 menuconfig MOD_ENABLE_LWPKT
 bool "LWPkt (Lightweight Packet)"
+select MOD_ENABLE_LWRB
 default n
 
 menuconfig MOD_ENABLE_MINMEA
@@ -14,6 +15,7 @@ default n
 
 menuconfig MOD_ENABLE_MODBUS
 bool "Modbus"
+select MOD_ENABLE_LOG
 default n
 
 menuconfig MOD_ENABLE_TINYFRAME
@@ -25,6 +27,7 @@ endif
 
 menuconfig MOD_ENABLE_XYMODEM
 bool "XYModem (File Transfer Protocol)"
+select MOD_ENABLE_LOG
 default n
 
 endmenu

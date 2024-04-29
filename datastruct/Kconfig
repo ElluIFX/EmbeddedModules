@@ -50,6 +50,7 @@ default n
 
 menuconfig MOD_ENABLE_SDS
 bool "SDS (Simple Dynamic String)"
+select MOD_ENABLE_LWPRINTF
 default n
 
 menuconfig MOD_ENABLE_STRUCT2JSON
@@ -58,8 +59,8 @@ default n
 
 menuconfig MOD_ENABLE_UDICT
 bool "UDict (Universal Dictionary)"
-default n
 select MOD_ENABLE_UTHASH
+default n
 
 menuconfig MOD_ENABLE_ULIST
 bool "UList (Universal Mem Continuous List)"

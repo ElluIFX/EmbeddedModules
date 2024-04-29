@@ -2,6 +2,7 @@ menu "System Modules"
 
 menuconfig MOD_ENABLE_DALLOC
     bool "Dalloc (Dynamic Memory Allocator)"
+    select MOD_ENABLE_LOG
     default n
 
 menuconfig MOD_ENABLE_HEAP4
@@ -10,6 +11,7 @@ menuconfig MOD_ENABLE_HEAP4
 
 menuconfig MOD_ENABLE_KLITE
     bool "KLite (Kernel Lite RTOS)"
+    select MOD_ENABLE_LOG
     default n
 if MOD_ENABLE_KLITE
 source "system/klite/Kconfig"
@@ -17,6 +19,7 @@ endif
 
 menuconfig MOD_ENABLE_LWMEM
     bool "LwMem (Lightweight Memory Manager)"
+    select MOD_ENABLE_LOG
     default n
 
 menuconfig MOD_ENABLE_RTTHREAD_NANO
@@ -31,6 +34,8 @@ menuconfig MOD_ENABLE_SCHEDULER
     bool "Scheduler (Task Scheduler)"
     default n
     select MOD_ENABLE_ULIST
+    select MOD_ENABLE_LOG
+    select MOD_ENABLE_MACRO
 if MOD_ENABLE_SCHEDULER
 source "system/scheduler/Kconfig"
 endif

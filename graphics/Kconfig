@@ -2,6 +2,7 @@ menu "Graphics Modules"
 
 menuconfig MOD_ENABLE_EASY_UI
     bool "EasyUI (Single Color UI Framework)"
+    select MOD_ENABLE_LOG
     default n
 
 menuconfig MOD_ENABLE_HAGL
@@ -38,6 +39,7 @@ endif
 menuconfig MOD_ENABLE_VIRTUAL_LCD
     bool "Virtual LCD (For Simulation)"
     select MOD_ENABLE_UNI_IO
+    select MOD_ENABLE_LOG
     default n
 
 endmenu
