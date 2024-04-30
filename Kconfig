@@ -127,7 +127,7 @@ menu "Global Configuration"
         bool "Enable Atomic Operations Support"
         help
             If enabled, the atomic operations will be used to protect critical sections.
-            This will make the system more stable, but may cause some performance loss.
+            This will make the system more stable without using a mutex or semaphore.
             May not be available on some platforms like Cortex-M0.
         default n if MOD_CFG_USE_OS_NONE
         default y

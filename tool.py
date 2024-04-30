@@ -101,7 +101,7 @@ try:
     GUI_AVAILABLE = True
 except ImportError:
     GUI_AVAILABLE = False
-    log("warning", "guiconfig not available, tkinter not found")
+    log("warning", "guiconfig not available (tkinter not available)")
 
 try:
     from rich.console import Console
@@ -117,18 +117,13 @@ module_root = os.path.dirname(os.path.abspath(__file__))
 con = Console()
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Module:
     name: str
     type: str
     path: str
     Mconfig: bool
     Kconfig: bool
-
-    def __hash__(self):
-        return hash(
-            self.name + self.type + self.path + str(self.Mconfig) + str(self.Kconfig)
-        )
 
 
 @lru_cache()
