@@ -206,7 +206,7 @@ Mconfig文件实际上是一个python脚本, 继承完整的`tool.py`运行环�
 
 其中有四个特殊变量和三个特殊函数:
 
-- `CONFIG` - 从Kconfig配置结果中解析的配置项目
+- `CONFIG` - 从Kconfig配置结果中解析的配置项目, 访问不存在的项目将返回`False`
 - `IGNORES` - 复制该模块的文件时忽略的项目, 使用glob匹配
 - `DST_PATH` - 本模块文件夹的目标路径
 - `SRC_PATH` - 本模块文件夹的源路径
@@ -217,7 +217,7 @@ Mconfig文件实际上是一个python脚本, 继承完整的`tool.py`运行环�
 下面是一个简单的例子:
 
 ```python
-if CONFIG.DISABLE_MODULE_A: # 也支持.get()方法
+if CONFIG.DISABLE_MODULE_A: # 也支持.get()方法来定义不存在时的默认返回值
     IGNORES += "module_a.*"
 if CONFIG.DISABLE_SUB_MODULES:
     DEBUG(f"SUB_MODULES: {CONFIG.SUB_MODULES}")
@@ -247,6 +247,7 @@ optional arguments:
   -ns, --nosync         Skip syncing latest module files after menuconfig
   -n, --newmodule       Create a new module
   -u, --update          Pull the latest version of this toolset from github
+  -a, --analyze         Analyze module dependencies
   -d MODULE_DIRNAME, --module-dirname MODULE_DIRNAME
                         Specify the directory name for generated modules, default is 'Modules'
   --debug               Enable debug output
@@ -274,6 +275,12 @@ optional arguments:
 
   ```shell
   python tool.py -n
+  ```
+
+- **列出所有模块的依赖关系** (可用于辅助编写Kconfig)
+
+  ```shell
+  python tool.py -a
   ```
 
 - **冻结生成文件夹中的某个模块** (如针对项目修改了模块源码时)

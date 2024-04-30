@@ -526,19 +526,33 @@ class ConfigGetter(object):
                     cfg[key] = True
                 else:
                     try:
-                        cfg[key] = eval(value)
+                        value = eval(value)
                     except Exception:
-                        cfg[key] = value
+                        pass
+                    if isinstance(value, str):
+                        value = value.replace('\\"', '"')
+                    cfg[key] = value
         super(ConfigGetter, self).__setattr__("cfg", cfg)
         super(ConfigGetter, self).__setattr__("default", default)
 
     def __getattr__(self, name):
         return self.cfg.get(name, self.default)
 
+    def __getitem__(self, index):
+        if not isinstance(index, str):
+            raise ValueError("CONFIG should be indexed by string")
+        return self.cfg.get(index, self.default)
+
+    def __iter__(self):
+        return iter(self.cfg.items())
+
     def get(self, name, default=None):
         return self.cfg.get(name, default if default is not None else self.default)
 
-    def __setattr__(self, name, value) -> None:
+    def __setattr__(self, name, value):
+        raise AttributeError("CONFIG is read-only in Mconfig")
+
+    def __setitem__(self, index, value):
         raise AttributeError("CONFIG is read-only in Mconfig")
 
 
@@ -749,16 +763,17 @@ def analyze_module_deps():
                                 and incs[inc] not in deps[module]
                             ):
                                 deps[module].append(incs[inc])
-    log("info", "success, see below for dependencies:")
-    t = ""
+    log("info", "success, see below for result:")
+    showtype = ""
     for module, deplist in deps.items():
         if not deplist:
             continue
-        if module.type != t:
-            t = module.type
-            con.print(f"[yellow]{t}:[/yellow]")
+        if module.type != showtype:
+            showtype = module.type
+            con.print(f"[yellow][bold]= {showtype}")
         con.print(
-            f"[yellow]|[/yellow] [blue]{module.name}[/blue] depends on: [green]{'[/green], [green]'.join([m.name for m in deplist])}"
+            f"[yellow]|[/yellow] [blue]{module.name}[/blue] depends on: [green]"
+            + "[/green], [green]".join([m.name for m in deplist])
         )
 
 
