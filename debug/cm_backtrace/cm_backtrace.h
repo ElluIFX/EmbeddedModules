@@ -26,8 +26,8 @@
  * Created on: 2016-12-15
  */
 
-#ifndef _CORTEXM_BACKTRACE_H_
-#define _CORTEXM_BACKTRACE_H_
+#ifndef __CM_BACKTRACE__
+#define __CM_BACKTRACE__
 
 #include "cmb_def.h"
 
@@ -42,8 +42,17 @@ size_t cm_backtrace_call_stack(uint32_t* buffer, size_t size, uint32_t sp);
 void cm_backtrace_assert(uint32_t sp);
 void cm_backtrace_fault(uint32_t fault_handler_lr, uint32_t fault_handler_sp);
 
+#define CM_BACKTRACE_MANUAL_CALL()  \
+    static uint32_t lr = 0, sp = 0; \
+    int R0, R1;                     \
+    __ASM("MOV  R0,   lr");         \
+    lr = R0;                        \
+    __ASM("MOV  R1,   sp");         \
+    sp = R1;                        \
+    cm_backtrace_fault(lr, sp);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _CORTEXM_BACKTRACE_H_ */
+#endif /* __CM_BACKTRACE__ */

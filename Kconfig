@@ -69,6 +69,32 @@ menu "Global Configuration"
     endchoice
 
     choice
+        prompt "System Delay Provider"
+        help
+            Select the system delay source that offers m_delay_* functions.
+            Be aware that if you are using an RTOS, the RTOS's delay functions should best be used.
+        default MOD_CFG_DELAY_MATHOD_RTT if MOD_CFG_USE_OS_RTT
+        default MOD_CFG_DELAY_MATHOD_KLITE if MOD_CFG_USE_OS_KLITE
+        default MOD_CFG_DELAY_MATHOD_FREERTOS if MOD_CFG_USE_OS_FREERTOS
+        default MOD_CFG_DELAY_MATHOD_PERF_COUNTER
+
+        config MOD_CFG_DELAY_MATHOD_HAL
+            bool "ST HAL Library"
+        config MOD_CFG_DELAY_MATHOD_PERF_COUNTER
+            bool "PerfCounter Library"
+            select MOD_ENABLE_PERF_COUNTER
+        config MOD_CFG_DELAY_MATHOD_RTT
+            bool "RT-Thread"
+            depends on MOD_CFG_USE_OS_RTT
+        config MOD_CFG_DELAY_MATHOD_KLITE
+            bool "KLite RTOS"
+            depends on MOD_CFG_USE_OS_KLITE
+        config MOD_CFG_DELAY_MATHOD_FREERTOS
+            bool "FreeRTOS"
+            depends on MOD_CFG_USE_OS_FREERTOS
+    endchoice
+
+    choice
         prompt "System Heap Provider"
         help
             Select the memory manager that offers m_alloc/m_free/m_realloc functions.
@@ -95,31 +121,6 @@ menu "Global Configuration"
         config MOD_CFG_HEAP_MATHOD_RTT
             bool "RT-Thread Memory Manager"
             depends on MOD_CFG_USE_OS_RTT
-    endchoice
-
-    choice
-        prompt "System Delay Provider"
-        help
-            Select the system delay source that offers m_delay_* functions.
-            Be aware that if you are using an RTOS, the RTOS's delay functions should best be used.
-        default MOD_CFG_DELAY_MATHOD_RTT if MOD_CFG_USE_OS_RTT
-        default MOD_CFG_DELAY_MATHOD_KLITE if MOD_CFG_USE_OS_KLITE
-        default MOD_CFG_DELAY_MATHOD_FREERTOS if MOD_CFG_USE_OS_FREERTOS
-        default MOD_CFG_DELAY_MATHOD_PERF_COUNTER
-
-        config MOD_CFG_DELAY_MATHOD_HAL
-            bool "ST HAL Library"
-        config MOD_CFG_DELAY_MATHOD_PERF_COUNTER
-            bool "PerfCounter Library"
-        config MOD_CFG_DELAY_MATHOD_RTT
-            bool "RT-Thread"
-            depends on MOD_CFG_USE_OS_RTT
-        config MOD_CFG_DELAY_MATHOD_KLITE
-            bool "KLite RTOS"
-            depends on MOD_CFG_USE_OS_KLITE
-        config MOD_CFG_DELAY_MATHOD_FREERTOS
-            bool "FreeRTOS"
-            depends on MOD_CFG_USE_OS_FREERTOS
     endchoice
 
     config MOD_CFG_ENABLE_ATOMIC

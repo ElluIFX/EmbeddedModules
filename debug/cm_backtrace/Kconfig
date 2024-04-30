@@ -44,7 +44,11 @@ endif
 
 choice
     prompt "CPU Platform"
-    default CMB_CPU_USE_ARM_CORTEX_M4
+    default CMB_CPU_USE_ARM_CORTEX_M0 if MOD_CFG_CPU_CM0
+    default CMB_CPU_USE_ARM_CORTEX_M3 if MOD_CFG_CPU_CM3
+    default CMB_CPU_USE_ARM_CORTEX_M4 if MOD_CFG_CPU_CM4
+    default CMB_CPU_USE_ARM_CORTEX_M7 if MOD_CFG_CPU_CM7
+    default CMB_CPU_USE_ARM_CORTEX_M33 if MOD_CFG_CPU_CM33
 
     config CMB_CPU_USE_ARM_CORTEX_M0
         bool "ARM Cortex-M3"

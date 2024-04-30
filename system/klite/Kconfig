@@ -29,9 +29,11 @@ choice
         bool "Built-in"
 
     config KLITE_CFG_HEAP_USE_HEAP4
+        select MOD_ENABLE_HEAP4
         bool "Third-Party: Heap4 (FreeRTOS)"
 
     config KLITE_CFG_HEAP_USE_LWMEM
+        select MOD_ENABLE_LWMEM
         bool "Third-Party: LwMEM"
 endchoice
 
