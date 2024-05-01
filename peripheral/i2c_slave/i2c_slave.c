@@ -6,9 +6,10 @@ __weak void slave_i2c_transmit_begin_handler(I2C_TypeDef* I2Cx) {}
 
 __weak void slave_i2c_transmit_end_handler(I2C_TypeDef* I2Cx) {}
 
-__weak void slave_i2c_transmit_in_handler(I2C_TypeDef* I2Cx, uint8_t data) {}
+__weak bool slave_i2c_transmit_in_handler(I2C_TypeDef* I2Cx, uint8_t in_data) {}
 
-__weak void slave_i2c_transmit_out_handler(I2C_TypeDef* I2Cx, uint8_t* data) {}
+__weak bool slave_i2c_transmit_out_handler(I2C_TypeDef* I2Cx,
+                                           uint8_t* out_data) {}
 
 static inline void slave_enable_it(I2C_TypeDef* I2Cx) {
     LL_I2C_Enable(I2Cx);
@@ -44,7 +45,7 @@ void slave_i2c_set_interrupt(I2C_TypeDef* I2Cx, uint8_t state) {
     }
 }
 
-void slave_i2c_set_address(I2C_TypeDef* I2Cx, uint8_t addr) {
+void slave_i2c_set_address(I2C_TypeDef* I2Cx, bool addr) {
     if (addr < 0x08 || addr > 0x77 || addr == (GET_SLAVE_ADDR(I2Cx) >> 1))
         return;
     slave_i2c_set_enable(I2Cx, 0);
@@ -54,7 +55,7 @@ void slave_i2c_set_address(I2C_TypeDef* I2Cx, uint8_t addr) {
     slave_i2c_set_enable(I2Cx, 1);
 }
 
-void slave_i2c_set_enable(I2C_TypeDef* I2Cx, uint8_t state) {
+void slave_i2c_set_enable(I2C_TypeDef* I2Cx, bool state) {
     if (state) {
         LL_I2C_Enable(I2Cx);
         slave_enable_it(I2Cx);
@@ -74,13 +75,22 @@ static inline void transmit_start_handler(I2C_TypeDef* I2Cx) {
 
 static inline void reception_handler(I2C_TypeDef* I2Cx) {
     uint8_t data = LL_I2C_ReceiveData8(I2Cx);
-    slave_i2c_transmit_in_handler(I2Cx, data);
+    if (!slave_i2c_transmit_in_handler(I2Cx, data)) {
+        LL_I2C_AcknowledgeNextData(I2Cx, LL_I2C_NACK);
+    }
 }
 
 static inline void ready_to_transmit_handler(I2C_TypeDef* I2Cx) {
     uint8_t data = 0x00;
-    slave_i2c_transmit_out_handler(I2Cx, &data);
-    LL_I2C_TransmitData8(I2Cx, data);
+    if (slave_i2c_transmit_out_handler(I2Cx, &data)) {
+        LL_I2C_TransmitData8(I2Cx, data);
+    } else {
+        // slave_disable_it(I2Cx);
+        // LL_I2C_Disable(I2Cx);
+        // LL_I2C_Enable(I2Cx);
+        // slave_enable_it(I2Cx);
+        LL_I2C_ClearFlag_TXE(I2Cx);
+    }
 }
 
 void slave_i2c_error_irq(I2C_TypeDef* I2Cx) {

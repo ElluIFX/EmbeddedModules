@@ -1,3 +1,7 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
 if not CONFIG.CMB_ADD_HANDLER:
     IGNORES += "fault_handler"
 else:

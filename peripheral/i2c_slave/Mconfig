@@ -1,0 +1,5 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
+IGNORES += "demo.c"

@@ -439,7 +439,7 @@ typedef struct lfs {
         uint16_t id;
         uint8_t type;
         lfs_mdir_t m;
-    }* mlist;
+    } * mlist;
 
     uint32_t seed;
 

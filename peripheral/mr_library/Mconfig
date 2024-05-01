@@ -1,3 +1,7 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
 import os
 
 _ignores = []

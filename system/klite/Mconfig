@@ -1,3 +1,7 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
 _ignores = ["*gcc.s", "*iar.s", "*keil.s"]
 if CONFIG.MOD_CFG_COMPILER_AC6 or CONFIG.MOD_CFG_COMPILER_AC5:
     _ignores.remove("*keil.s")
