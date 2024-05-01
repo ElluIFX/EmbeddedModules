@@ -26,171 +26,171 @@
 <details>
   <summary>算法模块 /algorithm</summary>
 
-| [Algorithm](./algorithm)             | 算法                |                        src                        | 备注     |
-| ------------------------------------ | ------------------- | :-----------------------------------------------: | -------- |
-| [cmsis_dsp](./algorithm/cmsis_dsp)   | CMSIS-DSP(Src)      | [link](https://github.com/ARM-software/CMSIS-DSP) | 源码形式 |
-| [libcrc](./algorithm/libcrc)         | CRC计算库           |     [link](https://github.com/whik/crc-lib-c)     |          |
-| [pid](./algorithm/pid)               | 通用PID控制器       |                         *                         |          |
-| [quaternion](./algorithm/quaternion) | 四元数和IMU姿态估计 |  [link](https://github.com/rbv188/IMU-algorithm)  | 未测试   |
+| [Algorithm](./algorithm)             | 算法                |                        src                        | 备注     | SHA     |
+| ------------------------------------ | ------------------- | :-----------------------------------------------: | -------- | ------- |
+| [cmsis_dsp](./algorithm/cmsis_dsp)   | CMSIS-DSP(Src)      | [link](https://github.com/ARM-software/CMSIS-DSP) | 源码形式 | 03fa0e5 |
+| [libcrc](./algorithm/libcrc)         | CRC计算库           |     [link](https://github.com/whik/crc-lib-c)     |          | abe136a |
+| [pid](./algorithm/pid)               | 通用PID控制器       |                         *                         |          |         |
+| [quaternion](./algorithm/quaternion) | 四元数和IMU姿态估计 |  [link](https://github.com/rbv188/IMU-algorithm)  | 未测试   | bd77afd |
 
 </details>
 
 <details>
   <summary>通信模块 /communication</summary>
 
-| [Communication](./communication)       | 通信               |                         src                          | 备注 |
-| -------------------------------------- | ------------------ | :--------------------------------------------------: | ---- |
-| [CherryUSB](./communication/cherryusb) | Cherry USB         | [link](https://github.com/cherry-embedded/CherryUSB) |      |
-| [lwpkt](./communication/lwpkt)         | 轻量级数据包       |       [link](https://github.com/MaJerle/lwpkt)       |      |
-| [minmea](./communication/minmea)       | GPS NMEA解析器     |        [link](https://github.com/ata4/minema)        |      |
-| [modbus](./communication/modbus)       | Modbus协议         |      [link](https://github.com/wql7013/ModBus)       |      |
-| [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 |   [link](https://github.com/MightyPork/TinyFrame)    |      |
-| [xymodem](./communication/xymodem)     | X/YMODEM协议       |    [link](https://github.com/LONGZR007/IAP-STM32)    |      |
+| [Communication](./communication)       | 通信               |                         src                          | 备注 | SHA     |
+| -------------------------------------- | ------------------ | :--------------------------------------------------: | ---- | ------- |
+| [CherryUSB](./communication/cherryusb) | Cherry USB         | [link](https://github.com/cherry-embedded/CherryUSB) |      | 9cb992b |
+| [lwpkt](./communication/lwpkt)         | 轻量级数据包       |       [link](https://github.com/MaJerle/lwpkt)       |      | 6a82dab |
+| [minmea](./communication/minmea)       | GPS NMEA解析器     |        [link](https://github.com/ata4/minema)        |      | 450ad08 |
+| [modbus](./communication/modbus)       | Modbus协议         |      [link](https://github.com/wql7013/ModBus)       |      | 0745519 |
+| [TinyFrame](./communication/tinyframe) | 另一个轻量级数据包 |   [link](https://github.com/MightyPork/TinyFrame)    |      | a29167a |
+| [xymodem](./communication/xymodem)     | X/YMODEM协议       |    [link](https://github.com/LONGZR007/IAP-STM32)    |      | f7b988d |
 
 </details>
 
 <details>
   <summary>数据结构模块 /datastruct</summary>
 
-| [DataStruct](./datastruct)              | 数据结构                |                       src                       | 备注         |
-| --------------------------------------- | ----------------------- | :---------------------------------------------: | ------------ |
-| [btree](./datastruct/btree)             | B树                     |   [link](https://github.com/tidwall/btree.c)    |              |
-| [cstring](./datastruct/cstring)         | C字符串                 |   [link](https://github.com/cloudwu/cstring)    |              |
-| [ctl](./datastruct/ctl)                 | 类型安全C模板容器库     |      [link](https://github.com/rurban/ctl)      |              |
-| [dlist](./datastruct/dlist)             | 双向链表                |      [link](https://github.com/clibs/list)      |              |
-| [fifofast](./datastruct/fifofast)       | 纯头文件快速FIFO        |  [link](https://github.com/nqtronix/fifofast)   |              |
-| [hashmap](./datastruct/hashmap)         | 哈希表                  |  [link](https://github.com/tidwall/hashmap.c)   |              |
-| [json](./datastruct/json)               | JSON解析                |    [link](https://github.com/tidwall/json.c)    |              |
-| [lfbb](./datastruct/lfbb)               | 二分无锁缓冲区          |     [link](https://github.com/DNedic/lfbb)      |              |
-| [lfifo](./datastruct/lfifo)             | 通用环形缓冲区          |                        *                        | 比lwrb更高效 |
-| [linux_list](./datastruct/linux_list)   | Linux-like链表          | [link](https://github.com/sysprog21/linux-list) |              |
-| [lwrb](./datastruct/lwrb)               | 轻量环形缓冲区          |     [link](https://github.com/MaJerle/lwrb)     |              |
-| [pqueue](./datastruct/pqueue)           | 优先队列                |   [link](https://github.com/tidwall/pqueue.c)   |              |
-| [sds](./datastruct/sds)                 | 简单动态字符串          |     [link](https://github.com/antirez/sds)      |              |
-| [struct2json](./datastruct/struct2json) | C结构体与JSON快速互转库 |  [link](https://github.com/armink/struct2json)  |              |
-| [udict](./datastruct/udict)             | 通用哈希字典            |                        *                        | 基于uthash   |
-| [ulist](./datastruct/ulist)             | 通用内存连续列表        |                        *                        |              |
-| [uthash](./datastruct/uthash)           | 基于宏的可嵌入哈希表    |  [link](https://github.com/troydhanson/uthash)  |              |
+| [DataStruct](./datastruct)              | 数据结构                |                       src                       | 备注         | SHA     |
+| --------------------------------------- | ----------------------- | :---------------------------------------------: | ------------ | ------- |
+| [btree](./datastruct/btree)             | B树                     |   [link](https://github.com/tidwall/btree.c)    |              | cf1bb92 |
+| [cstring](./datastruct/cstring)         | C字符串                 |   [link](https://github.com/cloudwu/cstring)    |              | 88e021b |
+| [ctl](./datastruct/ctl)                 | 类型安全C模板容器库     |      [link](https://github.com/rurban/ctl)      |              | d314c08 |
+| [dlist](./datastruct/dlist)             | 双向链表                |      [link](https://github.com/clibs/list)      |              | 23faa20 |
+| [fifofast](./datastruct/fifofast)       | 纯头文件快速FIFO        |  [link](https://github.com/nqtronix/fifofast)   |              | 196edda |
+| [hashmap](./datastruct/hashmap)         | 哈希表                  |  [link](https://github.com/tidwall/hashmap.c)   |              | 1c13992 |
+| [json](./datastruct/json)               | JSON解析                |    [link](https://github.com/tidwall/json.c)    |              | 3d0e877 |
+| [lfbb](./datastruct/lfbb)               | 二分无锁缓冲区          |     [link](https://github.com/DNedic/lfbb)      |              | 8c24b34 |
+| [lfifo](./datastruct/lfifo)             | 通用环形缓冲区          |                        *                        | 比lwrb更高效 |         |
+| [linux_list](./datastruct/linux_list)   | Linux-like链表          | [link](https://github.com/sysprog21/linux-list) |              | 452262e |
+| [lwrb](./datastruct/lwrb)               | 轻量环形缓冲区          |     [link](https://github.com/MaJerle/lwrb)     |              | b32c645 |
+| [pqueue](./datastruct/pqueue)           | 优先队列                |   [link](https://github.com/tidwall/pqueue.c)   |              | 2bb5600 |
+| [sds](./datastruct/sds)                 | 简单动态字符串          |     [link](https://github.com/antirez/sds)      |              | a9a03bb |
+| [struct2json](./datastruct/struct2json) | C结构体与JSON快速互转库 |  [link](https://github.com/armink/struct2json)  |              | 4f1fdc9 |
+| [udict](./datastruct/udict)             | 通用哈希字典            |                        *                        | 基于uthash   |         |
+| [ulist](./datastruct/ulist)             | 通用内存连续列表        |                        *                        |              |         |
+| [uthash](./datastruct/uthash)           | 基于宏的可嵌入哈希表    |  [link](https://github.com/troydhanson/uthash)  |              | eeba196 |
 
 </details>
 
 <details>
   <summary>调试模块 /debug</summary>
 
-| [Debug](./debug)                     | 调试                |                      src                      | 备注 |
-| ------------------------------------ | ------------------- | :-------------------------------------------: | ---- |
-| [benchmark](./debug/benchmark)       | CoreMark基准测试    |   [link](https://github.com/eembc/coremark)   |      |
-| [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯   | [link](https://github.com/armink/CmBacktrace) |      |
-| [RTT](./debug/rtt)                   | Segger-RTT 调试模块 |      [link](https://wiki.segger.com/RTT)      |      |
-| [log](./debug/log)                   | 纯头文件日志库      |                       *                       |      |
-| [minctest](./debug/minctest)         | 简易单元测试        | [link](https://github.com/codeplea/minctest)  |      |
+| [Debug](./debug)                     | 调试                |                      src                      | 备注 | SHA     |
+| ------------------------------------ | ------------------- | :-------------------------------------------: | ---- | ------- |
+| [benchmark](./debug/benchmark)       | CoreMark基准测试    |   [link](https://github.com/eembc/coremark)   |      | d5fad6b |
+| [cm_backtrace](./debug/cm_backtrace) | hardfault堆栈回溯   | [link](https://github.com/armink/CmBacktrace) |      | 6013293 |
+| [RTT](./debug/rtt)                   | Segger-RTT 调试模块 |      [link](https://wiki.segger.com/RTT)      |      |         |
+| [log](./debug/log)                   | 纯头文件日志库      |                       *                       |      |         |
+| [minctest](./debug/minctest)         | 简易单元测试        | [link](https://github.com/codeplea/minctest)  |      | 0ab5834 |
 
 </details>
 
 <details>
   <summary>驱动模块 /driver</summary>
 
-| [Driver](./driver)                | 驱动                  |                       src                        | 备注         |
-| --------------------------------- | --------------------- | :----------------------------------------------: | ------------ |
-| [bq25890](./driver/bq25890)       | BQ2589x充电芯片       | [link](https://github.com/SumantKhalate/BQ25895) |              |
-| [ee24](./driver/ee24)             | 24xx EEPROM库         |     [link](https://github.com/nimaltd/ee24)      |              |
-| [key](./driver/key)               | 通用按键驱动          |                        *                         | 支持多种事件 |
-| [motor](./driver/motor)           | 直流电机闭环驱动      |                        *                         |              |
-| [paj7620u2](./driver/paj7620u2)   | PAJ7620U2手势识别     |                        *                         |              |
-| [sc7a20](./driver/sc7a20)         | SC7A20加速度计        |                        *                         |              |
-| [sh2](./driver/sh2)               | SH2 Sensorhub协议     |     [link](https://github.com/ceva-dsp/sh2)      |              |
-| [spif](./driver/spif)             | SPI Flash通用驱动     |     [link](https://github.com/nimaltd/spif)      |              |
-| [stepper](./driver/stepper)       | 步进电机驱动          |                        *                         |              |
-| [vl53l0x](./driver/vl53l0x)       | VL53L0X激光测距       |   [link](https://github.com/anisyanka/vl53l0x)   | 非官方库     |
-| [ws2812_spi](./driver/ws2812_spi) | WS2812灯带DMA-SPI驱动 |                        *                         |              |
+| [Driver](./driver)                | 驱动                  |                       src                        | 备注         | SHA     |
+| --------------------------------- | --------------------- | :----------------------------------------------: | ------------ | ------- |
+| [bq25890](./driver/bq25890)       | BQ2589x充电芯片       | [link](https://github.com/SumantKhalate/BQ25895) |              | ade0e3c |
+| [ee24](./driver/ee24)             | 24xx EEPROM库         |     [link](https://github.com/nimaltd/ee24)      |              | 92816a7 |
+| [key](./driver/key)               | 通用按键驱动          |                        *                         | 支持多种事件 |         |
+| [motor](./driver/motor)           | 直流电机闭环驱动      |                        *                         |              |         |
+| [paj7620u2](./driver/paj7620u2)   | PAJ7620U2手势识别     |                        *                         |              |         |
+| [sc7a20](./driver/sc7a20)         | SC7A20加速度计        |                        *                         |              |         |
+| [sh2](./driver/sh2)               | SH2 Sensorhub协议     |     [link](https://github.com/ceva-dsp/sh2)      |              | b514b1e |
+| [spif](./driver/spif)             | SPI Flash通用驱动     |     [link](https://github.com/nimaltd/spif)      |              | c0f3ba2 |
+| [stepper](./driver/stepper)       | 步进电机驱动          |                        *                         |              |         |
+| [vl53l0x](./driver/vl53l0x)       | VL53L0X激光测距       |   [link](https://github.com/anisyanka/vl53l0x)   | 非官方库     | 04891c2 |
+| [ws2812_spi](./driver/ws2812_spi) | WS2812灯带DMA-SPI驱动 |                        *                         |              |         |
 
 </details>
 
 <details>
   <summary>图形模块 /graphics</summary>
 
-| [Graphics](./graphics)                              | 图形             |                        src                         | 备注       |
-| --------------------------------------------------- | ---------------- | :------------------------------------------------: | ---------- |
-| [easy_ui](./graphics/easy_ui)                       | 单色屏UI库       |      [link](https://github.com/ErBWs/Easy-UI)      | 大幅魔改   |
-| [hagl](./graphics/hagl)                             | HAL图形库        |      [link](https://github.com/tuupola/hagl)       |            |
-| [lvgl](./graphics/lvgl)                             | LittlevGL图形库  |        [link](https://github.com/lvgl/lvgl)        |            |
-| [lvgl_gaussian_blur](./graphics/lvgl_gaussian_blur) | LVGL高斯模糊效果 | [link](https://gitee.com/MIHI1/lvgl_gaussian_blur) | cpp->c     |
-| [lvgl_pm](./graphics/lvgl_pm)                       | LVGL页面管理器   |     [link](https://github.com/LanFly/lvgl-pm)      |            |
-| [u8g2](./graphics/u8g2)                             | U8g2图形库       |      [link](https://github.com/olikraus/u8g2)      |            |
-| [ugui](./graphics/ugui)                             | uGUI图形库       |    [link](https://github.com/achimdoebler/UGUI)    |            |
-| [virtual_lcd](./graphics/virtual_lcd)               | 虚拟LCD          |                         *                          | 包含上位机 |
+| [Graphics](./graphics)                              | 图形             |                        src                         | 备注       | SHA     |
+| --------------------------------------------------- | ---------------- | :------------------------------------------------: | ---------- | ------- |
+| [easy_ui](./graphics/easy_ui)                       | 单色屏UI库       |      [link](https://github.com/ErBWs/Easy-UI)      | 大幅魔改   | 691bdb4 |
+| [hagl](./graphics/hagl)                             | HAL图形库        |      [link](https://github.com/tuupola/hagl)       |            | 8281a8a |
+| [lvgl](./graphics/lvgl)                             | LittlevGL图形库  |        [link](https://github.com/lvgl/lvgl)        |            | 3aac8cc |
+| [lvgl_gaussian_blur](./graphics/lvgl_gaussian_blur) | LVGL高斯模糊效果 | [link](https://gitee.com/MIHI1/lvgl_gaussian_blur) | cpp->c     |         |
+| [lvgl_pm](./graphics/lvgl_pm)                       | LVGL页面管理器   |     [link](https://github.com/LanFly/lvgl-pm)      |            | 825df21 |
+| [u8g2](./graphics/u8g2)                             | U8g2图形库       |      [link](https://github.com/olikraus/u8g2)      |            | 3e86287 |
+| [ugui](./graphics/ugui)                             | uGUI图形库       |    [link](https://github.com/achimdoebler/UGUI)    |            | ce0bccb |
+| [virtual_lcd](./graphics/virtual_lcd)               | 虚拟LCD          |                         *                          | 包含上位机 |         |
 
 </details>
 
 <details>
   <summary>神经网络模块 /nn</summary>
 
-| [NN](./nn)            | 神经网络         |                    src                     | 备注 |
-| --------------------- | ---------------- | :----------------------------------------: | ---- |
-| [genann](./nn/genann) | 简单前馈神经网络 | [link](https://github.com/codeplea/genann) |      |
+| [NN](./nn)            | 神经网络         |                    src                     | 备注 | SHA     |
+| --------------------- | ---------------- | :----------------------------------------: | ---- | ------- |
+| [genann](./nn/genann) | 简单前馈神经网络 | [link](https://github.com/codeplea/genann) |      | 4f72209 |
 
 </details>
 
 <details>
   <summary>外设模块 /peripheral</summary>
 
-| [Peripheral](./peripheral)            | 外设               |                      src                       | 备注          |
-| ------------------------------------- | ------------------ | :--------------------------------------------: | ------------- |
-| [board_i2c](./peripheral/board_i2c)   | 板级I2C包装层      |                       *                        |               |
-| [board_led](./peripheral/board_led)   | 板级LED包装层      |                       *                        |               |
-| [ee](./peripheral/ee)                 | 内置flash读写库    |     [link](https://github.com/nimaltd/ee)      |               |
-| [i2c_salve](./peripheral/i2c_slave)   | LL库I2C从机        |                       *                        |               |
-| [ll_i2c](./peripheral/ll_i2c)         | LL库I2C            |                       *                        | 包含中断/轮询 |
-| [mr_library](./peripheral/mr_library) | 轻量级设备读写接口 |  [link](https://gitee.com/MacRsh/mr-library)   |               |
-| [sw_i2c](./peripheral/sw_i2c)         | 软件I2C            | [link](https://github.com/liyanboy74/soft-i2c) |               |
-| [sw_spi](./peripheral/sw_spi)         | 软件SPI            |                       x                        |               |
-| [uni_io](./peripheral/uni_io)         | 数据通信功能包     |                       *                        |               |
+| [Peripheral](./peripheral)            | 外设               |                      src                       | 备注          | SHA     |
+| ------------------------------------- | ------------------ | :--------------------------------------------: | ------------- | ------- |
+| [board_i2c](./peripheral/board_i2c)   | 板级I2C包装层      |                       *                        |               |         |
+| [board_led](./peripheral/board_led)   | 板级LED包装层      |                       *                        |               |         |
+| [ee](./peripheral/ee)                 | 内置flash读写库    |     [link](https://github.com/nimaltd/ee)      |               | 460d569 |
+| [i2c_salve](./peripheral/i2c_slave)   | LL库I2C从机        |                       *                        |               |         |
+| [ll_i2c](./peripheral/ll_i2c)         | LL库I2C            |                       *                        | 包含中断/轮询 |         |
+| [mr_library](./peripheral/mr_library) | 轻量级设备读写接口 |  [link](https://gitee.com/MacRsh/mr-library)   |               |         |
+| [sw_i2c](./peripheral/sw_i2c)         | 软件I2C            | [link](https://github.com/liyanboy74/soft-i2c) |               | c595a39 |
+| [sw_spi](./peripheral/sw_spi)         | 软件SPI            |                       x                        |               |         |
+| [uni_io](./peripheral/uni_io)         | 数据通信功能包     |                       *                        |               |         |
 
 </details>
 
 <details>
   <summary>存储模块 /storage</summary>
 
-| [Storage](./storage)                 | 存储              |                         src                          | 备注 |
-| ------------------------------------ | ----------------- | :--------------------------------------------------: | ---- |
-| [easyflash](./storage/easyflash)     | 轻量级Flash数据库 |     [link](https://github.com/armink/EasyFlash)      |      |
-| [littlefs](./storage/littlefs)       | LittleFS          | [link](https://github.com/littlefs-project/littlefs) |      |
-| [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 |   [link](https://github.com/Jiu-xiao/MiniFlashDB)    | 魔改 |
+| [Storage](./storage)                 | 存储              |                         src                          | 备注 | SHA     |
+| ------------------------------------ | ----------------- | :--------------------------------------------------: | ---- | ------- |
+| [easyflash](./storage/easyflash)     | 轻量级Flash数据库 |     [link](https://github.com/armink/EasyFlash)      |      | a67fffc |
+| [littlefs](./storage/littlefs)       | LittleFS          | [link](https://github.com/littlefs-project/littlefs) |      | d01280e |
+| [MiniFlashDB](./storage/miniflashdb) | 轻量级Flash数据库 |   [link](https://github.com/Jiu-xiao/MiniFlashDB)    | 魔改 | 99bf7aa |
 
 </details>
 
 <details>
   <summary>系统模块 /system</summary>
 
-| [System](./system)                        | 系统                   |                        src                         | 备注            |
-| ----------------------------------------- | ---------------------- | :------------------------------------------------: | --------------- |
-| [dalloc](./system/dalloc)                 | 动态指针管理内存分配器 |  [link](https://github.com/SkyEng1neering/dalloc)  |                 |
-| [heap4](./system/heap4)                   | FreeRTOS堆4            |    [link](https://www.freertos.org/a00111.html)    |                 |
-| [klite](./system/klite)                   | 基础实时内核           |      [link](https://gitee.com/kerndev/klite)       | 轻量高性能,推荐 |
-| [lwmem](./system/lwmem)                   | 轻量级内存管理         |      [link](https://github.com/MaJerle/lwmem)      | 性能远不如heap4 |
-| [rtthread_nano](./system/rtthread_nano)   | RT-Thread Nano         | [link](https://github.com/RT-Thread/rtthread-nano) |                 |
-| [s_task](./system/s_task)                 | 精简的协程实现         |     [link](https://github.com/xhawk18/s_task)      | 需要实现栈切换  |
-| [scheduler](./system/scheduler)           | 多功能任务调度器       |                         *                          | 内有使用说明    |
-| [scheduler_lite](./system/scheduler_lite) | 轻量级任务调度器       |                         *                          |                 |
+| [System](./system)                        | 系统                   |                        src                         | 备注            | SHA     |
+| ----------------------------------------- | ---------------------- | :------------------------------------------------: | --------------- | ------- |
+| [dalloc](./system/dalloc)                 | 动态指针管理内存分配器 |  [link](https://github.com/SkyEng1neering/dalloc)  |                 | da14f0f |
+| [heap4](./system/heap4)                   | FreeRTOS堆4            |    [link](https://www.freertos.org/a00111.html)    |                 |         |
+| [klite](./system/klite)                   | 基础实时内核           |      [link](https://gitee.com/kerndev/klite)       | 轻量高性能,推荐 |         |
+| [lwmem](./system/lwmem)                   | 轻量级内存管理         |      [link](https://github.com/MaJerle/lwmem)      | 性能远不如heap4 | d7a159c |
+| [rtthread_nano](./system/rtthread_nano)   | RT-Thread Nano         | [link](https://github.com/RT-Thread/rtthread-nano) |                 | 9177e3e |
+| [s_task](./system/s_task)                 | 精简的协程实现         |     [link](https://github.com/xhawk18/s_task)      | 需要实现栈切换  | 609835c |
+| [scheduler](./system/scheduler)           | 多功能任务调度器       |                         *                          | 内有使用说明    |         |
+| [scheduler_lite](./system/scheduler_lite) | 轻量级任务调度器       |                         *                          |                 |         |
 
 </details>
 
 <details>
   <summary>工具模块 /utility</summary>
 
-| [Utility](./utility)                   | 工具                       |                          src                          | 备注        |
-| -------------------------------------- | -------------------------- | :---------------------------------------------------: | ----------- |
-| [cot_menu](./utility/cot_menu)         | 轻量级菜单框架             |    [link](https://gitee.com/cot_package/cot_menu)     | 抽象菜单    |
-| [embedded_cli](./utility/embedded_cli) | 嵌入式命令行               |  [link](https://github.com/funbiscuit/embedded-cli)   | 魔改        |
-| [lwprintf](./utility/lwprintf)         | 轻量级无缓冲区printf       |      [link](https://github.com/MaJerle/lwprintf)      |             |
-| [perf_counter](./utility/perf_counter) | PerfCounter性能统计/时基库 | [link](https://github.com/GorgonMeducer/perf_counter) | 必备品      |
-| [ryu](./utility/ryu)                   | 浮点数转字符串             |        [link](https://github.com/tidwall/ryu)         |             |
-| [term_table](./utility/term_table)     | 动态终端表格工具           |                           *                           | 仅debug使用 |
-| [TimeLib](./utility/TimeLib)           | UNIX时间库                 |    [link](https://github.com/geekfactory/TimeLib)     |             |
-| [xv](./utility/xv)                     | 类JavaScript的字符串解析器 |         [link](https://github.com/tidwall/xv)         |             |
-| [tiny_regex](./utility/tiny_regex)     | 简易正则解析器             |   [link](https://github.com/zeta-zero/tiny-regex-c)   | 无捕获组    |
-| [incbin.h](./utility/incbin)           | 二进制文件嵌入             |   [link](https://github.com/graphitemaster/incbin)    |             |
-| [macro.h](./utility/macro.h)           | 通用宏                     |                           *                           |             |
+| [Utility](./utility)                   | 工具                       |                          src                          | 备注        | SHA     |
+| -------------------------------------- | -------------------------- | :---------------------------------------------------: | ----------- | ------- |
+| [cot_menu](./utility/cot_menu)         | 轻量级菜单框架             |    [link](https://gitee.com/cot_package/cot_menu)     | 抽象菜单    |         |
+| [embedded_cli](./utility/embedded_cli) | 嵌入式命令行               |  [link](https://github.com/funbiscuit/embedded-cli)   | 魔改        | ffa8014 |
+| [lwprintf](./utility/lwprintf)         | 轻量级无缓冲区printf       |      [link](https://github.com/MaJerle/lwprintf)      |             | 18a1338 |
+| [perf_counter](./utility/perf_counter) | PerfCounter性能统计/时基库 | [link](https://github.com/GorgonMeducer/perf_counter) | 必备品      | 0b17943 |
+| [ryu](./utility/ryu)                   | 浮点数转字符串             |        [link](https://github.com/tidwall/ryu)         |             | 5056abc |
+| [term_table](./utility/term_table)     | 动态终端表格工具           |                           *                           | 仅debug使用 |         |
+| [TimeLib](./utility/TimeLib)           | UNIX时间库                 |    [link](https://github.com/geekfactory/TimeLib)     |             | 8bdf963 |
+| [xv](./utility/xv)                     | 类JavaScript的字符串解析器 |         [link](https://github.com/tidwall/xv)         |             | b46851f |
+| [tiny_regex](./utility/tiny_regex)     | 简易正则解析器             |   [link](https://github.com/zeta-zero/tiny-regex-c)   | 无捕获组    | 9d5f5d8 |
+| [incbin.h](./utility/incbin)           | 二进制文件嵌入             |   [link](https://github.com/graphitemaster/incbin)    |             | 6e576ca |
+| [macro.h](./utility/macro.h)           | 通用宏                     |                           *                           |             |         |
 
 </details>
 
@@ -248,6 +248,7 @@ optional arguments:
   -n, --newmodule       Create a new module
   -u, --update          Pull the latest version of this toolset from github
   -a, --analyze         Analyze module dependencies
+  -c, --check           Check for updates of modules
   -d MODULE_DIRNAME, --module-dirname MODULE_DIRNAME
                         Specify the directory name for generated modules, default is 'Modules'
   --debug               Enable debug output

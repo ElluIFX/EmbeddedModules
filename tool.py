@@ -1,5 +1,7 @@
 import argparse
+import asyncio
 import datetime
+import json
 import os
 import re
 import shutil
@@ -112,6 +114,7 @@ except ImportError:
     from rich.console import Console  # noqa: F401
     from rich.prompt import Confirm, Prompt
     from rich.table import Table
+
 module_root = os.path.dirname(os.path.abspath(__file__))
 
 con = Console()
@@ -772,6 +775,96 @@ def analyze_module_deps():
         )
 
 
+@dataclass(eq=True, frozen=True)
+class ReadmeModule:
+    name: str
+    path: str
+    brief: str
+    src: str
+    note: str
+    sha: str
+
+
+def list_readme_module(readme_file: str = "readme.md") -> List[ReadmeModule]:
+    with open(readme_file, "r", encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+    modules = []
+    for line in content.splitlines():
+        line = line.strip()
+        spl = line.split("|")
+        if len(spl) != 7 or "SHA" in spl[-2] or "-" in spl[-2]:
+            continue
+        try:
+            name = re.search(r"\[(.*)\]", spl[1]).group(1)
+            path = re.search(r"\((.*)\)", spl[1]).group(1)
+            brief = spl[2].strip()
+            if (match := re.search(r"\((.*)\)", spl[3])) is not None:
+                src = match.group(1)
+            else:
+                src = ""
+            note = spl[4].strip()
+            sha = spl[5].strip()
+            if not sha:
+                sha = "N/A"
+        except Exception:
+            continue
+        modules.append(ReadmeModule(name, path, brief, src, note, sha))
+    return modules
+
+
+def check_for_updates(max_workers: int = 8):
+    try:
+        import aiohttp
+    except ImportError:
+        install_package("aiohttp")
+        import aiohttp  # noqa: F401
+
+    async def get_latest_commit_sha(repo, sem, sha_num=7):
+        TOKEN = "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"  # not good I know
+        url = f"https://api.github.com/repos/{repo}/commits"
+        async with sem, aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                headers={
+                    "Authorization": f"token {TOKEN}",
+                    "Accept": "application/vnd.github.v3+json",
+                },
+            ) as response:
+                data = await response.text()
+                if not response.ok:
+                    return "N/A"
+                jsdata = json.loads(data)
+        return jsdata[0]["sha"][:sha_num]
+
+    modules = list_readme_module()
+    log("info", f"checking updates for {len(modules)} modules")
+    reqs = {}
+    for module in modules:
+        if "github.com" not in module.src:
+            continue
+        repo = "/".join(module.src.split("github.com/")[1].split("/")[:2])
+        reqs[module] = repo
+    sem = asyncio.Semaphore(max_workers)
+    loop = asyncio.get_event_loop()
+    tasks = [
+        loop.create_task(get_latest_commit_sha(repo, sem)) for repo in reqs.values()
+    ]
+    loop.run_until_complete(asyncio.wait(tasks))
+    resps = {module: task.result() for module, task in zip(reqs.keys(), tasks)}
+    olds = {}
+    for module, sha in resps.items():
+        if sha != module.sha:
+            olds[module] = sha
+    if not olds:
+        log("success", "all modules are up-to-date")
+        return
+    log("warning", "below modules have updates:")
+    for module, sha in olds.items():
+        con.print(
+            f"[yellow]{module.name}[/yellow] [red]{module.sha}[/red] -> [green]{sha}[/green] {module.src}"
+        )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -822,6 +915,12 @@ if __name__ == "__main__":
         help="Analyze module dependencies",
     )
     parser.add_argument(
+        "-c",
+        "--check",
+        action="store_true",
+        help="Check for updates of modules",
+    )
+    parser.add_argument(
         "-d",
         "--module-dirname",
         type=str,
@@ -869,8 +968,12 @@ if __name__ == "__main__":
     elif args.sync:
         check_working_dir(project_dir, module_dir, auto_create=False)
         sync_module_files(CONFIG_FILE, module_dir, EXT_FILES, skip_modules)
-    elif args.analyze:
+
+    if args.analyze:
         analyze_module_deps()
+
+    if args.check:
+        check_for_updates()
 
     if not any(
         [
@@ -880,6 +983,7 @@ if __name__ == "__main__":
             args.update,
             guiconfig,
             args.analyze,
+            args.check,
         ]
     ):
         parser.print_help()
