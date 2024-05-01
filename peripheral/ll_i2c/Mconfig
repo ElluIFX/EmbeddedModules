@@ -1,0 +1,8 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
+if CONFIG.LL_IIC_CFG_USE_IT:
+    IGNORES += "ll_i2c_poll.c"
+else:
+    IGNORES += "ll_i2c_it.c"
