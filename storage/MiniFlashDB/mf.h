@@ -28,6 +28,8 @@ typedef enum {
     MF_ERR_NULL = -3,   // 键值不存在
     MF_ERR_EXIST = -4,  // 键值已存在
     MF_ERR_SIZE = -5,   // 数据大小不匹配
+    MF_ERR_IO = -6,     // IO错误(FALSH读写错误)
+    MF_ERR_BLOCK = -7,  // FLASH块错误(数据区域被破坏)
 } mf_status_t;
 
 /**
@@ -37,19 +39,22 @@ void mf_init(void);
 
 /**
  * @brief 执行数据库保存
+ * @retval 操作结果 (MF_OK/MF_ERR_IO)
  */
-void mf_save(void);
+mf_status_t mf_save(void);
 
 /**
  * @brief 重载数据库, 丢弃所有未保存的更改
+ * @retval 操作结果 (MF_OK/MF_ERR_BLOCK)
  */
-void mf_load(void);
+mf_status_t mf_load(void);
 
 /**
  * @brief 执行数据库清空
  * @warning 会同时清空备份区，危险操作
+ * @retval 操作结果 (MF_OK/MF_ERR_IO)
  */
-void mf_purge(void);
+mf_status_t mf_purge(void);
 
 /**
  * @brief 获取数据库键值数量
@@ -156,4 +161,4 @@ bool mf_iter(mf_keyinfo_t* key);
 }
 #endif
 
-#endif
+#endif /* __MF_H__ */

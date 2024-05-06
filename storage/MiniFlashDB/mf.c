@@ -30,7 +30,7 @@ static mf_flash_t* info_main = NULL;
 static mf_flash_t* info_backup = NULL;
 #endif
 
-static void block_sumcheck(mf_flash_t* block) {
+static void block_calc_sumcheck(mf_flash_t* block) {
     uint8_t sumcheck = 0;
     block->sumcheck = 0;
     for (int i = 0; i < MF_FLASH_BLOCK_SIZE; i++) {
@@ -44,12 +44,11 @@ static void init_temp(void) {
     memset(mf_temp, MF_FLASH_FILL, MF_FLASH_BLOCK_SIZE);
     memcpy(mf_temp, &info, sizeof(info));
     mf_temp[MF_FLASH_BLOCK_SIZE - 1] = MF_FLASH_TAIL;
-    block_sumcheck(mf_data);
+    block_calc_sumcheck(mf_data);
 }
 
-static void init_block(mf_flash_t* block) {
-    mf_erase((uint32_t)block);
-    mf_write((uint32_t)block, mf_temp);
+static bool init_block(mf_flash_t* block) {
+    return mf_erase((uint32_t)block) && mf_write((uint32_t)block, mf_temp);
 }
 
 static bool block_empty(mf_flash_t* block) {
@@ -103,26 +102,37 @@ void mf_init(void) {
     memcpy(mf_temp, info_main, MF_FLASH_BLOCK_SIZE);
 }
 
-void mf_save(void) {
+mf_status_t mf_save(void) {
 #ifdef MF_FLASH_BACKUP_ADDR
-    mf_erase((uint32_t)(info_backup));
-    mf_write((uint32_t)info_backup, info_main);
+    if (!mf_erase((uint32_t)(info_backup)))
+        return MF_ERR_IO;
+    if (!mf_write((uint32_t)info_backup, info_main))
+        return MF_ERR_IO;
 #endif
-    block_sumcheck(mf_data);
-    mf_erase((uint32_t)info_main);
-    mf_write((uint32_t)info_main, mf_temp);
+    block_calc_sumcheck(mf_data);
+    if (!mf_erase((uint32_t)info_main))
+        return MF_ERR_IO;
+    if (!mf_write((uint32_t)info_main, mf_temp))
+        return MF_ERR_IO;
+    return MF_OK;
 }
 
-void mf_load(void) {
+mf_status_t mf_load(void) {
+    if (block_err(info_main))
+        return MF_ERR_BLOCK;
     memcpy(mf_temp, info_main, MF_FLASH_BLOCK_SIZE);
+    return MF_OK;
 }
 
-void mf_purge(void) {
+mf_status_t mf_purge(void) {
     init_temp();
-    init_block(info_main);
+    if (!init_block(info_main))
+        return MF_ERR_IO;
 #ifdef MF_FLASH_BACKUP_ADDR
-    init_block(info_backup);
+    if (!init_block(info_backup))
+        return MF_ERR_IO;
 #endif
+    return MF_OK;
 }
 
 static const char* get_key_name(mf_key_t* key) {
