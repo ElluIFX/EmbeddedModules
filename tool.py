@@ -812,6 +812,9 @@ def list_readme_module(readme_file: str = "readme.md") -> List[ReadmeModule]:
     return modules
 
 
+last_error_msg = ""
+
+
 def check_for_updates(max_workers: int = 8):
     try:
         import aiohttp
@@ -820,7 +823,8 @@ def check_for_updates(max_workers: int = 8):
         import aiohttp  # noqa: F401
 
     async def get_latest_commit_sha(repo, sem, sha_num=7):
-        TOKEN = "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"  # not good I know
+        global last_error_msg
+        TOKEN = "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"  # not good I know
         url = f"https://api.github.com/repos/{repo}/commits"
         async with sem, aiohttp.ClientSession() as session:
             async with session.get(
@@ -832,6 +836,7 @@ def check_for_updates(max_workers: int = 8):
             ) as response:
                 data = await response.text()
                 if not response.ok:
+                    last_error_msg = data
                     return "N/A"
                 jsdata = json.loads(data)
         return jsdata[0]["sha"][:sha_num]
@@ -862,6 +867,11 @@ def check_for_updates(max_workers: int = 8):
     for module, sha in olds.items():
         con.print(
             f"[yellow]{module.name}[/yellow] [red]{module.sha}[/red] -> [green]{sha}[/green] {module.src}"
+        )
+    if last_error_msg:
+        log(
+            "error",
+            f"some error occurred when fetching data, last error: {last_error_msg}",
         )
 
 
