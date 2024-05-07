@@ -9,7 +9,7 @@
 #include "main.h"
 
 /* 一块FLASH空间的大小 */
-#define MF_FLASH_BLOCK_SIZE (EE_SIZE / 2)
+#define MF_FLASH_BLOCK_SIZE (EE_SIZE)
 
 /* 主FLASH地址 */
 #define MF_FLASH_MAIN_ADDR EE_ADDRESS(0)  // 倒数第一个page
@@ -19,6 +19,10 @@
 
 /* FLASH空数据填充值 */
 #define MF_FLASH_FILL 0xFF
+
+/* FLASH标志位 */
+#define MF_FLASH_HEADER 0xCAFEBA  // 数据库头(24-bit)
+#define MF_FLASH_TAIL 0xBE        // 数据库尾(8-bit)
 
 /* Flash读写函数 */
 

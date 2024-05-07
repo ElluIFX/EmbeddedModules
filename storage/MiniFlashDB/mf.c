@@ -3,13 +3,10 @@
 #if __has_include("mf_hal.h")
 #include "mf_hal.h"
 #else
-#include "mf_hal_template.h"
+#include "mf_hal_ee.h"
 #endif
 
 #include <stdint.h>
-
-#define MF_FLASH_HEADER 0xCAFEBA  // 数据库头(24-bit)
-#define MF_FLASH_TAIL 0xBE        // 数据库尾(8-bit)
 
 typedef struct {
     uint32_t name_size : 8;
