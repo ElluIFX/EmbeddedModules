@@ -68,7 +68,56 @@ static bool block_err(mf_flash_t* block) {
            block->key.data_size > MF_FLASH_BLOCK_SIZE || sumcheck != 0xFF;
 }
 
-void mf_init(void) {
+mf_status_t mf_fix(void) {
+#ifdef MF_FLASH_BACKUP_ADDR
+    bool main_to_backup = false;  // try to rewrite from main block
+    if (block_err(info_backup)) {
+        main_to_backup = true;
+        LOG_WARN("Backup block error");
+        if (!init_block(info_backup)) {
+            LOG_ERROR("Backup block init failed");
+            return MF_ERR_IO;
+        }
+    }
+#endif
+    if (block_err(info_main)) {
+        do {
+            LOG_WARN("Main block error");
+#ifdef MF_FLASH_BACKUP_ADDR
+            if (!block_empty(info_backup) &&
+                !main_to_backup) {  // restore backup
+                if (mf_erase((uint32_t)info_main) &&
+                    mf_write((uint32_t)info_main, info_backup)) {
+                    LOG_INFO("Main block restored from backup");
+                    break;  // skip init
+                } else {
+                    LOG_ERROR("Main block restore failed");
+                }
+            }
+            main_to_backup = false;  // main block has no data
+#endif
+            if (!init_block(info_main)) {
+                LOG_ERROR("Main block init failed");
+                return MF_ERR_IO;
+            }
+            LOG_INFO("Main block reinitialized");
+        } while (0);
+    } else {
+#ifdef MF_FLASH_BACKUP_ADDR
+        if (main_to_backup) {
+            if (!mf_erase((uint32_t)info_backup) ||
+                !mf_write((uint32_t)info_backup, info_main)) {
+                LOG_WARN("Backup block rewritten failed");
+            }
+            LOG_INFO("Backup block rewritten from main");
+        }
+#endif
+    }
+    memcpy(mf_temp, info_main, MF_FLASH_BLOCK_SIZE);
+    return MF_OK;
+}
+
+mf_status_t mf_try_init(void) {
     info_main = (mf_flash_t*)MF_FLASH_MAIN_ADDR;
 #ifdef MF_FLASH_BACKUP_ADDR
     info_backup = (mf_flash_t*)MF_FLASH_BACKUP_ADDR;
@@ -76,27 +125,19 @@ void mf_init(void) {
 
     init_temp();
 
-#ifdef MF_FLASH_BACKUP_ADDR
-    if (block_err(info_backup)) {
-        LOG_WARN("Backup block error");
-        init_block(info_backup);
-    }
-#endif
-
-    if (block_err(info_main)) {
-        LOG_WARN("Main block error");
-#ifdef MF_FLASH_BACKUP_ADDR
-        if (!block_empty(info_backup)) {  // restore backup
-            mf_write((uint32_t)info_main, info_backup);
-        } else {
-            init_block(info_main);
-        }
-#else
-        init_block(info_main);
-#endif
-    }
+    if (block_err(info_main))
+        return MF_ERR_BLOCK;
 
     memcpy(mf_temp, info_main, MF_FLASH_BLOCK_SIZE);
+    return MF_OK;
+}
+
+mf_status_t mf_init(void) {
+    mf_status_t status = mf_try_init();
+    if (status == MF_ERR_BLOCK) {
+        return mf_fix();
+    }
+    return status;
 }
 
 mf_status_t mf_save(void) {
