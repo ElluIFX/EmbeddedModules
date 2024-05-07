@@ -19,6 +19,11 @@ extern "C" {
 #include "log.h"
 #include "spif.h"
 
+#ifndef FLASH_HSPI_HANDLE
+#error \
+    "FLASH_HSPI_HANDLE not defined, please define it before including spif_port_lfs.h"
+#endif
+
 SPIF_HandleTypeDef hspif;
 lfs_t lfs;
 

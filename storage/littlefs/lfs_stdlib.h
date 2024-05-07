@@ -1,7 +1,7 @@
 // 用 lfs(littlefs) 模拟标准C库的文件操作
 
-#ifndef LFS_STDLIB_H
-#define LFS_STDLIB_H
+#ifndef __LFS_STDLIB_H__
+#define __LFS_STDLIB_H__
 
 #include "lfs.h"
 #include "lwprintf.h"
@@ -256,4 +256,4 @@ static inline int __vfscanf(FILE* file, const char* format, va_list args) {
 }
 #endif
 
-#endif  // LFS_STDLIB_H
+#endif /* __LFS_STDLIB_H__ */
