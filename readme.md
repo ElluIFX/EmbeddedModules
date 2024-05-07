@@ -54,7 +54,7 @@
 
 | [DataStruct](./datastruct)              | 数据结构                |                       src                       | 备注         | SHA     |
 | --------------------------------------- | ----------------------- | :---------------------------------------------: | ------------ | ------- |
-| [btree](./datastruct/btree)             | B树                     |   [link](https://github.com/tidwall/btree.c)    |              | cf1bb92 |
+| [btree](./datastruct/btree)             | B树                     |   [link](https://github.com/tidwall/btree.c)    |              | c0cfc4e |
 | [cstring](./datastruct/cstring)         | C字符串                 |   [link](https://github.com/cloudwu/cstring)    |              | 88e021b |
 | [ctl](./datastruct/ctl)                 | 类型安全C模板容器库     |      [link](https://github.com/rurban/ctl)      |              | d314c08 |
 | [dlist](./datastruct/dlist)             | 双向链表                |      [link](https://github.com/clibs/list)      |              | 23faa20 |
