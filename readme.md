@@ -284,6 +284,12 @@ optional arguments:
   python tool.py -a
   ```
 
+- **检查所有模块的更新情况** (比较本文件记录的SHA和仓库中最新提交的SHA)
+
+  ```shell
+  python tool.py -c
+  ```
+
 - **冻结生成文件夹中的某个模块** (如针对项目修改了模块源码时)
 
   在生成文件夹 (如`Modules`) 的根目录创建一个`.Mfreeze`文件, 写入要冻结的模块文件夹名, 每行一个

@@ -856,6 +856,11 @@ def check_for_updates(max_workers: int = 8):
         loop.create_task(get_latest_commit_sha(repo, sem)) for repo in reqs.values()
     ]
     loop.run_until_complete(asyncio.wait(tasks))
+    if last_error_msg:
+        log(
+            "error",
+            f"some error occurred when fetching data, last error: {last_error_msg}",
+        )
     resps = {module: task.result() for module, task in zip(reqs.keys(), tasks)}
     olds = {}
     for module, sha in resps.items():
@@ -863,17 +868,18 @@ def check_for_updates(max_workers: int = 8):
             olds[module] = sha
     if not olds:
         log("success", "all modules are up-to-date")
-        return
-    log("warning", "below modules have updates:")
-    for module, sha in olds.items():
-        con.print(
-            f"[yellow]{module.name}[/yellow] [red]{module.sha}[/red] -> [green]{sha}[/green] {module.src}"
-        )
-    if last_error_msg:
-        log(
-            "error",
-            f"some error occurred when fetching data, last error: {last_error_msg}",
-        )
+    else:
+        log("warning", "below modules may have updates:")
+        table = Table("Module", "Latest Commit", "Repository", box=None)
+        for module, sha in olds.items():
+            table.add_row(
+                f"[yellow]{module.name}",
+                "[red]failed to check"
+                if sha == "N/A"
+                else f"[red]{module.sha}[/red] -> [green]{sha}",
+                f"[blue]{module.src}",
+            )
+        con.print(table)
 
 
 if __name__ == "__main__":
