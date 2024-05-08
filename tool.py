@@ -815,7 +815,7 @@ def list_readme_module(readme_file: str = "readme.md") -> List[ReadmeModule]:
 last_error_msg = ""
 
 
-def check_for_updates(max_workers: int = 8):
+def check_for_updates(max_workers: int = 64):
     try:
         import aiohttp
     except ImportError:
