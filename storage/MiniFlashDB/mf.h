@@ -204,6 +204,7 @@ __MF_HELPER_DECLARE(i32, int32_t)
 __MF_HELPER_DECLARE(i64, int64_t)
 __MF_HELPER_DECLARE(f32, float)
 __MF_HELPER_DECLARE(f64, double)
+__MF_HELPER_DECLARE(str, char*)
 #undef __MF_HELPER_DECLARE
 
 #endif  // Helper functions
