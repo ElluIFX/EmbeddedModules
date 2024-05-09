@@ -175,24 +175,16 @@ bool mf_iter(mf_keyinfo_t* key);
 
 #if 1  // Helper functions
 
-#define __MF_HELPER_DECLARE(name, type)                                        \
-    static inline mf_status_t mf_hset_##name(const char* key, type value) {    \
-        return mf_set_key(key, &value, sizeof(type));                          \
-    }                                                                          \
-    static inline mf_status_t mf_hget_##name(const char* key, type* value) {   \
-        return mf_get_key(key, value, sizeof(type));                           \
-    }                                                                          \
-    static inline type mf_hget_##name##_def(const char* key, type def) {       \
-        type value;                                                            \
-        return mf_get_key(key, &value, sizeof(type)) == MF_OK ? value : def;   \
-    }                                                                          \
-    static inline mf_status_t mf_hset_##name##_arr(                            \
-        const char* key, const type* value, size_t size) {                     \
-        return mf_set_key(key, value, size * sizeof(type));                    \
-    }                                                                          \
-    static inline mf_status_t mf_hget_##name##_arr(const char* key,            \
-                                                   type* value, size_t size) { \
-        return mf_get_key(key, value, size * sizeof(type));                    \
+#define __MF_HELPER_DECLARE(name, type)                                      \
+    static inline mf_status_t mf_hset_##name(const char* key, type value) {  \
+        return mf_set_key(key, &value, sizeof(type));                        \
+    }                                                                        \
+    static inline mf_status_t mf_hget_##name(const char* key, type* value) { \
+        return mf_get_key(key, value, sizeof(type));                         \
+    }                                                                        \
+    static inline type mf_hget_##name##_def(const char* key, type def) {     \
+        type value;                                                          \
+        return mf_get_key(key, &value, sizeof(type)) == MF_OK ? value : def; \
     }
 __MF_HELPER_DECLARE(u8, uint8_t)
 __MF_HELPER_DECLARE(u16, uint16_t)
@@ -204,7 +196,6 @@ __MF_HELPER_DECLARE(i32, int32_t)
 __MF_HELPER_DECLARE(i64, int64_t)
 __MF_HELPER_DECLARE(f32, float)
 __MF_HELPER_DECLARE(f64, double)
-__MF_HELPER_DECLARE(str, char*)
 #undef __MF_HELPER_DECLARE
 
 #endif  // Helper functions
