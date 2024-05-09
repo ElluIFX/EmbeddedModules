@@ -54,7 +54,11 @@ struct kl_thread {
     void* stack;                        // 栈基地址
     kl_size_t stack_size;               // 栈大小
     void (*entry)(void*);               // 线程入口
-    uint32_t prio;                      // 线程优先级
+    uint32_t prio : 16;                 // 线程优先级
+    uint32_t magic : 16;                // 线程优先级
+    uint32_t tid : 16;                  // 线程ID
+    uint32_t err : 8;                   // 错误码
+    uint32_t flags : 8;                 // 线程状态
     kl_tick_t time;                     // 线程运行时间
     kl_tick_t timeout;                  // 睡眠超时时间
     struct kl_thread_list* list_sched;  // 当前所处调度队列
@@ -63,9 +67,6 @@ struct kl_thread {
     struct kl_thread_node node_wait;    // 等待队列节点
     struct kl_thread_node node_manage;  // 管理队列节点
     struct kl_thread_list list_join;    // 等待本线程结束的线程列表
-    uint16_t tid;                       // 线程ID
-    uint8_t err;                        // 错误码
-    uint8_t flags;                      // 线程状态
 };
 typedef struct kl_thread* kl_thread_t;
 

@@ -5,10 +5,12 @@ static struct kl_thread_list m_list_alive;  // 运行中线程列表
 static struct kl_thread_list m_list_dead;   // 待删除线程列表
 static uint16_t kl_thread_id_counter;       // 线程ID计数器
 
-#define THREAD_OPERATION_INVALID(tcb) \
-    (!(tcb) || (tcb)->prio == 0 || (tcb)->flags & KL_THREAD_FLAGS_EXITED)
-#define THREAD_INFO_INVALID(tcb) \
-    (!(tcb) || (tcb)->flags & KL_THREAD_FLAGS_EXITED)
+#define THREAD_OPERATION_INVALID(tcb)                                       \
+    (!(tcb) || (tcb)->prio == 0 || (tcb)->flags & KL_THREAD_FLAGS_EXITED || \
+     (tcb)->magic != KL_THREAD_MAGIC_VALUE)
+#define THREAD_INFO_INVALID(tcb)                        \
+    (!(tcb) || (tcb)->flags & KL_THREAD_FLAGS_EXITED || \
+     (tcb)->magic != KL_THREAD_MAGIC_VALUE)
 
 kl_thread_t kl_thread_self(void) {
     return (kl_thread_t)kl_sched_tcb_now;
@@ -56,6 +58,7 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
     tcb->stack = kl_port_stack_init(stack_base, stack_base + stack_size,
                                     (void*)entry, arg, (void*)kl_thread_exit);
 
+    tcb->magic = KL_THREAD_MAGIC_VALUE;
     tcb->stack_size = stack_size;
     tcb->prio = prio;
     tcb->entry = entry;
@@ -83,6 +86,11 @@ void kl_thread_delete(kl_thread_t thread) {
     kl_blist_remove(&m_list_alive, &thread->node_manage);
     kl_sched_tcb_remove(thread);
     kl_port_leave_critical();
+
+#if KLITE_CFG_HEAP_AUTO_FREE
+    kl_heap_auto_free(thread);
+#endif
+    thread->magic = 0;
     kl_heap_free(thread);
 }
 
@@ -185,6 +193,9 @@ uint32_t kl_thread_priority(kl_thread_t thread) {
 }
 
 uint32_t kl_thread_id(kl_thread_t thread) {
+    if (thread == NULL) {
+        return 0;  // NULL is main thread
+    }
     if (THREAD_INFO_INVALID(thread)) {
         KL_SET_ERRNO(KL_EINVAL);
         return KL_INVALID;
@@ -273,6 +284,11 @@ void kl_thread_idle_task(void) {
         node = m_list_dead.head;
         kl_blist_remove(&m_list_dead, node);
         kl_port_leave_critical();
+
+#if KLITE_CFG_HEAP_AUTO_FREE
+        kl_heap_auto_free(node->tcb);
+#endif
+        node->tcb->magic = 0;
         kl_heap_free(node->tcb);
     }
 }

@@ -344,6 +344,24 @@ bool kl_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner, kl_size_t* addr,
     return false;
 }
 
+#if KLITE_CFG_HEAP_AUTO_FREE
+
+void kl_heap_auto_free(kl_thread_t owner) {
+    heap_node_t node;
+    heap_node_t next;
+
+    heap_mutex_lock();
+    for (node = heap->head; node->next != NULL; node = next) {
+        next = node->next;
+        if (node->owner == owner) {
+            free_node(node);
+        }
+    }
+    heap_mutex_unlock();
+}
+
+#endif  // KLITE_CFG_HEAP_AUTO_FREE
+
 #endif  // KLITE_CFG_HEAP_TRACE_OWNER
 
 #endif  // KLITE_CFG_HEAP_USE_BUILTIN

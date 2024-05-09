@@ -467,8 +467,13 @@ static void memtrace_cmd_func(EmbeddedCli* cli, char* args, void* context) {
         } else {
             PRINT(T_FMT(T_YELLOW));
         }
-        PRINTLN("0x%X - %d/%d -> %d", addr, used, size, kl_thread_id(owner));
+        PRINT("0x%X - %d/%d -> ", addr, used, size);
+        if (kl_thread_id(owner) == KL_INVALID)
+            PRINTLN(T_FMT(T_RED) "N/A" T_RST);
+        else
+            PRINTLN("%d", kl_thread_id(owner));
     }
+    PRINT(T_RST);
 }
 #endif
 

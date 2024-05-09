@@ -58,10 +58,17 @@ menu "Built-in Heap Configuration"
             Store the previous node pointer in the memory block. Get O(1) time complexity for free() and realloc() operation but cost 4 bytes of memory more for each block.
 
     config KLITE_CFG_HEAP_TRACE_OWNER
-        bool "Trace Owner (Debug)"
+        bool "Trace Owner"
         default n
         help
             Trace the owner of each memory block. Cost 4 bytes of memory more for each block.
+
+    config KLITE_CFG_HEAP_AUTO_FREE
+        bool "Auto Free"
+        default y
+        depends on KLITE_CFG_HEAP_TRACE_OWNER
+        help
+            Free the memory automatically when the owner thread is deleted or exited.
 
     config KLITE_CFG_HEAP_ALIGN_BYTE
         int "Align Byte"

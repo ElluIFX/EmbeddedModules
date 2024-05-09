@@ -1,5 +1,5 @@
-#ifndef __KLITE_PRIVATE_H
-#define __KLITE_PRIVATE_H
+#ifndef __KL_PRIV_H__
+#define __KL_PRIV_H__
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -16,6 +16,7 @@
 #endif
 
 #define KL_STACK_MAGIC_VALUE 0xDEADBEEFU
+#define KL_THREAD_MAGIC_VALUE 0xFEEDU
 
 #define KL_SET_FLAG(flags, mask) ((flags) |= (mask))
 #define KL_GET_FLAG(flags, mask) ((flags) & (mask))
@@ -51,11 +52,6 @@ void kl_port_context_switch(void);
 void* kl_port_stack_init(void* stack_base, void* stack_top, void* entry,
                          void* arg, void* exit);
 
-// 平台实现: 重置线程栈
-// @param stack_base: 栈基地址
-// @param stack_top: 栈顶地址
-void kl_port_stack_reset(void* stack_base, void* stack_top);
-
 // 平台实现: 进入临界区
 void kl_port_enter_critical(void);
 
@@ -64,6 +60,11 @@ void kl_port_leave_critical(void);
 
 // 初始化内核堆
 void kl_heap_init(void* addr, kl_size_t size);
+
+#if KLITE_CFG_HEAP_AUTO_FREE
+// 内核堆自动释放
+void kl_heap_auto_free(kl_thread_t owner);
+#endif
 
 // 内核时钟递增
 void kl_kernel_tick_source(kl_tick_t time);
@@ -177,6 +178,7 @@ kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list* list);
         }                                             \
     } while (0)
 
+// 检查是否超时并返回true/false
 #define KL_RET_CHECK_TIMEOUT()               \
     do {                                     \
         if (kl_sched_tcb_now->timeout > 0) { \
@@ -186,4 +188,4 @@ kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list* list);
         return true;                         \
     } while (0)
 
-#endif
+#endif /* __KL_PRIV_H__ */
