@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
 #include "kl_cfg.h"
 
 #if KLITE_CFG_64BIT_TICK
@@ -33,11 +32,11 @@ typedef enum {
 typedef uint32_t kl_size_t;
 typedef int32_t kl_ssize_t;
 
-#define KL_THREAD_FLAGS_READY 0x01
-#define KL_THREAD_FLAGS_SLEEP 0x02
-#define KL_THREAD_FLAGS_WAIT 0x04
-#define KL_THREAD_FLAGS_SUSPEND 0x08
-#define KL_THREAD_FLAGS_EXITED 0x10
+#define KL_THREAD_FLAGS_READY (1U << 0)
+#define KL_THREAD_FLAGS_SLEEP (1U << 1)
+#define KL_THREAD_FLAGS_WAIT (1U << 2)
+#define KL_THREAD_FLAGS_SUSPEND (1U << 3)
+#define KL_THREAD_FLAGS_EXITED (1U << 4)
 
 struct kl_thread_node {
     struct kl_thread_node* prev;

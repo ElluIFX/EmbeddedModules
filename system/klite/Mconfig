@@ -10,13 +10,15 @@ elif CONFIG.MOD_CFG_COMPILER_IAR:
 elif CONFIG.MOD_CFG_COMPILER_GCC:
     _ignores.remove("*gcc.s")
 IGNORES += _ignores
-_ignores = ["cortex-m0", "cortex-m3", "cortex-m4-m7"]
+_ignores = ["cortex-m0", "cortex-m3", "cortex-m4-m7", "arm9"]
 if CONFIG.MOD_CFG_CPU_CM0:
     _ignores.remove("cortex-m0")
 elif CONFIG.MOD_CFG_CPU_CM3:
     _ignores.remove("cortex-m3")
 elif CONFIG.MOD_CFG_CPU_CM4 or CONFIG.MOD_CFG_CPU_CM7:
     _ignores.remove("cortex-m4-m7")
+elif CONFIG.MOD_CFG_CPU_ARM9:
+    _ignores.remove("arm9")
 else:
     ERROR("unsupported CPU")
 IGNORES += _ignores

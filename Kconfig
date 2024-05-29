@@ -34,6 +34,10 @@ menu "Global Configuration"
             bool "Cortex-M7"
         config MOD_CFG_CPU_CM33
             bool "Cortex-M33"
+        config MOD_CFG_CPU_ARM7
+            bool "ARM7"
+        config MOD_CFG_CPU_ARM9
+            bool "ARM9"
     endchoice
 
     choice
