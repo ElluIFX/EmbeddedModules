@@ -42,12 +42,18 @@ bool kl_mutex_lock(kl_mutex_t mutex, kl_tick_t timeout) {
         KL_SET_ERRNO(KL_ETIMEOUT);
         return false;
     }
+    if (kl_sched_tcb_now != mutex->owner) {
+        KL_SET_ERRNO(KL_EPERM);
+        return false;
+    }
     return true;
 }
 
 void kl_mutex_unlock(kl_mutex_t mutex) {
-    if (mutex->owner != kl_sched_tcb_now)
+    if (mutex->owner != kl_sched_tcb_now) {
+        KL_SET_ERRNO(KL_EPERM);
         return;
+    }
     kl_port_enter_critical();
     mutex->lock--;
     if (mutex->lock == 0) {
