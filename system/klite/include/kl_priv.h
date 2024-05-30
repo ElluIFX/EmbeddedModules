@@ -97,7 +97,7 @@ void kl_sched_resume(void);
 // 执行线程切换
 void kl_sched_switch(void);
 
-// 尝试抢占线程, 并将当前线程加入就绪队列
+// 将当前线程加入就绪队列并切换
 // @param round_robin: 允许同优先级时间片轮转
 void kl_sched_preempt(const bool round_robin);
 
@@ -112,7 +112,8 @@ void kl_sched_tcb_remove(kl_thread_t tcb);
 
 // 将线程加入就绪队列
 // @param tcb: 线程控制块
-void kl_sched_tcb_ready(kl_thread_t tcb);
+// @param head: 是否插入队列头部
+void kl_sched_tcb_ready(kl_thread_t tcb, const bool head);
 
 // 将线程挂起
 // @param tcb: 线程控制块
@@ -172,9 +173,7 @@ kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list* list);
 #define KL_SET_ERRNO(errno)                           \
     do {                                              \
         if (kl_sched_tcb_now) {                       \
-            kl_port_enter_critical();                 \
             kl_sched_tcb_now->err = (uint8_t)(errno); \
-            kl_port_leave_critical();                 \
         }                                             \
     } while (0)
 

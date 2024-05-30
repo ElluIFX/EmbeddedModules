@@ -78,6 +78,22 @@ menu "Built-in Heap Configuration"
             The alignment of the memory block. The value should be the power of 2. Default is 4 bytes for 32-bit CPU and 8 bytes for 64-bit CPU.
 endmenu
 
+config KLITE_CFG_ROUND_ROBIN
+    bool "Enable Round Robin"
+    default y
+    help
+        Enable the round-robin scheduling algorithm.
+        Threads with the same priority will be scheduled in a round-robin manner even if the thread is not sleeping.
+
+config KLITE_CFG_ROUND_ROBIN_SLICE
+    bool "Enable Custom Tick Slice"
+    depends on KLITE_CFG_ROUND_ROBIN
+    default n
+    help
+        Enable the round-robin custom slice time feature.
+        The thread will be switched out after the user-defined slice time.
+
+
 config KLITE_CFG_DEFAULT_STACK_SIZE
     int "Default Stack Size"
     default 1024

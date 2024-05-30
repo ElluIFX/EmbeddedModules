@@ -27,7 +27,11 @@ void kl_kernel_tick_source(kl_tick_t time) {
     m_tick_count += time;
     kl_port_enter_critical();
     kl_sched_timing(time);
+#if KLITE_CFG_ROUND_ROBIN
     kl_sched_preempt(true);
+#else
+    kl_sched_preempt(false);
+#endif
     kl_port_leave_critical();
 }
 

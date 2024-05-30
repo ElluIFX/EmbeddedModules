@@ -239,6 +239,7 @@ void kl_thread_resume(kl_thread_t thread);
 
 /**
  * @brief 使当前线程立即释放CPU控制权, 并进入就绪队列
+ * @warning 控制权只能交给同优先级的线程, 释放控制权给低优先级线程只能通过kl_thread_sleep实现
  */
 void kl_thread_yield(void);
 
@@ -299,6 +300,13 @@ void kl_thread_set_priority(kl_thread_t thread, uint32_t prio);
  * @retval 线程优先级
  */
 uint32_t kl_thread_priority(kl_thread_t thread);
+
+/**
+ * @brief 设置线程的抢占时间片大小
+ * @param thread 线程标识符
+ * @param slice 时间片大小(Tick)
+ */
+void kl_thread_set_slice(kl_thread_t thread, kl_tick_t slice);
 
 /**
  * @brief 获取线程ID

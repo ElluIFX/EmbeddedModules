@@ -69,7 +69,7 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
 
     kl_port_enter_critical();
     kl_blist_append(&m_list_alive, &tcb->node_manage);
-    kl_sched_tcb_ready(tcb);
+    kl_sched_tcb_ready(tcb, false);
     kl_port_leave_critical();
 
     return (kl_thread_t)tcb;
@@ -119,7 +119,7 @@ void kl_thread_resume(kl_thread_t thread) {
 
 void kl_thread_yield(void) {
     kl_port_enter_critical();
-    kl_sched_tcb_ready(kl_sched_tcb_now);
+    kl_sched_tcb_ready(kl_sched_tcb_now, false);
     kl_sched_switch();
     kl_port_leave_critical();
 }
@@ -190,6 +190,23 @@ uint32_t kl_thread_priority(kl_thread_t thread) {
         return KL_INVALID;
     }
     return thread->prio;
+}
+
+void kl_thread_set_slice(kl_thread_t thread, kl_tick_t slice) {
+#if KLITE_CFG_ROUND_ROBIN_SLICE
+    if (THREAD_INFO_INVALID(thread)) {
+        KL_SET_ERRNO(KL_EINVAL);
+        return;
+    }
+    kl_port_enter_critical();
+    thread->slice = slice;
+    kl_sched_preempt(true);
+    kl_port_leave_critical();
+#else
+    (void)thread;
+    (void)slice;
+    KL_SET_ERRNO(KL_ENOTSUP);
+#endif  // KLITE_CFG_ROUND_ROBIN_SLICE
 }
 
 uint32_t kl_thread_id(kl_thread_t thread) {

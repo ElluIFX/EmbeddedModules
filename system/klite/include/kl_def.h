@@ -26,6 +26,8 @@ typedef enum {
     KL_EEMPTY,    // 资源空
     KL_EBUSY,     // 系统忙
     KL_EIO,       // IO错误
+    KL_EPERM,     // 权限不足
+    KL_ENOTSUP,   // 不支持
     KL_ENFOUND,   // 未找到
 } kl_err_t;
 
@@ -50,16 +52,20 @@ struct kl_thread_list {
 };
 
 struct kl_thread {
-    void* stack;                        // 栈基地址
-    kl_size_t stack_size;               // 栈大小
-    void (*entry)(void*);               // 线程入口
-    uint32_t prio : 16;                 // 线程优先级
-    uint32_t magic : 16;                // 线程优先级
-    uint32_t tid : 16;                  // 线程ID
-    uint32_t err : 8;                   // 错误码
-    uint32_t flags : 8;                 // 线程状态
-    kl_tick_t time;                     // 线程运行时间
-    kl_tick_t timeout;                  // 睡眠超时时间
+    void* stack;           // 栈基地址
+    kl_size_t stack_size;  // 栈大小
+    void (*entry)(void*);  // 线程入口
+    uint32_t prio : 16;    // 线程优先级
+    uint32_t magic : 16;   // 线程优先级
+    uint32_t tid : 16;     // 线程ID
+    uint32_t err : 8;      // 错误码
+    uint32_t flags : 8;    // 线程状态
+    kl_tick_t time;        // 线程运行时间
+    kl_tick_t timeout;     // 睡眠超时时间
+#if KLITE_CFG_ROUND_ROBIN_SLICE
+    kl_tick_t slice;       // 抢占时间片
+    kl_tick_t slice_tick;  // 时间片计数
+#endif
     struct kl_thread_list* list_sched;  // 当前所处调度队列
     struct kl_thread_list* list_wait;   // 当前所处等待队列
     struct kl_thread_node node_sched;   // 调度队列节点

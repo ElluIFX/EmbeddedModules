@@ -74,12 +74,19 @@ void kl_sched_tcb_remove(kl_thread_t tcb) {
     KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_EXITED);
 }
 
-void kl_sched_tcb_ready(kl_thread_t tcb) {
+void kl_sched_tcb_ready(kl_thread_t tcb, const bool head) {
     if (tcb->list_sched) {
         remove_list_sched(tcb);
     }
     tcb->list_sched = &m_list_ready[tcb->prio];
-    kl_blist_append(tcb->list_sched, &tcb->node_sched);
+    if (head) {
+        kl_blist_prepend(tcb->list_sched, &tcb->node_sched);
+    } else {
+        kl_blist_append(tcb->list_sched, &tcb->node_sched);
+#if KLITE_CFG_ROUND_ROBIN_SLICE
+        tcb->slice_tick = tcb->slice; /* reset slice */
+#endif
+    }
     m_prio_bitmap |= (1 << tcb->prio);
     if (m_prio_highest < tcb->prio) {
         m_prio_highest = tcb->prio;
@@ -121,7 +128,7 @@ void kl_sched_tcb_resume(kl_thread_t tcb) {
             KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
         } else if (tcb->list_sched) { /* set ready */
             tcb->list_sched = NULL;
-            kl_sched_tcb_ready(tcb);
+            kl_sched_tcb_ready(tcb, false);
         }
     }
 }
@@ -200,7 +207,7 @@ static inline void kl_sched_tcb_wake_up(kl_thread_t tcb) {
     if (tcb->list_sched) {
         remove_list_sched(tcb);
     }
-    kl_sched_tcb_ready(tcb);
+    kl_sched_tcb_ready(tcb, false);
 }
 
 kl_thread_t kl_sched_tcb_wake_from(struct kl_thread_list* list) {
@@ -303,7 +310,23 @@ void kl_sched_preempt(const bool round_robin) {
         return;
     }
     if ((m_prio_highest + round_robin) > kl_sched_tcb_now->prio) {
-        kl_sched_tcb_ready(kl_sched_tcb_now);
+#if KLITE_CFG_ROUND_ROBIN_SLICE
+        if (round_robin && m_prio_highest == kl_sched_tcb_now->prio) {
+            /* round robin in same prio */
+            if (kl_sched_tcb_now->slice_tick > 0) {
+                /* slice left */
+                kl_sched_tcb_now->slice_tick--;
+                return;
+            }
+            /* reset slice and switch */
+            kl_sched_tcb_ready(kl_sched_tcb_now, false);
+        } else {
+            /* higher prio switch */
+            kl_sched_tcb_ready(kl_sched_tcb_now, true);
+        }
+#else
+        kl_sched_tcb_ready(kl_sched_tcb_now, false);
+#endif
         kl_sched_switch();
     }
 }
@@ -342,7 +365,7 @@ void kl_sched_timing(kl_tick_t time) {
 
 void kl_sched_idle(void) {
     if (m_prio_bitmap != 0) {
-        kl_sched_tcb_ready(kl_sched_tcb_now);
+        kl_sched_tcb_ready(kl_sched_tcb_now, false);
         kl_sched_switch();
     } else {
         kl_port_sys_idle(m_idle_timeout);
