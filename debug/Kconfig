@@ -13,6 +13,9 @@ bool "Coremark (Benchmark)"
 select MOD_ENABLE_UNI_IO
 select MOD_ENABLE_PERF_COUNTER
 default n
+if MOD_ENABLE_COREMARK
+    source "debug/coremark/Kconfig"
+endif
 
 menuconfig MOD_ENABLE_LOG
 bool "Log (Single Header Logger)"

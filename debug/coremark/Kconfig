@@ -1,0 +1,3 @@
+config COREMARK_CFG_ITERATIONS
+int "Number of iterations"
+default 10000

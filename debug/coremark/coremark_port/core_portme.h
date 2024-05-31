@@ -20,9 +20,10 @@ Original Author: Shay Gal-on
         This file contains configuration constants required to execute on
    different platforms
 */
-#ifndef CORE_PORTME_H
-#define CORE_PORTME_H
+#ifndef __CORE_PORTME_H__
+#define __CORE_PORTME_H__
 
+#include "modules.h"
 #include "perf_counter.h"
 
 #if defined(__clang__)
@@ -125,7 +126,7 @@ typedef size_t ee_size_t;
         This macro is used to align an offset to point to a 32b value. It is
    used in the Matrix algorithm to initialize the input memory blocks.
 */
-#define align_mem(x) (void*)(4 + (((ee_ptr_int)(x)-1) & ~3))
+#define align_mem(x) (void*)(4 + (((ee_ptr_int)(x) - 1) & ~3))
 
 /* Configuration : SEED_METHOD
         Defines method to get seed values that cannot be computed at compile
@@ -203,7 +204,11 @@ typedef size_t ee_size_t;
 #endif
 
 #ifndef ITERATIONS
-#define ITERATIONS 5000
+#ifdef COREMARK_CFG_ITERATIONS
+#define ITERATIONS COREMARK_CFG_ITERATIONS
+#else
+#define ITERATIONS 10000
+#endif
 #endif
 
 /* Variable : default_num_contexts
@@ -230,4 +235,4 @@ void portable_fini(core_portable* p);
 #endif
 #endif
 
-#endif /* CORE_PORTME_H */
+#endif /* __CORE_PORTME_H__ */
