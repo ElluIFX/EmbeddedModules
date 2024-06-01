@@ -15,8 +15,6 @@
 extern "C" {
 #endif
 
-#include "main.h"
-
 #ifndef __has_include
 // Compatibility with non-clang compilers.
 #define __has_include(x) 1
@@ -27,6 +25,8 @@ extern "C" {
 #else
 #error "modules_config.h not found, run menuconfig (by Kconfig) to generate it"
 #endif
+
+#include MOD_CFG_PLATFORM_HEADER
 
 #define MOD_CFG_OS_AVAILABLE (!MOD_CFG_USE_OS_NONE)
 

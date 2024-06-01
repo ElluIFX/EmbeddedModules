@@ -252,6 +252,7 @@ optional arguments:
   -d MODULE_DIRNAME, --module-dirname MODULE_DIRNAME
                         Specify the directory name for generated modules, default is 'Modules'
   -fc, --force-copy     Force copy files even if destination is newer
+  -gm, --gen-makefile   Generate makefile for source files
   --debug               Enable debug output
 ```
 

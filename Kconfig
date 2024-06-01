@@ -151,6 +151,13 @@ menu "Global Configuration"
             Effects KLite RTOS and Scheduler by now.
         default n
 
+    config MOD_CFG_PLATFORM_HEADER
+        string "Platform Header File"
+        help
+            The header file that contains the platform specific definitions.
+            This file should be included in the main.c file.
+        default "\"main.h\""
+
 endmenu
 
 
