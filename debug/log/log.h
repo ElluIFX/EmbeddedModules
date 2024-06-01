@@ -429,7 +429,9 @@ extern void log_hook(const char* fmt, ...);
 
 #ifndef __cycleof__  // __cycleof__功能默认由perf_counter实现
 #include "macro.h"
+#if defined(__clang__)
 #pragma clang diagnostic ignored "-Wcompound-token-split-by-macro"
+#endif
 #define __cycleof__(__DUMMY, ...)                              \
     using(uint64_t _ = m_tick(), __cycle_count__ = _, _ = _, { \
         _ = m_tick() - _;                                      \

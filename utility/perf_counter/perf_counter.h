@@ -15,8 +15,8 @@
  *                                                                           *
  ****************************************************************************/
 
-#ifndef __PERFORMANCE_COUNTER_H__
-#define __PERFORMANCE_COUNTER_H__
+#ifndef __PERF_COUNTER_H__
+#define __PERF_COUNTER_H__
 
 /*============================ INCLUDES ======================================*/
 #include <macro.h>
@@ -46,52 +46,6 @@ extern "C" {
      __PERF_COUNTER_VER_MINOR__ * 100ul + __PERF_COUNTER_VER_REVISE__)
 
 /*! @} */
-
-/*!
- * \addtogroup gHelper 4 Helper
- * @{
- */
-
-// for IAR
-#undef __IS_COMPILER_IAR__
-#if defined(__IAR_SYSTEMS_ICC__)
-#define __IS_COMPILER_IAR__ 1
-#endif
-
-// for arm compiler 5
-#undef __IS_COMPILER_ARM_COMPILER_5__
-#if ((__ARMCC_VERSION >= 5000000) && (__ARMCC_VERSION < 6000000))
-#define __IS_COMPILER_ARM_COMPILER_5__ 1
-#endif
-
-// for arm compiler 6
-
-#undef __IS_COMPILER_ARM_COMPILER_6__
-#if defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
-#define __IS_COMPILER_ARM_COMPILER_6__ 1
-#endif
-#undef __IS_COMPILER_ARM_COMPILER__
-#if defined(__IS_COMPILER_ARM_COMPILER_5__) && \
-        __IS_COMPILER_ARM_COMPILER_5__ ||      \
-    defined(__IS_COMPILER_ARM_COMPILER_6__) && __IS_COMPILER_ARM_COMPILER_6__
-#define __IS_COMPILER_ARM_COMPILER__ 1
-#endif
-
-// for clang
-#undef __IS_COMPILER_LLVM__
-#if defined(__clang__) && !__IS_COMPILER_ARM_COMPILER_6__
-#define __IS_COMPILER_LLVM__ 1
-#else
-
-// for gcc
-#undef __IS_COMPILER_GCC__
-#if defined(__GNUC__) &&                       \
-    !(defined(__IS_COMPILER_ARM_COMPILER__) || \
-      defined(__IS_COMPILER_LLVM__) || defined(__IS_COMPILER_IAR__))
-#define __IS_COMPILER_GCC__ 1
-#endif
-
-#endif
 
 #ifdef __PERF_COUNT_PLATFORM_SPECIFIC_HEADER__
 #include __PERF_COUNT_PLATFORM_SPECIFIC_HEADER__
@@ -766,4 +720,4 @@ void coremark_main(void);
 }
 #endif
 
-#endif
+#endif /* __PERF_COUNTER_H__ */

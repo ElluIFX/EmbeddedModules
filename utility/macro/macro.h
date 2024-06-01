@@ -1,5 +1,5 @@
-#ifndef MACRO_H
-#define MACRO_H
+#ifndef __MACRO_H__
+#define __MACRO_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -7,6 +7,47 @@ extern "C" {
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+
+// for IAR
+#undef __IS_COMPILER_IAR__
+#if defined(__IAR_SYSTEMS_ICC__)
+#define __IS_COMPILER_IAR__ 1
+#endif
+
+// for arm compiler 5
+#undef __IS_COMPILER_ARM_COMPILER_5__
+#if ((__ARMCC_VERSION >= 5000000) && (__ARMCC_VERSION < 6000000))
+#define __IS_COMPILER_ARM_COMPILER_5__ 1
+#endif
+
+// for arm compiler 6
+
+#undef __IS_COMPILER_ARM_COMPILER_6__
+#if defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
+#define __IS_COMPILER_ARM_COMPILER_6__ 1
+#endif
+#undef __IS_COMPILER_ARM_COMPILER__
+#if defined(__IS_COMPILER_ARM_COMPILER_5__) && \
+        __IS_COMPILER_ARM_COMPILER_5__ ||      \
+    defined(__IS_COMPILER_ARM_COMPILER_6__) && __IS_COMPILER_ARM_COMPILER_6__
+#define __IS_COMPILER_ARM_COMPILER__ 1
+#endif
+
+// for clang
+#undef __IS_COMPILER_LLVM__
+#if defined(__clang__) && !__IS_COMPILER_ARM_COMPILER_6__
+#define __IS_COMPILER_LLVM__ 1
+#else
+
+// for gcc
+#undef __IS_COMPILER_GCC__
+#if defined(__GNUC__) &&                       \
+    !(defined(__IS_COMPILER_ARM_COMPILER__) || \
+      defined(__IS_COMPILER_LLVM__) || defined(__IS_COMPILER_IAR__))
+#define __IS_COMPILER_GCC__ 1
+#endif
+
+#endif
 
 #define __PLOOC_VA_NUM_ARGS_IMPL(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, \
                                  _11, _12, _13, _14, _15, _16, __N, ...)      \
@@ -483,4 +524,4 @@ typedef int64_t s64;
 #ifdef __cplusplus
 }
 #endif
-#endif  // MACRO_H
+#endif /* __MACRO_H__ */
