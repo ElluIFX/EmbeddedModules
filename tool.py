@@ -566,7 +566,9 @@ class IgnoreProxy:
         return self
 
 
-def copy_file(src, dst, history: Optional[List[Tuple[str, str]]] = None):
+def copy_file(
+    src, dst, history: Optional[List[Tuple[str, str]]] = None, skip_when_dst_newer=True
+):
     if history is not None:
         history.append((src, dst))
     if not os.path.exists(dst):
@@ -574,6 +576,12 @@ def copy_file(src, dst, history: Optional[List[Tuple[str, str]]] = None):
         return
     src_time = os.path.getmtime(src)
     dst_time = os.path.getmtime(dst)
+    if skip_when_dst_newer and src_time < dst_time:
+        log(
+            "warning",
+            f"skip copy {os.path.normpath(src)} (dst is newer)",
+        )
+        return
     if src_time != dst_time:
         shutil.copy2(src, dst)
 
@@ -589,7 +597,13 @@ SYNC_IGNORES = [
 ]
 
 
-def copy_module(module: Module, src_dir: str, dst_dir: str, cfg: ConfigGetter):
+def copy_module(
+    module: Module,
+    src_dir: str,
+    dst_dir: str,
+    cfg: ConfigGetter,
+    force_copy: bool = False,
+):
     if not os.path.exists(os.path.join(dst_dir, module.type)):
         os.makedirs(os.path.join(dst_dir, module.type))
     module_path = os.path.join(dst_dir, module.path)
@@ -640,7 +654,7 @@ def copy_module(module: Module, src_dir: str, dst_dir: str, cfg: ConfigGetter):
     shutil.copytree(
         os.path.join(src_dir, module.path),
         module_path,
-        copy_function=lambda src, dst: copy_file(src, dst, history),
+        copy_function=lambda src, dst: copy_file(src, dst, history, not force_copy),
         dirs_exist_ok=True,
         ignore=shutil.ignore_patterns(*proxy.ignores),
     )
@@ -667,6 +681,7 @@ def sync_module_files(
     output_dir: str,
     ext_files: List[str] = [],
     skip_modules: List[str] = [],
+    force_copy: bool = False,
 ):
     config_file_path = os.path.join(output_dir, config_file)
     enabled = read_enabled_modules(config_file_path)
@@ -684,7 +699,7 @@ def sync_module_files(
             if module.name in skip_modules:
                 log("debug", f"skip copy {module.name}")
                 continue
-            copy_module(module, ".", output_dir, cfg)
+            copy_module(module, ".", output_dir, cfg, force_copy)
     for dt in os.listdir(output_dir):
         if dt not in module_types or not os.path.isdir(dt):
             continue
@@ -705,7 +720,11 @@ def sync_module_files(
         except Exception:
             pass
     for ext_file in ext_files:
-        copy_file(ext_file, os.path.join(output_dir, ext_file))
+        copy_file(
+            ext_file,
+            os.path.join(output_dir, ext_file),
+            skip_when_dst_newer=not force_copy,
+        )
     readme = MOD_README_TEMP
     liststring = "\n".join(
         [
@@ -877,7 +896,9 @@ def check_for_updates(max_workers: int = 64):
                 "[red]failed to check"
                 if sha == "N/A"
                 else f"[red]{module.sha}[/red] -> [green]{sha}",
-                f"[blue]{module.src}",
+                f"[blue]{module.src}"
+                if sha == "N/A"
+                else f"[blue]{module.src}/commit/{sha}",
             )
         con.print(table)
 
@@ -909,7 +930,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-ns",
-        "--nosync",
+        "--no-sync",
         action="store_true",
         help="Skip syncing latest module files after menuconfig",
     )
@@ -943,6 +964,12 @@ if __name__ == "__main__":
         type=str,
         default=os.getenv("MOD_MODULE_DIRNAME", "Modules"),
         help="Specify the directory name for generated modules, default is 'Modules'",
+    )
+    parser.add_argument(
+        "-fc",
+        "--force-copy",
+        action="store_true",
+        help="Force copy files even if destination is newer",
     )
     parser.add_argument(
         "--debug",
@@ -979,12 +1006,23 @@ if __name__ == "__main__":
         check_working_dir(project_dir, module_dir, auto_create=True)
         prepare_config_file(CONFIG_FILE, module_dir)
         menuconfig(KCONF_FILE, CONFIG_FILE, HEADER_FILE, module_dir, guiconfig)
-        if not args.nosync:
-            sync_module_files(CONFIG_FILE, module_dir, EXT_FILES, skip_modules)
-        log("success", "menuconfig success")
+        if not args.no_sync:
+            sync_module_files(
+                CONFIG_FILE,
+                module_dir,
+                EXT_FILES,
+                skip_modules,
+                args.force_copy,
+            )
     elif args.sync:
         check_working_dir(project_dir, module_dir, auto_create=False)
-        sync_module_files(CONFIG_FILE, module_dir, EXT_FILES, skip_modules)
+        sync_module_files(
+            CONFIG_FILE,
+            module_dir,
+            EXT_FILES,
+            skip_modules,
+            args.force_copy,
+        )
 
     if args.analyze:
         analyze_module_deps()

@@ -244,13 +244,14 @@ optional arguments:
   -m, --menuconfig      Run menuconfig in project dir
   -g, --guiconfig       Run menuconfig with GUI
   -s, --sync            Sync latest module files without menuconfig
-  -ns, --nosync         Skip syncing latest module files after menuconfig
+  -ns, --no-sync        Skip syncing latest module files after menuconfig
   -n, --newmodule       Create a new module
   -u, --update          Pull the latest version of this toolset from github
   -a, --analyze         Analyze module dependencies
   -c, --check           Check for updates of modules
   -d MODULE_DIRNAME, --module-dirname MODULE_DIRNAME
                         Specify the directory name for generated modules, default is 'Modules'
+  -fc, --force-copy     Force copy files even if destination is newer
   --debug               Enable debug output
 ```
 
