@@ -152,6 +152,20 @@ if LOG_CFG_ENABLE
             help
             The function to use for log output.
 
+        config LOG_CFG_CUSTOM_INCLUDE_ENABLE
+            bool "Custom Include"
+            default n
+            help
+            Enable this option to include a custom header file.
+            e.g. to define a custom log function.
+
+        config LOG_CFG_CUSTOM_INCLUDE_FILE
+            string "Include Header File"
+            depends on LOG_CFG_CUSTOM_INCLUDE_ENABLE
+            default "\"stdio.h\""
+            help
+            The custom header file to include.
+
         config LOG_CFG_TIMESTAMP_FMT
             string "Log Timestamp Format"
             default "\"%.3fs\""
