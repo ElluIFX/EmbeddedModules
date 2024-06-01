@@ -21,8 +21,6 @@ extern "C" {
 #include "uni_io.h"
 #endif
 
-#include "log_color.h"
-
 #define LOG_LEVEL_TRACE 0
 #define LOG_LEVEL_DEBUG 1
 #define LOG_LEVEL_PASS 2
@@ -115,6 +113,8 @@ extern "C" {
 #define LOG_CFG_ENABLE_ERROR (LOG_LEVEL <= LOG_LEVEL_ERROR)
 #define LOG_CFG_ENABLE_FATAL (LOG_LEVEL <= LOG_LEVEL_FATAL)
 #define LOG_CFG_ENABLE_ASSERT (LOG_LEVEL <= LOG_LEVEL_ASSERT)
+
+#include "log_color.h"
 
 /**
  * @brief 原始日志输出(直接调用LOG_CFG_PRINTF)
