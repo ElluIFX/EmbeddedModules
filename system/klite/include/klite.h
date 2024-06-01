@@ -239,7 +239,8 @@ void kl_thread_resume(kl_thread_t thread);
 
 /**
  * @brief 使当前线程立即释放CPU控制权, 并进入就绪队列
- * @warning 控制权只能交给同优先级的线程, 释放控制权给低优先级线程只能通过kl_thread_sleep实现
+ * @warning 控制权只能交给同优先级的线程, 释放控制权给低优先级线程只能通过sleep实现.
+ * @warning 在Round-Robin调度功能开启时, yield大概率不会按照预期工作.
  */
 void kl_thread_yield(void);
 
@@ -302,9 +303,11 @@ void kl_thread_set_priority(kl_thread_t thread, uint32_t prio);
 uint32_t kl_thread_priority(kl_thread_t thread);
 
 /**
- * @brief 设置线程的抢占时间片大小
+ * @brief 设置线程的Round-Robin抢占时间片大小
  * @param thread 线程标识符
  * @param slice 时间片大小(Tick)
+ * @warning 仅在Round-Robin调度功能开启且自定义时间片功能开启时有效
+ * @note 实际的精确时间片为设置值+1
  */
 void kl_thread_set_slice(kl_thread_t thread, kl_tick_t slice);
 

@@ -79,20 +79,19 @@ menu "Built-in Heap Configuration"
 endmenu
 
 config KLITE_CFG_ROUND_ROBIN
-    bool "Enable Round Robin"
+    bool "Round Robin Preemption"
     default y
     help
-        Enable the round-robin scheduling algorithm.
+        Enable the round-robin preemption feature.
         Threads with the same priority will be scheduled in a round-robin manner even if the thread is not sleeping.
 
 config KLITE_CFG_ROUND_ROBIN_SLICE
-    bool "Enable Custom Tick Slice"
+    bool "Custom Tick Slice"
     depends on KLITE_CFG_ROUND_ROBIN
     default n
     help
         Enable the round-robin custom slice time feature.
         The thread will be switched out after the user-defined slice time.
-
 
 config KLITE_CFG_DEFAULT_STACK_SIZE
     int "Default Stack Size"

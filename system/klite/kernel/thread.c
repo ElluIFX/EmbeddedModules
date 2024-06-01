@@ -200,7 +200,7 @@ void kl_thread_set_slice(kl_thread_t thread, kl_tick_t slice) {
     }
     kl_port_enter_critical();
     thread->slice = slice;
-    kl_sched_preempt(true);
+    thread->slice_tick = slice;
     kl_port_leave_critical();
 #else
     (void)thread;
