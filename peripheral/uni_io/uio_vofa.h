@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-#include "uio_uart.h"
+#include "modules.h"
 
 #if UIO_CFG_ENABLE_VOFA
 /**

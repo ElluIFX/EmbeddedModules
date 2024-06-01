@@ -17,7 +17,7 @@ extern "C" {
 #include <stdio.h>
 
 #include "lfifo.h"
-#include "uio_cfg.h"
+#include "modules.h"
 
 #if UIO_CFG_ENABLE_CDC
 #if UIO_CFG_CDC_USE_CUBEMX
@@ -76,4 +76,4 @@ extern void cdc_flush(void);
 }
 #endif
 
-#endif  // __UIO_CDC_H__
+#endif /* __UIO_CDC_H__ */

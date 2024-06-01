@@ -34,56 +34,6 @@ extern "C" {
 #define LOG_LEVEL_FATAL 6
 #define LOG_LEVEL_ASSERT 7
 
-/****************************    日志设置     ***********************/
-#if !KCONFIG_AVAILABLE  // 由Kconfig配置
-// 调试日志设置
-#define LOG_CFG_ENABLE 1            // 调试日志总开关
-#define LOG_CFG_ENABLE_TIMESTAMP 1  // 调试日志是否添加时间戳
-#define LOG_CFG_ENABLE_COLOR 1      // 调试日志是否按等级添加颜色
-#define LOG_CFG_ENABLE_FUNC_LINE 0  // 调试日志是否添加函数名和行号
-#define LOG_CFG_ENABLE_MODULE_NAME 1  // 调试日志是否添加模块名(如有)
-#define LOG_CFG_ENABLE_ALIAS 0  // 调试日志是否支持别名(如LOG_E)
-#define LOG_CFG_ENABLE_HOOK 0   // 调试日志是否支持输出钩子
-// 调试日志等级
-#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_TRACE  // 调试日志全局等级
-// 日志输出
-#define LOG_CFG_PRINTF printf  // 日志输出函数 (必须为类printf函数)
-#define LOG_CFG_TIMESTAMP_FUNC \
-    ((float)((uint64_t)m_time_ms()) / 1000)  // 时间戳获取
-#define LOG_CFG_TIMESTAMP_FMT "%.3fs"        // 时间戳格式
-#if 0
-#define LOG_CFG_PREFIX "\r"      // 日志前缀 (移动光标到行首)
-#define LOG_CFG_SUFFIX "\033[K"  // 日志后缀 (清空光标到行尾)
-#else
-#define LOG_CFG_PREFIX ""
-#define LOG_CFG_SUFFIX ""
-#endif
-
-#define LOG_CFG_NEWLINE "\r\n"  // 换行符
-
-// 日志等级颜色
-#define LOG_CFG_R_COLOR T_BLUE     // 追踪日志
-#define LOG_CFG_D_COLOR T_CYAN     // 调试日志
-#define LOG_CFG_P_COLOR T_LGREEN   // 操作成功日志
-#define LOG_CFG_I_COLOR T_GREEN    // 信息日志
-#define LOG_CFG_W_COLOR T_YELLOW   // 警告日志
-#define LOG_CFG_E_COLOR T_RED      // 错误日志
-#define LOG_CFG_F_COLOR T_MAGENTA  // 致命错误日志
-#define LOG_CFG_A_COLOR T_RED      // 断言日志
-#define LOG_CFG_T_COLOR T_YELLOW   // 计时日志
-// 日志等级名称
-#define LOG_CFG_C_STR "TRACE"   // 追踪日志
-#define LOG_CFG_D_STR "DEBUG"   // 调试日志
-#define LOG_CFG_P_STR "PASS"    // 操作成功日志
-#define LOG_CFG_I_STR "INFO"    // 信息日志
-#define LOG_CFG_W_STR "WARN"    // 警告日志
-#define LOG_CFG_E_STR "ERROR"   // 错误日志
-#define LOG_CFG_F_STR "FATAL"   // 致命错误日志
-#define LOG_CFG_A_STR "ASSERT"  // 断言日志
-#define LOG_CFG_T_STR "TIMEIT"  // 计时日志
-
-#else
-
 #if LOG_CFG_LEVEL_USE_TRACE
 #define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_TRACE
 #elif LOG_CFG_LEVEL_USE_DEBUG
@@ -101,9 +51,6 @@ extern "C" {
 #elif LOG_CFG_LEVEL_USE_ASSERT
 #define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_ASSERT
 #endif
-
-#endif  // KCONFIG_AVAILABLE
-/*********************************************************************/
 
 #ifndef LOG_LEVEL
 #define LOG_LEVEL LOG_CFG_GLOBAL_LEVEL

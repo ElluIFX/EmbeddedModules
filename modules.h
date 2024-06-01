@@ -24,44 +24,9 @@ extern "C" {
 
 #if __has_include("modules_config.h")
 #include "modules_config.h"
-#define KCONFIG_AVAILABLE 1
 #else
-#warning \
-    "modules_config.h not found, run menuconfig (by Kconfig) to generate it"
-#define KCONFIG_AVAILABLE 0
+#error "modules_config.h not found, run menuconfig (by Kconfig) to generate it"
 #endif
-
-#if !KCONFIG_AVAILABLE  // 由Kconfig配置
-// 动态内存分配方法(m_alloc/m_free/m_realloc):
-#define MOD_CFG_HEAP_MATHOD_STDLIB 1
-#define MOD_CFG_HEAP_MATHOD_LWMEM 0
-#define MOD_CFG_HEAP_MATHOD_KLITE 0
-#define MOD_CFG_HEAP_MATHOD_FREERTOS 0
-#define MOD_CFG_HEAP_MATHOD_HEAP4 0
-#define MOD_CFG_HEAP_MATHOD_RTT 0
-
-// 时间获取方法(m_tick/m_time_*)
-#define MOD_CFG_TIME_MATHOD_HAL 0
-#define MOD_CFG_TIME_MATHOD_PERF_COUNTER 1
-#define MOD_CFG_TIME_MATHOD_KLITE 0
-
-// 延时方法(m_delay_*)
-#define MOD_CFG_DELAY_MATHOD_HAL 0
-#define MOD_CFG_DELAY_MATHOD_PERF_COUNTER 1
-#define MOD_CFG_DELAY_MATHOD_KLITE 0
-#define MOD_CFG_DELAY_MATHOD_FREERTOS 0
-#define MOD_CFG_DELAY_MATHOD_RTT 0
-
-// 是否使用操作系统(MOD_MUTEX_*)
-#define MOD_CFG_USE_OS_NONE 1
-#define MOD_CFG_USE_OS_KLITE 0
-#define MOD_CFG_USE_OS_FREERTOS 0
-#define MOD_CFG_USE_OS_RTT 0
-
-// 是否在系统空闲时进入WFI
-#define MOD_CFG_WFI_WHEN_SYSTEM_IDLE 0
-
-#endif  // KCONFIG_AVAILABLE
 
 #define MOD_CFG_OS_AVAILABLE (!MOD_CFG_USE_OS_NONE)
 

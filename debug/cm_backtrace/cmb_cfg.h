@@ -26,8 +26,8 @@
  * Created on: 2016-12-15
  */
 
-#ifndef __CMB_CFG__
-#define __CMB_CFG__
+#ifndef __CMB_CFG_H__
+#define __CMB_CFG_H__
 
 #include "uni_io.h"
 
@@ -37,34 +37,6 @@
 #define cmb_println(...)       \
     printf_block(__VA_ARGS__); \
     printf_block("\r\n")
-
-#if !KCONFIG_AVAILABLE
-
-/* enable bare metal(no OS) platform */
-#define CMB_USING_BARE_METAL_PLATFORM
-
-/* enable OS platform */
-// #define CMB_USING_OS_PLATFORM
-
-/* OS platform type, must config when CMB_USING_OS_PLATFORM is enable */
-/* CMB_OS_PLATFORM_RTT or CMB_OS_PLATFORM_UCOSII or CMB_OS_PLATFORM_UCOSIII or
-CMB_OS_PLATFORM_FREERTOS or CMB_OS_PLATFORM_RTX5 or CMB_OS_PLATFORM_KLITE */
-// #define CMB_OS_PLATFORM_TYPE CMB_OS_PLATFORM_KLITE
-
-/* cpu platform type, must config by user */
-/* CMB_CPU_ARM_CORTEX_M0 or CMB_CPU_ARM_CORTEX_M3 or CMB_CPU_ARM_CORTEX_M4 or
- * CMB_CPU_ARM_CORTEX_M7 or CMB_CPU_ARM_CORTEX_M33 */
-// #define CMB_CPU_PLATFORM_TYPE CMB_CPU_ARM_CORTEX_M7
-
-/* enable dump stack information */
-// #define CMB_USING_DUMP_STACK_INFO
-
-/* language of print information */
-// #define CMB_PRINT_LANGUAGE CMB_PRINT_LANGUAGE_CHINESE_UTF8
-/* CMB_PRINT_LANGUAGE_ENGLISH(default) or
- * CMB_PRINT_LANGUAGE_CHINESE or CMB_PRINT_LANGUAGE_CHINESE_UTF8 */
-
-#else  // convert Kconfig
 
 #if CMB_PRINT_USE_CHINESE
 #define CMB_PRINT_LANGUAGE CMB_PRINT_LANGUAGE_CHINESE
@@ -100,6 +72,4 @@ CMB_OS_PLATFORM_FREERTOS or CMB_OS_PLATFORM_RTX5 or CMB_OS_PLATFORM_KLITE */
 #define CMB_CPU_PLATFORM_TYPE CMB_CPU_ARM_CORTEX_M33
 #endif
 
-#endif
-
-#endif /* __CMB_CFG__ */
+#endif /* __CMB_CFG_H__ */

@@ -32,7 +32,6 @@
 
 #include "modules.h"
 
-#if KCONFIG_AVAILABLE
 #define LOG_MODULE "tf"
 #include "log.h"
 #define TF_Error LOG_ERROR
@@ -56,9 +55,6 @@ typedef TF_COUNT_TYPE TF_COUNT;
 #define TF_CKSUM_TYPE TF_CKSUM_CUSTOM32
 #else
 #error "Invalid checksum type"
-#endif
-#else
-#include "TF_Config.example.h"
 #endif
 
 // region Resolve data types

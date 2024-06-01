@@ -8,21 +8,14 @@
  * THINK DIFFERENTLY
  */
 
-#ifndef __LL_IIC_H__
-#define __LL_IIC_H__
+#ifndef __LL_I2C_H__
+#define __LL_I2C_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 #include "modules.h"
 
-#if !KCONFIG_AVAILABLE
-#define LL_IIC_CFG_CONVERT_7BIT_ADDR 0  // 转换从机地址(自动<<1)
-#define LL_IIC_CFG_USE_IT 0             // 使用中断
-#define LL_I2C_CFG_SEM_TIMEOUT_MS 1000  // 信号量超时时间
-#define LL_I2C_CFG_POLL_TIMEOUT_MS 5    // 轮询响应超时时间
-
-#endif
 
 typedef struct {
     uint8_t* data;     // 数据指针
@@ -166,4 +159,4 @@ extern void ll_i2c_combine_irq(I2C_TypeDef* i2c);
 #ifdef __cplusplus
 }
 #endif
-#endif /* __LL_IIC_H__ */
+#endif /* __LL_I2C_H__ */

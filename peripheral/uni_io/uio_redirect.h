@@ -13,7 +13,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "uio_cfg.h"
+#include "modules.h"
 
 #if UIO_CFG_PRINTF_REDIRECT
 #include "uio_cdc.h"
