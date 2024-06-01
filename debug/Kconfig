@@ -19,7 +19,6 @@ endif
 
 menuconfig MOD_ENABLE_LOG
 bool "Log (Single Header Logger)"
-select MOD_ENABLE_UNI_IO
 select MOD_ENABLE_MACRO
 default y
 if MOD_ENABLE_LOG

@@ -70,6 +70,12 @@ menu "Global Configuration"
         config MOD_CFG_TIME_MATHOD_KLITE
             bool "KLite RTOS"
             depends on MOD_CFG_USE_OS_KLITE
+        config MOD_CFG_TIME_MATHOD_FREERTOS
+            bool "FreeRTOS"
+            depends on MOD_CFG_USE_OS_FREERTOS
+        config MOD_CFG_TIME_MATHOD_RTT
+            bool "RT-Thread"
+            depends on MOD_CFG_USE_OS_RTT
     endchoice
 
     choice

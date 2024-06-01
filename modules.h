@@ -62,6 +62,34 @@ typedef kl_tick_t m_time_t;
 #define m_time_s() (m_time_ms() / 1000)
 #define m_tick() (kl_tick_t())
 #define m_tick_clk (KLITE_CFG_FREQ)
+#elif MOD_CFG_TIME_MATHOD_FREERTOS
+#include "FreeRTOS.h"
+typedef TickType_t m_time_t;
+#define m_time_t_max (portMAX_DELAY)
+#define init_module_timebase() ((void)0)
+#define m_time_ms() pdTICKS_TO_MS(xTaskGetTickCount())
+#define m_time_us() pdTICKS_TO_US(xTaskGetTickCount())
+#define m_time_ns() (m_time_us() * 1000)
+#define m_time_s() (m_time_ms() / 1000)
+#define m_tick() xTaskGetTickCount()
+#define m_tick_clk (configTICK_RATE_HZ)
+#elif MOD_CFG_TIME_MATHOD_RTT
+#include "rtthread.h"
+typedef rt_tick_t m_time_t;
+#define m_time_t_max (RT_WAITING_FOREVER)
+#define init_module_timebase() ((void)0)
+#if RT_TICK_PER_SECOND <= 1000
+#define m_time_ms() (rt_tick_get() * (1000 / RT_TICK_PER_SECOND))
+#define m_time_us() (rt_tick_get() * (1000000 / RT_TICK_PER_SECOND))
+#define m_time_ns() (rt_tick_get() * (1000000000 / RT_TICK_PER_SECOND))
+#else
+#define m_time_ms() (rt_tick_get() / (RT_TICK_PER_SECOND / 1000))
+#define m_time_us() (rt_tick_get() / (RT_TICK_PER_SECOND / 1000000))
+#define m_time_ns() (rt_tick_get() / (RT_TICK_PER_SECOND / 1000000000))
+#endif
+#define m_time_s() (rt_tick_get() / RT_TICK_PER_SECOND)
+#define m_tick() rt_tick_get()
+#define m_tick_clk (RT_TICK_PER_SECOND)
 #else
 #error "MOD_CFG_TIME_MATHOD invalid"
 #endif  // MOD_CFG_TIME_MATHOD
@@ -81,7 +109,6 @@ typedef kl_tick_t m_time_t;
 #define m_delay_s(x) kl_thread_sleep((x) * KLITE_CFG_FREQ)
 #elif MOD_CFG_DELAY_MATHOD_FREERTOS  // freertos
 #include "FreeRTOS.h"                // period = 1ms
-#include "task.h"
 #define m_delay_us(x) vTaskDelay((x * pdMS_TO_TICKS(1)) / 1000)
 #define m_delay_ms(x) vTaskDelay(pdMS_TO_TICKS(x))
 #define m_delay_s(x) vTaskDelay(pdMS_TO_TICKS(x * 1000))
