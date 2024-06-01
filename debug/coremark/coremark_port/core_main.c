@@ -108,7 +108,7 @@ coremark_main(int argc, char* argv[]) {
     ee_u16 i, j = 0, num_algorithms = 0;
     ee_s16 known_id = -1, total_errors = 0;
     ee_u16 seedcrc = 0;
-    CORE_TICKS total_time;
+    m_time_t total_time;
     core_results results[MULTITHREAD];
 #if (MEM_METHOD == MEM_STACK)
     ee_u8 stack_memblock[TOTAL_DATA_SIZE * MULTITHREAD];
@@ -343,7 +343,11 @@ for (i = 0; i < MULTITHREAD; i++) {
 #if (MULTITHREAD > 1)
     ee_printf("Parallel %s : %d\r\n", PARALLEL_METHOD, default_num_contexts);
 #endif
+#if defined(MEM_LOCATION) && !defined(MEM_LOCATION_UNSPEC)
     ee_printf("Memory location  : %s\r\n", MEM_LOCATION);
+#else
+    ee_printf("Memory location  : %s\r\n", mem_name[MEM_METHOD]);
+#endif
     /* output for verification */
     ee_printf("seedcrc          : 0x%04x\r\n", seedcrc);
     if (results[0].execs & ID_LIST)

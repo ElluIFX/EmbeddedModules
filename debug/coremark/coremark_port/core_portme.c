@@ -20,7 +20,6 @@ Original Author: Shay Gal-on
 #include <stdlib.h>
 
 #include "coremark.h"
-#include "perf_counter.h"
 
 #if VALIDATION_RUN
 volatile ee_s32 seed1_volatile = 0x3415;
@@ -53,9 +52,9 @@ volatile ee_s32 seed5_volatile = 0;
    does not occur. If there are issues with the return value overflowing,
    increase this value.
         */
-#define NSECS_PER_SEC SystemCoreClock
-#define CORETIMETYPE clock_t
-#define GETMYTIME(_t) (*_t = clock())
+#define NSECS_PER_SEC m_tick_clk
+#define CORETIMETYPE m_tick_clk
+#define GETMYTIME(_t) (*_t = m_tick())
 #define MYTIMEDIFF(fin, ini) ((fin) - (ini))
 #define TIMER_RES_DIVIDER 1
 #define SAMPLE_TIME_IMPLEMENTATION 1
@@ -64,9 +63,7 @@ volatile ee_s32 seed5_volatile = 0;
 /** Define Host specific (POSIX), or target specific global time variables. */
 // static CORETIMETYPE start_time_val, stop_time_val;
 
-extern uint32_t SystemCoreClock;
-
-static volatile CORE_TICKS s_tCycleElapsed = 0;
+static volatile uint64_t _cm_timeit = 0;
 
 /* Function : start_time
         This function will be called right before starting the timed portion of
@@ -77,7 +74,7 @@ static volatile CORE_TICKS s_tCycleElapsed = 0;
    cycles to 0.
 */
 void start_time(void) {
-    start_cycle_counter();
+    _cm_timeit = m_tick();
 }
 
 /* Function : stop_time
@@ -89,7 +86,7 @@ void start_time(void) {
    cpu cycles counter.
 */
 void stop_time(void) {
-    s_tCycleElapsed = stop_cycle_counter();
+    _cm_timeit = m_tick() - _cm_timeit;
 }
 
 /* Function : get_time
@@ -101,9 +98,8 @@ void stop_time(void) {
    sample implementation returns millisecs by default, and the resolution is
    controlled by <TIMER_RES_DIVIDER>
 */
-CORE_TICKS
-get_time(void) {
-    return s_tCycleElapsed;
+uint64_t get_time(void) {
+    return _cm_timeit;
 }
 
 /* Function : time_in_secs
@@ -113,8 +109,8 @@ get_time(void) {
    floating point. Default implementation implemented by the EE_TICKS_PER_SEC
    macro above.
 */
-secs_ret time_in_secs(CORE_TICKS ticks) {
-    secs_ret retval = ((secs_ret)ticks) / (secs_ret)EE_TICKS_PER_SEC;
+secs_ret time_in_secs(uint64_t ticks) {
+    secs_ret retval = ((secs_ret)ticks) / (secs_ret)m_tick_clk;
     return retval;
 }
 
@@ -125,8 +121,6 @@ ee_u32 default_num_contexts = 1;
         Test for some common mistakes.
 */
 void portable_init(core_portable* p, int* argc, char* argv[]) {
-    init_cycle_counter(false);
-
     (void)argc;  // prevent unused warning
     (void)argv;  // prevent unused warning
 
@@ -146,4 +140,12 @@ void portable_init(core_portable* p, int* argc, char* argv[]) {
 */
 void portable_fini(core_portable* p) {
     p->portable_id = 0;
+}
+
+void* portable_malloc(ee_size_t size) {
+    return m_alloc(size);
+}
+
+void portable_free(void* p) {
+    m_free(p);
 }

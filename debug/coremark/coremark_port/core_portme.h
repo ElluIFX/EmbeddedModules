@@ -24,7 +24,6 @@ Original Author: Shay Gal-on
 #define __CORE_PORTME_H__
 
 #include "modules.h"
-#include "perf_counter.h"
 
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunknown-warning-option"
@@ -73,11 +72,6 @@ Original Author: Shay Gal-on
 #define HAS_PRINTF 1
 #endif
 
-/* Configuration : CORE_TICKS
-        Define type of return from the timing functions.
- */
-typedef int64_t CORE_TICKS;
-
 /* Definitions : COMPILER_VERSION, COMPILER_FLAGS, MEM_LOCATION
         Initialize these strings per platform
 */
@@ -94,17 +88,17 @@ typedef int64_t CORE_TICKS;
 #elif __IS_COMPILER_GCC__
 #define COMPILER_VERSION "GCC"__VERSION__
 #else
-#define COMPILER_VERSION "Please put compiler version here (e.g. gcc 4.1)"
+#define COMPILER_VERSION "Unknown Compiler"
 #endif
 
 #endif
+
 #ifndef COMPILER_FLAGS
-#define COMPILER_FLAGS \
-    "Unspecified" /* "Please put compiler flags here (e.g. -o3)" */
+#define COMPILER_FLAGS "-o3" /* "Please put compiler flags here (e.g. -o3)" */
 #endif
-#ifndef MEM_LOCATION
-#define MEM_LOCATION "STACK"
-#endif
+// #ifndef MEM_LOCATION
+// #define MEM_LOCATION "STACK"
+// #endif
 
 /* Data Types :
         To avoid compiler issues, define the data types that need ot be used for

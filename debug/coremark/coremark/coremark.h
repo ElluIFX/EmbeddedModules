@@ -23,6 +23,9 @@ Original Author: Shay Gal-on
 /* Configuration: TOTAL_DATA_SIZE
         Define total size for data algorithms will operate on
 */
+#ifndef __COREMARK_H__
+#define __COREMARK_H__
+
 #ifndef TOTAL_DATA_SIZE
 #define TOTAL_DATA_SIZE 2 * 1000
 #endif
@@ -41,8 +44,8 @@ Original Author: Shay Gal-on
 #include "stdio.h"
 #endif
 #if HAS_PRINTF
-#include "uni_io.h"
-#define ee_printf printf
+#include "log.h"
+#define ee_printf PRINT
 #endif
 
 /* Actual benchmark execution in iterate */
@@ -68,8 +71,8 @@ typedef ee_u32 secs_ret;
 
 void start_time(void);
 void stop_time(void);
-CORE_TICKS get_time(void);
-secs_ret time_in_secs(CORE_TICKS ticks);
+uint64_t get_time(void);
+secs_ret time_in_secs(uint64_t ticks);
 
 /* Misc useful functions */
 ee_u16 crcu8(ee_u8 data, ee_u16 crc);
@@ -173,3 +176,5 @@ ee_u32 core_init_matrix(ee_u32 blksize, void* memblk, ee_s32 seed,
 ee_u16 core_bench_matrix(mat_params* p, ee_s16 seed, ee_u16 crc);
 
 void coremark_main(void);
+
+#endif /* __COREMARK_H__ */
