@@ -20,9 +20,6 @@ extern "C" {
 
 // Public Defines ---------------------------
 
-#define FS_ENABLE_YMODEM 1  // 启用YMODEM接收命令
-#define FS_ENABLE_DEBUG 0   // 启用调试信息
-
 // Public Typedefs --------------------------
 
 // Public Macros ----------------------------

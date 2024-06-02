@@ -12,21 +12,20 @@
 
 #include "lfs.h"
 #include "sds.h"
+#include "log.h"
 
 // Private Defines --------------------------
-
-#define FS_ENABLE_YMODEM 1  // 启用YMODEM接收命令
 
 #define FS_PRINTLN(...) PRINTLN(__VA_ARGS__)
 #define FS_PRINT(...) PRINT(__VA_ARGS__)
 
-#if 0
+#if EMCLI_CFG_LFS_ENABLE_DEBUG
 #define FS_DEBUG(...) LOG_DEBUG(__VA_ARGS__)
 #else
 #define FS_DEBUG(...)
 #endif
 
-#if FS_ENABLE_YMODEM
+#if EMCLI_CFG_LFS_ENABLE_YMODEM
 #include "ymodem.h"
 #endif
 
@@ -798,7 +797,7 @@ static void format_cmd_func(EmbeddedCli* cli, char* args, void* context) {
     FS_PRINTLN("File system formatted");
 }
 
-#if FS_ENABLE_YMODEM
+#if EMCLI_CFG_LFS_ENABLE_YMODEM
 int y_transmit_ch(y_uint8_t ch) {
     FS_PRINT("%c", ch);
     return 0;
@@ -877,7 +876,7 @@ static void rb_cmd_func(EmbeddedCli* cli, char* args, void* context) {
     y_file_name = NULL;
 }
 
-#endif  // FS_ENABLE_YMODEM
+#endif  // EMCLI_CFG_LFS_ENABLE_YMODEM
 // Public Functions -------------------------
 
 void lfs_utils_add_command_to_cli(EmbeddedCli* reg_cli, lfs_t* reg_lfs) {
@@ -1006,7 +1005,7 @@ void lfs_utils_add_command_to_cli(EmbeddedCli* reg_cli, lfs_t* reg_lfs) {
         .func = format_cmd_func,
     };
     embeddedCliAddBinding(cli, format_cmd);
-#if FS_ENABLE_YMODEM
+#if EMCLI_CFG_LFS_ENABLE_YMODEM
     static CliCommandBinding rb_cmd = {
         .name = "rb",
         .usage = "rb <force_file_path>",

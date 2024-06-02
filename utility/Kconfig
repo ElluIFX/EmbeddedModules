@@ -6,8 +6,10 @@ menuconfig MOD_ENABLE_COT_MENU
 
 menuconfig MOD_ENABLE_EMBEDDED_CLI
     bool "Embedded CLI (Command Line Interface)"
-    select MOD_ENABLE_UNI_IO
     default n
+if MOD_ENABLE_EMBEDDED_CLI
+source "utility/embedded_cli/Kconfig"
+endif
 
 menuconfig MOD_ENABLE_INCBIN
     bool "IncBin (Binary File Inclusion)"

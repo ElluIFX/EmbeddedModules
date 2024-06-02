@@ -1,0 +1,21 @@
+config EMCLI_CFG_LFS_UTILS
+bool "LFS utilities"
+select MOD_ENABLE_LOG
+select MOD_ENABLE_LFS
+default n
+
+config EMCLI_CFG_LFS_ENABLE_YMODEM
+bool "Enable YMODEM support"
+depends on EMCLI_CFG_LFS_UTILS
+select MOD_ENABLE_XYMODEM
+default y
+
+config EMCLI_CFG_LFS_ENABLE_DEBUG
+bool "Enable debug output"
+depends on EMCLI_CFG_LFS_UTILS
+default n
+
+config EMCLI_CFG_SYS_UTILS
+bool "System utilities"
+default n
+select MOD_ENABLE_TERM_TABLE

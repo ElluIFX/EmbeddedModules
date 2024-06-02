@@ -1,5 +1,5 @@
-#ifndef EMBEDDED_CLI_H
-#define EMBEDDED_CLI_H
+#ifndef __EMBEDDED_CLI_H__
+#define __EMBEDDED_CLI_H__
 
 #ifdef __cplusplus
 
@@ -7,9 +7,11 @@ extern "C" {
 #else
 #include <stdbool.h>
 #endif
-#include "uni_io.h"
 // cstdint is available only since C++11, so use C header
+#include <stddef.h>
 #include <stdint.h>
+
+#include "modules.h"
 
 // used for proper alignment of cli buffer
 #if UINTPTR_MAX == 0xFFFF
@@ -94,7 +96,7 @@ struct CliCommandBinding {
 
 struct EmbeddedCli {
     /**
-   * Should write char to connection
+   * Should write char to connection (fallback if writeString is not set)
    * @param cli - pointer to cli that executed this function
    * @param c   - actual character to write
    */
@@ -438,4 +440,4 @@ void embeddedCliResetRawBufferHandler(EmbeddedCli* cli);
 }
 #endif
 
-#endif  // EMBEDDED_CLI_H
+#endif /* __EMBEDDED_CLI_H__ */

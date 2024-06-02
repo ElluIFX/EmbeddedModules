@@ -12,10 +12,11 @@
 
 #define LOG_MODULE "sys"
 #include "log.h"
-#include "scheduler.h"
 #include "term_table.h"
 // Private Defines --------------------------
-
+#if MOD_ENABLE_SCHEDULER
+#include "scheduler.h"
+#endif
 #if (MOD_CFG_HEAP_MATHOD_LWMEM)
 #include "lwmem.h"
 #define SHOWLWMEM 1
@@ -198,6 +199,7 @@ static void sysinfo_cmd_func(EmbeddedCli* cli, char* args, void* context) {
 #endif
     TT_KVPair_AddItem(kv, 2, TT_Str(al, f1, f2, "Build Time"),
                       TT_Str(al, f1, f2, __DATE__ " " __TIME__), sep);
+#if MOD_ENABLE_SCHEDULER
 #if SCH_CFG_ENABLE_TASK || SCH_CFG_ENABLE_EVENT || SCH_CFG_ENABLE_COROUTINE
     TT_AddTitle(tt,
                 TT_Str(TT_ALIGN_LEFT, TT_FMT1_GREEN, TT_FMT2_BOLD,
@@ -217,6 +219,7 @@ static void sysinfo_cmd_func(EmbeddedCli* cli, char* args, void* context) {
                       TT_FmtStr(al, f1, f2, "%d", sch_cortn_get_num()), sep);
 #endif
 #endif  // SCHEDULER
+#endif  // MOD_ENABLE_SCHEDULER
 #if SHOWLWMEM
     TT_AddTitle(
         tt,

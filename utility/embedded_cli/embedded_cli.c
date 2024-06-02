@@ -404,13 +404,15 @@ static void onHelp(EmbeddedCli* cli, char* tokens, void* context);
  */
 static void onClear(EmbeddedCli* cli, char* tokens, void* context);
 
+#ifdef __CORTEX_M
 /**
- * Reboot device
+ * Reboot device (only for Cortex-M devices)
  * @param cli
  * @param tokens - not used
  * @param context - not used
  */
 static void onReboot(EmbeddedCli* cli, char* tokens, void* context);
+#endif
 
 /**
  * Show error about unknown command
@@ -1320,10 +1322,12 @@ static void initInternalBindings(EmbeddedCli* cli) {
         onClear, "clear", "clear", "Clear terminal screen", false, NULL,
     };
     embeddedCliAddBinding(cli, c);
+#ifdef __CORTEX_M
     static CliCommandBinding d = {
         onReboot, "reboot", "reboot", "Reboot device", false, NULL,
     };
     embeddedCliAddBinding(cli, d);
+#endif
 }
 
 static void onHelp(EmbeddedCli* cli, char* tokens, void* context) {
@@ -1373,6 +1377,7 @@ static void onClear(EmbeddedCli* cli, char* tokens, void* context) {
     writeToOutput(cli, "\033[2J\033[1;1H");
 }
 
+#ifdef __CORTEX_M
 static void onReboot(EmbeddedCli* cli, char* tokens, void* context) {
     UNUSED(tokens);
     UNUSED(context);
@@ -1382,6 +1387,7 @@ static void onReboot(EmbeddedCli* cli, char* tokens, void* context) {
     // reboot
     NVIC_SystemReset();
 }
+#endif
 
 static void onUnknownCommand(EmbeddedCli* cli, const char* name) {
     writeToOutputColor(cli, name, CLI_ERROR_COLOR);

@@ -1,0 +1,10 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
+if not CONFIG.EMCLI_CFG_LFS_UTILS:
+    IGNORES += "lfs_utils.h"
+    IGNORES += "lfs_utils.c"
+if not CONFIG.EMCLI_CFG_SYS_UTILS:
+    IGNORES += "sys_utils.h"
+    IGNORES += "sys_utils.c"
