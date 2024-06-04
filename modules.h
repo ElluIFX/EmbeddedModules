@@ -36,7 +36,6 @@ typedef uint32_t m_time_t;
 #define init_module_timebase() ((void)0)
 #define m_time_ms() HAL_GetTick()
 #define m_time_us() (HAL_GetTick() * 1000)
-#define m_time_ns() (HAL_GetTick() * 1000000)
 #define m_time_s() (HAL_GetTick() / 1000)
 #define m_tick() HAL_GetTick()
 #define m_tick_clk (1000)
@@ -45,10 +44,9 @@ typedef uint32_t m_time_t;
 typedef int64_t m_time_t;
 #define m_time_t_max (INT64_MAX)
 #define init_module_timebase() init_cycle_counter(1);
+#define m_time_s() (((uint64_t)get_system_ms()) / 1000)
 #define m_time_ms() ((uint64_t)get_system_ms())
 #define m_time_us() ((uint64_t)get_system_us())
-#define m_time_ns() (((uint64_t)get_system_us()) * 1000)
-#define m_time_s() (((uint64_t)get_system_ms()) / 1000)
 #define m_tick() ((uint64_t)get_system_ticks())
 #define m_tick_clk ((uint64_t)SystemCoreClock)
 #elif MOD_CFG_TIME_MATHOD_KLITE
@@ -56,10 +54,9 @@ typedef int64_t m_time_t;
 typedef kl_tick_t m_time_t;
 #define m_time_t_max (KL_WAIT_FOREVER)
 #define init_module_timebase() ((void)0)
+#define m_time_s() (m_time_ms() / 1000)
 #define m_time_ms() (kl_ticks_to_ms(kl_tick_t()))
 #define m_time_us() (kl_ticks_to_us(kl_tick_t()))
-#define m_time_ns() (m_time_us() * 1000)
-#define m_time_s() (m_time_ms() / 1000)
 #define m_tick() (kl_tick_t())
 #define m_tick_clk (KLITE_CFG_FREQ)
 #elif MOD_CFG_TIME_MATHOD_FREERTOS
@@ -67,10 +64,9 @@ typedef kl_tick_t m_time_t;
 typedef TickType_t m_time_t;
 #define m_time_t_max (portMAX_DELAY)
 #define init_module_timebase() ((void)0)
+#define m_time_s() (m_time_ms() / 1000)
 #define m_time_ms() pdTICKS_TO_MS(xTaskGetTickCount())
 #define m_time_us() pdTICKS_TO_US(xTaskGetTickCount())
-#define m_time_ns() (m_time_us() * 1000)
-#define m_time_s() (m_time_ms() / 1000)
 #define m_tick() xTaskGetTickCount()
 #define m_tick_clk (configTICK_RATE_HZ)
 #elif MOD_CFG_TIME_MATHOD_RTT
@@ -78,18 +74,53 @@ typedef TickType_t m_time_t;
 typedef rt_tick_t m_time_t;
 #define m_time_t_max (RT_WAITING_FOREVER)
 #define init_module_timebase() ((void)0)
+#define m_time_s() (rt_tick_get() / RT_TICK_PER_SECOND)
 #if RT_TICK_PER_SECOND <= 1000
 #define m_time_ms() (rt_tick_get() * (1000 / RT_TICK_PER_SECOND))
 #define m_time_us() (rt_tick_get() * (1000000 / RT_TICK_PER_SECOND))
-#define m_time_ns() (rt_tick_get() * (1000000000 / RT_TICK_PER_SECOND))
 #else
 #define m_time_ms() (rt_tick_get() / (RT_TICK_PER_SECOND / 1000))
 #define m_time_us() (rt_tick_get() / (RT_TICK_PER_SECOND / 1000000))
-#define m_time_ns() (rt_tick_get() / (RT_TICK_PER_SECOND / 1000000000))
 #endif
-#define m_time_s() (rt_tick_get() / RT_TICK_PER_SECOND)
 #define m_tick() rt_tick_get()
 #define m_tick_clk (RT_TICK_PER_SECOND)
+#elif MOD_CFG_TIME_MATHOD_CUSTOM
+#if MOD_CFG_CUSTOM_TIME_IMPORT
+#include MOD_CFG_CUSTOM_TIME_HEADER
+#endif
+#if MOD_CFG_CUSTOM_TIME_TYPE_U32
+typedef uint32_t m_time_t;
+#define m_time_t_max (UINT32_MAX)
+#elif MOD_CFG_CUSTOM_TIME_TYPE_U64
+typedef uint64_t m_time_t;
+#define m_time_t_max (UINT64_MAX)
+#elif MOD_CFG_CUSTOM_TIME_TYPE_S32
+typedef int32_t m_time_t;
+#define m_time_t_max (INT32_MAX)
+#elif MOD_CFG_CUSTOM_TIME_TYPE_S64
+typedef int64_t m_time_t;
+#define m_time_t_max (INT64_MAX)
+#endif  // MOD_CFG_CUSTOM_TIME_TYPE_*
+extern void mod_custom_tick_init(void);
+#define init_module_timebase() mod_custom_tick_init()
+extern m_time_t mod_custom_tick_get(void);
+#define m_tick() mod_custom_tick_get()
+#define m_time_s() (m_tick() / m_tick_clk)
+#if MOD_CFG_CUSTOM_TIME_BASE_DYNAMIC
+extern m_time_t mod_custom_tick_clk(void);
+#define m_tick_clk mod_custom_tick_clk()
+#define m_time_ms() (m_tick() * 1000 / m_tick_clk)
+#define m_time_us() (m_tick() * 1000000 / m_tick_clk)
+#else  // MOD_CFG_CUSTOM_TIME_BASE_DYNAMIC
+#define m_tick_clk (MOD_CFG_CUSTOM_TIME_BASE)
+#if MOD_CFG_CUSTOM_TIME_BASE <= 1000
+#define m_time_ms() (m_tick() * (1000 / m_tick_clk))
+#define m_time_us() (m_tick() * (1000000 / m_tick_clk))
+#else
+#define m_time_ms() (m_tick() / (m_tick_clk / 1000))
+#define m_time_us() (m_tick() / (m_tick_clk / 1000000))
+#endif
+#endif  // MOD_CFG_CUSTOM_TIME_BASE_DYNAMIC
 #else
 #error "MOD_CFG_TIME_MATHOD invalid"
 #endif  // MOD_CFG_TIME_MATHOD
@@ -118,6 +149,16 @@ typedef rt_tick_t m_time_t;
     rt_thread_delay((rt_tick_t)(x) / (1000000UL / RT_TICK_PER_SECOND))
 #define m_delay_ms(x) rt_thread_delay(rt_tick_from_millisecond(x))
 #define m_delay_s(x) rt_thread_delay((rt_tick_t)(x) * RT_TICK_PER_SECOND)
+#elif MOD_CFG_DELAY_MATHOD_CUSTOM  // custom
+#if MOD_CFG_CUSTOM_DELAY_IMPORT
+#include MOD_CFG_CUSTOM_DELAY_HEADER
+#endif
+extern void mod_custom_delay_us(m_time_t us);
+extern void mod_custom_delay_ms(m_time_t ms);
+extern void mod_custom_delay_s(m_time_t s);
+#define m_delay_us(x) mod_custom_delay_us(x)
+#define m_delay_ms(x) mod_custom_delay_ms(x)
+#define m_delay_s(x) mod_custom_delay_s(x)
 #else
 #error "MOD_CFG_DELAY_MATHOD invalid"
 #endif  // MOD_CFG_DELAY_MATHOD
@@ -166,6 +207,18 @@ typedef rt_tick_t m_time_t;
 #define m_alloc(size) rt_malloc(size)
 #define m_free(ptr) rt_free(ptr)
 #define m_realloc(ptr, size) rt_realloc(ptr, size)
+#elif MOD_CFG_HEAP_MATHOD_CUSTOM  // custom
+#if MOD_CFG_CUSTOM_HEAP_IMPORT
+#include MOD_CFG_CUSTOM_HEAP_HEADER
+#endif
+extern void mod_custom_heap_init(void* ptr, size_t size);
+extern void* mod_custom_heap_alloc(size_t size);
+extern void mod_custom_heap_free(void* ptr);
+extern void* mod_custom_heap_realloc(void* ptr, size_t size);
+#define init_module_heap(ptr, size) mod_custom_heap_init(ptr, size)
+#define m_alloc(size) mod_custom_heap_alloc(size)
+#define m_free(ptr) mod_custom_heap_free(ptr)
+#define m_realloc(ptr, size) mod_custom_heap_realloc(ptr, size)
 #else
 #error "MODCFG__HEAP_MATHOD invalid"
 #endif
