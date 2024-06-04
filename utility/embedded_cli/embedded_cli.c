@@ -298,7 +298,7 @@ static EmbeddedCliConfig defaultConfig;
  * - help
  * - clear
  */
-static const uint16_t cliInternalBindingCount = 3;
+static const uint16_t cliInternalBindingCount = 4;
 
 static const char* lineBreak = "\r\n";
 
@@ -403,6 +403,14 @@ static void onHelp(EmbeddedCli* cli, char* tokens, void* context);
  * @param context - not used
  */
 static void onClear(EmbeddedCli* cli, char* tokens, void* context);
+
+/**
+ * Print history of commands
+ * @param cli
+ * @param tokens - not used
+ * @param context - not used
+ */
+static void onHistory(EmbeddedCli* cli, char* tokens, void* context);
 
 #ifdef __CORTEX_M
 /**
@@ -1322,6 +1330,10 @@ static void initInternalBindings(EmbeddedCli* cli) {
         onClear, "clear", "clear", "Clear terminal screen", false, NULL,
     };
     embeddedCliAddBinding(cli, c);
+    static CliCommandBinding h = {
+        onHistory, "history", "history", "Print command history", false, NULL,
+    };
+    embeddedCliAddBinding(cli, h);
 #ifdef __CORTEX_M
     static CliCommandBinding d = {
         onReboot, "reboot", "reboot", "Reboot device", false, NULL,
@@ -1375,6 +1387,30 @@ static void onClear(EmbeddedCli* cli, char* tokens, void* context) {
     UNUSED(context);
     clearCurrentLine(cli);
     writeToOutput(cli, "\033[2J\033[1;1H");
+}
+
+static void onHistory(EmbeddedCli* cli, char* tokens, void* context) {
+    UNUSED(tokens);
+    UNUSED(context);
+    PREPARE_IMPL(cli);
+
+    if (impl->history.itemsCount <= 1) {
+        writeToOutputColor(cli, "No history available", CLI_WARNING_COLOR);
+        writeToOutput(cli, lineBreak);
+        return;
+    }
+
+    char temp[] = "  : ";
+
+    for (int i = 1; i < impl->history.itemsCount; ++i) {
+        writeToOutput(cli, " ");
+        temp[0] = '0' + i / 10;
+        temp[1] = '0' + i % 10;
+        writeToOutputColor(cli, temp, CLI_HELP_HEADER_COLOR);
+        writeToOutputColor(cli, historyGet(&impl->history, i + 1),
+                           CLI_HELP_CONTENT_COLOR);
+        writeToOutput(cli, lineBreak);
+    }
 }
 
 #ifdef __CORTEX_M
