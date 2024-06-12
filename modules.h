@@ -27,6 +27,11 @@ extern "C" {
 #endif
 
 #include MOD_CFG_PLATFORM_HEADER
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define MOD_CFG_OS_AVAILABLE (!MOD_CFG_USE_OS_NONE)
 
@@ -222,15 +227,6 @@ extern void* mod_custom_heap_realloc(void* ptr, size_t size);
 #else
 #error "MODCFG__HEAP_MATHOD invalid"
 #endif
-
-static inline void* m_calloc(size_t nmemb, size_t size) {
-    void* mem = m_alloc(nmemb * size);
-    if (mem) {
-        void* memset(void* s, int c, size_t n);
-        memset(mem, 0, nmemb * size);
-    }
-    return mem;
-}
 
 #if MOD_CFG_USE_OS_NONE  // none
 #define MOD_MUTEX_HANDLE __attribute__((unused)) uint8_t

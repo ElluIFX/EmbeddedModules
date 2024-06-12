@@ -93,6 +93,7 @@ menu "Global Configuration"
             help
                 If you have a include file needed by your custom time provider.
         config MOD_CFG_CUSTOM_TIME_HEADER
+            depends on MOD_CFG_CUSTOM_TIME_IMPORT
             string "Custom Header File"
             help
                 The header file that contains the custom time/tick provider definitions.
@@ -165,6 +166,7 @@ menu "Global Configuration"
             help
                 If you have a custom include file needed by your custom delay provider.
         config MOD_CFG_CUSTOM_DELAY_HEADER
+            depends on MOD_CFG_CUSTOM_DELAY_IMPORT
             string "Custom Header File"
             help
                 The header file that contains the custom delay provider definitions.
@@ -215,6 +217,7 @@ menu "Global Configuration"
             help
                 If you have a custom include file needed by your custom heap provider.
         config MOD_CFG_CUSTOM_HEAP_HEADER
+            depends on MOD_CFG_CUSTOM_HEAP_IMPORT
             string "Custom Header File"
             help
                 The header file that contains the custom heap provider definitions.

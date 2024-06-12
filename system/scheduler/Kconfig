@@ -99,7 +99,8 @@ endif
 
 config SCH_CFG_ENABLE_TERMINAL
     bool "Enable Terminal Support"
-    default y
+    default n
     select MOD_ENABLE_EMBEDDED_CLI
+    select MOD_ENABLE_TERM_TABLE
     help
       Enable the terminal support in the scheduler. (Depends on embedded-cli module)
