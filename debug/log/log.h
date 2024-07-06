@@ -142,7 +142,7 @@ extern void log_hook(const char* fmt, ...);
         }                                                                     \
     } while (0)
 #define __LOG_REFRESH(_STR, _CLR, fmt, args...) \
-    __LOG("\33[s\r\33[1A", _STR, _CLR, "\033[K\33[u", fmt, ##args)
+    __LOG("\33[s\r\33[1A", _STR, _CLR, "\33[u", fmt, ##args)
 
 #if LOG_CFG_ENABLE_TRACE
 /**
