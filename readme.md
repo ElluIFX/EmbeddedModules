@@ -244,6 +244,7 @@ optional arguments:
   -m, --menuconfig      Run menuconfig in project dir
   -g, --guiconfig       Run menuconfig with GUI
   -s, --sync            Sync latest module files without menuconfig
+  -rs, --reverse-sync   Sync newer files from project to module repo
   -ns, --no-sync        Skip syncing latest module files after menuconfig
   -n, --newmodule       Create a new module
   -u, --update          Pull the latest version of this toolset from github

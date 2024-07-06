@@ -3,6 +3,7 @@ import asyncio
 import datetime
 import json
 import os
+import os.path
 import re
 import shutil
 import sys
@@ -125,15 +126,16 @@ class Module:
     name: str
     type: str
     path: str
+    abs_path: str
     Mconfig: bool
     Kconfig: bool
 
 
 @lru_cache()
-def list_module_types() -> List[str]:
+def list_module_types(dir) -> List[str]:
     module_types = [
         d
-        for d in os.listdir(".")
+        for d in os.listdir(dir)
         if (os.path.isdir(d) and not d.startswith("_") and not d.startswith("."))
     ]
     module_types.sort()
@@ -141,27 +143,30 @@ def list_module_types() -> List[str]:
 
 
 @lru_cache()
-def list_modules() -> List[Module]:
-    # list 1st level dirs
+def list_modules(dir: str = ".") -> Tuple[List[Module], List[str]]:
     modules = []
-    module_types = list_module_types()
+    module_types = list_module_types(dir)
     for module_type in module_types:
+        module_path = os.path.join(dir, module_type)
         module_dirs = [
             d
-            for d in os.listdir(module_type)
+            for d in os.listdir(module_path)
             if (
-                os.path.isdir(f"{module_type}/{d}")
+                os.path.isdir(os.path.join(module_path, d))
                 and not d.startswith("_")
                 and not d.startswith(".")
             )
         ]
         module_dirs.sort()
         for module_dir in module_dirs:
-            full_path = f"{module_type}/{module_dir}"
+            rel_path = os.path.join(module_type, module_dir)
+            full_path = os.path.join(module_path, module_dir)
             Mconfig = os.path.exists(os.path.join(full_path, "Mconfig"))
             Kconfig = os.path.exists(os.path.join(full_path, "Kconfig"))
-            modules.append(Module(module_dir, module_type, full_path, Mconfig, Kconfig))
-    return modules
+            modules.append(
+                Module(module_dir, module_type, rel_path, full_path, Mconfig, Kconfig)
+            )
+    return modules, module_types
 
 
 C_FILE_TEMP = """/**
@@ -366,7 +371,7 @@ def module_wizard(available_types):
         with open(readme_file_path, "w", encoding="utf-8") as f:
             f.write(readme_content)
 
-    temp_list = [m.name for m in list_modules() if m.type == module_type]
+    temp_list = [m.name for m in list_modules()[0] if m.type == module_type]
     temp_list.sort()
     idx = temp_list.index(module_file_name)
     module_path_up = os.path.join(module_root, module_type)
@@ -571,12 +576,12 @@ class IgnoreProxy:
 
 def copy_file(
     src, dst, history: Optional[List[Tuple[str, str]]] = None, skip_when_dst_newer=True
-):
+) -> bool:
     if history is not None:
         history.append((src, dst))
     if not os.path.exists(dst):
         shutil.copy2(src, dst)
-        return
+        return True
     src_time = os.path.getmtime(src)
     dst_time = os.path.getmtime(dst)
     if skip_when_dst_newer and src_time < dst_time:
@@ -584,9 +589,25 @@ def copy_file(
             "warning",
             f"skip copy {os.path.normpath(src)} (dst is newer)",
         )
-        return
+        return False
     if src_time != dst_time:
         shutil.copy2(src, dst)
+        return True
+    return False
+
+
+def copy_newer_file(src, dst, history: Optional[List[Tuple[str, str]]] = None) -> bool:
+    if not os.path.exists(dst):
+        shutil.copy2(src, dst)
+        return
+    src_time = os.path.getmtime(src)
+    dst_time = os.path.getmtime(dst)
+    if src_time > dst_time:
+        if history is not None:
+            history.append((src, dst))
+        shutil.copy2(src, dst)
+        return True
+    return False
 
 
 SYNC_IGNORES = [
@@ -665,6 +686,9 @@ def copy_module(
     for root, _, files in os.walk(module_path):
         for file in files:
             full_path = os.path.abspath(os.path.join(root, file))
+            rel_path = os.path.relpath(full_path, dst_dir)
+            if not os.path.exists(os.path.join(src_dir, rel_path)):
+                continue
             for h in history:
                 if os.path.samefile(full_path, h[1]):
                     break
@@ -686,14 +710,13 @@ def sync_module_files(
     skip_modules: List[str] = [],
     force_copy: bool = False,
 ):
+    log("info", "syncing module files...")
     config_file_path = os.path.join(output_dir, config_file)
     enabled = read_enabled_modules(config_file_path)
     log("debug", f"enabled modules: {enabled}")
     log("debug", f"skip modules: {skip_modules}")
-    log("info", "syncing module files...")
-    modules = list_modules()
-    module_types = list_module_types()
-    module_names = [m.name for m in list_modules()]
+    modules, module_types = list_modules()
+    module_names = [m.name for m in modules]
     en_modules = []
     cfg = ConfigGetter(config_file_path)
     for module in modules:
@@ -741,9 +764,35 @@ def sync_module_files(
     log("success", "module files synced")
 
 
+def reverse_sync(
+    from_dir: str,
+    ext_files: List[str] = [],
+):
+    log("info", "reverse syncing...")
+    modules, _ = list_modules(from_dir)
+    log("debug", f"modules: {modules}")
+    for module in modules:
+        hist = []
+        shutil.copytree(
+            module.abs_path,
+            os.path.join(".", module.path),
+            dirs_exist_ok=True,
+            copy_function=lambda src, dst: copy_newer_file(src, dst, hist),
+        )
+        if hist:
+            log("info", f"{len(hist)} files in module {module.name} rev-synced")
+    for ext_file in ext_files:
+        if copy_newer_file(
+            os.path.join(from_dir, ext_file),
+            ext_file,
+        ):
+            log("info", f"{ext_file} rev-synced")
+    log("success", "reverse sync success")
+
+
 def analyze_module_deps():
     log("info", "analyzing module dependencies")
-    modules = list_modules()
+    modules, _ = list_modules()
     incs = dict()
     for module in modules:
         for _, _, files in os.walk(module.path):
@@ -978,6 +1027,12 @@ if __name__ == "__main__":
         help="Sync latest module files without menuconfig",
     )
     parser.add_argument(
+        "-rs",
+        "--reverse-sync",
+        action="store_true",
+        help="Sync newer files from project to module repo",
+    )
+    parser.add_argument(
         "-ns",
         "--no-sync",
         action="store_true",
@@ -1056,6 +1111,10 @@ if __name__ == "__main__":
     if args.newmodule:
         module_wizard(list_module_types())
 
+    if args.reverse_sync:
+        check_working_dir(project_dir, module_dir, auto_create=False)
+        reverse_sync(module_dir, EXT_FILES)
+
     guiconfig = GUI_AVAILABLE and args.guiconfig
     if args.menuconfig or guiconfig:
         check_working_dir(project_dir, module_dir, auto_create=True)
@@ -1096,6 +1155,7 @@ if __name__ == "__main__":
         [
             args.menuconfig,
             args.sync,
+            args.reverse_sync,
             args.newmodule,
             args.update,
             guiconfig,
