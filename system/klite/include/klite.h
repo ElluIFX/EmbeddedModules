@@ -963,6 +963,19 @@ bool kl_thread_pool_submit(kl_thread_pool_t pool, void (*process)(void* arg),
                            void* arg, kl_tick_t timeout);
 
 /**
+ * @brief 提交任务到线程池, 并为参数分配内存
+ * @param  pool 线程池标识符
+ * @param  process 任务处理函数
+ * @param  arg 任务参数
+ * @param  size 参数大小
+ * @param  timeout 分配等待超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
+ * @retval 提交成功返回true, 失败返回false
+ */
+bool kl_thread_pool_submit_copy(kl_thread_pool_t pool,
+                                void (*process)(void* arg), void* arg,
+                                kl_size_t size, kl_tick_t timeout);
+
+/**
  * @brief 等待线程池中的任务执行完成
  * @param pool 线程池标识符
  * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
