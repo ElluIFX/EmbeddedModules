@@ -1,0 +1,22 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
+demos = ["benchmark", "keypad_encoder", "music", "stress", "widgets"]
+if CONFIG.LV_USE_DEMO_WIDGETS:
+    demos.remove("widgets")
+if CONFIG.LV_USE_DEMO_KEYPAD_AND_ENCODER:
+    demos.remove("keypad_encoder")
+if CONFIG.LV_USE_DEMO_MUSIC:
+    demos.remove("music")
+if CONFIG.LV_USE_DEMO_STRESS:
+    demos.remove("stress")
+if CONFIG.LV_USE_DEMO_BENCHMARK:
+    demos.remove("benchmark")
+if len(demos) == 5:
+    IGNORES += ["demos"]
+else:
+    IGNORES += demos
+
+if not CONFIG.LV_BUILD_EXAMPLES:
+    IGNORES += ["examples"]
