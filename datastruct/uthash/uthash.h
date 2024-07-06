@@ -21,8 +21,8 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef UTHASH_H
-#define UTHASH_H
+#ifndef __UTHASH_H__
+#define __UTHASH_H__
 
 #define UTHASH_VERSION 2.3.0
 
@@ -160,7 +160,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         if (head) {                                                        \
             unsigned _hf_bkt;                                              \
             HASH_TO_BKT(hashval, (head)->hh.tbl->num_buckets, _hf_bkt);    \
-            if (HASH_BLOOM_TEST((head)->hh.tbl, hashval) != 0) {           \
+            if (HASH_BLOOM_TEST((head)->hh.tbl, hashval)) {                \
                 HASH_FIND_IN_BKT((head)->hh.tbl, hh,                       \
                                  (head)->hh.tbl->buckets[_hf_bkt], keyptr, \
                                  keylen, hashval, out);                    \
@@ -200,7 +200,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     } while (0)
 
 #define HASH_BLOOM_BITSET(bv, idx) (bv[(idx) / 8U] |= (1U << ((idx) % 8U)))
-#define HASH_BLOOM_BITTEST(bv, idx) (bv[(idx) / 8U] & (1U << ((idx) % 8U)))
+#define HASH_BLOOM_BITTEST(bv, idx) (bv[(idx) / 8U] & (1U << ((idx) % 8U)) != 0)
 
 #define HASH_BLOOM_ADD(tbl, hashv) \
     HASH_BLOOM_BITSET(             \
@@ -216,7 +216,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HASH_BLOOM_MAKE(tbl, oomed)
 #define HASH_BLOOM_FREE(tbl)
 #define HASH_BLOOM_ADD(tbl, hashv)
-#define HASH_BLOOM_TEST(tbl, hashv) (1)
+#define HASH_BLOOM_TEST(tbl, hashv) 1
 #define HASH_BLOOM_BYTELEN 0U
 #endif
 
@@ -461,9 +461,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define HASH_ADD(hh, head, fieldname, keylen_in, add) \
     HASH_ADD_KEYPTR(hh, head, &((add)->fieldname), keylen_in, add)
 
-#define HASH_TO_BKT(hashv, num_bkts, bkt)  \
-    do {                                   \
-        bkt = ((hashv) & ((num_bkts)-1U)); \
+#define HASH_TO_BKT(hashv, num_bkts, bkt)    \
+    do {                                     \
+        bkt = ((hashv) & ((num_bkts) - 1U)); \
     } while (0)
 
 /* delete "delptr" from the hash table.
@@ -1245,4 +1245,4 @@ typedef struct UT_hash_handle {
     unsigned hashv;                 /* result of hash-fcn(key)        */
 } UT_hash_handle;
 
-#endif /* UTHASH_H */
+#endif /* __UTHASH_H__ */

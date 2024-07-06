@@ -1,0 +1,12 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
+ignores = ["systick_wrapper_gcc.s", "systick_wrapper_gnu.s", "systick_wrapper_ual.s"]
+if CONFIG.MOD_CFG_COMPILER_GCC:
+    ignores.remove("systick_wrapper_gcc.s")
+elif CONFIG.MOD_CFG_COMPILER_IAR:
+    ignores.remove("systick_wrapper_gnu.s")
+else:
+    ignores.remove("systick_wrapper_ual.s")
+IGNORES += ignores

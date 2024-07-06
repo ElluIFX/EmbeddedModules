@@ -70,7 +70,7 @@
 | [struct2json](./datastruct/struct2json) | C结构体与JSON快速互转库 |  [link](https://github.com/armink/struct2json)  |              | 4f1fdc9 |
 | [udict](./datastruct/udict)             | 通用哈希字典            |                        *                        | 基于uthash   |         |
 | [ulist](./datastruct/ulist)             | 通用内存连续列表        |                        *                        |              |         |
-| [uthash](./datastruct/uthash)           | 基于宏的可嵌入哈希表    |  [link](https://github.com/troydhanson/uthash)  |              | eeba196 |
+| [uthash](./datastruct/uthash)           | 基于宏的可嵌入哈希表    |  [link](https://github.com/troydhanson/uthash)  |              | 619fe95 |
 
 </details>
 
@@ -138,7 +138,7 @@
 | ------------------------------------- | ------------------ | :--------------------------------------------: | ------------- | ------- |
 | [board_i2c](./peripheral/board_i2c)   | 板级I2C包装层      |                       *                        |               |         |
 | [board_led](./peripheral/board_led)   | 板级LED包装层      |                       *                        |               |         |
-| [ee](./peripheral/ee)                 | 内置flash读写库    |     [link](https://github.com/nimaltd/ee)      |               | 460d569 |
+| [ee](./peripheral/ee)                 | 内置flash读写库    |     [link](https://github.com/nimaltd/ee)      |               | 0b39520 |
 | [i2c_salve](./peripheral/i2c_slave)   | LL库I2C从机        |                       *                        |               |         |
 | [ll_i2c](./peripheral/ll_i2c)         | LL库I2C            |                       *                        | 包含中断/轮询 |         |
 | [mr_library](./peripheral/mr_library) | 轻量级设备读写接口 |  [link](https://gitee.com/MacRsh/mr-library)   |               |         |
@@ -167,7 +167,7 @@
 | [dalloc](./system/dalloc)                 | 动态指针管理内存分配器 |  [link](https://github.com/SkyEng1neering/dalloc)  |                 | da14f0f |
 | [heap4](./system/heap4)                   | FreeRTOS堆4            |    [link](https://www.freertos.org/a00111.html)    |                 |         |
 | [klite](./system/klite)                   | 基础实时内核           |      [link](https://gitee.com/kerndev/klite)       | 轻量高性能,推荐 |         |
-| [lwmem](./system/lwmem)                   | 轻量级内存管理         |      [link](https://github.com/MaJerle/lwmem)      | 性能远不如heap4 | d7a159c |
+| [lwmem](./system/lwmem)                   | 轻量级内存管理         |      [link](https://github.com/MaJerle/lwmem)      | 性能远不如heap4 | 2b08317 |
 | [rtthread_nano](./system/rtthread_nano)   | RT-Thread Nano         | [link](https://github.com/RT-Thread/rtthread-nano) |                 | 9177e3e |
 | [s_task](./system/s_task)                 | 精简的协程实现         |     [link](https://github.com/xhawk18/s_task)      | 需要实现栈切换  | 609835c |
 | [scheduler](./system/scheduler)           | 多功能任务调度器       |                         *                          | 内有使用说明    |         |
@@ -181,9 +181,9 @@
 | [Utility](./utility)                   | 工具                       |                          src                          | 备注        | SHA     |
 | -------------------------------------- | -------------------------- | :---------------------------------------------------: | ----------- | ------- |
 | [cot_menu](./utility/cot_menu)         | 轻量级菜单框架             |    [link](https://gitee.com/cot_package/cot_menu)     | 抽象菜单    |         |
-| [embedded_cli](./utility/embedded_cli) | 嵌入式命令行               |  [link](https://github.com/funbiscuit/embedded-cli)   | 魔改        | ffa8014 |
-| [lwprintf](./utility/lwprintf)         | 轻量级无缓冲区printf       |      [link](https://github.com/MaJerle/lwprintf)      |             | 18a1338 |
-| [perf_counter](./utility/perf_counter) | PerfCounter性能统计/时基库 | [link](https://github.com/GorgonMeducer/perf_counter) | 必备品      | 0b17943 |
+| [embedded_cli](./utility/embedded_cli) | 嵌入式命令行               |  [link](https://github.com/funbiscuit/embedded-cli)   | 魔改        | 8734a57 |
+| [lwprintf](./utility/lwprintf)         | 轻量级无缓冲区printf       |      [link](https://github.com/MaJerle/lwprintf)      |             | 1d3ad53 |
+| [perf_counter](./utility/perf_counter) | PerfCounter性能统计/时基库 | [link](https://github.com/GorgonMeducer/perf_counter) | 必备品      | 82a80d9 |
 | [ryu](./utility/ryu)                   | 浮点数转字符串             |        [link](https://github.com/tidwall/ryu)         |             | 5056abc |
 | [term_table](./utility/term_table)     | 动态终端表格工具           |                           *                           | 仅debug使用 |         |
 | [TimeLib](./utility/TimeLib)           | UNIX时间库                 |    [link](https://github.com/geekfactory/TimeLib)     |             | 8bdf963 |
