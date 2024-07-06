@@ -5,12 +5,11 @@ static struct kl_thread_list m_list_alive;  // 运行中线程列表
 static struct kl_thread_list m_list_dead;   // 待删除线程列表
 static uint16_t kl_thread_id_counter;       // 线程ID计数器
 
-#define THREAD_OPERATION_INVALID(tcb)                                       \
-    (!(tcb) || (tcb)->prio == 0 || (tcb)->flags & KL_THREAD_FLAGS_EXITED || \
-     (tcb)->magic != KL_THREAD_MAGIC_VALUE)
 #define THREAD_INFO_INVALID(tcb)                        \
     (!(tcb) || (tcb)->flags & KL_THREAD_FLAGS_EXITED || \
      (tcb)->magic != KL_THREAD_MAGIC_VALUE)
+#define THREAD_OPERATION_INVALID(tcb) \
+    (THREAD_INFO_INVALID(tcb) || (tcb)->prio == 0)
 
 kl_thread_t kl_thread_self(void) {
     return (kl_thread_t)kl_sched_tcb_now;
@@ -194,13 +193,14 @@ uint32_t kl_thread_priority(kl_thread_t thread) {
 
 void kl_thread_set_slice(kl_thread_t thread, kl_tick_t slice) {
 #if KLITE_CFG_ROUND_ROBIN_SLICE
-    if (THREAD_INFO_INVALID(thread)) {
+    if (THREAD_OPERATION_INVALID(thread)) {
         KL_SET_ERRNO(KL_EINVAL);
         return;
     }
     kl_port_enter_critical();
-    thread->slice = slice;
-    thread->slice_tick = slice;
+    // slice=0时实际上会运行1个tick
+    thread->slice = slice > 0 ? slice - 1 : 0;
+    thread->slice_tick = thread->slice;
     kl_port_leave_critical();
 #else
     (void)thread;
