@@ -199,6 +199,30 @@ if LOG_CFG_ENABLE
             The newline to use for the log output.
             e.g. "\r\n" to move the cursor to the beginning of the next line.
 
+        config LOG_CFG_INFO_PREFIX
+            string "Log Info Prefix"
+            default "\"[\""
+            help
+            The prefix to use for the log info (e.g. timestamp, level, etc.).
+
+        config LOG_CFG_INFO_SUFFIX
+            string "Log Info Suffix"
+            default "\"]\""
+            help
+            The suffix to use for the log info (e.g. timestamp, level, etc.).
+
+        config LOG_CFG_INFO_SEPERATOR
+            string "Log Info Seperator"
+            default "\" \""
+            help
+            The seperator insert to the log info parts.
+
+        config LOG_CFG_MSG_SEPERATOR
+            string "Log Message Seperator"
+            default "\" \""
+            help
+            The seperator between the log info and the log message.
+
         config LOG_CFG_ENABLE_HOOK
             bool "Enable Log Hook"
             default n
