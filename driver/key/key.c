@@ -11,52 +11,54 @@
 #include "key.h"
 
 static void key_state_down_check(key_dev_t* key_dev, uint8_t key_idx,
-                                 uint8_t key_read);
+                                 key_read_e key_read);
 static void key_state_down_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                 uint8_t key_read);
+                                 key_read_e key_read);
 static void key_state_hold_check(key_dev_t* key_dev, uint8_t key_idx,
-                                 uint8_t key_read);
+                                 key_read_e key_read);
 static void key_state_short_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                     uint8_t key_read);
+                                     key_read_e key_read);
 static void key_state_long_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                    uint8_t key_read);
+                                    key_read_e key_read);
 static void key_state_double_check(key_dev_t* key_dev, uint8_t key_idx,
-                                   uint8_t key_read);
+                                   key_read_e key_read);
 static void key_state_double_down_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                        uint8_t key_read);
+                                        key_read_e key_read);
 static void key_state_double_repeat_wait_check(key_dev_t* key_dev,
                                                uint8_t key_idx,
-                                               uint8_t key_read);
+                                               key_read_e key_read);
 static void key_state_double_repeat_check(key_dev_t* key_dev, uint8_t key_idx,
-                                          uint8_t key_read);
+                                          key_read_e key_read);
 static void key_state_double_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                      uint8_t key_read);
+                                      key_read_e key_read);
 static void key_state_hold_repeat_wait_check(key_dev_t* key_dev,
-                                             uint8_t key_idx, uint8_t key_read);
+                                             uint8_t key_idx,
+                                             key_read_e key_read);
 static void key_state_hold_repeat_check(key_dev_t* key_dev, uint8_t key_idx,
-                                        uint8_t key_read);
+                                        key_read_e key_read);
 static void key_state_hold_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                    uint8_t key_read);
+                                    key_read_e key_read);
 static void key_state_multi_down_check(key_dev_t* key_dev, uint8_t key_idx,
-                                       uint8_t key_read);
+                                       key_read_e key_read);
 static void key_state_multi_down_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                       uint8_t key_read);
+                                       key_read_e key_read);
 static void key_state_multi_up_check(key_dev_t* key_dev, uint8_t key_idx,
-                                     uint8_t key_read);
+                                     key_read_e key_read);
 static void key_state_multi_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                     uint8_t key_read);
+                                     key_read_e key_read);
 
-static void key_push_event(key_dev_t* key_dev, uint16_t event) {
+static void key_push_event(key_dev_t* key_dev, uint8_t id, uint8_t event) {
     if (!key_dev->setting.simple_event &&
-        ((event & 0xFF) == KEY_EVENT_UP || (event & 0xFF) == KEY_EVENT_DOWN))
+        (event == KEY_EVENT_UP || event == KEY_EVENT_DOWN))
         return;
     if (!key_dev->setting.complex_event &&
-        ((event & 0xFF) != KEY_EVENT_UP && (event & 0xFF) != KEY_EVENT_DOWN))
+        (event != KEY_EVENT_UP && event != KEY_EVENT_DOWN))
         return;
     if (key_dev->callback != NULL) {
-        key_dev->callback(event >> 8, event & 0xff);
+        key_dev->callback(id, event);
     }
-    key_dev->event_fifo.value[key_dev->event_fifo.wr++] = event;
+    key_value_t value = {.id = id, .event = event};
+    key_dev->event_fifo.value[key_dev->event_fifo.wr++] = value;
     key_dev->event_fifo.wr %= KEY_BUF_SIZE;
     if (key_dev->event_fifo.wr == key_dev->event_fifo.rd) {  // 缓冲区溢出
         key_dev->event_fifo.rd++;  // 丢弃最早的事件
@@ -65,7 +67,7 @@ static void key_push_event(key_dev_t* key_dev, uint16_t event) {
 }
 
 static void key_state_down_check(key_dev_t* key_dev, uint8_t key_idx,
-                                 uint8_t key_read) {
+                                 key_read_e key_read) {
     if (key_read == KEY_READ_DOWN) {
         key_dev->key_arr[key_idx].state = key_state_down_shake;
         key_dev->key_arr[key_idx].count_ms = 0;
@@ -74,7 +76,7 @@ static void key_state_down_check(key_dev_t* key_dev, uint8_t key_idx,
 }
 
 static void key_state_down_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                 uint8_t key_read) {
+                                 key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms < key_dev->setting.shake_filter_ms) {
@@ -82,7 +84,7 @@ static void key_state_down_shake(key_dev_t* key_dev, uint8_t key_idx,
     }
 
     if (key_read == KEY_READ_DOWN) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOWN);
+        key_push_event(key_dev, key_idx, KEY_EVENT_DOWN);
 
         key_dev->key_arr[key_idx].state = key_state_hold_check;
         key_dev->key_arr[key_idx].count_ms = 0;
@@ -92,7 +94,7 @@ static void key_state_down_shake(key_dev_t* key_dev, uint8_t key_idx,
 }
 
 static void key_state_hold_check(key_dev_t* key_dev, uint8_t key_idx,
-                                 uint8_t key_read) {
+                                 key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->setting.long_ms &&
@@ -119,14 +121,14 @@ static void key_state_hold_check(key_dev_t* key_dev, uint8_t key_idx,
         return;
     }
 
-    key_push_event(key_dev, key_idx << 8 | KEY_EVENT_HOLD);
+    key_push_event(key_dev, key_idx, KEY_EVENT_HOLD);
     key_dev->key_arr[key_idx].state = key_state_hold_repeat_wait_check;
     key_dev->key_arr[key_idx].count_temp = 0;
     key_dev->key_arr[key_idx].count_ms = 0;
 }
 
 static void key_state_short_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                     uint8_t key_read) {
+                                     key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms -
@@ -136,7 +138,7 @@ static void key_state_short_up_shake(key_dev_t* key_dev, uint8_t key_idx,
     }
 
     if (key_read == KEY_READ_UP) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_UP);
+        key_push_event(key_dev, key_idx, KEY_EVENT_UP);
         key_dev->key_arr[key_idx].count_ms = 0;
         key_dev->key_arr[key_idx].state = key_state_double_check;
     } else {
@@ -145,7 +147,7 @@ static void key_state_short_up_shake(key_dev_t* key_dev, uint8_t key_idx,
 }
 
 static void key_state_long_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                    uint8_t key_read) {
+                                    key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms -
@@ -155,8 +157,8 @@ static void key_state_long_up_shake(key_dev_t* key_dev, uint8_t key_idx,
     }
 
     if (key_read == KEY_READ_UP) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_UP);
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_LONG);
+        key_push_event(key_dev, key_idx, KEY_EVENT_UP);
+        key_push_event(key_dev, key_idx, KEY_EVENT_LONG);
         key_dev->key_arr[key_idx].state = key_state_down_check;
         key_dev->key_arr[key_idx].count_ms = 0;
     } else {
@@ -165,7 +167,7 @@ static void key_state_long_up_shake(key_dev_t* key_dev, uint8_t key_idx,
 }
 
 static void key_state_double_check(key_dev_t* key_dev, uint8_t key_idx,
-                                   uint8_t key_read) {
+                                   key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms < key_dev->setting.multi_ms) {
@@ -175,13 +177,13 @@ static void key_state_double_check(key_dev_t* key_dev, uint8_t key_idx,
                 key_dev->key_arr[key_idx].count_ms;
         }
     } else {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_SHORT);
+        key_push_event(key_dev, key_idx, KEY_EVENT_SHORT);
         key_dev->key_arr[key_idx].state = key_state_down_check;
     }
 }
 
 static void key_state_double_down_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                        uint8_t key_read) {
+                                        key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms -
@@ -191,9 +193,9 @@ static void key_state_double_down_shake(key_dev_t* key_dev, uint8_t key_idx,
     }
 
     if (key_read == KEY_READ_DOWN) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOWN);
+        key_push_event(key_dev, key_idx, KEY_EVENT_DOWN);
         if (key_dev->setting.multi_max < 3) {
-            key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOUBLE);
+            key_push_event(key_dev, key_idx, KEY_EVENT_DOUBLE);
         }
 
         key_dev->key_arr[key_idx].state = key_state_double_repeat_wait_check;
@@ -207,7 +209,7 @@ static void key_state_double_down_shake(key_dev_t* key_dev, uint8_t key_idx,
 
 static void key_state_double_repeat_wait_check(key_dev_t* key_dev,
                                                uint8_t key_idx,
-                                               uint8_t key_read) {
+                                               key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_read == KEY_READ_UP) {
@@ -222,16 +224,16 @@ static void key_state_double_repeat_wait_check(key_dev_t* key_dev,
         return;
     }
     if (key_dev->setting.multi_max >= 3) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOUBLE);
+        key_push_event(key_dev, key_idx, KEY_EVENT_DOUBLE);
     }
-    key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOUBLE_REPEAT);
+    key_push_event(key_dev, key_idx, KEY_EVENT_DOUBLE_REPEAT);
     key_dev->key_arr[key_idx].state = key_state_double_repeat_check;
     key_dev->key_arr[key_idx].count_ms = 0;
     key_dev->key_arr[key_idx].count_temp = key_dev->setting.repeat_send_ms;
 }
 
 static void key_state_double_repeat_check(key_dev_t* key_dev, uint8_t key_idx,
-                                          uint8_t key_read) {
+                                          key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_temp <
@@ -251,14 +253,14 @@ static void key_state_double_repeat_check(key_dev_t* key_dev, uint8_t key_idx,
         return;
     }
 
-    key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOUBLE_REPEAT);
+    key_push_event(key_dev, key_idx, KEY_EVENT_DOUBLE_REPEAT);
     key_dev->key_arr[key_idx].count_ms = 0;
     key_dev->key_arr[key_idx].count_temp -=
         key_dev->setting.repeat_send_speedup;
 }
 
 static void key_state_double_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                      uint8_t key_read) {
+                                      key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms -
@@ -269,8 +271,7 @@ static void key_state_double_up_shake(key_dev_t* key_dev, uint8_t key_idx,
 
     if (key_read == KEY_READ_UP) {
         if (key_dev->key_arr[key_idx].count_temp) {
-            key_push_event(key_dev,
-                           key_idx << 8 | KEY_EVENT_DOUBLE_REPEAT_STOP);
+            key_push_event(key_dev, key_idx, KEY_EVENT_DOUBLE_REPEAT_STOP);
         }
         if (key_dev->setting.multi_max < 3 ||
             key_dev->key_arr[key_idx].count_temp) {
@@ -279,7 +280,7 @@ static void key_state_double_up_shake(key_dev_t* key_dev, uint8_t key_idx,
             key_dev->key_arr[key_idx].state = key_state_multi_down_check;
             key_dev->key_arr[key_idx].count_ms = 0;
         }
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_UP);
+        key_push_event(key_dev, key_idx, KEY_EVENT_UP);
     } else {
         key_dev->key_arr[key_idx].state = key_state_double_repeat_check;
         key_dev->key_arr[key_idx].count_temp = key_dev->setting.repeat_send_ms;
@@ -287,7 +288,7 @@ static void key_state_double_up_shake(key_dev_t* key_dev, uint8_t key_idx,
 }
 
 static void key_state_multi_down_check(key_dev_t* key_dev, uint8_t key_idx,
-                                       uint8_t key_read) {
+                                       key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms < key_dev->setting.multi_ms) {
@@ -300,17 +301,16 @@ static void key_state_multi_down_check(key_dev_t* key_dev, uint8_t key_idx,
     }
 
     if (key_dev->key_arr[key_idx].multi_count <= 2) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOUBLE);
+        key_push_event(key_dev, key_idx, KEY_EVENT_DOUBLE);
     } else {
-        key_push_event(
-            key_dev, key_idx << 8 | KEY_EVENT_MULTI(
-                                        key_dev->key_arr[key_idx].multi_count));
+        key_push_event(key_dev, key_idx,
+                       KEY_EVENT_MULTI(key_dev->key_arr[key_idx].multi_count));
     }
     key_dev->key_arr[key_idx].state = key_state_down_check;
 }
 
 static void key_state_multi_down_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                       uint8_t key_read) {
+                                       key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms -
@@ -320,14 +320,13 @@ static void key_state_multi_down_shake(key_dev_t* key_dev, uint8_t key_idx,
     }
 
     if (key_read == KEY_READ_DOWN) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_DOWN);
+        key_push_event(key_dev, key_idx, KEY_EVENT_DOWN);
         key_dev->key_arr[key_idx].multi_count++;
         if (key_dev->key_arr[key_idx].multi_count >=
             key_dev->setting.multi_max) {
             key_push_event(
-                key_dev,
-                key_idx << 8 |
-                    KEY_EVENT_MULTI(key_dev->key_arr[key_idx].multi_count));
+                key_dev, key_idx,
+                KEY_EVENT_MULTI(key_dev->key_arr[key_idx].multi_count));
         }
         key_dev->key_arr[key_idx].state = key_state_multi_up_check;
     } else {
@@ -336,7 +335,7 @@ static void key_state_multi_down_shake(key_dev_t* key_dev, uint8_t key_idx,
 }
 
 static void key_state_multi_up_check(key_dev_t* key_dev, uint8_t key_idx,
-                                     uint8_t key_read) {
+                                     key_read_e key_read) {
     if (key_read == KEY_READ_UP) {
         key_dev->key_arr[key_idx].state = key_state_multi_up_shake;
         key_dev->key_arr[key_idx].count_ms = 0;
@@ -344,7 +343,7 @@ static void key_state_multi_up_check(key_dev_t* key_dev, uint8_t key_idx,
 }
 
 static void key_state_multi_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                     uint8_t key_read) {
+                                     key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms < key_dev->setting.shake_filter_ms) {
@@ -352,7 +351,7 @@ static void key_state_multi_up_shake(key_dev_t* key_dev, uint8_t key_idx,
     }
 
     if (key_read == KEY_READ_UP) {
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_UP);
+        key_push_event(key_dev, key_idx, KEY_EVENT_UP);
         if (key_dev->key_arr[key_idx].multi_count >=
             key_dev->setting.multi_max) {
             key_dev->key_arr[key_idx].state = key_state_down_check;
@@ -367,7 +366,7 @@ static void key_state_multi_up_shake(key_dev_t* key_dev, uint8_t key_idx,
 
 static void key_state_hold_repeat_wait_check(key_dev_t* key_dev,
                                              uint8_t key_idx,
-                                             uint8_t key_read) {
+                                             key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_read == KEY_READ_UP) {
@@ -382,14 +381,14 @@ static void key_state_hold_repeat_wait_check(key_dev_t* key_dev,
         return;
     }
 
-    key_push_event(key_dev, key_idx << 8 | KEY_EVENT_HOLD_REPEAT);
+    key_push_event(key_dev, key_idx, KEY_EVENT_HOLD_REPEAT);
     key_dev->key_arr[key_idx].state = key_state_hold_repeat_check;
     key_dev->key_arr[key_idx].count_ms = 0;
     key_dev->key_arr[key_idx].count_temp = key_dev->setting.repeat_send_ms;
 }
 
 static void key_state_hold_repeat_check(key_dev_t* key_dev, uint8_t key_idx,
-                                        uint8_t key_read) {
+                                        key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_temp <
@@ -409,14 +408,14 @@ static void key_state_hold_repeat_check(key_dev_t* key_dev, uint8_t key_idx,
         return;
     }
 
-    key_push_event(key_dev, key_idx << 8 | KEY_EVENT_HOLD_REPEAT);
+    key_push_event(key_dev, key_idx, KEY_EVENT_HOLD_REPEAT);
     key_dev->key_arr[key_idx].count_ms = 0;
     key_dev->key_arr[key_idx].count_temp -=
         key_dev->setting.repeat_send_speedup;
 }
 
 static void key_state_hold_up_shake(key_dev_t* key_dev, uint8_t key_idx,
-                                    uint8_t key_read) {
+                                    key_read_e key_read) {
     key_dev->key_arr[key_idx].count_ms += key_dev->setting.check_period_ms;
 
     if (key_dev->key_arr[key_idx].count_ms -
@@ -427,9 +426,9 @@ static void key_state_hold_up_shake(key_dev_t* key_dev, uint8_t key_idx,
 
     if (key_read == KEY_READ_UP) {
         if (key_dev->key_arr[key_idx].count_temp) {
-            key_push_event(key_dev, key_idx << 8 | KEY_EVENT_HOLD_REPEAT_STOP);
+            key_push_event(key_dev, key_idx, KEY_EVENT_HOLD_REPEAT_STOP);
         }
-        key_push_event(key_dev, key_idx << 8 | KEY_EVENT_UP);
+        key_push_event(key_dev, key_idx, KEY_EVENT_UP);
         key_dev->key_arr[key_idx].state = key_state_down_check;
     } else {
         key_dev->key_arr[key_idx].state = key_state_hold_repeat_check;
@@ -470,13 +469,13 @@ key_dev_t* key_init(key_dev_t* key_dev, key_read_e (*read_func)(uint8_t id),
                                  (key_setting_t)default_key_setting);
 }
 
-uint16_t key_read_event(key_dev_t* key_dev) {
+key_value_t key_read_fifo(key_dev_t* key_dev) {
     if (key_dev->event_fifo.wr == key_dev->event_fifo.rd) {
-        return KEY_EVENT_NULL;
+        return (key_value_t){.id = 0xFF, .event = KEY_EVENT_NULL};
     } else {
-        uint16_t event = key_dev->event_fifo.value[key_dev->event_fifo.rd++];
+        key_value_t value = key_dev->event_fifo.value[key_dev->event_fifo.rd++];
         key_dev->event_fifo.rd %= KEY_BUF_SIZE;
-        return event;
+        return value;
     }
 }
 
@@ -486,13 +485,13 @@ void key_tick(key_dev_t* key_dev) {
     }
 }
 
-uint8_t key_read_raw(key_dev_t* key_dev, uint8_t key) {
+key_read_e key_read_raw(key_dev_t* key_dev, uint8_t key) {
     return key_dev->key_arr[key].state != key_state_down_check ? KEY_READ_DOWN
                                                                : KEY_READ_UP;
 }
 
-const char* key_get_event_name(uint16_t event) {
-    switch (event & 0xFF) {
+const char* key_get_event_name(uint8_t event) {
+    switch (event) {
         case KEY_EVENT_NULL:
             return "NULL";
         case KEY_EVENT_DOWN:

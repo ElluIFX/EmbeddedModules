@@ -1,5 +1,5 @@
-#ifndef __key_H
-#define __key_H
+#ifndef __KEY_H__
+#define __KEY_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,41 +21,29 @@ typedef enum {
 
 // 读取方式1: 注册回调函数, 自动返回按键ID和事件类型
 // 1.定义回调函数:     KEY_ID, KEY_EVENT_XXX -in-> Callback_Func
-// 2.初始化时注册回调: key_init(..., Callback_Func)
-#define KEY_EVENT_NULL 0x0000                // 无事件
-#define KEY_EVENT_DOWN 0x0001                // 按下事件
-#define KEY_EVENT_UP 0x0002                  // 松开事件
-#define KEY_EVENT_SHORT 0x0009               // 短按事件
-#define KEY_EVENT_LONG 0x0003                // 长按事件
-#define KEY_EVENT_HOLD 0x0004                // 按住事件
-#define KEY_EVENT_HOLD_REPEAT 0x0005         // 按住重复事件
-#define KEY_EVENT_HOLD_REPEAT_STOP 0x0006    // 按住重复停止事件
-#define KEY_EVENT_DOUBLE 0x000A              // 双击事件
-#define KEY_EVENT_DOUBLE_REPEAT 0x0007       // 双击按住重复事件
-#define KEY_EVENT_DOUBLE_REPEAT_STOP 0x0008  // 双击按住重复停止事件
-#define KEY_EVENT_MULTI(N) (0x000B + (N)-3)  // 多击N次事件(最多63次)
+// 2.初始化时注册回调:  key_init(..., Callback_Func)
 
 // 读取方式2: 手动调用读取函数, 返回单值事件数据 (按键ID<<8 | 事件类型)
-// 1.手动读取事件FIFO:     uint16_t event = key_read_event(dev);
-// 2.判断是否有事件:       if(event!=KEY_EVENT_NULL)
-// 2.使用宏判断事件来源:   switch(event) { case KEYx_IS_XXX(KEY_XXX_ID): ... }
-#define KEYx_IS_DOWN(IDx) (KEY_EVENT_DOWN | IDx << 8)      // 按键x按下
-#define KEYx_IS_UP(IDx) (KEY_EVENT_UP | IDx << 8)          // 按键x松开
-#define KEYx_IS_SHORT(IDx) (KEY_EVENT_SHORT | IDx << 8)    // 按键x短按
-#define KEYx_IS_LONG(IDx) (KEY_EVENT_LONG | IDx << 8)      // 按键x长按
-#define KEYx_IS_DOUBLE(IDx) (KEY_EVENT_DOUBLE | IDx << 8)  // 按键x双击
-#define KEYx_IS_HOLD(IDx) (KEY_EVENT_HOLD | IDx << 8)      // 按键x按住
-// 按键x按住重复
-#define KEYx_IS_HOLD_REPEAT(IDx) (KEY_EVENT_HOLD_REPEAT | IDx << 8)
-// 按键x双击按住重复
-#define KEYx_IS_DOUBLE_REPEAT(IDx) (KEY_EVENT_DOUBLE_REPEAT | IDx << 8)
-// 按键x双击按住重复停止
-#define KEYx_IS_DOUBLE_REPEAT_STOP(IDx) \
-    (KEY_EVENT_DOUBLE_REPEAT_STOP | IDx << 8)
-// 按键x按住重复停止
-#define KEYx_IS_HOLD_REPEAT_STOP(IDx) (KEY_EVENT_HOLD_REPEAT_STOP | IDx << 8)
-// 按键x多击N次
-#define KEYx_IS_MULTI(IDx, N) (KEY_EVENT_MULTI(N) | IDx << 8)
+// 1.手动读取事件FIFO: key_value_t value = key_read_fifo(dev);
+// 2.使用事件数据:     value.id, value.event
+
+#define KEY_EVENT_NULL 0x0000                  // 无事件
+#define KEY_EVENT_DOWN 0x0001                  // 按下事件
+#define KEY_EVENT_UP 0x0002                    // 松开事件
+#define KEY_EVENT_SHORT 0x0009                 // 短按事件
+#define KEY_EVENT_LONG 0x0003                  // 长按事件
+#define KEY_EVENT_HOLD 0x0004                  // 按住事件
+#define KEY_EVENT_HOLD_REPEAT 0x0005           // 按住重复事件
+#define KEY_EVENT_HOLD_REPEAT_STOP 0x0006      // 按住重复停止事件
+#define KEY_EVENT_DOUBLE 0x000A                // 双击事件
+#define KEY_EVENT_DOUBLE_REPEAT 0x0007         // 双击按住重复事件
+#define KEY_EVENT_DOUBLE_REPEAT_STOP 0x0008    // 双击按住重复停止事件
+#define KEY_EVENT_MULTI(N) (0x000B + (N) - 3)  // 多击N次事件(最多63次)
+
+typedef struct {
+    uint8_t id;     // 按键ID
+    uint8_t event;  // 事件类型
+} key_value_t;
 
 typedef struct {                // 按键设备设置(key_dev->setting)
     uint16_t check_period_ms;   // 按键检测周期 (Key_Tick调用周期)
@@ -77,7 +65,7 @@ typedef struct {                // 按键设备设置(key_dev->setting)
 typedef struct __key_dev {  // 按键设备结构体
 
     struct {  // 事件FIFO
-        uint16_t value[KEY_BUF_SIZE];
+        key_value_t value[KEY_BUF_SIZE];
         uint8_t rd;
         uint8_t wr;
     } event_fifo;
@@ -216,39 +204,25 @@ extern void key_tick(key_dev_t* key_dev);
 /**
  * @brief 读取按键事件FIFO
  * @param  key_dev        按键设备指针
- * @retval uint16_t       单值按键事件(按键ID<<8 | 事件类型)
+ * @retval key_value_t       按键值(按键ID<<8 | 事件类型)
  * @note 使用宏KEYx_IS_xxx判断事件
  */
-extern uint16_t key_read_event(key_dev_t* key_dev);
+extern key_value_t key_read_fifo(key_dev_t* key_dev);
 
 /**
  * @brief 获取按键按下状态(包含消抖)
  * @param  key_dev       按键设备指针
  * @param  key           按键序号
- * @retval uint8_t       按键状态(KEY_READ_UP/DOWN)
+ * @retval key_read_e       按键状态(KEY_READ_UP/DOWN)
  */
-extern uint8_t key_read_raw(key_dev_t* key_dev, uint8_t key);
+extern key_read_e key_read_raw(key_dev_t* key_dev, uint8_t key);
 
 /**
  * @brief 获取按键事件名称字符串
  * @param  event           按键事件
  * @retval char*           事件名称字符串
  */
-extern const char* key_get_event_name(uint16_t event);
-
-/**
- * @brief 获取单值按键事件对应的按键ID
- * @param  event           按键事件(必须从Key_Read读取)
- * @retval uint8_t         按键ID
- */
-#define key_get_event_id(event) ((event) >> 8)
-
-/**
- * @brief 获取单值按键事件对应的事件类型
- * @param  event           按键事件(必须从Key_Read读取)
- * @retval uint8_t         事件类型
- */
-#define key_get_event_type(event) ((event) & 0xFF)
+extern const char* key_get_event_name(uint8_t event);
 
 /**
  * @brief 判断是否为多击事件
@@ -269,4 +243,4 @@ extern const char* key_get_event_name(uint16_t event);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* __KEY_H__ */
