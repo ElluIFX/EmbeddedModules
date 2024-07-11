@@ -298,14 +298,15 @@ _INLINE void __cortn_internal_delay(uint64_t delay_us) {
  * @param  msgPtr 消息指针
  */
 void __cortn_internal_await_msg(__async__, void** msgPtr) {
-    ASYNC_NOLOCAL
-    if (__chd__->msg == NULL) {
-        __chd__->state = _CR_STATE_AWAITING;
-        YIELD();
+    CR_INIT
+
+    if (__cr_handle__->msg == NULL) {
+        __cr_handle__->state = _CR_STATE_AWAITING;
+        CR_YIELD();
     }
     if (msgPtr != NULL)
-        *msgPtr = __chd__->msg;
-    __chd__->msg = NULL;
+        *msgPtr = __cr_handle__->msg;
+    __cr_handle__->msg = NULL;
 }
 
 _STATIC_INLINE sch_cortneduler_mutex_t* get_mutex(const char* name) {

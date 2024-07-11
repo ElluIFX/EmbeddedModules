@@ -281,8 +281,7 @@ uint8_t sch_event_trigger_ex(const char *name, const void *arg_ptr, uint16_t arg
 ```C
 void coroutine_main(__async__, void *args) // __async__宏必须在函数声明中第一个参数的位置
 {
-    // 声明一个无局部变量协程
-    ASYNC_NOLOCAL // 此宏必须在函数内部第一行
+    CR_INIT_NOLOCAL // 声明一个无局部变量协程, 此宏必须在函数内部第一行
 
     // 协程的代码
     while(1){
@@ -297,60 +296,55 @@ void coroutine_main(__async__, void *args) // __async__宏必须在函数声明�
 ```C
 void coroutine_main(__async__, void *args)
 {
-    // 声明为有局部变量协程
-    ASYNC_LOCAL_START // 此宏必须在函数内部第一行
-    // 声明局部变量（不允许赋值，一律初始化为0）
+    CR_INIT_LOCAL_BEGIN  // 声明为有局部变量协程, 此宏必须在函数内部第一行
+    // 在中间声明局部变量（不允许赋值，一律初始化为0）
     uint8_t i;
     struct{
         uint8_t a;
         uint8_t b;
     }s;
-    // 局部变量声明结束
-    ASYNC_LOCAL_END // 此宏在声明结束完毕的下一行
+    CR_INIT_LOCAL_END // 局部变量声明结束
 
-    LOCAL(i) = 23; // 可以在这里赋初始值
+    CR_LOCAL(i) = 23; // 可以在这里赋初始值
     uint8_t temp = 0; // 此变量不会被维护，每次函数重入时的值是未定义的
 
     // 协程的代码
     while(1){
-        printf("Hello World! %d\r\n", LOCAL(i)++);
-        printf("s: %d %d\r\n", LOCAL(s).a++, LOCAL(s).b++);
+        printf("Hello World! %d\r\n", CR_LOCAL(i)++);
+        printf("s: %d %d\r\n", CR_LOCAL(s).a++, CR_LOCAL(s).b++);
         AWAIT_DELAY(1000);
     }
 }
 ```
 
-该协程用到了局部变量，则使用`ASYNC_LOCAL_START`和`ASYNC_LOCAL_END`宏将局部变量的定义包裹起来，**所有的局部变量必须在这两个宏之间定义，且使用`LOCAL(var)`宏来访问局部变量**，除此以外定义的变量都是`临时变量`，他们会在任意一次`AWAIT_*`宏调用后被释放，下一次函数重入时的值是**未定义的**。
-
-> [!TIP]
-> 除了 `ASYNC_NOLOCAL` 和 `ASYNC_LOCAL_START` / `ASYNC_LOCAL_END` 是定义协程的专有宏外，其他的，以`ASYNC_`开头的宏在协程和正常函数中都可调用，他们是**非阻塞**的，而以`AWAIT_`开头的宏只能在协程函数中调用，是**阻塞**的。
+该协程用到了局部变量，则使用`CR_INIT_LOCAL_BEGIN()`和`CR_INIT_LOCAL_END()`宏将局部变量的定义包裹起来，**所有的局部变量必须在这两个宏之间定义，且使用`CR_LOCAL(var)`宏来访问局部变量**，除此以外定义的变量都是`临时变量`，他们会在任意一次`AWAIT_*`宏调用后被释放，下一次函数重入时的值是**未定义的**。
 
 #### 5.4.2. 宏API （一般在协程函数中调用）
 
 下面介绍每个宏的作用
 
-1. `ASYNC_NOLOCAL` **<调用无需分号结尾>**
+1. `CR_INIT_NOLOCAL` **(调用无分号)**
 
     + 功能：声明为无局部变量协程。
-    + 是 `ASYNC_INIT` 的别名，可以用后者替代。
+    + 是 `CR_INIT` 的别名，可以互相替代。
 
-2. `ASYNC_LOCAL_START` / `ASYNC_LOCAL_END` **<调用无需分号结尾>**
+2. `CR_INIT_LOCAL_START` / `CR_INIT_LOCAL_END` **(调用无分号)**
 
     + 功能：声明为有局部变量协程。
     + 注意：二者需成对使用。
 
-3. `LOCAL(var)`
+3. `CR_LOCAL(var)`
 
     + 功能：访问被维护的局部变量。
     + 参数：
       + `var`：局部变量名。
-    + 限制：仅用于访问由`ASYNC_LOCAL_START`和`ASYNC_LOCAL_END`包裹的局部变量，其他临时变量正常访问。
+    + 限制：仅用于访问由`CR_INIT_LOCAL_START()`和`CR_INIT_LOCAL_END()`包裹的局部变量，其他临时变量正常访问。
 
-4. `YIELD()`
+4. `CR_YIELD()`
 
     + 功能：协程主动让出CPU。
 
-5. `AWAIT(func_cmd, args...)`
+5. `CR_AWAIT(func_cmd, args...)`
 
     + 功能：阻塞等待另一个`协程子函数`执行完毕。
     + 参数：
@@ -366,27 +360,28 @@ void coroutine_main(__async__, void *args)
 ```C
 void receive_array(__async__, uint8_t *buf, uint16_t len)
 {
-    ASYNC_LOCAL_START
+    CR_INIT_LOCAL_START
     uint16_t i;
-    ASYNC_LOCAL_END
+    CR_INIT_LOCAL_END
+
     XXXAcquireTransfer();
-    while (LOCAL(i) < len) {
+    while (CR_LOCAL(i) < len) {
       while (!XXXTransferDataReady()) {
-          AWAIT_DELAY(1);
+          CR_DELAY(1);
       }
-      buf[LOCAL(i)++] = XXXGetTransferData();
+      buf[CR_LOCAL(i)++] = XXXGetTransferData();
     }
     XXXReleaseTransfer();
 }
 
 void coroutine_main(__async__, void *args) {
-  ASYNC_LOCAL_START
+  CR_INIT_LOCAL_START
   uint8_t buf[32];
-  ASYNC_LOCAL_END
+  CR_INIT_LOCAL_END
 
   while (1) {
-    AWAIT(receive_array, LOCAL(buf), 32);
-    printf("Recieved: %s\r\n", LOCAL(buf));
+    CR_AWAIT(receive_array, CR_LOCAL(buf), 32);
+    printf("Recieved: %s\r\n", CR_LOCAL(buf));
   }
 }
 ```
@@ -394,7 +389,7 @@ void coroutine_main(__async__, void *args) {
 > [!NOTE]
 > `协程子函数`可以无限嵌套调用更多的`协程子函数`，`协程主函数`也可以是一种单参数的`协程子函数`。
 
-6. `AWAIT_DELAY(ms)` / `AWAIT_DELAY_US(us)`
+6. `CR_DELAY(ms)` / `CR_DELAY_US(us)`
 
     + 功能：阻塞等待一段时间。
     + 参数：
@@ -404,7 +399,7 @@ void coroutine_main(__async__, void *args) {
 > [!TIP]
 > AWAIT_DELAY宏可以类比Python中的`await asyncio.sleep()`，用于等待一段时间。
 
-7. `AWAIT_YIELD_UNTIL(cond)`
+7. `CR_YIELD_UNTIL(cond)`
 
     + 功能：阻塞等待条件满足。
     + 参数：
@@ -413,26 +408,26 @@ void coroutine_main(__async__, void *args) {
 > [!WARNING]
 > 由于每次调度周期都需要重入函数以检查条件，该宏占用较大，除非要求极高的实时性，否则应优先使用下述的`AWAIT_DELAY_UNTIL`宏。
 
-8. `AWAIT_DELAY_UNTIL(cond, delay_ms)`
+8. `CR_DELAY_UNTIL(cond, delay_ms)`
 
     + 功能：阻塞等待条件满足, 每隔delay_ms检查一次。
     + 参数：
       + `cond`：条件表达式，为真时跳出阻塞。
       + `delay_ms`：检查间隔(ms)。
 
-9. `ASYNC_SELF_NAME()`
+9. `CR_SELF_NAME()`
 
     + 功能：获取当前`主协程`的名字。
     + 注意：在子协程中调用返回的是调用该子协程的最上层`主协程`的名字，`子协程`对象不存在名字。
     + 彩蛋：协程外调用此宏会返回 `__main__`。
 
-10. `AWAIT_RECV_MSG(to_ptr)`
+10. `CR_RECV_MSG(to_ptr)`
 
     + 功能：阻塞等待消息。
     + 参数：
       + `to_ptr`：消息指针，当函数返回时，消息指针会被赋值。
 
-11. `ASYNC_SEND_MSG(name, msg)`
+11. `CR_SEND_MSG(name, msg)`
 
     + 功能：发送消息给指定协程，立即返回。
     + 参数：
@@ -440,7 +435,7 @@ void coroutine_main(__async__, void *args) {
       + `msg`：消息指针。
     + 等价：`sch_cortn_send_msg`
 
-12. `AWAIT_ACQUIRE_MUTEX(mutex_name)`
+12. `CR_ACQUIRE_MUTEX(mutex_name)`
 
     + 功能：阻塞等待互斥锁。
     + 参数：
@@ -448,9 +443,9 @@ void coroutine_main(__async__, void *args) {
     + 备注: 若指定互斥锁不存在会自动创建
 
 > [!NOTE]
-> 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含AWAIT/YIELD，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
+> 由于协程是非抢占的，在大部分代码如数据访问中，实际上不需要使用互斥锁。但在某些特殊场景下，如需要对外设进行访问，且访问代码中包含CR_DELAY/CR_YIELD，此时就需要使用互斥锁来保证同时只有一个协程访问外设。
 
-13. `ASYNC_RUN(name, func, args)`
+13. `CR_RUN(name, func, args)`
 
     + 功能：创建并异步运行一个协程，立即返回。
     + 参数：
@@ -459,7 +454,7 @@ void coroutine_main(__async__, void *args) {
       + `args`：协程参数指针。
     + 等价：`sch_cortn_run`
 
-14. `AWAIT_JOIN(name)`
+14. `CR_JOIN(name)`
 
     + 功能：阻塞等待一个协程结束。
     + 参数：

@@ -25,13 +25,15 @@ typedef struct {           // 协程句柄结构
 
 // 试图报个用户友好的错误
 // 协程句柄兼参数检查
-#define __chd__ You_forgot___async___in_function_arguments
+#define __cr_handle__ You_forgot___async___in_the_argument
 // 初始化检查
-#define __async_check__ You_forgot_ASYNC_INIT_in_beginning_of_function
+#define __cr_async_check__ You_forgot_CR_INIT_in_top_of_function
+// 局部变量兼初始化检查
+#define __cr_local_hd__ This_function_has_no_inited_local_vars
 // 拒绝多次初始化
-#define __crap__ Do_not_init_coroutine_more_than_once
+#define __cr_init_check__ Do_not_init_coroutine_more_than_once
 
-#define __async__ __cortn_handle_t* __chd__
+#define __async__ __cortn_handle_t* __cr_handle__
 
 extern const char* __cortn_internal_get_name(void);
 extern void* __cortn_internal_init_local(size_t size);
@@ -43,69 +45,70 @@ extern void __cortn_internal_rel_mutex(const char* name);
 extern uint8_t __cortn_internal_await_bar(const char* name);
 extern void __cortn_internal_await_msg(__async__, void** msgPtr);
 
-#define __ASYNC_INIT                                            \
-    __crap__:;                                                  \
-    void* __async_check__ = &&__crap__;                         \
-    do {                                                        \
-        if ((__chd__->data[__chd__->runDepth].ptr) != 0)        \
-            goto*(void*)(__chd__->data[__chd__->runDepth].ptr); \
+#define __CR_INIT                                                           \
+    __cr_init_check__ :;                                                    \
+    void* __cr_async_check__ = &&__cr_init_check__;                         \
+    do {                                                                    \
+        if ((__cr_handle__->data[__cr_handle__->runDepth].ptr) != 0)        \
+            goto*(void*)(__cr_handle__->data[__cr_handle__->runDepth].ptr); \
     } while (0);
 
-#define __ASYNC_LOCAL_START struct _cr_local {
-#define __ASYNC_LOCAL_END                                                 \
-    }                                                                     \
-    *_cr_local_p = __cortn_internal_init_local(sizeof(struct _cr_local)); \
-    if (_cr_local_p == NULL)                                              \
+#define __CR_INIT_LOCAL_BEGIN struct __cr_local {
+
+#define __CR_INIT_LOCAL_END                                                    \
+    }                                                                          \
+    *__cr_local_hd__ = __cortn_internal_init_local(sizeof(struct __cr_local)); \
+    if (__cr_local_hd__ == NULL)                                               \
+        return;                                                                \
+    __CR_INIT
+
+#define __CR_LOCAL(var) (__cr_local_hd__->var)
+
+#define __CR_YIELD()                                                      \
+    do {                                                                  \
+        __label__ l;                                                      \
+        (__cr_handle__->data[__cr_handle__->runDepth].ptr) = (long) && l; \
         return;                                                           \
-    ASYNC_INIT
-
-#define __LOCAL(var) (_cr_local_p->var)
-
-#define __YIELD()                                           \
-    do {                                                    \
-        __label__ l;                                        \
-        (__chd__->data[__chd__->runDepth].ptr) = (long)&&l; \
-        return;                                             \
-    l:;                                                     \
-        (__chd__->data[__chd__->runDepth].ptr) = 0;         \
-        __async_check__ = __async_check__;                  \
+    l:;                                                                   \
+        (__cr_handle__->data[__cr_handle__->runDepth].ptr) = 0;           \
+        __cr_async_check__ = __cr_async_check__;                          \
     } while (0)
 
-#define __AWAIT(func_cmd, args...)                          \
-    do {                                                    \
-        __label__ l;                                        \
-        (__chd__->data[__chd__->runDepth].ptr) = (long)&&l; \
-    l:;                                                     \
-        if (__cortn_internal_await_enter()) {               \
-            func_cmd(__chd__, ##args);                      \
-            if (!__cortn_internal_await_return())           \
-                return;                                     \
-            (__chd__->data[__chd__->runDepth].ptr) = 0;     \
-        }                                                   \
-        __async_check__ = __async_check__;                  \
+#define __CR_AWAIT(func_cmd, args...)                                     \
+    do {                                                                  \
+        __label__ l;                                                      \
+        (__cr_handle__->data[__cr_handle__->runDepth].ptr) = (long) && l; \
+    l:;                                                                   \
+        if (__cortn_internal_await_enter()) {                             \
+            func_cmd(__cr_handle__, ##args);                              \
+            if (!__cortn_internal_await_return())                         \
+                return;                                                   \
+            (__cr_handle__->data[__cr_handle__->runDepth].ptr) = 0;       \
+        }                                                                 \
+        __cr_async_check__ = __cr_async_check__;                          \
     } while (0)
 
-#define __AWAIT_DELAY_US(us)                 \
-    do {                                     \
-        __cortn_internal_delay(us);          \
-        __chd__->state = _CR_STATE_SLEEPING; \
-        YIELD();                             \
+#define __CR_DELAY_US(us)                          \
+    do {                                           \
+        __cortn_internal_delay(us);                \
+        __cr_handle__->state = _CR_STATE_SLEEPING; \
+        __CR_YIELD();                              \
     } while (0)
 
-#define __AWAIT_YIELD_UNTIL(cond) \
-    do {                          \
-        YIELD();                  \
+#define __CR_YIELD_UNTIL(cond) \
+    do {                       \
+        __CR_YIELD();          \
     } while (!(cond))
 
-#define __AWAIT_DELAY_UNTIL(cond, delay_ms) \
-    do {                                    \
-        AWAIT_DELAY(delay_ms);              \
+#define __CR_DELAY_UNTIL(cond, delay_ms)  \
+    do {                                  \
+        __CR_DELAY_US((delay_ms) * 1000); \
     } while (!(cond))
 
-#define __AWAIT_ACQUIRE_MUTEX(mutex_name)              \
+#define __CR_ACQUIRE_MUTEX(mutex_name)                 \
     do {                                               \
         if (!__cortn_internal_acq_mutex(mutex_name)) { \
-            __chd__->state = _CR_STATE_AWAITING;       \
-            YIELD();                                   \
+            __cr_handle__->state = _CR_STATE_CRING;    \
+            __CR_YIELD();                              \
         }                                              \
     } while (0)
