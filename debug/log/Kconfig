@@ -35,17 +35,17 @@ if LOG_CFG_ENABLE
         You should define LOG_MODULE in your source file before including log.h.
 
     choice
-        prompt "Log Level (Default)"
+        prompt "Log Level (Global)"
         default LOG_CFG_LEVEL_USE_PASS
 
         config LOG_CFG_LEVEL_USE_TRACE
             bool "Trace"
         config LOG_CFG_LEVEL_USE_DEBUG
             bool "Debug"
-        config LOG_CFG_LEVEL_USE_PASS
-            bool "Pass"
         config LOG_CFG_LEVEL_USE_INFO
             bool "Info"
+        config LOG_CFG_LEVEL_USE_PASS
+            bool "Pass"
         config LOG_CFG_LEVEL_USE_WARNING
             bool "Warning"
         config LOG_CFG_LEVEL_USE_ERROR
@@ -65,13 +65,13 @@ if LOG_CFG_ENABLE
             string "Color: Debug"
             default "T_CYAN"
 
-        config LOG_CFG_P_COLOR
-            string "Color: Pass"
-            default "T_LGREEN"
-
         config LOG_CFG_I_COLOR
             string "Color: Info"
             default "T_GREEN"
+
+        config LOG_CFG_P_COLOR
+            string "Color: Pass"
+            default "T_LGREEN"
 
         config LOG_CFG_W_COLOR
             string "Color: Warning"
@@ -103,13 +103,13 @@ if LOG_CFG_ENABLE
             string "String: Debug"
             default "\"DEBUG\""
 
-        config LOG_CFG_P_STR
-            string "String: Pass"
-            default "\"PASS\""
-
         config LOG_CFG_I_STR
             string "String: Info"
             default "\"INFO\""
+
+        config LOG_CFG_P_STR
+            string "String: Pass"
+            default "\"PASS\""
 
         config LOG_CFG_W_STR
             string "String: Warning"

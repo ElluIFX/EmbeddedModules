@@ -26,22 +26,22 @@ extern "C" {
 #endif
 
 #define LOG_LEVEL_TRACE 0
-#define LOG_LEVEL_DEBUG 1
-#define LOG_LEVEL_PASS 2
-#define LOG_LEVEL_INFO 3
-#define LOG_LEVEL_WARN 4
-#define LOG_LEVEL_ERROR 5
-#define LOG_LEVEL_FATAL 6
-#define LOG_LEVEL_ASSERT 7
+#define LOG_LEVEL_DEBUG 10
+#define LOG_LEVEL_INFO 20
+#define LOG_LEVEL_PASS 25
+#define LOG_LEVEL_WARN 30
+#define LOG_LEVEL_ERROR 40
+#define LOG_LEVEL_FATAL 50
+#define LOG_LEVEL_ASSERT 60
 
 #if LOG_CFG_LEVEL_USE_TRACE
 #define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_TRACE
 #elif LOG_CFG_LEVEL_USE_DEBUG
 #define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_DEBUG
-#elif LOG_CFG_LEVEL_USE_PASS
-#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_PASS
 #elif LOG_CFG_LEVEL_USE_INFO
 #define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_INFO
+#elif LOG_CFG_LEVEL_USE_PASS
+#define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_PASS
 #elif LOG_CFG_LEVEL_USE_WARN
 #define LOG_CFG_GLOBAL_LEVEL LOG_LEVEL_WARN
 #elif LOG_CFG_LEVEL_USE_ERROR
@@ -144,6 +144,7 @@ extern void log_hook(const char* fmt, ...);
 #define __LOG(pre, lvl, color, add, suf, fmt, args...) \
     __LOG_FL(color, pre, lvl, add, suf, fmt, ##args)
 
+#if LOG_CFG_ENABLE
 #define __LOG_LIMIT(_STR, _CLR, limit_ms, fmt, args...)          \
     do {                                                         \
         static m_time_t SAFE_NAME(limited_log_t) = 0;            \
@@ -159,6 +160,10 @@ extern void log_hook(const char* fmt, ...);
             SAFE_NAME(limited_log_count) = 0;                    \
         }                                                        \
     } while (0)
+#else
+#define __LOG_LIMIT(_STR, _CLR, limit_ms, fmt, args...) ((void)0)
+#endif  // LOG_CFG_ENABLE
+
 #define __LOG_REFRESH(_STR, _CLR, fmt, args...) \
     __LOG("\33[s\r\33[1A", _STR, _CLR, "", "\33[u", fmt, ##args)
 
@@ -324,7 +329,7 @@ extern void log_hook(const char* fmt, ...);
     __ASSERT_PRINT("'" #expr "' failed at %s:%d", __FILE__, __LINE__)
 #endif
 
-#if LOG_CFG_ENABLE_ASSERT
+#if LOG_CFG_ENABLE_ASSERT && LOG_CFG_ENABLE
 #if !LOG_CFG_ASSERT_FAILED_BLOCK
 #define __ASSERT_0(expr)       \
     if (!(expr)) {             \
@@ -361,7 +366,7 @@ extern void log_hook(const char* fmt, ...);
 #define __ASSERT_8 __ASSERT_MORE
 #define __ASSERT_9 __ASSERT_MORE
 
-#if LOG_CFG_ENABLE_ASSERT
+#if LOG_CFG_ENABLE_ASSERT && LOG_CFG_ENABLE
 #define __ASSERT_CMD_0(expr, cmd) \
     if (!(expr)) {                \
         __ASSERT_COMMON(expr);    \
