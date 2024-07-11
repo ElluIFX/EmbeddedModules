@@ -124,6 +124,13 @@ extern bool udict_del(UDICT dict, const char* key);
 extern void* udict_pop(UDICT dict, const char* key);
 
 /**
+ * @brief 复制字典
+ * @param  dict         字典
+ * @retval dict         复制的新字典
+ */
+extern UDICT udict_copy(UDICT dict);
+
+/**
  * @brief 循环迭代字典
  * @param  dict         字典
  * @param  key          键

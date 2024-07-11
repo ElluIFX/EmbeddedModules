@@ -258,6 +258,27 @@ void* udict_pop(UDICT dict, const char* key) {
     UDICT_UNLOCK_RET(ret);
 }
 
+UDICT udict_copy(UDICT dict) {
+    if (!dict) {
+        return NULL;
+    }
+    UDICT new_dict = udict_new();
+    if (!new_dict) {
+        return NULL;
+    }
+    udict_node_t *node, *tmp;
+    UDICT_LOCK();
+    HASH_ITER(hh, dict->nodes, node, tmp) {
+        if (node->is_ptr) {
+            udict_set(new_dict, node->key, *(void**)node->value);
+        } else {
+            udict_set_copy(new_dict, node->key, node->value, node->size);
+        }
+    }
+    UDICT_UNLOCK();
+    return new_dict;
+}
+
 bool udict_iter(UDICT dict, const char** key, void** value) {
     if (!dict || !dict->size || !dict->nodes) {
         return false;
