@@ -194,6 +194,9 @@
 
 </details>
 
+> [!WARNING]
+> 可能会对自己编写的模块进行较大的API变动以满足个人需求, 不保证向后兼容
+
 ## 配置文件
 
 - `Kconfig` - Kconfig配置文件, 用于配置代码的宏定义, 开关和设置各种功能, 遵循Linux内核的[Kconfig规范](https://github.com/torvalds/linux/blob/master/Documentation/kbuild/kconfig-language.rst)
