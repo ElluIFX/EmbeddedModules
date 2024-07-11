@@ -52,6 +52,7 @@ struct value {
     enum kind kind : 4;   // value kind
     enum flag flag : 12;  // extra flags
     uint64_t len : 48;    // length of str
+    void* data;
 
     union {
         uint64_t u64;
@@ -255,10 +256,12 @@ static struct value make_string(const uint8_t* str, size_t len) {
 }
 
 static struct value make_func(struct xv (*func)(struct xv value, struct xv args,
-                                                void* udata)) {
+                                                void* udata),
+                              void* wrap_data) {
     return (struct value){
         .kind = FUNC_KIND,
         .func = func,
+        .data = wrap_data,
     };
 }
 
@@ -2329,9 +2332,10 @@ static struct value eval_atom(const uint8_t* expr, size_t len,
                 if (is_err(args))
                     return args;
 
-                val =
-                    to_value(left.func(from_value(left_left), from_value(args),
-                                       ctx->env ? ctx->env->udata : NULL));
+                val = to_value(
+                    left.func(from_value(left_left), from_value(args),
+                              left.data ? left.data
+                                        : (ctx->env ? ctx->env->udata : NULL)));
                 if (is_err(val))
                     return val;
                 left_left = left;
@@ -2917,7 +2921,14 @@ struct xv xv_new_null(void) {
 struct xv xv_new_function(struct xv (*func)(struct xv value,
                                             const struct xv args,
                                             void* udata)) {
-    return from_value(make_func(func));
+    return from_value(make_func(func, NULL));
+}
+
+struct xv xv_new_function_wrapper(struct xv (*func)(struct xv value,
+                                                    const struct xv args,
+                                                    void* udata),
+                                  void* udata) {
+    return from_value(make_func(func, udata));
 }
 
 struct xv xv_new_jsonn(const char* json, size_t len) {

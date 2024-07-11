@@ -10,7 +10,7 @@
 // 结构体 xv 是一个表达式值。
 // 这通常作为 xv_eval 函数的结果创建，但也可以使用 xv_new_*() 函数进行创建。
 struct xv {
-    uint64_t priv[2];
+    uint64_t priv[4];
 };
 
 // 枚举 xv_type 是从 xv_type() 函数返回的。
@@ -152,6 +152,10 @@ struct xv xv_new_error(const char* msg);
 struct xv xv_new_array(const struct xv* const* values, size_t nvalues);
 struct xv xv_new_function(struct xv (*func)(struct xv this,
                                             const struct xv args, void* udata));
+struct xv xv_new_function_wrapper(struct xv (*func)(struct xv value,
+                                                    const struct xv args,
+                                                    void* udata),
+                                  void* udata);
 
 // struct xv_memstats 是 xv_memstats 返回的结构体
 struct xv_memstats {
