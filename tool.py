@@ -616,8 +616,8 @@ SYNC_IGNORES = [
     "*.gitignore",
     ".git",
     ".*",
-    "*.md",
-    "LICENSE",
+    # "*.md",
+    # "LICENSE",
 ]
 
 
