@@ -176,13 +176,10 @@ bool mf_iter(mf_keyinfo_t* key);
 #if 1  // Helper functions
 
 #define __MF_HELPER_DECLARE(name, type)                                      \
-    static inline mf_status_t mf_hset_##name(const char* key, type value) {  \
-        return mf_set_key(key, &value, sizeof(type));                        \
+    static inline bool mf_hset_##name(const char* key, type value) {         \
+        return mf_set_key(key, &value, sizeof(type)) == MF_OK;               \
     }                                                                        \
-    static inline mf_status_t mf_hget_##name(const char* key, type* value) { \
-        return mf_get_key(key, value, sizeof(type));                         \
-    }                                                                        \
-    static inline type mf_hget_##name##_def(const char* key, type def) {     \
+    static inline type mf_hget_##name(const char* key, type def) {           \
         type value;                                                          \
         return mf_get_key(key, &value, sizeof(type)) == MF_OK ? value : def; \
     }
