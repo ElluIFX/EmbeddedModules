@@ -17,8 +17,8 @@ extern "C" {
 
 #include "modules.h"
 
-typedef uint32_t mod_size_t;
-typedef int32_t mod_offset_t;
+// typedef uint32_t mod_size_t;
+// typedef int32_t mod_offset_t;
 
 typedef struct {           // FIFO对象
     mod_atomic_size_t wr;  // 写指针
@@ -219,4 +219,4 @@ extern void LFifo_ReleaseLinearRead(lfifo_t* fifo, mod_size_t len);
 #ifdef __cplusplus
 }
 #endif
-#endif  // __LFIFO_H__
+#endif /* __LFIFO_H__ */

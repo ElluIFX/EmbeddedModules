@@ -36,7 +36,7 @@ if LOG_CFG_ENABLE
 
     choice
         prompt "Log Level (Global)"
-        default LOG_CFG_LEVEL_USE_PASS
+        default LOG_CFG_LEVEL_USE_DEBUG
 
         config LOG_CFG_LEVEL_USE_TRACE
             bool "Trace"

@@ -1,0 +1,7 @@
+# type: ignore
+# ruff: noqa
+# pylint: skip-file
+
+if not CONFIG.EMCLI_CFG_XV_EXTEND:
+    IGNORES += "xv_extend.h"
+    IGNORES += "xv_extend.c"

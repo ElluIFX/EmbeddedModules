@@ -54,5 +54,8 @@ menuconfig MOD_ENABLE_XV
     default n
     select MOD_ENABLE_RYU
     select MOD_ENABLE_JSON
+if MOD_ENABLE_XV
+source "utility/xv/Kconfig"
+endif
 
 endmenu

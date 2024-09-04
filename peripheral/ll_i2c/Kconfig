@@ -23,7 +23,7 @@ config LL_I2C_CFG_POLL_TIMEOUT_MS
 config LL_I2C_CFG_SEM_TIMEOUT_MS
     int "Interrupt sync timeout (ms)"
     depends on LL_IIC_CFG_USE_IT
-    default 1000
+    default 5
     help
       Timeout for waiting interrupt sync semaphore.
       for both waiting other task release the interrupt and waiting I2C communication complete.
