@@ -893,25 +893,31 @@ def check_for_updates(max_workers: int = 64):
         install_package("aiohttp")
         import aiohttp  # noqa: F401
 
+    _ = (
+        b"\x7a\x46\x4c\x69\x4e\x32\x31\x7a\x4b\x52\x56\x54\x4b\x62\x52"
+        b"\x42\x6d\x4c\x55\x52\x58\x43\x74\x36\x67\x53\x72\x34\x67\x70"
+        b"\x39\x73\x45\x6d\x4c\x75\x5f\x70\x68\x67"
+    )
+    API_TOKEN = _[::-1].decode("ascii")  # not good I know
+    log("debug", f"github api token: {API_TOKEN}")
+
     async def get_latest_commit_sha(repo, sem, sha_num=7):
         global last_error_msg
-        trick = b"\x7a\x46\x4c\x69\x4e\x32\x31\x7a\x4b\x52\x56\x54\x4b\x62\x52\x42\x6d\x4c\x55\x52\x58\x43\x74\x36\x67\x53\x72\x34\x67\x70\x39\x73\x45\x6d\x4c\x75\x5f\x70\x68\x67"
-        TOKEN = trick[::-1].decode("ascii")  # not good I know
         url = f"https://api.github.com/repos/{repo}/commits"
         async with sem, aiohttp.ClientSession() as session:
             async with session.get(
                 url,
                 headers={
-                    "Authorization": f"token {TOKEN}",
+                    "Authorization": f"token {API_TOKEN}",
                     "Accept": "application/vnd.github.v3+json",
                 },
             ) as response:
                 data = await response.text()
                 if not response.ok:
                     last_error_msg = data
-                    return "N/A"
+                    return "", ""
                 jsdata = json.loads(data)
-        return jsdata[0]["sha"][:sha_num]
+        return jsdata[0]["sha"][:sha_num], jsdata[0]["commit"]["message"]
 
     modules = list_readme_module()
     log("info", f"checking updates for {len(modules)} modules")
@@ -934,25 +940,35 @@ def check_for_updates(max_workers: int = 64):
         )
     resps = {module: task.result() for module, task in zip(reqs.keys(), tasks)}
     olds = {}
-    for module, sha in resps.items():
+    for module, (sha, msg) in resps.items():
         if sha != module.sha:
-            olds[module] = sha
+            olds[module] = (sha, msg)
     if not olds:
         log("success", "all modules are up-to-date")
     else:
-        log("warning", "below modules may have updates:")
-        table = Table("Module", "Latest Commit", "Repository", box=None)
-        for module, sha in olds.items():
-            table.add_row(
-                f"[yellow]{module.name}",
-                "[red]failed to check"
-                if sha == "N/A"
-                else f"[red]{module.sha}[/red] -> [green]{sha}",
-                f"[blue]{module.src}"
-                if sha == "N/A"
-                else f"[blue]{module.src}/commit/{sha}",
+        if not any([sha for sha, _ in olds.values()]):
+            log("error", "all checking attampts are failed, check your network")
+        else:
+            log("warning", "below modules may have updates:")
+            table = Table(
+                "Module",
+                "Repository",
+                "Commit SHA Change",
+                "Latest Commit Message",
+                box=None,
             )
-        con.print(table)
+            for module, (sha, msg) in olds.items():
+                clink = lambda sha: f"{module.src}/commit/{sha}"
+                msg = msg.split("\n")[0]
+                table.add_row(
+                    f"[yellow]{module.name}[/yellow]",
+                    f"[blue][link {module.src}]{module.src.replace('https://github.com/','')}[/link {module.src}][/blue]",
+                    "[yellow]FAILED TO CHECK IT[/yellow]"
+                    if not sha
+                    else f"[red][link {clink(module.sha)}]{module.sha}[/link {clink(module.sha)}][/red] -> [green][link {clink(sha)}]{sha}[/link {clink(sha)}][/green]",
+                    msg,
+                )
+            con.print(table)
 
 
 def generate_makefile(source_dir: str, mf_path: str, parent_dir: str = "."):
