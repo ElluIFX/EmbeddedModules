@@ -1093,7 +1093,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-gm",
-        "--gen-makefile",
+        "--generate-makefile",
         action="store_true",
         help="Generate makefile for source files",
     )
