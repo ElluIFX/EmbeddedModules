@@ -6,7 +6,7 @@
 
 #include "kl_slist.h"
 
-static kl_tick_t kl_timer_process(kl_timer_t timer, kl_tick_t time) {
+static kl_tick_t kl_timer_process(kl_timer_t timer, kl_tick_t inc) {
     kl_timer_task_t task;
     kl_tick_t timeout = KL_WAIT_FOREVER;
     kl_mutex_lock(&timer->mutex, KL_WAIT_FOREVER);
@@ -14,11 +14,16 @@ static kl_tick_t kl_timer_process(kl_timer_t timer, kl_tick_t time) {
         if (task->reload == 0) {
             continue;
         }
-        if (task->timeout > time) {
-            task->timeout -= time;
+        if (task->timeout > inc) {
+            task->timeout -= inc;
         } else {
             task->handler(task->arg);
-            task->timeout = task->reload - (time - task->timeout);
+            if (task->loop) {
+                task->timeout = task->reload - (inc - task->timeout);
+            } else {
+                task->timeout = 0;
+                task->reload = 0;
+            }
         }
         if (task->timeout < timeout) {
             timeout = task->timeout;
@@ -30,17 +35,17 @@ static kl_tick_t kl_timer_process(kl_timer_t timer, kl_tick_t time) {
 
 static void kl_timer_service(void* arg) {
     kl_tick_t last;
-    kl_tick_t time;
+    kl_tick_t inc;
     kl_tick_t timeout;
     kl_timer_t timer = (kl_timer_t)arg;
     last = kl_kernel_tick();
     while (1) {
-        time = kl_kernel_tick() - last;
-        last += time;
-        timeout = kl_timer_process(timer, time);
-        time = kl_kernel_tick() - last;
-        if (timeout > time) {
-            kl_cond_wait_complete(&timer->cond, timeout - time);
+        inc = kl_kernel_tick() - last;
+        last += inc;
+        timeout = kl_timer_process(timer, inc);
+        inc = kl_kernel_tick() - last;
+        if (timeout > inc) {
+            kl_cond_wait_complete(&timer->cond, timeout - inc);
         }
     }
 }
@@ -76,8 +81,8 @@ void kl_timer_delete(kl_timer_t timer) {
     kl_heap_free(timer);
 }
 
-kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void*),
-                                  void* arg) {
+kl_timer_task_t kl_timer_attach_task(kl_timer_t timer, void (*handler)(void*),
+                                     void* arg) {
     kl_timer_task_t task;
     task = kl_heap_alloc(sizeof(struct kl_timer_task));
     if (task != NULL) {
@@ -96,17 +101,18 @@ kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void*),
     return task;
 }
 
-void kl_timer_remove_task(kl_timer_task_t task) {
+void kl_timer_detach_task(kl_timer_task_t task) {
     kl_mutex_lock(&task->timer->mutex, KL_WAIT_FOREVER);
     kl_slist_remove(task->timer, task);
     kl_mutex_unlock(&task->timer->mutex);
     kl_heap_free(task);
 }
 
-void kl_timer_start_task(kl_timer_task_t task, kl_tick_t timeout) {
+void kl_timer_start_task(kl_timer_task_t task, kl_tick_t timeout, bool loop) {
     kl_mutex_lock(&task->timer->mutex, KL_WAIT_FOREVER);
     task->reload = (timeout > 0) ? timeout : 1; /* timeout can't be 0 */
     task->timeout = task->reload;
+    task->loop = loop;
     kl_mutex_unlock(&task->timer->mutex);
     kl_cond_signal(&task->timer->cond);
 }

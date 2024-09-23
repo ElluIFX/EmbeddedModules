@@ -875,7 +875,7 @@ bool kl_mqueue_join(kl_mqueue_t queue, kl_tick_t timeout);
 #if KLITE_CFG_IPC_TIMER
 
 /**
- * @brief 创建软定时器
+ * @brief 创建定时器
  * @param stack_size 定时器线程栈大小
  * @param priority 定时器线程优先级
  * @retval 创建成功返回定时器标识符, 失败返回NULL
@@ -883,33 +883,34 @@ bool kl_mqueue_join(kl_mqueue_t queue, kl_tick_t timeout);
 kl_timer_t kl_timer_create(kl_size_t stack_size, uint32_t priority);
 
 /**
- * @brief 删除软定时器
+ * @brief 删除定时器
  * @param timer 定时器标识符
  */
 void kl_timer_delete(kl_timer_t timer);
 
 /**
- * @brief 向定时器中添加定时任务
+ * @brief 向定时器中添加任务
  * @param  timer    定时器标识符
  * @param  handler  定时任务处理函数
  * @param  arg      定时任务参数
  * @retval 添加成功返回定时任务标识符, 失败返回NULL
  */
-kl_timer_task_t kl_timer_add_task(kl_timer_t timer, void (*handler)(void*),
-                                  void* arg);
+kl_timer_task_t kl_timer_attach_task(kl_timer_t timer, void (*handler)(void*),
+                                     void* arg);
 
 /**
- * @brief 将任务从绑定的定时器中移除
+ * @brief 将任务从绑定的定时器中移除, 并释放内存
  * @param  task 定时任务标识符
  */
-void kl_timer_remove_task(kl_timer_task_t task);
+void kl_timer_detach_task(kl_timer_task_t task);
 
 /**
- * @brief 启动定时任务
+ * @brief 启动定时任务或设置任务定时时间
  * @param  task    定时任务标识符
  * @param  timeout 定时时间
+ * @param  loop    是否循环任务
  */
-void kl_timer_start_task(kl_timer_task_t task, kl_tick_t timeout);
+void kl_timer_start_task(kl_timer_task_t task, kl_tick_t timeout, bool loop);
 
 /**
  * @brief 停止定时任务

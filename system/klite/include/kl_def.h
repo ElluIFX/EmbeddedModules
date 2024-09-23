@@ -222,6 +222,7 @@ struct kl_timer_task {
     void* arg;
     kl_tick_t reload;
     kl_tick_t timeout;
+    bool loop;
 };
 typedef struct kl_timer_task* kl_timer_task_t;
 
