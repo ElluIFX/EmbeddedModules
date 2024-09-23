@@ -492,6 +492,7 @@ kl_size_t kl_sem_value(kl_sem_t sem);
  * @brief 重置信号量计数值
  * @param sem 信号量标识符
  * @param value 信号量计数值
+ * @warning 该方法会同时释放所有在等待队列中的线程
  */
 void kl_sem_reset(kl_sem_t sem, kl_size_t value);
 

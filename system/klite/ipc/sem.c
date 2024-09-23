@@ -52,8 +52,13 @@ bool kl_sem_take(kl_sem_t sem, kl_tick_t timeout) {
 }
 
 void kl_sem_reset(kl_sem_t sem, kl_size_t value) {
+    bool preempt = false;
     kl_port_enter_critical();
     sem->value = value;
+    while (kl_sched_tcb_wake_from(&sem->list))
+        preempt = true;
+    if (preempt)
+        kl_sched_preempt(false);
     kl_port_leave_critical();
 }
 
