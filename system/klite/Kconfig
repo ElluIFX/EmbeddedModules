@@ -209,7 +209,7 @@ if KLITE_CFG_IPC_ENABLE
         select KLITE_CFG_IPC_MUTEX
         select KLITE_CFG_IPC_COND
         help
-            Event flags is a synchronization primitive that allows threads to wait for specific event bits to be set before proceeding. One event have 8 bits to set or clear.
+            Event flags is a synchronization primitive that allows threads to wait for specific event bits to be set before proceeding. One event have 32 bits to set or clear.
 
     config KLITE_CFG_IPC_MAILBOX
         bool "Mailbox"
