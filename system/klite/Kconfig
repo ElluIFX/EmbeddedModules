@@ -251,7 +251,7 @@ endif
 
 menu "Debug Options"
     config KLITE_CFG_TRACE_HEAP_OWNER
-        bool "Trace Heap Owner"
+        bool "Trace Heap Memory Block Owner"
         default n
         depends on KLITE_CFG_HEAP_USE_BUILTIN
         help
