@@ -1,8 +1,9 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_THREAD_POOL
+#if KLITE_CFG_IPC_THREAD_POOL
 
 #include <string.h>
+
 struct kl_thread_pool_task {
     void (*process)(void* arg);
     void* arg;
@@ -129,4 +130,4 @@ void kl_thread_pool_shutdown(kl_thread_pool_t pool) {
     kl_heap_free(pool);
 }
 
-#endif  // KLITE_CFG_OPT_THREAD_POOL
+#endif  // KLITE_CFG_IPC_THREAD_POOL

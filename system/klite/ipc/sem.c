@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_SEM
+#if KLITE_CFG_IPC_SEM
 
 kl_sem_t kl_sem_create(kl_size_t value) {
     kl_sem_t sem;

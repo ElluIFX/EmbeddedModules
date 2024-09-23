@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_MPOOL
+#if KLITE_CFG_IPC_MPOOL
 
 #include <string.h>
 
@@ -61,4 +61,4 @@ void kl_mpool_free(kl_mpool_t mpool, void* block) {
     kl_cond_signal(&mpool->wait);
 }
 
-#endif /* KLITE_CFG_OPT_MPOOL */
+#endif /* KLITE_CFG_IPC_MPOOL */

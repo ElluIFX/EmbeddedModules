@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_TIMER
+#if KLITE_CFG_IPC_TIMER
 
 #include <string.h>
 
@@ -118,4 +118,4 @@ void kl_timer_stop_task(kl_timer_task_t task) {
     kl_cond_signal(&task->timer->cond);
 }
 
-#endif /* KLITE_CFG_OPT_TIMER */
+#endif /* KLITE_CFG_IPC_TIMER */

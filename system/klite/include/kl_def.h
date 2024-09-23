@@ -88,7 +88,7 @@ struct kl_heap_stats {
 };
 typedef struct kl_heap_stats* kl_heap_stats_t;
 
-#if KLITE_CFG_OPT_SEM
+#if KLITE_CFG_IPC_SEM
 struct kl_sem {
     struct kl_thread_list list;
     kl_size_t value;
@@ -96,7 +96,7 @@ struct kl_sem {
 typedef struct kl_sem* kl_sem_t;
 #endif
 
-#if KLITE_CFG_OPT_EVENT
+#if KLITE_CFG_IPC_EVENT
 struct kl_event {
     struct kl_thread_list list;
     bool auto_reset;
@@ -105,7 +105,7 @@ struct kl_event {
 typedef struct kl_event* kl_event_t;
 #endif
 
-#if KLITE_CFG_OPT_MUTEX
+#if KLITE_CFG_IPC_MUTEX
 struct kl_mutex {
 #if KLITE_CFG_TRACE_MUTEX_OWNER
     struct kl_mutex* next;
@@ -117,14 +117,14 @@ struct kl_mutex {
 typedef struct kl_mutex* kl_mutex_t;
 #endif
 
-#if KLITE_CFG_OPT_COND
+#if KLITE_CFG_IPC_COND
 struct kl_cond {
     struct kl_thread_list list;
 };
 typedef struct kl_cond* kl_cond_t;
 #endif
 
-#if KLITE_CFG_OPT_RWLOCK
+#if KLITE_CFG_IPC_RWLOCK
 struct kl_rwlock {
     struct kl_mutex mutex;
     struct kl_cond read;
@@ -137,7 +137,7 @@ struct kl_rwlock {
 typedef struct kl_rwlock* kl_rwlock_t;
 #endif
 
-#if KLITE_CFG_OPT_BARRIER
+#if KLITE_CFG_IPC_BARRIER
 struct kl_barrier {
     struct kl_thread_list list;
     kl_size_t value;
@@ -146,7 +146,7 @@ struct kl_barrier {
 typedef struct kl_barrier* kl_barrier_t;
 #endif
 
-#if KLITE_CFG_OPT_EVENT_FLAGS
+#if KLITE_CFG_IPC_EVENT_FLAGS
 #define KL_EVENT_FLAGS_WAIT_ANY 0x00
 #define KL_EVENT_FLAGS_WAIT_ALL 0x01
 #define KL_EVENT_FLAGS_AUTO_RESET 0x02
@@ -159,7 +159,7 @@ struct kl_event_flags {
 typedef struct kl_event_flags* kl_event_flags_t;
 #endif
 
-#if KLITE_CFG_OPT_MAILBOX
+#if KLITE_CFG_IPC_MAILBOX
 struct kl_mailbox {
     struct {
         uint8_t* buf;
@@ -174,7 +174,7 @@ struct kl_mailbox {
 typedef struct kl_mailbox* kl_mailbox_t;
 #endif
 
-#if KLITE_CFG_OPT_MPOOL
+#if KLITE_CFG_IPC_MPOOL
 struct kl_mpool_node {
     struct kl_mpool_node* next;
     uint8_t data[];
@@ -190,7 +190,7 @@ struct kl_mpool {
 typedef struct kl_mpool* kl_mpool_t;
 #endif
 
-#if KLITE_CFG_OPT_MQUEUE
+#if KLITE_CFG_IPC_MQUEUE
 struct kl_mqueue_node {
     struct kl_mqueue_node* next;
     uint8_t data[];
@@ -214,7 +214,7 @@ struct kl_mqueue {
 typedef struct kl_mqueue* kl_mqueue_t;
 #endif
 
-#if KLITE_CFG_OPT_TIMER
+#if KLITE_CFG_IPC_TIMER
 struct kl_timer_task {
     struct kl_timer_task* next;
     struct kl_timer* timer;
@@ -234,7 +234,7 @@ struct kl_timer {
 typedef struct kl_timer* kl_timer_t;
 #endif
 
-#if KLITE_CFG_OPT_THREAD_POOL
+#if KLITE_CFG_IPC_THREAD_POOL
 struct kl_thread_pool {
     kl_mqueue_t task_queue;
     kl_thread_t* thread_list;

@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_EVENT_FLAGS
+#if KLITE_CFG_IPC_EVENT_FLAGS
 
 #include <string.h>
 
@@ -66,4 +66,4 @@ kl_size_t kl_event_flags_wait(kl_event_flags_t flags, kl_size_t bits,
     return ret;
 }
 
-#endif  // KLITE_CFG_OPT_EVENT_FLAGS
+#endif  // KLITE_CFG_IPC_EVENT_FLAGS

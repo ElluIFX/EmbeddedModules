@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_MQUEUE
+#if KLITE_CFG_IPC_MQUEUE
 
 #include <string.h>
 
@@ -163,4 +163,4 @@ bool kl_mqueue_join(kl_mqueue_t queue, kl_tick_t timeout) {
     return kl_cond_wait_complete(&queue->join, timeout);
 }
 
-#endif  // KLITE_CFG_OPT_MQUEUE
+#endif  // KLITE_CFG_IPC_MQUEUE

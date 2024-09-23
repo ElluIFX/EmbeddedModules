@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_MAILBOX
+#if KLITE_CFG_IPC_MAILBOX
 
 #include "kl_fifo.h"
 
@@ -87,4 +87,4 @@ kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void* buf, kl_size_t len,
     }
 }
 
-#endif  // KLITE_CFG_OPT_MAILBOX
+#endif  // KLITE_CFG_IPC_MAILBOX

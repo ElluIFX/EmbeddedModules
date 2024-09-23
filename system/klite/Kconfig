@@ -161,92 +161,92 @@ config KLITE_CFG_64BIT_TICK
     help
         Use 64-bit (uint64_t) for tick variable, suggested when the system runs for a long time or the tick frequency is higher than 1000 Hz.
 
-menuconfig KLITE_CFG_OPT_ENABLE
+menuconfig KLITE_CFG_IPC_ENABLE
     bool "Optional Features"
     default y
-if KLITE_CFG_OPT_ENABLE
-    config KLITE_CFG_OPT_MUTEX
+if KLITE_CFG_IPC_ENABLE
+    config KLITE_CFG_IPC_MUTEX
         bool "Mutex"
         default y
         help
             Mutex is a synchronization primitive that allows multiple threads to access a shared resource in a controlled manner. Only one thread can acquire the mutex at a time.
 
-    config KLITE_CFG_OPT_SEM
+    config KLITE_CFG_IPC_SEM
         bool "Semaphore"
         default y
         help
             Semaphore is a synchronization primitive that allows multiple threads to access a shared resource in a controlled manner. Multiple threads can acquire the semaphore at the same time.
 
-    config KLITE_CFG_OPT_COND
+    config KLITE_CFG_IPC_COND
         bool "Condition Variable"
         default y
         help
             Condition variable is a synchronization primitive that allows threads to wait for a specific condition to be met before proceeding.
 
-    config KLITE_CFG_OPT_BARRIER
+    config KLITE_CFG_IPC_BARRIER
         bool "Barrier"
         default n
         help
             Barrier allows multiple threads to synchronize at a specific point.
 
-    config KLITE_CFG_OPT_RWLOCK
+    config KLITE_CFG_IPC_RWLOCK
         bool "Read-Write Lock"
         default n
-        select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_COND
+        select KLITE_CFG_IPC_MUTEX
+        select KLITE_CFG_IPC_COND
         help
             Read-write lock allows multiple threads to read from a shared resource while preventing other threads from writing to the resource.
 
-    config KLITE_CFG_OPT_EVENT
+    config KLITE_CFG_IPC_EVENT
         bool "Event"
         default n
         help
             Event is a synchronization primitive that allows threads to wait for a specific event to occur before proceeding.
 
-    config KLITE_CFG_OPT_EVENT_FLAGS
+    config KLITE_CFG_IPC_EVENT_FLAGS
         bool "Event Flags"
         default n
-        select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_COND
+        select KLITE_CFG_IPC_MUTEX
+        select KLITE_CFG_IPC_COND
         help
             Event flags is a synchronization primitive that allows threads to wait for specific event bits to be set before proceeding. One event have 8 bits to set or clear.
 
-    config KLITE_CFG_OPT_MAILBOX
+    config KLITE_CFG_IPC_MAILBOX
         bool "Mailbox"
         default n
-        select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_COND
+        select KLITE_CFG_IPC_MUTEX
+        select KLITE_CFG_IPC_COND
         help
             Mailbox allows threads to send and receive data in a shared buffer.
 
-    config KLITE_CFG_OPT_MPOOL
+    config KLITE_CFG_IPC_MPOOL
         bool "Memory Pool"
-        select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_COND
+        select KLITE_CFG_IPC_MUTEX
+        select KLITE_CFG_IPC_COND
         default n
         help
             Memory pool provides a way to allocate and release memory in a fixed size, while allowing threads to wait for available memory while the pool is empty.
 
-    config KLITE_CFG_OPT_MQUEUE
+    config KLITE_CFG_IPC_MQUEUE
         bool "Message Queue"
         default n
-        select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_COND
+        select KLITE_CFG_IPC_MUTEX
+        select KLITE_CFG_IPC_COND
         help
             Message queue allows threads to send and receive data in a shared buffer, in a FIFO manner.
 
-    config KLITE_CFG_OPT_TIMER
+    config KLITE_CFG_IPC_TIMER
         bool "Software Timer"
         default n
-        select KLITE_CFG_OPT_MUTEX
-        select KLITE_CFG_OPT_COND
+        select KLITE_CFG_IPC_MUTEX
+        select KLITE_CFG_IPC_COND
         help
             Software timer provides a way to execute multiple functions at specific times, and in one thread.
 
-    config KLITE_CFG_OPT_THREAD_POOL
+    config KLITE_CFG_IPC_THREAD_POOL
         bool "Thread Pool"
         default n
-        select KLITE_CFG_OPT_MQUEUE
+        select KLITE_CFG_IPC_MQUEUE
         help
             Thread pool provides a manager to manage multiple threads, accepting tasks from the message queue and executing them.
 endif

@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_BARRIER
+#if KLITE_CFG_IPC_BARRIER
 
 kl_barrier_t kl_barrier_create(kl_size_t target) {
     kl_barrier_t barrier;

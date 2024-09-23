@@ -354,7 +354,7 @@ kl_thread_t kl_thread_iter(kl_thread_t thread);
  * mutex
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_MUTEX
+#if KLITE_CFG_IPC_MUTEX
 
 /**
  * @brief 创建一个互斥锁对象, 支持递归锁
@@ -392,13 +392,13 @@ void kl_mutex_unlock(kl_mutex_t mutex);
  */
 bool kl_mutex_locked(kl_mutex_t mutex);
 
-#endif  // KLITE_CFG_OPT_MUTEX
+#endif  // KLITE_CFG_IPC_MUTEX
 
 /******************************************************************************
  * condition variable
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_COND
+#if KLITE_CFG_IPC_COND
 
 /**
  * @brief 创建条件变量对象
@@ -444,13 +444,13 @@ bool kl_cond_wait(kl_cond_t cond, kl_mutex_t mutex, kl_tick_t timeout);
  */
 bool kl_cond_wait_complete(kl_cond_t cond, kl_tick_t timeout);
 
-#endif  // KLITE_CFG_OPT_COND
+#endif  // KLITE_CFG_IPC_COND
 
 /******************************************************************************
  * semaphore
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_SEM
+#if KLITE_CFG_IPC_SEM
 
 /**
  * @brief 创建信号量对象
@@ -495,13 +495,13 @@ kl_size_t kl_sem_value(kl_sem_t sem);
  */
 void kl_sem_reset(kl_sem_t sem, kl_size_t value);
 
-#endif  // KLITE_CFG_OPT_SEM
+#endif  // KLITE_CFG_IPC_SEM
 
 /******************************************************************************
  * barrier
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_BARRIER
+#if KLITE_CFG_IPC_BARRIER
 
 /**
  * @brief 创建一个屏障对象
@@ -540,13 +540,13 @@ kl_size_t kl_barrier_get(kl_barrier_t barrier);
  */
 bool kl_barrier_wait(kl_barrier_t barrier, kl_tick_t timeout);
 
-#endif  // KLITE_CFG_OPT_BARRIER
+#endif  // KLITE_CFG_IPC_BARRIER
 
 /******************************************************************************
  * rwlock
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_RWLOCK
+#if KLITE_CFG_IPC_RWLOCK
 
 /**
  * @brief 创建读写锁对象
@@ -593,13 +593,13 @@ void kl_rwlock_read_unlock(kl_rwlock_t rwlock);
  */
 void kl_rwlock_write_unlock(kl_rwlock_t rwlock);
 
-#endif  // KLITE_CFG_OPT_RWLOCK
+#endif  // KLITE_CFG_IPC_RWLOCK
 
 /******************************************************************************
  * event
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_EVENT
+#if KLITE_CFG_IPC_EVENT
 
 /**
  * @brief 创建一个事件对象, 当auto_reset为true时事件会在传递成功后自动复位
@@ -643,13 +643,13 @@ bool kl_event_wait(kl_event_t event, kl_tick_t timeout);
  */
 bool kl_event_is_set(kl_event_t event);
 
-#endif  // KLITE_CFG_OPT_EVENT
+#endif  // KLITE_CFG_IPC_EVENT
 
 /******************************************************************************
  * event flags
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_EVENT_FLAGS
+#if KLITE_CFG_IPC_EVENT_FLAGS
 
 /**
  * @brief 创建一个事件组对象
@@ -690,13 +690,13 @@ void kl_event_flags_reset(kl_event_flags_t flags, kl_size_t bits);
 kl_size_t kl_event_flags_wait(kl_event_flags_t flags, kl_size_t bits,
                               kl_size_t ops, kl_tick_t timeout);
 
-#endif  // KLITE_CFG_OPT_EVENT_FLAGS
+#endif  // KLITE_CFG_IPC_EVENT_FLAGS
 
 /******************************************************************************
  * mailbox
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_MAILBOX
+#if KLITE_CFG_IPC_MAILBOX
 
 /**
  * @brief 创建消息邮箱
@@ -743,13 +743,13 @@ kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void* buf, kl_size_t len,
 kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void* buf, kl_size_t len,
                           kl_tick_t timeout);
 
-#endif  // KLITE_CFG_OPT_MAILBOX
+#endif  // KLITE_CFG_IPC_MAILBOX
 
 /******************************************************************************
  * mpool
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_MPOOL
+#if KLITE_CFG_IPC_MPOOL
 
 /**
  * @brief 创建内存池
@@ -781,13 +781,13 @@ void* kl_mpool_alloc(kl_mpool_t mpool, kl_tick_t timeout);
  */
 void kl_mpool_free(kl_mpool_t mpool, void* block);
 
-#endif  // KLITE_CFG_OPT_MPOOL
+#endif  // KLITE_CFG_IPC_MPOOL
 
 /******************************************************************************
  * msg queue
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_MQUEUE
+#if KLITE_CFG_IPC_MQUEUE
 
 /**
  * @brief 创建消息队列
@@ -865,13 +865,13 @@ void kl_mqueue_task_done(kl_mqueue_t queue);
  */
 bool kl_mqueue_join(kl_mqueue_t queue, kl_tick_t timeout);
 
-#endif  // KLITE_CFG_OPT_MQUEUE
+#endif  // KLITE_CFG_IPC_MQUEUE
 
 /******************************************************************************
  * soft timer
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_TIMER
+#if KLITE_CFG_IPC_TIMER
 
 /**
  * @brief 创建软定时器
@@ -916,13 +916,13 @@ void kl_timer_start_task(kl_timer_task_t task, kl_tick_t timeout);
  */
 void kl_timer_stop_task(kl_timer_task_t task);
 
-#endif  // KLITE_CFG_OPT_TIMER
+#endif  // KLITE_CFG_IPC_TIMER
 
 /******************************************************************************
  * thread pool
  ******************************************************************************/
 
-#if KLITE_CFG_OPT_THREAD_POOL
+#if KLITE_CFG_IPC_THREAD_POOL
 
 /**
  * @brief 创建并启动线程池
@@ -982,6 +982,6 @@ bool kl_thread_pool_join(kl_thread_pool_t pool, kl_tick_t timeout);
  */
 kl_size_t kl_thread_pool_pending(kl_thread_pool_t pool);
 
-#endif  // KLITE_CFG_OPT_THREAD_POOL
+#endif  // KLITE_CFG_IPC_THREAD_POOL
 
 #endif  // __KLITE_H__

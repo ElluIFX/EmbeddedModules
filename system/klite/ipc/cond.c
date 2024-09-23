@@ -1,6 +1,6 @@
 #include "kl_priv.h"
 
-#if KLITE_CFG_OPT_COND
+#if KLITE_CFG_IPC_COND
 
 kl_cond_t kl_cond_create(void) {
     kl_cond_t cond;
