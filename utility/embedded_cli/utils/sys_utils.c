@@ -490,12 +490,15 @@ static void trace_mutex_cmd_func(EmbeddedCli* cli, char* args, void* context) {
     kl_thread_t owner = NULL;
     kl_size_t lock = 0;
     while (kl_dbg_mutex_iter_locks(&iter_tmp, &owner, &mutex, &lock)) {
-        PRINT("0x%X - ", mutex);
-        if (kl_thread_id(owner) == KL_INVALID)
-            PRINTLN(T_FMT(T_RED) "N/A" T_RST);
+        PRINT(T_FMT(T_GREEN) "0x%X - ", mutex);
+        if (owner == NULL)
+            PRINT("free");
+        else if (kl_thread_id(owner) == KL_INVALID)
+            PRINT(T_FMT(T_RED) "N/A" T_FMT(T_GREEN), kl_thread_id(owner));
         else
-            PRINTLN(T_FMT(T_GREEN) "%d" T_RST, kl_thread_id(owner));
-        PRINTLN(T_FMT(T_GREEN) " - %d" T_RST, lock);
+            PRINT(T_FMT(T_YELLOW) "locked by %d" T_FMT(T_GREEN),
+                  kl_thread_id(owner));
+        PRINTLN(" - %d" T_RST, lock);
     }
     PRINT(T_RST);
 }
