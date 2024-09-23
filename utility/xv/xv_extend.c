@@ -14,6 +14,7 @@ static struct xv_env global_env = {.ref = NULL, .udata = NULL};
 static UDICT xve_userfunc_dict = NULL;
 
 static struct xv xve_get_ref(struct xv this, struct xv ident, void* udata);
+
 static bool strcmpn(const char* s1, const char* s2, size_t n) {
     for (size_t i = 0; i < n; i++) {
         if (s1[i] != s2[i])
@@ -200,6 +201,7 @@ static struct xv xve_func(struct xv this, struct xv args, void* udata) {
     }
     xve_lambda_t* lmb =
         m_alloc(sizeof(xve_lambda_t) + (argc - 1) * sizeof(char*));
+    memset(lmb, 0, sizeof(xve_lambda_t));
     lmb->argc = argc - 1;
     for (int i = 0; i < lmb->argc; i++) {
         lmb->args[i] = xv_string(xv_array_at(args, i));
