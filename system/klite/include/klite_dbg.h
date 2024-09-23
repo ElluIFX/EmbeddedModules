@@ -31,8 +31,8 @@ bool kl_dbg_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner,
  * @param  lock  [out] 互斥锁嵌套锁定次数
  * @retval 继续迭代返回true, 结束迭代返回false
  */
-bool kl_dbg_mutex_iter_locks(void** iter_tmp, kl_mutex_t* mutex,
-                             kl_thread_t* owner, kl_size_t* lock);
+bool kl_dbg_mutex_iter_locks(void** iter_tmp, kl_thread_t* owner, kl_mutex_t* mutex,
+                             kl_size_t* lock);
 #endif
 
 #endif  // __KLITE_DBG_H__

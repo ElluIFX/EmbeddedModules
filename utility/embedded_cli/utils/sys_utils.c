@@ -489,7 +489,7 @@ static void trace_mutex_cmd_func(EmbeddedCli* cli, char* args, void* context) {
     kl_mutex_t mutex = NULL;
     kl_thread_t owner = NULL;
     kl_size_t lock = 0;
-    while (kl_dbg_mutex_iter_locks(&iter_tmp, &mutex, &owner, &lock)) {
+    while (kl_dbg_mutex_iter_locks(&iter_tmp, &owner, &mutex, &lock)) {
         PRINT("0x%X - ", mutex);
         if (kl_thread_id(owner) == KL_INVALID)
             PRINTLN(T_FMT(T_RED) "N/A" T_RST);

@@ -87,8 +87,8 @@ bool kl_mutex_locked(kl_mutex_t mutex) {
 }
 
 #if KLITE_CFG_TRACE_MUTEX_OWNER
-bool kl_dbg_mutex_iter_locks(void** iter_tmp, kl_mutex_t* mutex,
-                             kl_thread_t* owner, kl_size_t* lock) {
+bool kl_dbg_mutex_iter_locks(void** iter_tmp, kl_thread_t* owner,
+                             kl_mutex_t* mutex, kl_size_t* lock) {
     kl_mutex_t temp;
 
     kl_port_enter_critical();
