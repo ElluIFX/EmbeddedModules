@@ -22,6 +22,7 @@ typedef enum {
     KL_EINVAL,    // 参数非法
     KL_ETIMEOUT,  // 超时错误
     KL_ENOMEM,    // 内存不足
+    KL_ESIZE,     // 大小错误
     KL_EFULL,     // 资源满
     KL_EEMPTY,    // 资源空
     KL_EBUSY,     // 系统忙
@@ -29,7 +30,6 @@ typedef enum {
     KL_EPERM,     // 权限不足
     KL_ENOTSUP,   // 不支持
     KL_ENFOUND,   // 未找到
-    KL_EMSGSIZE,  // 消息大小错误
 } kl_err_t;
 
 typedef uint32_t kl_size_t;

@@ -68,7 +68,7 @@ kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void* buf, kl_size_t len,
         if (ret != 0) {
             if (len < ttl) {
                 kl_mutex_unlock(&mailbox->mutex);
-                KL_SET_ERRNO(KL_EMSGSIZE);
+                KL_SET_ERRNO(KL_ESIZE);
                 return ttl;
             }
             kl_fifo_read(&mailbox->fifo, NULL, sizeof(kl_size_t));
