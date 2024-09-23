@@ -735,11 +735,12 @@ kl_size_t kl_mailbox_post(kl_mailbox_t mailbox, void* buf, kl_size_t len,
 /**
  * @brief 从消息邮箱读取消息
  * @param mailbox 消息邮箱标识符
- * @param buf 读取缓冲区
+ * @param buf 读取缓冲区 (传入NULL表示丢弃消息)
  * @param len 读取缓冲区长度
  * @param timeout 超时时间. 0非阻塞, KL_WAIT_FOREVER永久等待
- * @retval 实际读取数据长度
- * @warning 如果读取缓冲区长度小于消息长度, 则消息会被截断
+ * @retval 待处理的消息长度
+ * @warning 如果返回的长度大于读取缓冲区长度, 则说明缓冲区长度不足以容纳消息,
+ *          需要增大缓冲区长度, 且此时消息不会被读取
  */
 kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void* buf, kl_size_t len,
                           kl_tick_t timeout);

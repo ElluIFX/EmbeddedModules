@@ -62,15 +62,17 @@ kl_size_t kl_mailbox_read(kl_mailbox_t mailbox, void* buf, kl_size_t len,
                           kl_tick_t timeout) {
     kl_size_t ret;
     kl_size_t ttl;
-    uint8_t dummy;
     kl_mutex_lock(&mailbox->mutex, KL_WAIT_FOREVER);
     while (1) {
-        ret = kl_fifo_read(&mailbox->fifo, &ttl, sizeof(kl_size_t));
+        ret = kl_fifo_peek(&mailbox->fifo, &ttl, sizeof(kl_size_t));
         if (ret != 0) {
-            ret = kl_fifo_read(&mailbox->fifo, buf, (len < ttl) ? len : ttl);
-            while (ret < ttl) {
-                ttl -= kl_fifo_read(&mailbox->fifo, &dummy, 1);
+            if (len < ttl) {
+                kl_mutex_unlock(&mailbox->mutex);
+                KL_SET_ERRNO(KL_EMSGSIZE);
+                return ttl;
             }
+            kl_fifo_read(&mailbox->fifo, NULL, sizeof(kl_size_t));
+            ret = kl_fifo_read(&mailbox->fifo, buf, ttl);
             kl_mutex_unlock(&mailbox->mutex);
             kl_cond_broadcast(&mailbox->write);
             return ret;

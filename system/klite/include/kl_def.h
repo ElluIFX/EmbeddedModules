@@ -29,6 +29,7 @@ typedef enum {
     KL_EPERM,     // 权限不足
     KL_ENOTSUP,   // 不支持
     KL_ENFOUND,   // 未找到
+    KL_EMSGSIZE,  // 消息大小错误
 } kl_err_t;
 
 typedef uint32_t kl_size_t;
