@@ -99,7 +99,7 @@ config KLITE_CFG_STACK_OVERFLOW_DETECT
     default n
     help
         Checking magic number barrier at both sides of the stack.
-        Only available when the overflow have not occurred hard fault, and the thread can be switched out.
+        Only available when the overflow have not caused a hard fault, and the thread can be switched out.
 if KLITE_CFG_STACK_OVERFLOW_DETECT
 choice
     prompt "Stack Overflow Behavior"
@@ -126,10 +126,10 @@ choice
         bool "Task Switch"
 
     config KLITE_CFG_STACKOF_DETECT_ON_TICK_INC
-        bool "Tick Increment"
+        bool "Tick Increment (High Cost)"
 
     help
-        The timing to detect the stack overflow.
+        When to detect the stack overflow.
 endchoice
 
 config KLITE_CFG_STACKOF_SIZE
@@ -137,27 +137,29 @@ config KLITE_CFG_STACKOF_SIZE
     default 8
     range 1 128
     help
-        The size of the magic number used to detect the stack overflow.
+        The size of the barrier used to detect the stack overflow.
 endif
 
 choice
     prompt "Wait List Order by"
-    default KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
+    default KLITE_CFG_WAIT_LIST_ORDER_BY_FIFO
     help
-        The wait list, which is used to store the threads that are waiting for the object like mutex and semaphore, will be ordered by the selected method.
-
-    config KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
-        bool "Priority"
+        The order in which tasks are selected from the wait list.
+        Priority: Tasks with higher priority are selected first.
+        FIFO: Tasks are selected in the order they were added to the wait list.
 
     config KLITE_CFG_WAIT_LIST_ORDER_BY_FIFO
         bool "FIFO"
+
+    config KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
+        bool "Priority"
 endchoice
 
 config KLITE_CFG_64BIT_TICK
     bool "64-bit Tick Variable (uint64_t)"
     default y
     help
-        Use 64-bit (uint64_t) tick for the user space.
+        Use 64-bit (uint64_t) for tick variable, suggested when the system runs for a long time or the tick frequency is higher than 1000 Hz.
 
 menuconfig KLITE_CFG_OPT_ENABLE
     bool "Optional Features"
@@ -167,25 +169,25 @@ if KLITE_CFG_OPT_ENABLE
         bool "Mutex"
         default y
         help
-            Enable the mutex.
+            Mutex is a synchronization primitive that allows multiple threads to access a shared resource in a controlled manner. Only one thread can acquire the mutex at a time.
 
     config KLITE_CFG_OPT_SEM
         bool "Semaphore"
         default y
         help
-            Enable the semaphore.
+            Semaphore is a synchronization primitive that allows multiple threads to access a shared resource in a controlled manner. Multiple threads can acquire the semaphore at the same time.
 
     config KLITE_CFG_OPT_COND
         bool "Condition Variable"
         default y
         help
-            Enable the condition variable.
+            Condition variable is a synchronization primitive that allows threads to wait for a specific condition to be met before proceeding.
 
     config KLITE_CFG_OPT_BARRIER
         bool "Barrier"
         default n
         help
-            Enable the barrier.
+            Barrier allows multiple threads to synchronize at a specific point.
 
     config KLITE_CFG_OPT_RWLOCK
         bool "Read-Write Lock"
@@ -193,13 +195,13 @@ if KLITE_CFG_OPT_ENABLE
         select KLITE_CFG_OPT_MUTEX
         select KLITE_CFG_OPT_COND
         help
-            Enable the read-write lock.
+            Read-write lock allows multiple threads to read from a shared resource while preventing other threads from writing to the resource.
 
     config KLITE_CFG_OPT_EVENT
         bool "Event"
         default n
         help
-            Enable the event.
+            Event is a synchronization primitive that allows threads to wait for a specific event to occur before proceeding.
 
     config KLITE_CFG_OPT_EVENT_FLAGS
         bool "Event Flags"
@@ -207,7 +209,7 @@ if KLITE_CFG_OPT_ENABLE
         select KLITE_CFG_OPT_MUTEX
         select KLITE_CFG_OPT_COND
         help
-            Enable the event flags.
+            Event flags is a synchronization primitive that allows threads to wait for specific event bits to be set before proceeding. One event have 8 bits to set or clear.
 
     config KLITE_CFG_OPT_MAILBOX
         bool "Mailbox"
@@ -215,7 +217,7 @@ if KLITE_CFG_OPT_ENABLE
         select KLITE_CFG_OPT_MUTEX
         select KLITE_CFG_OPT_COND
         help
-            Enable the mailbox.
+            Mailbox allows threads to send and receive data in a shared buffer.
 
     config KLITE_CFG_OPT_MPOOL
         bool "Memory Pool"
@@ -223,7 +225,7 @@ if KLITE_CFG_OPT_ENABLE
         select KLITE_CFG_OPT_COND
         default n
         help
-            Enable the memory pool.
+            Memory pool provides a way to allocate and release memory in a fixed size, while allowing threads to wait for available memory while the pool is empty.
 
     config KLITE_CFG_OPT_MQUEUE
         bool "Message Queue"
@@ -231,7 +233,7 @@ if KLITE_CFG_OPT_ENABLE
         select KLITE_CFG_OPT_MUTEX
         select KLITE_CFG_OPT_COND
         help
-            Enable the message queue.
+            Message queue allows threads to send and receive data in a shared buffer, in a FIFO manner.
 
     config KLITE_CFG_OPT_TIMER
         bool "Software Timer"
@@ -239,14 +241,14 @@ if KLITE_CFG_OPT_ENABLE
         select KLITE_CFG_OPT_MUTEX
         select KLITE_CFG_OPT_COND
         help
-            Enable the software timer.
+            Software timer provides a way to execute multiple functions at specific times, and in one thread.
 
     config KLITE_CFG_OPT_THREAD_POOL
         bool "Thread Pool"
         default n
         select KLITE_CFG_OPT_MQUEUE
         help
-            Enable the thread pool.
+            Thread pool provides a manager to manage multiple threads, accepting tasks from the message queue and executing them.
 endif
 
 menu "Debug Options"
