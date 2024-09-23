@@ -162,7 +162,7 @@ config KLITE_CFG_64BIT_TICK
         Use 64-bit (uint64_t) for tick variable, suggested when the system runs for a long time or the tick frequency is higher than 1000 Hz.
 
 menuconfig KLITE_CFG_IPC_ENABLE
-    bool "Optional Features"
+    bool "IPC (Inter-Process Communication) components"
     default y
 if KLITE_CFG_IPC_ENABLE
     config KLITE_CFG_IPC_MUTEX
