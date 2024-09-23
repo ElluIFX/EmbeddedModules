@@ -26,7 +26,7 @@ choice
     default KLITE_CFG_HEAP_USE_BUILTIN
 
     config KLITE_CFG_HEAP_USE_BUILTIN
-        bool "Built-in"
+        bool "Built-in (Suggested)"
 
     config KLITE_CFG_HEAP_USE_HEAP4
         select MOD_ENABLE_HEAP4
@@ -49,20 +49,20 @@ menu "Built-in Heap Configuration"
         bool "Clear Memory on Free"
         default n
         help
-            Clear the memory when the memory is freed or reallocated.
+            Clear the memory (fill 0x00) when the memory is freed or reallocated.
 
     config KLITE_CFG_HEAP_STORAGE_PREV_NODE
         bool "Storage Previous Memory Block Node"
         default y
         help
-            Store the previous node pointer in the memory block. Get O(1) time complexity for free() and realloc() operation but cost 4 bytes of memory more for each block.
+            Store the left node pointer in the memory block, making the time complexity for free() and realloc() to be O(1) but costing 4 bytes of memory more for each block.
 
     config KLITE_CFG_HEAP_ALIGN_BYTE
         int "Align Byte"
         default 4
         range 1 1024
         help
-            The alignment of the memory block. The value should be the power of 2. Default is 4 bytes for 32-bit CPU and 8 bytes for 64-bit CPU.
+            The alignment of the memory block, which should be the power of 2. Default is 4 bytes for 32-bit CPU.
 endmenu
 
 config KLITE_CFG_ROUND_ROBIN
