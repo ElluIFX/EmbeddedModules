@@ -24,9 +24,26 @@ static inline kl_size_t kl_fifo_read(void* fifo, void* buf, kl_size_t size) {
         if (((fifo_t*)fifo)->rp == ((fifo_t*)fifo)->wp) {
             break;
         }
-        ((uint8_t*)buf)[i] = ((fifo_t*)fifo)->buf[((fifo_t*)fifo)->rp++];
+        if (buf) {
+            ((uint8_t*)buf)[i] = ((fifo_t*)fifo)->buf[((fifo_t*)fifo)->rp++];
+        }
         if (((fifo_t*)fifo)->rp == ((fifo_t*)fifo)->size) {
             ((fifo_t*)fifo)->rp = 0;
+        }
+    }
+    return i;
+}
+
+static inline kl_size_t kl_fifo_peek(void* fifo, void* buf, kl_size_t size) {
+    kl_size_t i;
+    kl_size_t rp = ((fifo_t*)fifo)->rp;
+    for (i = 0; i < size; i++) {
+        if (rp == ((fifo_t*)fifo)->wp) {
+            break;
+        }
+        ((uint8_t*)buf)[i] = ((fifo_t*)fifo)->buf[rp++];
+        if (rp == ((fifo_t*)fifo)->size) {
+            rp = 0;
         }
     }
     return i;
