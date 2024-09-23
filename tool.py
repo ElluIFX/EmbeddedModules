@@ -1154,7 +1154,7 @@ if __name__ == "__main__":
             args.force_copy,
         )
 
-    if args.gen_makefile:
+    if args.generate_makefile:
         generate_makefile(
             module_dir,
             os.path.join(module_dir, "Makefile"),
