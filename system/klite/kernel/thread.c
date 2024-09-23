@@ -86,9 +86,6 @@ void kl_thread_delete(kl_thread_t thread) {
     kl_sched_tcb_remove(thread);
     kl_port_leave_critical();
 
-#if KLITE_CFG_HEAP_AUTO_FREE
-    kl_heap_auto_free(thread);
-#endif
     thread->magic = 0;
     kl_heap_free(thread);
 }
@@ -301,10 +298,6 @@ void kl_thread_idle_task(void) {
         node = m_list_dead.head;
         kl_blist_remove(&m_list_dead, node);
         kl_port_leave_critical();
-
-#if KLITE_CFG_HEAP_AUTO_FREE
-        kl_heap_auto_free(node->tcb);
-#endif
         node->tcb->magic = 0;
         kl_heap_free(node->tcb);
     }

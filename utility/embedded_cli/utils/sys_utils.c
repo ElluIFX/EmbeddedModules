@@ -28,6 +28,7 @@
 #endif
 #if (MOD_CFG_USE_OS_KLITE)
 #include "klite.h"
+#include "klite_dbg.h"
 #define SHOWKLITE 1
 #endif
 
@@ -437,10 +438,10 @@ static void memdump_cmd_func(EmbeddedCli* cli, char* args, void* context) {
     }
 }
 
-#if KLITE_CFG_HEAP_TRACE_OWNER
+#if KLITE_CFG_TRACE_HEAP_OWNER
 #include "klite.h"
 
-static void memtrace_cmd_func(EmbeddedCli* cli, char* args, void* context) {
+static void trace_mem_cmd_func(EmbeddedCli* cli, char* args, void* context) {
     int fpid = -1;
     kl_size_t fsize = 0;
     int argc = embeddedCliGetTokenCount(args);
@@ -460,7 +461,7 @@ static void memtrace_cmd_func(EmbeddedCli* cli, char* args, void* context) {
     void* iter_tmp = NULL;
     kl_thread_t owner = NULL;
     kl_size_t addr = 0, used = 0, size = 0;
-    while (kl_heap_iter_nodes(&iter_tmp, &owner, &addr, &used, &size)) {
+    while (kl_dbg_heap_iter_nodes(&iter_tmp, &owner, &addr, &used, &size)) {
         if ((fpid != -1 && kl_thread_id(owner) != fpid) || (size < fsize))
             continue;
         if (frag_only && used == size)
@@ -475,6 +476,26 @@ static void memtrace_cmd_func(EmbeddedCli* cli, char* args, void* context) {
             PRINTLN(T_FMT(T_RED) "N/A" T_RST);
         else
             PRINTLN("%d", kl_thread_id(owner));
+    }
+    PRINT(T_RST);
+}
+#endif
+
+#if KLITE_CFG_TRACE_MUTEX_OWNER
+static void trace_mutex_cmd_func(EmbeddedCli* cli, char* args, void* context) {
+    PRINTLN(T_FMT(T_BOLD, T_BLUE) "Mutex Trace Info:" T_FMT(T_RESET, T_BLUE));
+    PRINTLN("Mutex - Owner - Lock");
+    void* iter_tmp = NULL;
+    kl_mutex_t mutex = NULL;
+    kl_thread_t owner = NULL;
+    kl_size_t lock = 0;
+    while (kl_dbg_mutex_iter_locks(&iter_tmp, &mutex, &owner, &lock)) {
+        PRINT("0x%X - ", mutex);
+        if (kl_thread_id(owner) == KL_INVALID)
+            PRINTLN(T_FMT(T_RED) "N/A" T_RST);
+        else
+            PRINTLN(T_FMT(T_GREEN) "%d" T_RST, kl_thread_id(owner));
+        PRINTLN(T_FMT(T_GREEN) " - %d" T_RST, lock);
     }
     PRINT(T_RST);
 }
@@ -515,16 +536,27 @@ void system_utils_add_command_to_cli(EmbeddedCli* cli) {
         .func = memdump_cmd_func,
     };
     embeddedCliAddBinding(cli, memdump_cmd);
-#if KLITE_CFG_HEAP_TRACE_OWNER
-    static CliCommandBinding memtrace_cmd = {
-        .name = "memtrace",
-        .usage = "memtrace [-f only fragmentation | -p <pid> | -s <min size>]",
+#if KLITE_CFG_TRACE_HEAP_OWNER
+    static CliCommandBinding trace_mem_cmd = {
+        .name = "trace_mem",
+        .usage = "trace_mem [-f only fragmentation | -p <pid> | -s <min size>]",
         .help = "Trace memory allocations",
         .context = NULL,
         .autoTokenizeArgs = 1,
-        .func = memtrace_cmd_func,
+        .func = trace_mem_cmd_func,
     };
-    embeddedCliAddBinding(cli, memtrace_cmd);
+    embeddedCliAddBinding(cli, trace_mem_cmd);
+#endif
+#if KLITE_CFG_TRACE_MUTEX_OWNER
+    static CliCommandBinding trace_mutex_cmd = {
+        .name = "trace_mutex",
+        .usage = "trace_mutex",
+        .help = "Trace mutex locks",
+        .context = NULL,
+        .autoTokenizeArgs = 0,
+        .func = trace_mutex_cmd_func,
+    };
+    embeddedCliAddBinding(cli, trace_mutex_cmd);
 #endif
 }
 

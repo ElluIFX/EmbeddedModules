@@ -107,6 +107,9 @@ typedef struct kl_event* kl_event_t;
 
 #if KLITE_CFG_OPT_MUTEX
 struct kl_mutex {
+#if KLITE_CFG_TRACE_MUTEX_OWNER
+    struct kl_mutex* next;
+#endif
     struct kl_thread_list list;
     struct kl_thread* owner;
     kl_size_t lock;

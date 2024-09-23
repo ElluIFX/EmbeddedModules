@@ -31,7 +31,7 @@ struct heap_node {
     struct heap_node* next;
     kl_size_t magic : 8;
     kl_size_t used : sizeof(kl_size_t) * 8 - 8;
-#if KLITE_CFG_HEAP_TRACE_OWNER
+#if KLITE_CFG_TRACE_HEAP_OWNER
     kl_thread_t owner;
 #endif
 };
@@ -120,7 +120,7 @@ static inline heap_node_t alloc_node(kl_size_t need) {
     new_node->prev = node;
     node->next->prev = new_node;
 #endif
-#if KLITE_CFG_HEAP_TRACE_OWNER
+#if KLITE_CFG_TRACE_HEAP_OWNER
     new_node->owner = kl_sched_tcb_now;
 #endif
     node->next = new_node;
@@ -171,7 +171,7 @@ static inline void free_node(heap_node_t node) {
     heap->free_count++;
     node->used = 0;
     node->magic = 0;  // mark as invalid
-#if KLITE_CFG_HEAP_TRACE_OWNER
+#if KLITE_CFG_TRACE_HEAP_OWNER
     node->owner = NULL;
 #endif
 #if KLITE_CFG_HEAP_CLEAR_MEMORY_ON_FREE
@@ -265,7 +265,7 @@ void* kl_heap_realloc(void* mem, kl_size_t size) {
         // update node
         node->used = need;
         new_mem = mem;
-#if KLITE_CFG_HEAP_TRACE_OWNER  // update owner
+#if KLITE_CFG_TRACE_HEAP_OWNER  // update owner
         node->owner = kl_sched_tcb_now;
 #endif
     } else {  // new alloc and copy
@@ -318,10 +318,11 @@ void kl_heap_stats(kl_heap_stats_t stats) {
     heap_mutex_unlock();
 }
 
-#if KLITE_CFG_HEAP_TRACE_OWNER
+#if KLITE_CFG_TRACE_HEAP_OWNER
 
-bool kl_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner, kl_size_t* addr,
-                        kl_size_t* used, kl_size_t* avail) {
+bool kl_dbg_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner,
+                            kl_size_t* addr, kl_size_t* used,
+                            kl_size_t* avail) {
     heap_node_t node;
 
     heap_mutex_lock();
@@ -344,24 +345,6 @@ bool kl_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner, kl_size_t* addr,
     return false;
 }
 
-#if KLITE_CFG_HEAP_AUTO_FREE
-
-void kl_heap_auto_free(kl_thread_t owner) {
-    heap_node_t node;
-    heap_node_t next;
-
-    heap_mutex_lock();
-    for (node = heap->head; node->next != NULL; node = next) {
-        next = node->next;
-        if (node->owner == owner) {
-            free_node(node);
-        }
-    }
-    heap_mutex_unlock();
-}
-
-#endif  // KLITE_CFG_HEAP_AUTO_FREE
-
-#endif  // KLITE_CFG_HEAP_TRACE_OWNER
+#endif  // KLITE_CFG_TRACE_HEAP_OWNER
 
 #endif  // KLITE_CFG_HEAP_USE_BUILTIN

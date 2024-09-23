@@ -1,5 +1,5 @@
-#ifndef __KLITE_H
-#define __KLITE_H
+#ifndef __KLITE_H__
+#define __KLITE_H__
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -142,20 +142,6 @@ void kl_stack_overflow_hook(kl_thread_t thread, bool is_bottom);
  * @note 可由用户自行实现
  */
 void kl_kernel_idle_hook(void);
-
-#if KLITE_CFG_HEAP_TRACE_OWNER
-/**
- * @brief 迭代获取所有内存块节点
- * @param  iter_tmp [in] 迭代器内部使用的临时变量, 需初始化为NULL
- * @param  owner [out] 节点所有者线程
- * @param  addr  [out] 节点地址(用户空间地址)
- * @param  used  [out] 节点使用大小(包含控制块)
- * @param  avail [out] 节点实际大小(包含控制块)
- * @retval 继续迭代返回true, 结束迭代返回false
- */
-bool kl_heap_iter_nodes(void** iter_tmp, kl_thread_t* owner, kl_size_t* addr,
-                        kl_size_t* used, kl_size_t* avail);
-#endif
 
 /******************************************************************************
  * heap
@@ -398,6 +384,13 @@ bool kl_mutex_lock(kl_mutex_t mutex, kl_tick_t timeout);
  * @param mutex 互斥锁标识符
  */
 void kl_mutex_unlock(kl_mutex_t mutex);
+
+/**
+ * @brief 判断互斥锁是否被锁定
+ * @param mutex 互斥锁标识符
+ * @retval 如果锁定返回true, 否则返回false
+ */
+bool kl_mutex_locked(kl_mutex_t mutex);
 
 #endif  // KLITE_CFG_OPT_MUTEX
 
@@ -991,4 +984,4 @@ kl_size_t kl_thread_pool_pending(kl_thread_pool_t pool);
 
 #endif  // KLITE_CFG_OPT_THREAD_POOL
 
-#endif  // __KLITE_H
+#endif  // __KLITE_H__

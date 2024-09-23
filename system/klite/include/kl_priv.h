@@ -61,11 +61,6 @@ void kl_port_leave_critical(void);
 // 初始化内核堆
 void kl_heap_init(void* addr, kl_size_t size);
 
-#if KLITE_CFG_HEAP_AUTO_FREE
-// 内核堆自动释放
-void kl_heap_auto_free(kl_thread_t owner);
-#endif
-
 // 内核时钟递增
 void kl_kernel_tick_source(kl_tick_t time);
 
