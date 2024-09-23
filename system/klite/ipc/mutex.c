@@ -28,7 +28,7 @@ kl_mutex_t kl_mutex_create(void) {
 
 void kl_mutex_delete(kl_mutex_t mutex) {
 #if KLITE_CFG_TRACE_MUTEX_OWNER
-    kl_slist_remove(&mutex_list, &mutex);
+    kl_slist_remove(&mutex_list, mutex);
 #endif
     kl_heap_free(mutex);
 }
@@ -90,6 +90,10 @@ bool kl_mutex_locked(kl_mutex_t mutex) {
 bool kl_dbg_mutex_iter_locks(void** iter_tmp, kl_thread_t* owner,
                              kl_mutex_t* mutex, kl_size_t* lock) {
     kl_mutex_t temp;
+    if (*iter_tmp == (void*)0x01) {
+        *iter_tmp = NULL;
+        return false;
+    }
 
     kl_port_enter_critical();
     if (*iter_tmp == NULL) {
@@ -102,6 +106,9 @@ bool kl_dbg_mutex_iter_locks(void** iter_tmp, kl_thread_t* owner,
         *owner = temp->owner;
         *lock = temp->lock;
         *iter_tmp = (void*)temp->next;
+        if (*iter_tmp == NULL) {
+            *iter_tmp = (void*)0x01;
+        }
         kl_port_leave_critical();
         return true;
     }
