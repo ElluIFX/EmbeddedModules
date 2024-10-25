@@ -55,7 +55,8 @@ static ulist_t fifo_tx_list = {
     .cap = 0,
     .num = 0,
     .isize = sizeof(uart_fifo_tx_t),
-    .opt = ULIST_OPT_NO_ALLOC_EXTEND | ULIST_OPT_CLEAR_DIRTY_REGION,
+    .opt = ULIST_OPT_NO_ALLOC_EXTEND | ULIST_OPT_CLEAR_DIRTY_REGION |
+           ULIST_OPT_NO_MUTEX,
 };
 
 int uart_fifo_tx_init(UART_HandleTypeDef* huart, uint8_t* buf,
@@ -324,7 +325,8 @@ static ulist_t fifo_rx_list = {
     .cap = 0,
     .num = 0,
     .isize = sizeof(uart_fifo_rx_t),
-    .opt = ULIST_OPT_NO_ALLOC_EXTEND | ULIST_OPT_CLEAR_DIRTY_REGION,
+    .opt = ULIST_OPT_NO_ALLOC_EXTEND | ULIST_OPT_CLEAR_DIRTY_REGION |
+           ULIST_OPT_NO_MUTEX,
 };
 
 lfifo_t* uart_fifo_rx_init(UART_HandleTypeDef* huart, uint8_t* buf,
@@ -383,7 +385,8 @@ static ulist_t dma_rx_list = {
     .cap = 0,
     .num = 0,
     .isize = sizeof(uart_dma_rx_t),
-    .opt = ULIST_OPT_NO_ALLOC_EXTEND | ULIST_OPT_CLEAR_DIRTY_REGION,
+    .opt = ULIST_OPT_NO_ALLOC_EXTEND | ULIST_OPT_CLEAR_DIRTY_REGION |
+           ULIST_OPT_NO_MUTEX,
 };
 
 LFBB_Inst_Type* uart_dma_rx_init(UART_HandleTypeDef* huart, uint8_t* buf,
