@@ -68,7 +68,8 @@ struct kl_thread {
     kl_tick_t slice_tick;  // 时间片计数
 #endif
 #if KLITE_CFG_MLFQ
-    kl_tick_t mlfq_tick;  // MLFQ配额计数
+    kl_tick_t mlfq_tick;   // MLFQ计数
+    kl_tick_t mlfq_quota;  // MLFQ配额
 #endif
     struct kl_thread_list* list_sched;  // 当前所处调度队列
     struct kl_thread_list* list_wait;   // 当前所处等待队列

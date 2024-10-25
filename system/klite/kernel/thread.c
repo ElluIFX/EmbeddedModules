@@ -64,6 +64,15 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
     tcb->slice_tick = tcb->slice;
 #endif
 
+#if KLITE_CFG_MLFQ
+    tcb->mlfq_tick = 0;
+    tcb->mlfq_quota =
+        KLITE_CFG_MLFQ_QUOTA_TICK * (KLITE_CFG_MAX_PRIO + prio - 1);
+    if (tcb->mlfq_quota > KLITE_CFG_MLFQ_QUOTA_MAX) {
+        tcb->mlfq_quota = KLITE_CFG_MLFQ_QUOTA_MAX;
+    }
+#endif
+
     tcb->stack = kl_port_stack_init(stack_base, stack_base + stack_size,
                                     (void*)entry, arg, (void*)kl_thread_exit);
 

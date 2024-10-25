@@ -143,34 +143,34 @@ void kl_sched_tcb_resume(kl_thread_t tcb) {
 }
 
 void kl_sched_tcb_reset_prio(kl_thread_t tcb, uint32_t prio) {
-    uint32_t old_prio;
-    old_prio = tcb->prio;
-    tcb->prio = prio;
     if (KL_GET_FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND)) {
-        return; /* suspend state, lists stored are not real */
-    }
-    if (tcb->list_wait) {
-        kl_blist_remove(tcb->list_wait, &tcb->node_wait);
-        waitlist_insert(tcb->list_wait, &tcb->node_wait);
-    }
-    if (tcb->list_sched) {
-        if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
-        {
-            /* remove from old list */
-            kl_blist_remove(tcb->list_sched, &tcb->node_sched);
-            if (tcb->list_sched->head == NULL) {
-                m_prio_bitmap &= ~(1 << old_prio);
-                m_prio_highest = find_highest_priority(m_prio_highest);
-            }
-            /* append to new list */
-            tcb->list_sched = &m_list_ready[prio];
-            kl_blist_append(tcb->list_sched, &tcb->node_sched);
-            m_prio_bitmap |= (1 << prio);
-            if (m_prio_highest < prio) {
-                m_prio_highest = prio;
+        /* suspend state, lists stored are not real */
+    } else {
+        /* check list changes */
+        if (tcb->list_wait) {
+            kl_blist_remove(tcb->list_wait, &tcb->node_wait);
+            waitlist_insert(tcb->list_wait, &tcb->node_wait);
+        }
+        if (tcb->list_sched) {
+            if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
+            {
+                /* remove from old list */
+                remove_list_sched(tcb);
+                tcb->prio = prio;
+                /* append to new list */
+                add_list_ready(tcb, false);
             }
         }
     }
+    tcb->prio = prio;
+#if KLITE_CFG_MLFQ
+    tcb->mlfq_tick = 0;
+    tcb->mlfq_quota =
+        KLITE_CFG_MLFQ_QUOTA_TICK * (KLITE_CFG_MAX_PRIO + prio - 1);
+    if (tcb->mlfq_quota > KLITE_CFG_MLFQ_QUOTA_MAX) {
+        tcb->mlfq_quota = KLITE_CFG_MLFQ_QUOTA_MAX;
+    }
+#endif
 }
 
 void kl_sched_tcb_sleep(kl_thread_t tcb, kl_tick_t timeout) {
@@ -375,9 +375,7 @@ void kl_sched_timing(kl_tick_t time) {
         // Move all non-highest priority tasks back to the highest priority
         for (uint32_t prio = 1; prio < KLITE_CFG_MAX_PRIO; prio++) {
             while ((tcb = m_list_ready[prio].head->tcb) != NULL) {
-                remove_list_sched(tcb);
-                tcb->prio = KLITE_CFG_MAX_PRIO;
-                add_list_ready(tcb, false);
+                kl_sched_tcb_reset_prio(tcb, KLITE_CFG_MAX_PRIO);
             }
         }
         while ((tcb = m_list_ready[KLITE_CFG_MAX_PRIO].head->tcb) != NULL)
@@ -385,11 +383,8 @@ void kl_sched_timing(kl_tick_t time) {
     } else if (kl_sched_tcb_now->prio > 1) {
         // Lowest priority does not need to be scheduled
         kl_sched_tcb_now->mlfq_tick++;
-        if (kl_sched_tcb_now->mlfq_tick >=
-            KLITE_CFG_MLFQ_QUOTA_TICK *
-                (KLITE_CFG_MAX_PRIO + kl_sched_tcb_now->prio - 1)) {
+        if (kl_sched_tcb_now->mlfq_tick >= kl_sched_tcb_now->mlfq_quota) {
             // Quota used up, lower priority
-            kl_sched_tcb_now->mlfq_tick = 0;
             kl_sched_tcb_reset_prio(kl_sched_tcb_now,
                                     kl_sched_tcb_now->prio - 1);
             kl_sched_preempt(false);
