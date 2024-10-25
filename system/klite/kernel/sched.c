@@ -376,15 +376,18 @@ void kl_sched_timing(kl_tick_t time) {
         for (uint32_t prio = 1; prio < KLITE_CFG_MAX_PRIO; prio++) {
             while ((tcb = m_list_ready[prio].head->tcb) != NULL) {
                 remove_list_sched(tcb);
-                tcb->mlfq_tick = 0;
                 tcb->prio = KLITE_CFG_MAX_PRIO;
                 add_list_ready(tcb, false);
             }
         }
+        while ((tcb = m_list_ready[KLITE_CFG_MAX_PRIO].head->tcb) != NULL)
+            tcb->mlfq_tick = 0;  // Reset mlfq quota
     } else if (kl_sched_tcb_now->prio > 1) {
         // Lowest priority does not need to be scheduled
         kl_sched_tcb_now->mlfq_tick++;
-        if (kl_sched_tcb_now->mlfq_tick >= KLITE_CFG_MLFQ_QUOTA_TICK) {
+        if (kl_sched_tcb_now->mlfq_tick >=
+            KLITE_CFG_MLFQ_QUOTA_TICK *
+                (KLITE_CFG_MAX_PRIO + kl_sched_tcb_now->prio - 1)) {
             // Quota used up, lower priority
             kl_sched_tcb_now->mlfq_tick = 0;
             kl_sched_tcb_reset_prio(kl_sched_tcb_now,

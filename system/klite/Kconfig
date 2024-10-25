@@ -81,11 +81,12 @@ config KLITE_CFG_MLFQ
 
 if KLITE_CFG_MLFQ
 config KLITE_CFG_MLFQ_QUOTA_TICK
-    int "MLFQ Thread Operation Tick Quota"
+    int "MLFQ Thread Operation Tick Quota Base"
     default 100
     range 1 1000000
     help
-        The maximum tick of the thread to run in a specific level.
+        The maximum tick of the thread to run in the highest level.
+        The 2nd level will be 2xQuotaBase, 3rd level will be 3xQuotaBase, and so on.
         If the thread runs longer than this tick, the thread will be moved to the lower level.
 
 config KLITE_CFG_MLFQ_RESET_TICK
@@ -94,6 +95,9 @@ config KLITE_CFG_MLFQ_RESET_TICK
     range 1 1000000
     help
         The period to reset the thread quota and level.
+        Notice, the setting should meet the following condition:
+        KLITE_CFG_MLFQ_RESET_TICK >= KLITE_CFG_MLFQ_QUOTA_TICK * KLITE_CFG_MAX_PRIO
+        otherwise the thread will never be moved to the lowest level.
 endif
 
 config KLITE_CFG_ROUND_ROBIN
