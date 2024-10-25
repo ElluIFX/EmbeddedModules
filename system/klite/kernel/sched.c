@@ -10,6 +10,9 @@ static kl_tick_t m_idle_timeout;
 static uint32_t m_prio_highest;
 static uint32_t m_prio_bitmap;
 static uint32_t m_susp_nesting;
+#if KLITE_CFG_MLFQ
+static uint32_t m_mlfq_reset_tick;
+#endif
 static uint8_t m_susp_pending_flags;
 
 #define SUSPEND_SWITCH_PENDING 0x01
@@ -56,9 +59,25 @@ static inline void remove_list_sched(kl_thread_t tcb) {
             m_prio_bitmap &= ~(1 << tcb->prio);
             m_prio_highest = find_highest_priority(m_prio_highest);
         }
+        KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
+    } else if (tcb->list_sched == &m_list_sleep) {
+        KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
     }
     tcb->list_sched = NULL;
-    KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_READY | KL_THREAD_FLAGS_SLEEP);
+}
+
+static inline void add_list_ready(kl_thread_t tcb, const bool head) {
+    tcb->list_sched = &m_list_ready[tcb->prio];
+    if (head) {
+        kl_blist_prepend(tcb->list_sched, &tcb->node_sched);
+    } else {
+        kl_blist_append(tcb->list_sched, &tcb->node_sched);
+    }
+    m_prio_bitmap |= (1 << tcb->prio);
+    if (m_prio_highest < tcb->prio) {
+        m_prio_highest = tcb->prio;
+    }
+    KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
 }
 
 void kl_sched_tcb_remove(kl_thread_t tcb) {
@@ -78,20 +97,10 @@ void kl_sched_tcb_ready(kl_thread_t tcb, const bool head) {
     if (tcb->list_sched) {
         remove_list_sched(tcb);
     }
-    tcb->list_sched = &m_list_ready[tcb->prio];
-    if (head) {
-        kl_blist_prepend(tcb->list_sched, &tcb->node_sched);
-    } else {
-        kl_blist_append(tcb->list_sched, &tcb->node_sched);
+    add_list_ready(tcb, head);
 #if KLITE_CFG_ROUND_ROBIN_SLICE
-        tcb->slice_tick = tcb->slice; /* reset slice */
+    tcb->slice_tick = tcb->slice; /* reset slice */
 #endif
-    }
-    m_prio_bitmap |= (1 << tcb->prio);
-    if (m_prio_highest < tcb->prio) {
-        m_prio_highest = tcb->prio;
-    }
-    KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
 }
 
 void kl_sched_tcb_suspend(kl_thread_t tcb) {
@@ -357,6 +366,34 @@ void kl_sched_timing(kl_tick_t time) {
 #if KLITE_CFG_STACKOF_DETECT_ON_TICK_INC
     kl_sched_stack_overflow_check();
 #endif
+    // MLFQ scheduling check
+#if KLITE_CFG_MLFQ
+    m_mlfq_reset_tick += time;
+    if (m_mlfq_reset_tick >= KLITE_CFG_MLFQ_RESET_TICK) {
+        m_mlfq_reset_tick = 0;
+        kl_thread_t tcb;
+        // Move all non-highest priority tasks back to the highest priority
+        for (uint32_t prio = 1; prio < KLITE_CFG_MAX_PRIO; prio++) {
+            while ((tcb = m_list_ready[prio].head->tcb) != NULL) {
+                remove_list_sched(tcb);
+                tcb->mlfq_tick = 0;
+                tcb->prio = KLITE_CFG_MAX_PRIO;
+                add_list_ready(tcb, false);
+            }
+        }
+    } else if (kl_sched_tcb_now->prio > 1) {
+        // Lowest priority does not need to be scheduled
+        kl_sched_tcb_now->mlfq_tick++;
+        if (kl_sched_tcb_now->mlfq_tick >= KLITE_CFG_MLFQ_QUOTA_TICK) {
+            // Quota used up, lower priority
+            kl_sched_tcb_now->mlfq_tick = 0;
+            kl_sched_tcb_reset_prio(kl_sched_tcb_now,
+                                    kl_sched_tcb_now->prio - 1);
+            kl_sched_preempt(false);
+        }
+    }
+#endif
+    //
     if (m_idle_elapse >= m_idle_timeout) {
         kl_sched_timeout();
         m_idle_elapse = 0;
@@ -379,6 +416,9 @@ void kl_sched_init(void) {
     m_prio_bitmap = 0;
     m_susp_nesting = 0;
     m_susp_pending_flags = 0;
+#if KLITE_CFG_MLFQ
+    m_mlfq_reset_tick = 0;
+#endif
     kl_sched_tcb_now = NULL;
     kl_sched_tcb_next =
         kl_sched_tcb_now - 1; /* mark the last switch was not completed */

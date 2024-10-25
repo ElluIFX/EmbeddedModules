@@ -22,10 +22,15 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
         return NULL;
     }
 
+#if !KLITE_CFG_MLFQ
     if (prio > KLITE_CFG_MAX_PRIO)
         prio = KLITE_CFG_MAX_PRIO;
     if (!prio && entry != kl_kernel_idle_entry)
         prio = KLITE_CFG_DEFAULT_PRIO;
+#else
+    prio = KLITE_CFG_MAX_PRIO;
+#endif
+
     if (!stack_size)
         stack_size = KLITE_CFG_DEFAULT_STACK_SIZE;
 
@@ -52,6 +57,11 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
 #if KLITE_CFG_STACK_OVERFLOW_DETECT
     stack_base += KLITE_CFG_STACKOF_SIZE * sizeof(uint32_t);
     stack_size -= 2 * KLITE_CFG_STACKOF_SIZE * sizeof(uint32_t);
+#endif
+
+#if KLITE_CFG_ROUND_ROBIN_SLICE
+    tcb->slice = KLITE_CFG_ROUND_ROBIN_SLICE_DEFAULT - 1;
+    tcb->slice_tick = tcb->slice;
 #endif
 
     tcb->stack = kl_port_stack_init(stack_base, stack_base + stack_size,

@@ -200,6 +200,7 @@ void kl_heap_stats(kl_heap_stats_t stats);
  * @param stack_size 线程的栈大小(字节), 0:使用默认值
  * @param prio 线程优先级 (>0) , 0:使用默认值
  * @retval 成功返回线程句柄, 失败返回NULL
+ * @note MLFQ调度开启时线程优先级受系统自动管理
  */
 kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
                              kl_size_t stack_size, uint32_t prio);
@@ -278,6 +279,7 @@ void kl_thread_stack_info(kl_thread_t thread, kl_size_t* stack_free,
  * @param thread 线程标识符
  * @param prio 新的优先级 (>0) , 0:使用默认值
  * @warning 不允许在内核启动前修改线程优先级
+ * @warning MLFQ调度开启时线程优先级受系统自动管理
  */
 void kl_thread_set_priority(kl_thread_t thread, uint32_t prio);
 
