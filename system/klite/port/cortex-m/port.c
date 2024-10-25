@@ -74,7 +74,7 @@ void kl_port_sys_idle(kl_tick_t time) {
 extern __IO uint32_t uwTick;
 
 void SysTick_Handler(void) {
-    kl_kernel_tick_source(1);
+    kl_kernel_tick_source();
 
 #if KLITE_CFG_FREQ >= 1000
     static uint16_t tick_scaler = 0;

@@ -14,7 +14,8 @@ static void pending_handler(void) {
 }
 
 static void systick_handler(void) {
-    kernel_tick(1);
+    // kernel_tick(1);
+    kl_kernel_tick_source();
     TIMER->ISR |= 0x01;
 }
 

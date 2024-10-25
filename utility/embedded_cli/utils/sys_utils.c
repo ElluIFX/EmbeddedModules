@@ -63,14 +63,10 @@ static void list_klite(void) {
     TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
     TT_ITEM_GRID_LINE line =
         TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-    const char* head[] = {"ID",
-                          "Pri",
-                          "State",
-                          "Entry",
-                          "Usage",
-                          "Free Stack",
+    const char* head[] = {"ID",        "Pri", "State", "Entry", "Usage",
+                          "Stack F/T",  // free/total
 #if KLITE_CFG_MLFQ
-                          "MLFQ Used/Quota",
+                          "MLFQ T/Q",  // tick/quota
 #endif
                           "Err"};
     for (int i = 0; i < sizeof(head) / sizeof(char*); i++)
@@ -109,9 +105,9 @@ static void list_klite(void) {
         TT_GridLine_AddItem(line,
                             TT_FmtStr(al, f1, f2, "%d / %d", sfree, ssize));
 #if KLITE_CFG_MLFQ
-        TT_GridLine_AddItem(line,
-                            TT_FmtStr(al, f1, f2, "%d / %d", thread->mlfq_tick,
-                                      thread->mlfq_quota));
+        TT_GridLine_AddItem(
+            line, TT_FmtStr(al, f1, f2, "%d / %d", (int)thread->mlfq_tick,
+                            (int)thread->mlfq_quota));
 #endif
         TT_GridLine_AddItem(
             line, TT_FmtStr(al, f1, f2, "%d", kl_thread_errno(thread)));

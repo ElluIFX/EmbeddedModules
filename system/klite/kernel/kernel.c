@@ -23,10 +23,10 @@ void kl_kernel_start(void) {
     kl_port_sys_start();
 }
 
-void kl_kernel_tick_source(kl_tick_t time) {
-    m_tick_count += time;
+void kl_kernel_tick_source(void) {
+    m_tick_count++;
     kl_port_enter_critical();
-    kl_sched_timing(time);
+    kl_sched_timing();
 #if KLITE_CFG_ROUND_ROBIN
     kl_sched_preempt(true);
 #else

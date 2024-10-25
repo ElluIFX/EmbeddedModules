@@ -7,12 +7,12 @@ static struct kl_thread_list m_list_ready[KLITE_CFG_MAX_PRIO + 1];
 static struct kl_thread_list m_list_sleep;
 static kl_tick_t m_idle_elapse;
 static kl_tick_t m_idle_timeout;
+#if KLITE_CFG_MLFQ
+static kl_tick_t m_mlfq_reset_tick;
+#endif
 static uint32_t m_prio_highest;
 static uint32_t m_prio_bitmap;
 static uint32_t m_susp_nesting;
-#if KLITE_CFG_MLFQ
-static uint32_t m_mlfq_reset_tick;
-#endif
 static uint8_t m_susp_pending_flags;
 
 #define SUSPEND_SWITCH_PENDING 0x01
@@ -56,26 +56,27 @@ static inline void remove_list_sched(kl_thread_t tcb) {
     if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
     {
         if (tcb->list_sched->head == NULL) {
-            m_prio_bitmap &= ~(1 << tcb->prio);
+            m_prio_bitmap &= ~(1 << (uint32_t)(tcb->list_sched - m_list_ready));
             m_prio_highest = find_highest_priority(m_prio_highest);
         }
         KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
-    } else if (tcb->list_sched == &m_list_sleep) {
+    } else {
         KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_SLEEP);
     }
     tcb->list_sched = NULL;
 }
 
-static inline void add_list_ready(kl_thread_t tcb, const bool head) {
-    tcb->list_sched = &m_list_ready[tcb->prio];
+static inline void add_list_ready(kl_thread_t tcb, const bool head,
+                                  uint32_t prio) {
+    tcb->list_sched = &m_list_ready[prio];
     if (head) {
         kl_blist_prepend(tcb->list_sched, &tcb->node_sched);
     } else {
         kl_blist_append(tcb->list_sched, &tcb->node_sched);
     }
-    m_prio_bitmap |= (1 << tcb->prio);
-    if (m_prio_highest < tcb->prio) {
-        m_prio_highest = tcb->prio;
+    m_prio_bitmap |= (1 << prio);
+    if (m_prio_highest < prio) {
+        m_prio_highest = prio;
     }
     KL_SET_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
 }
@@ -97,7 +98,7 @@ void kl_sched_tcb_ready(kl_thread_t tcb, const bool head) {
     if (tcb->list_sched) {
         remove_list_sched(tcb);
     }
-    add_list_ready(tcb, head);
+    add_list_ready(tcb, head, tcb->prio);
 #if KLITE_CFG_ROUND_ROBIN_SLICE
     tcb->slice_tick = tcb->slice; /* reset slice */
 #endif
@@ -145,28 +146,25 @@ void kl_sched_tcb_resume(kl_thread_t tcb) {
 void kl_sched_tcb_reset_prio(kl_thread_t tcb, uint32_t prio) {
     if (KL_GET_FLAG(tcb->flags, KL_THREAD_FLAGS_SUSPEND)) {
         /* suspend state, lists stored are not real */
-    } else {
+    } else if (tcb != kl_sched_tcb_now) {
         /* check list changes */
+#if KLITE_CFG_WAIT_LIST_ORDER_BY_PRIO
         if (tcb->list_wait) {
             kl_blist_remove(tcb->list_wait, &tcb->node_wait);
             waitlist_insert(tcb->list_wait, &tcb->node_wait);
         }
-        if (tcb->list_sched) {
-            if (tcb->list_sched != &m_list_sleep) /* in ready list ? */
-            {
-                /* remove from old list */
-                remove_list_sched(tcb);
-                tcb->prio = prio;
-                /* append to new list */
-                add_list_ready(tcb, false);
-            }
+#endif
+        /* in ready list */
+        if (tcb->list_sched && tcb->list_sched != &m_list_sleep) {
+            remove_list_sched(tcb);
+            add_list_ready(tcb, false, prio);
         }
     }
     tcb->prio = prio;
 #if KLITE_CFG_MLFQ
     tcb->mlfq_tick = 0;
     tcb->mlfq_quota =
-        KLITE_CFG_MLFQ_QUOTA_TICK * (KLITE_CFG_MAX_PRIO + prio - 1);
+        KLITE_CFG_MLFQ_QUOTA_TICK * (KLITE_CFG_MAX_PRIO + 1 - prio);
     if (tcb->mlfq_quota > KLITE_CFG_MLFQ_QUOTA_MAX) {
         tcb->mlfq_quota = KLITE_CFG_MLFQ_QUOTA_MAX;
     }
@@ -293,7 +291,7 @@ void kl_sched_switch(void) {
     kl_blist_remove(tcb->list_sched, &tcb->node_sched);
     KL_CLR_FLAG(tcb->flags, KL_THREAD_FLAGS_READY);
     if (tcb->list_sched->head == NULL) {
-        m_prio_bitmap &= ~(1 << tcb->prio);
+        m_prio_bitmap &= ~(1 << m_prio_highest);
         m_prio_highest = find_highest_priority(m_prio_highest);
     }
     tcb->list_sched = NULL;
@@ -302,13 +300,8 @@ void kl_sched_switch(void) {
 }
 
 void kl_sched_preempt(const bool round_robin) {
-    if (m_prio_bitmap == 0) /* ready list empty */
-    {
-        return;
-    }
-    if (kl_sched_tcb_now !=
-        kl_sched_tcb_next) /* last switch was not completed */
-    {
+    if (!m_prio_bitmap || kl_sched_tcb_now != kl_sched_tcb_next) {
+        /* ready list empty or last switch was not completed */
         return;
     }
     if (m_susp_nesting) { /* in critical section */
@@ -322,9 +315,8 @@ void kl_sched_preempt(const bool round_robin) {
 #if KLITE_CFG_ROUND_ROBIN_SLICE
         if (round_robin && m_prio_highest == kl_sched_tcb_now->prio) {
             /* round robin in same prio */
-            if (kl_sched_tcb_now->slice_tick > 0) {
+            if (kl_sched_tcb_now->slice_tick) {
                 /* slice left */
-                kl_sched_tcb_now->slice_tick--;
                 return;
             }
             /* reset slice and switch */
@@ -360,34 +352,54 @@ static inline void kl_sched_timeout(void) {
     }
 }
 
-void kl_sched_timing(kl_tick_t time) {
-    m_idle_elapse += time;
-    kl_sched_tcb_now->time += time;
+void kl_sched_timing(void) {
+    m_idle_elapse++;
+    kl_sched_tcb_now->time++;
 #if KLITE_CFG_STACKOF_DETECT_ON_TICK_INC
     kl_sched_stack_overflow_check();
 #endif
+#if KLITE_CFG_ROUND_ROBIN_SLICE
+    if (kl_sched_tcb_now->slice_tick) {
+        kl_sched_tcb_now->slice_tick--;
+    }
+#endif
     // MLFQ scheduling check
 #if KLITE_CFG_MLFQ
-    m_mlfq_reset_tick += time;
+    m_mlfq_reset_tick++;
     if (m_mlfq_reset_tick >= KLITE_CFG_MLFQ_RESET_TICK) {
         m_mlfq_reset_tick = 0;
-        kl_thread_t tcb;
+        // clear mlfq tick
+        for (struct kl_thread_node* node =
+                 m_list_ready[KLITE_CFG_MAX_PRIO].head;
+             node != NULL; node = node->next) {
+            node->tcb->mlfq_tick = 0;
+        }
+        for (struct kl_thread_node* node = m_list_sleep.head; node != NULL;
+             node = node->next) {
+            kl_sched_tcb_reset_prio(node->tcb, KLITE_CFG_MAX_PRIO);
+        }
         // Move all non-highest priority tasks back to the highest priority
-        for (uint32_t prio = 1; prio < KLITE_CFG_MAX_PRIO; prio++) {
-            while ((tcb = m_list_ready[prio].head->tcb) != NULL) {
-                kl_sched_tcb_reset_prio(tcb, KLITE_CFG_MAX_PRIO);
+        for (uint32_t prio = KLITE_CFG_MAX_PRIO - 1; prio > 0; prio--) {
+            while (m_list_ready[prio].head != NULL) {
+                kl_sched_tcb_reset_prio(m_list_ready[prio].head->tcb,
+                                        KLITE_CFG_MAX_PRIO);
             }
         }
-        while ((tcb = m_list_ready[KLITE_CFG_MAX_PRIO].head->tcb) != NULL)
-            tcb->mlfq_tick = 0;  // Reset mlfq quota
-    } else if (kl_sched_tcb_now->prio > 1) {
+        if (kl_sched_tcb_now->prio > 0) {
+            kl_sched_tcb_now->prio = KLITE_CFG_MAX_PRIO;
+            kl_sched_tcb_now->mlfq_tick = 0;
+            kl_sched_tcb_now->mlfq_quota = KLITE_CFG_MLFQ_QUOTA_TICK;
+        }
+    }
+    if (kl_sched_tcb_now->prio > 1) {
         // Lowest priority does not need to be scheduled
-        kl_sched_tcb_now->mlfq_tick++;
-        if (kl_sched_tcb_now->mlfq_tick >= kl_sched_tcb_now->mlfq_quota) {
-            // Quota used up, lower priority
-            kl_sched_tcb_reset_prio(kl_sched_tcb_now,
-                                    kl_sched_tcb_now->prio - 1);
-            kl_sched_preempt(false);
+        if (++kl_sched_tcb_now->mlfq_tick >= kl_sched_tcb_now->mlfq_quota) {
+            // Quota used up, move to lower priority
+            kl_sched_tcb_now->prio = kl_sched_tcb_now->prio - 1;
+            kl_sched_tcb_now->mlfq_tick = 0;
+            kl_sched_tcb_now->mlfq_quota =
+                KLITE_CFG_MLFQ_QUOTA_TICK *
+                (KLITE_CFG_MAX_PRIO + 1 - kl_sched_tcb_now->prio);
         }
     }
 #endif
@@ -399,7 +411,7 @@ void kl_sched_timing(kl_tick_t time) {
 }
 
 void kl_sched_idle(void) {
-    if (m_prio_bitmap != 0) {
+    if (m_prio_bitmap) {
         kl_sched_tcb_ready(kl_sched_tcb_now, false);
         kl_sched_switch();
     } else {

@@ -28,7 +28,7 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
     if (!prio && entry != kl_kernel_idle_entry)
         prio = KLITE_CFG_DEFAULT_PRIO;
 #else
-    prio = KLITE_CFG_MAX_PRIO;
+    prio = entry != kl_kernel_idle_entry ? KLITE_CFG_MAX_PRIO : 0;
 #endif
 
     if (!stack_size)
@@ -59,20 +59,6 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
     stack_size -= 2 * KLITE_CFG_STACKOF_SIZE * sizeof(uint32_t);
 #endif
 
-#if KLITE_CFG_ROUND_ROBIN_SLICE
-    tcb->slice = KLITE_CFG_ROUND_ROBIN_SLICE_DEFAULT - 1;
-    tcb->slice_tick = tcb->slice;
-#endif
-
-#if KLITE_CFG_MLFQ
-    tcb->mlfq_tick = 0;
-    tcb->mlfq_quota =
-        KLITE_CFG_MLFQ_QUOTA_TICK * (KLITE_CFG_MAX_PRIO + prio - 1);
-    if (tcb->mlfq_quota > KLITE_CFG_MLFQ_QUOTA_MAX) {
-        tcb->mlfq_quota = KLITE_CFG_MLFQ_QUOTA_MAX;
-    }
-#endif
-
     tcb->stack = kl_port_stack_init(stack_base, stack_base + stack_size,
                                     (void*)entry, arg, (void*)kl_thread_exit);
 
@@ -84,6 +70,20 @@ kl_thread_t kl_thread_create(void (*entry)(void*), void* arg,
     tcb->node_sched.tcb = tcb;
     tcb->node_manage.tcb = tcb;
     tcb->tid = kl_thread_id_counter++;
+
+#if KLITE_CFG_ROUND_ROBIN_SLICE
+    tcb->slice = KLITE_CFG_ROUND_ROBIN_SLICE_DEFAULT;
+    tcb->slice_tick = tcb->slice;
+#endif
+
+#if KLITE_CFG_MLFQ
+    tcb->mlfq_tick = 0;
+    tcb->mlfq_quota =
+        KLITE_CFG_MLFQ_QUOTA_TICK * (KLITE_CFG_MAX_PRIO + 1 - prio);
+    if (tcb->mlfq_quota > KLITE_CFG_MLFQ_QUOTA_MAX) {
+        tcb->mlfq_quota = KLITE_CFG_MLFQ_QUOTA_MAX;
+    }
+#endif
 
     kl_port_enter_critical();
     kl_blist_append(&m_list_alive, &tcb->node_manage);
@@ -214,8 +214,7 @@ void kl_thread_set_slice(kl_thread_t thread, kl_tick_t slice) {
         return;
     }
     kl_port_enter_critical();
-    // slice=0时实际上会运行1个tick
-    thread->slice = slice > 0 ? slice - 1 : 0;
+    thread->slice = slice ? slice : KLITE_CFG_ROUND_ROBIN_SLICE_DEFAULT;
     thread->slice_tick = thread->slice;
     kl_port_leave_critical();
 #else

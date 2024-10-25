@@ -62,7 +62,7 @@ void kl_port_leave_critical(void);
 void kl_heap_init(void* addr, kl_size_t size);
 
 // 内核时钟递增
-void kl_kernel_tick_source(kl_tick_t time);
+void kl_kernel_tick_source(void);
 
 // 内核空闲线程
 void kl_kernel_idle_entry(void* args);
@@ -80,8 +80,7 @@ void kl_sched_idle(void);
 
 // 线程调度器时钟处理
 // 如果有线程超时, 则唤醒线程
-// @param time: 时钟增量
-void kl_sched_timing(kl_tick_t time);
+void kl_sched_timing(void);
 
 // 线程调度器挂起
 void kl_sched_suspend(void);
