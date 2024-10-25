@@ -88,6 +88,10 @@ _INLINE uint8_t debug_info_runner(uint64_t sleep_us) {
         uint64_t period = now - last_print;
         uint64_t other = period;
         TT tt = TT_NewTable(-1);
+        TT_AddTitle(tt,
+                    TT_Str(TT_ALIGN_CENTER, TT_FMT1_YELLOW, TT_FMT2_BOLD,
+                           "[ Scheduler Debug Report ]"),
+                    '-');
 #if SCH_CFG_ENABLE_TASK
         sch_task_add_debug(tt, period, &other);
 #endif  // SCH_CFG_ENABLE_TASK
@@ -110,7 +114,7 @@ _INLINE uint8_t debug_info_runner(uint64_t sleep_us) {
                      -1);
         sleep_sum = 0;
         sleep_cnt = 0;
-        TT_AddSeparator(tt, TT_FMT1_BLUE, TT_FMT2_BOLD, '-');
+        TT_AddSeparator(tt, TT_FMT1_YELLOW, TT_FMT2_BOLD, '-');
         TT_LineBreak(tt, 1);
         TT_Print(tt);
         TT_FreeTable(tt);

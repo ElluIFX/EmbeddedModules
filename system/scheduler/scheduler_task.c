@@ -210,13 +210,13 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t* other) {
         TT_ALIGN al = TT_ALIGN_LEFT;
         TT_AddTitle(
             tt,
-            TT_FmtStr(al, f1, f2, "[ task Report / %d ]", sch_task_get_num()),
+            TT_FmtStr(al, f1, f2, "[ Task Report / %d ]", sch_task_get_num()),
             '-');
         TT_ITEM_GRID grid = TT_AddGrid(tt, 0);
         TT_ITEM_GRID_LINE line =
             TT_Grid_AddLine(grid, TT_Str(TT_ALIGN_CENTER, f1, f2, " | "));
-        const char* head1[] = {"No",    "Pri",   "Run",   "Tmax",
-                               "Usage", "LTavg", "LTmax", "Name"};
+        const char* head1[] = {"No",    "Pri",   "Run",   "Tmax/us",
+                               "Usage/%", "LTavg(max)/us", "Name"};
         for (int i = 0; i < sizeof(head1) / sizeof(char*); i++)
             TT_GridLine_AddItem(line, TT_Str(al, f1, f2, head1[i]));
         int i = 0;
@@ -256,10 +256,9 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t* other) {
                 TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.3f", usage));
                 f1 = TT_FMT1_GREEN;
                 f2 = TT_FMT2_NONE;
-                TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.2f",
+                TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.2f(%.2f)",
                                                     tick_to_us(task->total_lat /
-                                                               task->run_cnt)));
-                TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%.2f",
+                                                               task->run_cnt),
                                                     tick_to_us(task->max_lat)));
                 TT_GridLine_AddItem(line,
                                     TT_FmtStr(al, f1, f2, "%s", task->name));
@@ -271,7 +270,6 @@ void sch_task_add_debug(TT tt, uint64_t period, uint64_t* other) {
                 TT_GridLine_AddItem(line, TT_FmtStr(al, f1, f2, "%d", i));
                 TT_GridLine_AddItem(
                     line, TT_FmtStr(al, f1, f2, "%d", task->priority));
-                TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "-"));
                 TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "-"));
                 TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "-"));
                 TT_GridLine_AddItem(line, TT_Str(al, f1, f2, "-"));
