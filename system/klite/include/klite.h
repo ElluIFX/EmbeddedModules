@@ -294,7 +294,7 @@ uint32_t kl_thread_priority(kl_thread_t thread);
  * @brief 设置线程的Round-Robin抢占时间片大小
  * @param thread 线程标识符
  * @param slice 时间片大小 (Tick, >0, 0:使用默认值)
- * @warning 仅在Round-Robin调度功能开启且自定义时间片功能开启时有效
+ * @warning 仅在Round-Robin调度自定义时间片功能开启时有效
  */
 void kl_thread_set_slice(kl_thread_t thread, kl_tick_t slice);
 

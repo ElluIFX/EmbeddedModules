@@ -9,6 +9,7 @@ config KLITE_CFG_MAX_PRIO
     int "Max Priority"
     default 7
     range 1 31
+    depends on !KLITE_CFG_MLFQ
     help
         The maximum priority level of the kernel.
         Available prio = 1 ~ Max Priority(include)
@@ -19,6 +20,7 @@ config KLITE_CFG_DEFAULT_PRIO
     int "Default Priority"
     default 4
     range 1 KLITE_CFG_MAX_PRIO
+    depends on !KLITE_CFG_MLFQ
     help
         The default priority level of the thread created with prio=0.
         When MLFQ is enabled, the priority is controlled by the system automatically.
@@ -68,21 +70,29 @@ menu "Built-in Heap Configuration"
 endmenu
 
 config KLITE_CFG_MLFQ
-    bool "Multi-Level Feedback Queue"
+    bool "Multi-Level Feedback Queue (MLFQ) Scheduling"
     default n
-    select KLITE_CFG_ROUND_ROBIN
-    select KLITE_CFG_ROUND_ROBIN_SLICE
     help
         Enable the multi-level feedback queue scheduling feature.
-        MLFQ NLevel is controlled by KLITE_CFG_MAX_PRIO.
-        MLFQ TR-R is controlled by KLITE_CFG_ROUND_ROBIN_SLICE_DEFAULT.
-        MLFQ TRation is controlled by KLITE_CFG_MLFQ_MAX_TICK.
-        MLFQ TReset is controlled by KLITE_CFG_MLFQ_RESET_TICK.
 
 if KLITE_CFG_MLFQ
+config KLITE_CFG_MLFQ_LEVEL_NUM
+    int "MLFQ Level Number"
+    default 7
+    range 1 31
+    help
+        The number of levels in the MLFQ scheduling.
+
+config KLITE_CFG_MLFQ_RR_TICK
+    int "MLFQ Round-Robin Slice Tick"
+    default 10
+    range 1 1000000
+    help
+        The slice time of the round-robin scheduling.
+
 config KLITE_CFG_MLFQ_QUOTA_TICK
-    int "MLFQ Thread Operation Tick Quota Base"
-    default 20
+    int "MLFQ Thread Operation Quota Base Tick"
+    default 10
     range 1 1000000
     help
         The quota for the thread to run in the highest level.
@@ -90,15 +100,15 @@ config KLITE_CFG_MLFQ_QUOTA_TICK
         If the thread runs longer than this tick, the thread will be moved to the lower level.
 
 config KLITE_CFG_MLFQ_QUOTA_MAX
-    int "MLFQ Thread Operation Tick Quota Max"
-    default 200
+    int "MLFQ Thread Operation Quota Max Tick"
+    default 100
     range 1 1000000
     help
         The maximum value of the thread quota.
 
 config KLITE_CFG_MLFQ_RESET_TICK
     int "MLFQ Thread Level Reset Tick"
-    default 1000
+    default 500
     range 1 1000000
     help
         The period to reset the thread quota and level.
@@ -109,20 +119,22 @@ endif
 config KLITE_CFG_ROUND_ROBIN
     bool "Round Robin Preemption"
     default y
+    depends on !KLITE_CFG_MLFQ
     help
         Enable the round-robin preemption feature.
         Threads with the same priority will be scheduled in a round-robin manner even if the thread is not sleeping.
 
 config KLITE_CFG_ROUND_ROBIN_SLICE
-    bool "Custom Tick Slice"
+    bool "Custom Round Robin Slice"
     depends on KLITE_CFG_ROUND_ROBIN
+    depends on !KLITE_CFG_MLFQ
     default n
     help
-        Enable the round-robin custom slice time feature.
+        Enable the round-robin custom slice size feature.
         The thread will be switched out after the user-defined slice time.
 
 config KLITE_CFG_ROUND_ROBIN_SLICE_DEFAULT
-    int "Default Slice Time"
+    int "Default Round Robin Slice Tick"
     depends on KLITE_CFG_ROUND_ROBIN_SLICE
     default 10
     range 1 10000

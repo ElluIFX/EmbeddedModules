@@ -185,6 +185,7 @@ void kl_thread_stack_info(kl_thread_t thread, kl_size_t* stack_free,
 }
 
 void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
+#if !KLITE_CFG_MLFQ
     if (THREAD_INFO_INVALID(thread)) {
         KL_SET_ERRNO(KL_EINVAL);
         return;
@@ -197,6 +198,11 @@ void kl_thread_set_priority(kl_thread_t thread, uint32_t prio) {
     kl_sched_tcb_reset_prio(thread, prio);
     kl_sched_preempt(false);
     kl_port_leave_critical();
+#else
+    (void)thread;
+    (void)prio;
+    KL_SET_ERRNO(KL_ENOTSUP);
+#endif
 }
 
 uint32_t kl_thread_priority(kl_thread_t thread) {
