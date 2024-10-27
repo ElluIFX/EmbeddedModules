@@ -111,6 +111,11 @@ extern void uart_error_process(UART_HandleTypeDef* huart);
  */
 extern int uart_fifo_tx_init(UART_HandleTypeDef* huart, uint8_t* buf,
                              size_t buf_size);
+
+/**
+ * @brief 关闭FIFO串口发送并返回阻塞发送模式
+ * @param  huart            目标串口(NULL则关闭所有串口)
+ */
 extern void uart_fifo_tx_deinit(UART_HandleTypeDef* huart);
 #endif
 

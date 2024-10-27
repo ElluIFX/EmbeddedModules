@@ -83,7 +83,7 @@ int uart_fifo_tx_init(UART_HandleTypeDef* huart, uint8_t* buf,
 
 void uart_fifo_tx_deinit(UART_HandleTypeDef* huart) {
     ulist_foreach(&fifo_tx_list, uart_fifo_tx_t, ctrl) {
-        if (ctrl->huart == huart) {
+        if (ctrl->huart == huart || huart == NULL) {
             HAL_UART_DMAStop(ctrl->huart);
             HAL_UART_AbortTransmit_IT(ctrl->huart);
             MOD_MUTEX_DELETE(ctrl->mutex);
