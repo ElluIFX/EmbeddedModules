@@ -1,7 +1,7 @@
 #include "kl_priv.h"
 
 #define MAKE_VERSION_CODE(a, b, c) ((a << 24) | (b << 16) | (c))
-#define KERNEL_VERSION_CODE MAKE_VERSION_CODE(5, 1, 0)
+#define KERNEL_VERSION_CODE MAKE_VERSION_CODE(6, 0, 0)
 
 static uint64_t m_tick_count;
 static kl_thread_t m_idle_thread;
@@ -18,7 +18,7 @@ void kl_kernel_init(void* heap_addr, kl_size_t heap_size) {
                                      KLITE_CFG_IDLE_THREAD_STACK_SIZE, 0);
 }
 
-void kl_kernel_start(void) {
+void kl_kernel_boot(void) {
     kl_sched_switch();
     kl_port_sys_start();
 }

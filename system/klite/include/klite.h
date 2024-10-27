@@ -13,18 +13,18 @@
  ******************************************************************************/
 
 /**
+ * @brief 内核初始化
  * @param heap_addr 内核堆起始地址
  * @param heap_size 内核堆大小
- * @brief 用于内核初始化在调用内核初始化时需保证中断处于关闭状态,
  * @warning 此函数只能执行一次, 在初始化内核之前不可调用内核其它函数。
  */
 void kl_kernel_init(void* heap_addr, kl_size_t heap_size);
 
 /**
- * @brief 用于启动内核, 此函正常情况下不会返回
- * @warning 在调用之前至少要创建一个线程
+ * @brief 用于启动内核, 此函数正常情况下不会返回
+ * @warning 在调用之前至少要创建一个主线程
  */
-void kl_kernel_start(void);
+void kl_kernel_boot(void);
 
 /**
  * @brief 进入临界区, 禁止中断

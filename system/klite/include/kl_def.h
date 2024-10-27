@@ -63,7 +63,7 @@ struct kl_thread {
     uint32_t flags : 8;    // 线程状态
     kl_tick_t time;        // 线程运行时间
     kl_tick_t timeout;     // 睡眠超时时间
-#if KLITE_CFG_ROUND_ROBIN_SLICE
+#if KLITE_CFG_ROUND_ROBIN_SLICE || KLITE_CFG_MLFQ
     kl_tick_t slice;       // 抢占时间片
     kl_tick_t slice_tick;  // 时间片计数
 #endif

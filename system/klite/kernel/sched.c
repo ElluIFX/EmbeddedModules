@@ -235,11 +235,11 @@ void kl_sched_suspend(void) {
 }
 
 void kl_sched_resume(void) {
-    if (m_susp_nesting == 0) {
+    if (!m_susp_nesting) {
         return;
     }
     m_susp_nesting--;
-    if (m_susp_nesting == 0) { /* resume switch */
+    if (!m_susp_nesting) { /* resume switch */
         if (KL_GET_FLAG(m_susp_pending_flags, SUSPEND_PREEMPT_PENDING)) {
             kl_sched_preempt(
                 KL_GET_FLAG(m_susp_pending_flags, SUSPEND_PREEMPT_ROUND_ROBIN));
