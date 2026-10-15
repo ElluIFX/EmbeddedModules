@@ -108,7 +108,7 @@ extern void __cortn_internal_await_msg(__async__, void** msgPtr);
 #define __CR_ACQUIRE_MUTEX(mutex_name)                 \
     do {                                               \
         if (!__cortn_internal_acq_mutex(mutex_name)) { \
-            __cr_handle__->state = _CR_STATE_CRING;    \
+            __cr_handle__->state = _CR_STATE_AWAITING;    \
             __CR_YIELD();                              \
         }                                              \
     } while (0)
